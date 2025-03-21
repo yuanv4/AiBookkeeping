@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人收支管理 - 收支记录</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="nav-bar">
+        <div class="nav-brand">
+            <i class="fas fa-chart-line"></i>
+            <span>个人收支管理</span>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-icon"><i class="fas fa-bell"></i></button>
+            <button class="btn-icon"><i class="fas fa-user"></i></button>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <!-- 左侧导航栏 -->
+        <nav class="sidebar">
+            <div class="nav-menu">
+                <h3><i class="fas fa-chart-pie"></i> 财务仪表盘</h3>
+                <ul>
+                    <li><a href="dashboard.html"><i class="fas fa-home"></i> 仪表盘</a></li>
+                    <li><a href="transactions.html" class="active"><i class="fas fa-list"></i> 收支记录</a></li>
+                    <li><a href="budget.html"><i class="fas fa-wallet"></i> 预算规划</a></li>
+                    <li><a href="accounts.html"><i class="fas fa-credit-card"></i> 账户管理</a></li>
+                    <li><a href="analysis.html"><i class="fas fa-chart-bar"></i> 账单分析</a></li>
+                    <li><a href="settings.html"><i class="fas fa-cog"></i> 设置</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- 主要内容区 -->
+        <main class="container">
+            <!-- 页面标题和操作栏 -->
+            <div class="page-header">
+                <h1>收支记录</h1>
+                <div class="header-actions">
+                    <button class="btn btn-outline" onclick="showFilterModal()">
+                        <i class="fas fa-filter"></i> 筛选
+                    </button>
+                    <button class="btn btn-primary" onclick="showAddRecordModal()">
+                        <i class="fas fa-plus"></i> 新增记录
+                    </button>
+                </div>
+            </div>
+
+            <!-- 筛选条件展示 -->
+            <div class="filter-tags">
+                <span class="filter-tag">
+                    <i class="fas fa-calendar"></i> 本月
+                    <button class="tag-remove"><i class="fas fa-times"></i></button>
+                </span>
+                <span class="filter-tag">
+                    <i class="fas fa-tags"></i> 餐饮
+                    <button class="tag-remove"><i class="fas fa-times"></i></button>
+                </span>
+                <button class="btn btn-text">清除全部</button>
+            </div>
+
+            <!-- 交易列表 -->
+            <div class="transaction-list-container">
+                <!-- 日期分组 -->
+                <div class="date-group">
+                    <div class="date-header">
+                        <h3>今天</h3>
+                        <div class="date-summary">
+                            <span class="income">收入 ¥0</span>
+                            <span class="expense">支出 ¥35.00</span>
+                        </div>
+                    </div>
+                    <div class="transaction-list">
+                        <div class="transaction-item">
+                            <div class="transaction-icon" style="background: rgba(231, 76, 60, 0.1);">
+                                <i class="fas fa-utensils" style="color: var(--danger-color);"></i>
+                            </div>
+                            <div class="transaction-content">
+                                <div class="transaction-info">
+                                    <h4>午餐</h4>
+                                    <span class="text-muted">12:30 · 支付宝</span>
+                                </div>
+                                <span class="transaction-amount expense">-¥35.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="date-group">
+                    <div class="date-header">
+                        <h3>2024-01-15</h3>
+                        <div class="date-summary">
+                            <span class="income">收入 ¥25,800.00</span>
+                            <span class="expense">支出 ¥258.50</span>
+                        </div>
+                    </div>
+                    <div class="transaction-list">
+                        <div class="transaction-item">
+                            <div class="transaction-icon" style="background: rgba(39, 174, 96, 0.1);">
+                                <i class="fas fa-money-bill-wave" style="color: var(--success-color);"></i>
+                            </div>
+                            <div class="transaction-content">
+                                <div class="transaction-info">
+                                    <h4>工资收入</h4>
+                                    <span class="text-muted">09:00 · 工商银行</span>
+                                </div>
+                                <span class="transaction-amount income">+¥25,800.00</span>
+                            </div>
+                        </div>
+                        <div class="transaction-item">
+                            <div class="transaction-icon" style="background: rgba(231, 76, 60, 0.1);">
+                                <i class="fas fa-shopping-bag" style="color: var(--danger-color);"></i>
+                            </div>
+                            <div class="transaction-content">
+                                <div class="transaction-info">
+                                    <h4>超市购物</h4>
+                                    <span class="text-muted">16:45 · 微信支付</span>
+                                </div>
+                                <span class="transaction-amount expense">-¥258.50</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 加载更多 -->
+            <div class="load-more">
+                <button class="btn btn-text">加载更多记录</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- 筛选模态框 -->
+    <div id="filterModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">筛选记录</h3>
+                <button class="modal-close" onclick="hideFilterModal()">&times;</button>
+            </div>
+            <form class="filter-form">
+                <div class="form-group">
+                    <label>时间范围</label>
+                    <select class="form-control">
+                        <option value="this_month">本月</option>
+                        <option value="last_month">上月</option>
+                        <option value="this_year">今年</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>交易类型</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox">
+                            <input type="checkbox" checked> 支出
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" checked> 收入
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>分类</label>
+                    <div class="tag-selector">
+                        <label class="tag-item">
+                            <input type="checkbox" checked>
+                            <span><i class="fas fa-utensils"></i> 餐饮</span>
+                        </label>
+                        <label class="tag-item">
+                            <input type="checkbox">
+                            <span><i class="fas fa-shopping-bag"></i> 购物</span>
+                        </label>
+                        <label class="tag-item">
+                            <input type="checkbox">
+                            <span><i class="fas fa-bus"></i> 交通</span>
+                        </label>
+                        <label class="tag-item">
+                            <input type="checkbox">
+                            <span><i class="fas fa-home"></i> 居住</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>账户</label>
+                    <div class="tag-selector">
+                        <label class="tag-item">
+                            <input type="checkbox" checked>
+                            <span><i class="fab fa-alipay"></i> 支付宝</span>
+                        </label>
+                        <label class="tag-item">
+                            <input type="checkbox" checked>
+                            <span><i class="fab fa-weixin"></i> 微信支付</span>
+                        </label>
+                        <label class="tag-item">
+                            <input type="checkbox">
+                            <span><i class="fas fa-credit-card"></i> 工商银行</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>金额范围</label>
+                    <div class="range-inputs">
+                        <input type="number" class="form-control" placeholder="最小金额">
+                        <span>至</span>
+                        <input type="number" class="form-control" placeholder="最大金额">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="hideFilterModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">应用筛选</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 添加记录模态框 -->
+    <div id="addRecordModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">添加记录</h3>
+                <button class="modal-close" onclick="hideAddRecordModal()">&times;</button>
+            </div>
+            <form class="add-record-form">
+                <div class="form-group">
+                    <label>类型</label>
+                    <select class="form-control">
+                        <option value="expense">支出</option>
+                        <option value="income">收入</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>分类</label>
+                    <select class="form-control">
+                        <option value="food"><i class="fas fa-utensils"></i> 餐饮</option>
+                        <option value="shopping"><i class="fas fa-shopping-bag"></i> 购物</option>
+                        <option value="transport"><i class="fas fa-bus"></i> 交通</option>
+                        <option value="housing"><i class="fas fa-home"></i> 居住</option>
+                        <option value="entertainment"><i class="fas fa-film"></i> 娱乐</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>金额</label>
+                    <input type="number" class="form-control" step="0.01" placeholder="请输入金额">
+                </div>
+                <div class="form-group">
+                    <label>账户</label>
+                    <select class="form-control">
+                        <option value="alipay"><i class="fab fa-alipay"></i> 支付宝</option>
+                        <option value="wechat"><i class="fab fa-weixin"></i> 微信支付</option>
+                        <option value="bank"><i class="fas fa-credit-card"></i> 工商银行</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="datetime-local" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <input type="text" class="form-control" placeholder="添加备注信息">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="hideAddRecordModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showFilterModal() {
+            document.getElementById('filterModal').style.display = 'flex';
+        }
+
+        function hideFilterModal() {
+            document.getElementById('filterModal').style.display = 'none';
+        }
+
+        function showAddRecordModal() {
+            document.getElementById('addRecordModal').style.display = 'flex';
+        }
+
+        function hideAddRecordModal() {
+            document.getElementById('addRecordModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

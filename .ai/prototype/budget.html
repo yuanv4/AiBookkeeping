@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人收支管理 - 预算规划</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="nav-bar">
+        <div class="nav-brand">
+            <i class="fas fa-chart-line"></i>
+            <span>个人收支管理</span>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-icon"><i class="fas fa-bell"></i></button>
+            <button class="btn-icon"><i class="fas fa-user"></i></button>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <!-- 左侧导航栏 -->
+        <nav class="sidebar">
+            <div class="nav-menu">
+                <h3><i class="fas fa-chart-pie"></i> 财务仪表盘</h3>
+                <ul>
+                    <li><a href="dashboard.html"><i class="fas fa-home"></i> 仪表盘</a></li>
+                    <li><a href="transactions.html"><i class="fas fa-list"></i> 收支记录</a></li>
+                    <li><a href="budget.html" class="active"><i class="fas fa-wallet"></i> 预算规划</a></li>
+                    <li><a href="accounts.html"><i class="fas fa-credit-card"></i> 账户管理</a></li>
+                    <li><a href="analysis.html"><i class="fas fa-chart-bar"></i> 账单分析</a></li>
+                    <li><a href="settings.html"><i class="fas fa-cog"></i> 设置</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- 主要内容区 -->
+        <main class="container">
+            <!-- 页面标题和操作栏 -->
+            <div class="page-header">
+                <h1>预算规划</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="showAddBudgetModal()">
+                        <i class="fas fa-plus"></i> 新增预算
+                    </button>
+                </div>
+            </div>
+
+            <!-- 预算概览 -->
+            <div class="stats-grid">
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(52, 152, 219, 0.1); color: var(--primary-color);">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>本月总预算</h3>
+                        <p class="stat-value">¥15,000</p>
+                        <span class="stat-change">已用 68%</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(231, 76, 60, 0.1); color: var(--danger-color);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>超支预警</h3>
+                        <p class="stat-value" style="color: var(--danger-color);">2 项</p>
+                        <span class="stat-change negative">餐饮、居住</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(39, 174, 96, 0.1); color: var(--success-color);">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>节省空间</h3>
+                        <p class="stat-value" style="color: var(--success-color);">¥4,800</p>
+                        <span class="stat-change positive">32% 预算余额</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(155, 89, 182, 0.1); color: #9b59b6;">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>预算趋势</h3>
+                        <p class="stat-value">正常</p>
+                        <span class="stat-change">符合计划</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分类预算进度 -->
+            <section class="prototype-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-tasks"></i> 分类预算执行情况</h2>
+                    <button class="btn btn-outline" onclick="showBudgetHistoryModal()">
+                        <i class="fas fa-history"></i> 历史记录
+                    </button>
+                </div>
+                <div class="budget-progress-grid">
+                    <div class="budget-item warning">
+                        <div class="budget-header">
+                            <div class="budget-title">
+                                <i class="fas fa-utensils"></i>
+                                <span>餐饮</span>
+                            </div>
+                            <button class="btn-icon" onclick="editBudget('food')"><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                        <div class="budget-info">
+                            <div class="budget-amount">
+                                <span class="amount-spent">¥2,500</span>
+                                <span class="amount-total">/ ¥3,000</span>
+                            </div>
+                            <span class="budget-date">剩余16天</span>
+                        </div>
+                        <div class="progress-bar warning">
+                            <div class="progress" style="width: 83%;"></div>
+                        </div>
+                        <div class="budget-stats">
+                            <span class="stat-item">
+                                <i class="fas fa-arrow-up"></i>
+                                较上月 +15%
+                            </span>
+                            <span class="stat-item">
+                                <i class="fas fa-clock"></i>
+                                日均 ¥83
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="budget-item">
+                        <div class="budget-header">
+                            <div class="budget-title">
+                                <i class="fas fa-shopping-bag"></i>
+                                <span>购物</span>
+                            </div>
+                            <button class="btn-icon" onclick="editBudget('shopping')"><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                        <div class="budget-info">
+                            <div class="budget-amount">
+                                <span class="amount-spent">¥1,800</span>
+                                <span class="amount-total">/ ¥2,500</span>
+                            </div>
+                            <span class="budget-date">剩余16天</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 72%;"></div>
+                        </div>
+                        <div class="budget-stats">
+                            <span class="stat-item">
+                                <i class="fas fa-arrow-down"></i>
+                                较上月 -8%
+                            </span>
+                            <span class="stat-item">
+                                <i class="fas fa-clock"></i>
+                                日均 ¥60
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="budget-item">
+                        <div class="budget-header">
+                            <div class="budget-title">
+                                <i class="fas fa-bus"></i>
+                                <span>交通</span>
+                            </div>
+                            <button class="btn-icon" onclick="editBudget('transport')"><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                        <div class="budget-info">
+                            <div class="budget-amount">
+                                <span class="amount-spent">¥600</span>
+                                <span class="amount-total">/ ¥1,000</span>
+                            </div>
+                            <span class="budget-date">剩余16天</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 60%;"></div>
+                        </div>
+                        <div class="budget-stats">
+                            <span class="stat-item">
+                                <i class="fas fa-equals"></i>
+                                与上月持平
+                            </span>
+                            <span class="stat-item">
+                                <i class="fas fa-clock"></i>
+                                日均 ¥20
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="budget-item danger">
+                        <div class="budget-header">
+                            <div class="budget-title">
+                                <i class="fas fa-home"></i>
+                                <span>居住</span>
+                            </div>
+                            <button class="btn-icon" onclick="editBudget('housing')"><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                        <div class="budget-info">
+                            <div class="budget-amount">
+                                <span class="amount-spent">¥3,500</span>
+                                <span class="amount-total">/ ¥4,000</span>
+                            </div>
+                            <span class="budget-date">剩余16天</span>
+                        </div>
+                        <div class="progress-bar danger">
+                            <div class="progress" style="width: 87.5%;"></div>
+                        </div>
+                        <div class="budget-stats">
+                            <span class="stat-item">
+                                <i class="fas fa-arrow-up"></i>
+                                较上月 +20%
+                            </span>
+                            <span class="stat-item">
+                                <i class="fas fa-clock"></i>
+                                日均 ¥117
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 预算分析 -->
+            <div class="flex-grid">
+                <!-- 预算执行趋势 -->
+                <section class="prototype-section flex-column">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-line"></i> 预算执行趋势</h2>
+                        <div class="chart-actions">
+                            <button class="btn btn-text active">月</button>
+                            <button class="btn btn-text">季</button>
+                            <button class="btn btn-text">年</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-placeholder">
+                            <i class="fas fa-chart-line fa-3x"></i>
+                            <p>预算执行趋势图表</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 预算建议 -->
+                <section class="prototype-section flex-column">
+                    <div class="section-header">
+                        <h2><i class="fas fa-lightbulb"></i> 智能建议</h2>
+                    </div>
+                    <div class="advice-list">
+                        <div class="advice-item warning">
+                            <div class="advice-icon">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="advice-content">
+                                <h4>餐饮支出预警</h4>
+                                <p>当前餐饮支出进度较快，建议控制外卖频率，可以节省约¥500。</p>
+                            </div>
+                        </div>
+                        <div class="advice-item success">
+                            <div class="advice-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="advice-content">
+                                <h4>交通预算执行良好</h4>
+                                <p>本月公共交通使用率提升，继续保持可以达成预算目标。</p>
+                            </div>
+                        </div>
+                        <div class="advice-item info">
+                            <div class="advice-icon">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div class="advice-content">
+                                <h4>预算调整建议</h4>
+                                <p>基于近3个月的支出趋势，建议适当调整购物类预算，提高20%更合理。</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- 新增预算模态框 -->
+    <div id="addBudgetModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">新增预算</h3>
+                <button class="modal-close" onclick="hideAddBudgetModal()">&times;</button>
+            </div>
+            <form class="budget-form">
+                <div class="form-group">
+                    <label>预算分类</label>
+                    <select class="form-control">
+                        <option value="">选择分类</option>
+                        <option value="food">餐饮</option>
+                        <option value="shopping">购物</option>
+                        <option value="transport">交通</option>
+                        <option value="

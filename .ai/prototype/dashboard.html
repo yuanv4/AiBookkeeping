@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人收支管理 - 仪表盘</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="nav-bar">
+        <div class="nav-brand">
+            <i class="fas fa-chart-line"></i>
+            <span>个人收支管理</span>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-icon"><i class="fas fa-bell"></i></button>
+            <button class="btn-icon"><i class="fas fa-user"></i></button>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <!-- 左侧导航栏 -->
+        <nav class="sidebar">
+            <div class="nav-menu">
+                <h3><i class="fas fa-chart-pie"></i> 财务仪表盘</h3>
+                <ul>
+                    <li><a href="dashboard.html" class="active"><i class="fas fa-home"></i> 仪表盘</a></li>
+                    <li><a href="transactions.html"><i class="fas fa-list"></i> 收支记录</a></li>
+                    <li><a href="budget.html"><i class="fas fa-wallet"></i> 预算规划</a></li>
+                    <li><a href="accounts.html"><i class="fas fa-credit-card"></i> 账户管理</a></li>
+                    <li><a href="analysis.html"><i class="fas fa-chart-bar"></i> 账单分析</a></li>
+                    <li><a href="settings.html"><i class="fas fa-cog"></i> 设置</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- 主要内容区 -->
+        <main class="container">
+            <!-- 欢迎消息 -->
+            <div class="welcome-section">
+                <h1>欢迎回来，用户</h1>
+                <p class="text-muted">今天是 2024年1月15日</p>
+            </div>
+
+            <!-- 数据概览卡片 -->
+            <div class="stats-grid">
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(39, 174, 96, 0.1); color: var(--success-color);">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>本月收入</h3>
+                        <p class="stat-value" style="color: var(--success-color);">¥25,800</p>
+                        <span class="stat-change positive">+12.5% 较上月</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(231, 76, 60, 0.1); color: var(--danger-color);">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>本月支出</h3>
+                        <p class="stat-value" style="color: var(--danger-color);">¥18,200</p>
+                        <span class="stat-change negative">-8.3% 较上月</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(52, 152, 219, 0.1); color: var(--primary-color);">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>当前结余</h3>
+                        <p class="stat-value">¥7,600</p>
+                        <span class="stat-change">总资产 ¥152,360</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(155, 89, 182, 0.1); color: #9b59b6;">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>预算状态</h3>
+                        <p class="stat-value">68%</p>
+                        <span class="stat-change">剩余 ¥9,800</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 预算进度 -->
+            <section class="prototype-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-tasks"></i> 预算执行进度</h2>
+                    <button class="btn btn-primary">调整预算</button>
+                </div>
+                <div class="budget-progress-grid">
+                    <div class="budget-item">
+                        <div class="budget-info">
+                            <span><i class="fas fa-utensils"></i> 餐饮</span>
+                            <span>¥2,500 / ¥3,000</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 83%;"></div>
+                        </div>
+                    </div>
+                    <div class="budget-item">
+                        <div class="budget-info">
+                            <span><i class="fas fa-shopping-bag"></i> 购物</span>
+                            <span>¥1,800 / ¥2,500</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 72%;"></div>
+                        </div>
+                    </div>
+                    <div class="budget-item">
+                        <div class="budget-info">
+                            <span><i class="fas fa-bus"></i> 交通</span>
+                            <span>¥600 / ¥1,000</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 60%;"></div>
+                        </div>
+                    </div>
+                    <div class="budget-item">
+                        <div class="budget-info">
+                            <span><i class="fas fa-home"></i> 居住</span>
+                            <span>¥3,500 / ¥4,000</span>
+                        </div>
+                        <div class="progress-bar warning">
+                            <div class="progress" style="width: 87.5%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="flex-grid">
+                <!-- 近期交易 -->
+                <section class="prototype-section flex-column">
+                    <div class="section-header">
+                        <h2><i class="fas fa-clock"></i> 近期交易</h2>
+                        <a href="transactions.html" class="btn btn-text">查看全部</a>
+                    </div>
+                    <div class="transaction-list">
+                        <div class="transaction-item">
+                            <div class="transaction-icon" style="background: rgba(231, 76, 60, 0.1);">
+                                <i class="fas fa-utensils" style="color: var(--danger-color);"></i>
+                            </div>
+                            <div class="transaction-content">
+                                <div class="transaction-info">
+                                    <h4>午餐</h4>
+                                    <span class="text-muted">今天 12:30</span>
+                                </div>
+                                <span class="transaction-amount expense">-¥35.00</span>
+                            </div>
+                        </div>
+                        <div class="transaction-item">
+                            <div class="transaction-icon" style="background: rgba(39, 174, 96, 0.1);">
+                                <i class="fas fa-money-bill-wave" style="color: var(--success-color);"></i>
+                            </div>
+                            <div class="transaction-content">
+                                <div class="transaction-info">
+                                    <h4>工资收入</h4>
+                                    <span class="text-muted">2024-01-15</span>
+                                </div>
+                                <span class="transaction-amount income">+¥25,800.00</span>
+                            </div>
+                        </div>
+                        <div class="transaction-item">
+                            <div class="transaction-icon" style="background: rgba(231, 76, 60, 0.1);">
+                                <i class="fas fa-shopping-bag" style="color: var(--danger-color);"></i>
+                            </div>
+                            <div class="transaction-content">
+                                <div class="transaction-info">
+                                    <h4>超市购物</h4>
+                                    <span class="text-muted">2024-01-14</span>
+                                </div>
+                                <span class="transaction-amount expense">-¥258.50</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 支出分析 -->
+                <section class="prototype-section flex-column">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-pie"></i> 支出分析</h2>
+                        <a href="analysis.html" class="btn btn-text">详细报告</a>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-placeholder">
+                            <i class="fas fa-chart-pie fa-3x"></i>
+                            <p>支出分类占比图表</p>
+                        </div>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #e74c3c;"></span>
+                                <span class="legend-label">餐饮 (35%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #3498db;"></span>
+                                <span class="legend-label">购物 (25%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #2ecc71;"></span>
+                                <span class="legend-label">交通 (15%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #f1c40f;"></span>
+                                <span class="legend-label">其他 (25%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 快速添加按钮 -->
+            <button class="fab-button" onclick="showAddRecordModal()">
+                <i class="fas fa-plus"></i>
+            </button>
+        </main>
+    </div>
+
+    <!-- 添加记录模态框 -->
+    <div id="addRecordModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">添加记录</h3>
+                <button class="modal-close" onclick="hideAddRecordModal()">&times;</button>
+            </div>
+            <form class="add-record-form">
+                <div class="form-group">
+                    <label>类型</label>
+                    <select class="form-control">
+                        <option value="expense">支出</option>
+                        <option value="income">收入</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>分类</label>
+                    <select class="form-control">
+                        <option value="food"><i class="fas fa-utensils"></i> 餐饮</option>
+                        <option value="shopping"><i class="fas fa-shopping-bag"></i> 购物</option>
+                        <option value="transport"><i class="fas fa-bus"></i> 交通</option>
+                        <option value="housing"><i class="fas fa-home"></i> 居住</option>
+                        <option value="entertainment"><i class="fas fa-film"></i> 娱乐</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>金额</label>
+                    <input type="number" class="form-control" step="0.01" placeholder="请输入金额">
+                </div>
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" class="form-control" value="2024-01-15">
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <input type="text" class="form-control" placeholder="添加备注信息">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="hideAddRecordModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showAddRecordModal() {
+            document.getElementById('addRecordModal').style.display = 'flex';
+        }
+
+        function hideAddRecordModal() {
+            document.getElementById('addRecordModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

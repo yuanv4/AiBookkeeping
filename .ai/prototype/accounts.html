@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人收支管理 - 账户管理</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="nav-bar">
+        <div class="nav-brand">
+            <i class="fas fa-chart-line"></i>
+            <span>个人收支管理</span>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-icon"><i class="fas fa-bell"></i></button>
+            <button class="btn-icon"><i class="fas fa-user"></i></button>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+        <!-- 左侧导航栏 -->
+        <nav class="sidebar">
+            <div class="nav-menu">
+                <h3><i class="fas fa-chart-pie"></i> 财务仪表盘</h3>
+                <ul>
+                    <li><a href="dashboard.html"><i class="fas fa-home"></i> 仪表盘</a></li>
+                    <li><a href="transactions.html"><i class="fas fa-list"></i> 收支记录</a></li>
+                    <li><a href="budget.html"><i class="fas fa-wallet"></i> 预算规划</a></li>
+                    <li><a href="accounts.html" class="active"><i class="fas fa-credit-card"></i> 账户管理</a></li>
+                    <li><a href="analysis.html"><i class="fas fa-chart-bar"></i> 账单分析</a></li>
+                    <li><a href="settings.html"><i class="fas fa-cog"></i> 设置</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- 主要内容区 -->
+        <main class="container">
+            <!-- 页面标题和操作栏 -->
+            <div class="page-header">
+                <h1>账户管理</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="showAddAccountModal()">
+                        <i class="fas fa-plus"></i> 添加账户
+                    </button>
+                </div>
+            </div>
+
+            <!-- 账户概览 -->
+            <div class="stats-grid">
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(52, 152, 219, 0.1); color: var(--primary-color);">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>总资产</h3>
+                        <p class="stat-value">¥152,360</p>
+                        <span class="stat-change positive">+5.2% 较上月</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(39, 174, 96, 0.1); color: var(--success-color);">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>活跃账户</h3>
+                        <p class="stat-value">5</p>
+                        <span class="stat-change">本月新增 1 个</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(231, 76, 60, 0.1); color: var(--danger-color);">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>本月交易</h3>
+                        <p class="stat-value">86</p>
+                        <span class="stat-change">笔交易</span>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon" style="background: rgba(155, 89, 182, 0.1); color: #9b59b6;">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>资产趋势</h3>
+                        <p class="stat-value">上升</p>
+                        <span class="stat-change positive">持续增长</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 账户列表 -->
+            <section class="prototype-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-list"></i> 我的账户</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-outline" onclick="showAccountTransferModal()">
+                            <i class="fas fa-exchange-alt"></i> 账户转账
+                        </button>
+                    </div>
+                </div>
+
+                <div class="account-list">
+                    <!-- 支付宝账户 -->
+                    <div class="account-card">
+                        <div class="account-header">
+                            <div class="account-icon" style="background: rgba(0, 150, 255, 0.1);">
+                                <i class="fab fa-alipay" style="color: #0096ff;"></i>
+                            </div>
+                            <div class="account-actions">
+                                <button class="btn-icon" onclick="showAccountMenu('alipay')"><i class="fas fa-ellipsis-v"></i></button>
+                            </div>
+                        </div>
+                        <div class="account-info">
+                            <h3>支付宝</h3>
+                            <p class="account-balance">¥45,628.50</p>
+                            <div class="account-stats">
+                                <span class="stat-item">
+                                    <i class="fas fa-arrow-up"></i>
+                                    收入 ¥12,500
+                                </span>
+                                <span class="stat-item">
+                                    <i class="fas fa-arrow-down"></i>
+                                    支出 ¥8,350
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 微信支付账户 -->
+                    <div class="account-card">
+                        <div class="account-header">
+                            <div class="account-icon" style="background: rgba(82, 196, 26, 0.1);">
+                                <i class="fab fa-weixin" style="color: #52c41a;"></i>
+                            </div>
+                            <div class="account-actions">
+                                <button class="btn-icon" onclick="showAccountMenu('wechat')"><i class="fas fa-ellipsis-v"></i></button>
+                            </div>
+                        </div>
+                        <div class="account-info">
+                            <h3>微信支付</h3>
+                            <p class="account-balance">¥32,156.80</p>
+                            <div class="account-stats">
+                                <span class="stat-item">
+                                    <i class="fas fa-arrow-up"></i>
+                                    收入 ¥8,600
+                                </span>
+                                <span class="stat-item">
+                                    <i class="fas fa-arrow-down"></i>
+                                    支出 ¥6,280
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 工商银行账户 -->
+                    <div class="account-card">
+                        <div class="account-header">
+                            <div class="account-icon" style="background: rgba(245, 34, 45, 0.1);">
+                                <i class="fas fa-university" style="color: #f5222d;"></i>
+                            </div>
+                            <div class="account-actions">
+                                <button class="btn-icon" onclick="showAccountMenu('icbc')"><i class="fas fa-ellipsis-v"></i></button>
+                            </div>
+                        </div>
+                        <div class="account-info">
+                            <h3>工商银行</h3>
+                            <p class="account-balance">¥74,574.70</p>
+                            <div class="account-stats">
+                                <span class="stat-item">
+                                    <i class="fas fa-arrow-up"></i>
+                                    收入 ¥25,800
+                                </span>
+                                <span class="stat-item">
+                                    <i class="fas fa-arrow-down"></i>
+                                    支出 ¥3,570
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 最近交易记录 -->
+            <section class="prototype-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-history"></i> 最近交易</h2>
+                    <a href="transactions.html" class="btn btn-text">查看全部</a>
+                </div>
+                <div class="transaction-list">
+                    <div class="transaction-item">
+                        <div class="transaction-icon" style="background: rgba(231, 76, 60, 0.1);">
+                            <i class="fas fa-utensils" style="color: var(--danger-color);"></i>
+                        </div>
+                        <div class="transaction-content">
+                            <div class="transaction-info">
+                                <h4>午餐</h4>
+                                <span class="text-muted">今天 12:30 · 支付宝</span>
+                            </div>
+                            <span class="transaction-amount expense">-¥35.00</span>
+                        </div>
+                    </div>
+                    <div class="transaction-item">
+                        <div class="transaction-icon" style="background: rgba(39, 174, 96, 0.1);">
+                            <i class="fas fa-money-bill-wave" style="color: var(--success-color);"></i>
+                        </div>
+                        <div class="transaction-content">
+                            <div class="transaction-info">
+                                <h4>工资收入</h4>
+                                <span class="text-muted">2024-01-15 · 工商银行</span>
+                            </div>
+                            <span class="transaction-amount income">+¥25,800.00</span>
+                        </div>
+                    </div>
+                    <div class="transaction-item">
+                        <div class="transaction-icon" style="background: rgba(231, 76, 60, 0.1);">
+                            <i class="fas fa-shopping-bag" style="color: var(--danger-color);"></i>
+                        </div>
+                        <div class="transaction-content">
+                            <div class="transaction-info">
+                                <h4>超市购物</h4>
+                                <span class="text-muted">2024-01-14 · 微信支付</span>
+                            </div>
+                            <span class="transaction-amount expense">-¥258.50</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 添加账户模态框 -->
+    <div id="addAccountModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">添加账户</h3>
+                <button class="modal-close" onclick="hideAddAccountModal()">&times;</button>
+            </div>
+            <form class="account-form">
+                <div class="form-group">
+                    <label>账户类型</label>
+                    <select class="form-control">
+                        <option value="bank">银行卡</option>
+                        <option value="alipay">支付宝</option>
+                        <option value="wechat">微信支付</option>
+                        <option value="cash">现金</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>账户名称</label>
+                    <input type="text" class="form-control" placeholder="请输入账户名称">
+                </div>
+                <div class="form-group">
+                    <label>初始余额</label>
+                    <input type="number" class="form-control" step="0.01" placeholder="请输入初始余额">
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <input type="text" class="form-control" placeholder="添加备注信息">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="hideAddAccountModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 账户转账模态框 -->
+    <div id="accountTransferModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">账户转账</h3>
+                <button class="modal-close" onclick="hideAccountTransferModal()">&times;</button>
+            </div>
+            <form class="transfer-form">
+                <div class="form-group">
+                    <label>转出账户</label>
+                    <select class="form-control">
+                        <option value="alipay">支付宝 (¥45,628.50)</option>
+                        <option value="wechat">微信支付 (¥32,156.80)</option>
+                        <option value="icbc">工商银行 (¥74,574.70)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
