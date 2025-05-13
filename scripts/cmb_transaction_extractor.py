@@ -23,6 +23,37 @@ class CMBTransactionExtractor(BankTransactionExtractor):
         """初始化招商银行交易提取器"""
         super().__init__('CMB')
     
+    def can_process_file(self, file_path):
+        """检查是否可以处理给定的文件
+        
+        Args:
+            file_path: 文件路径
+            
+        Returns:
+            bool: 是否可以处理该文件
+        """
+        try:
+            # 检查文件扩展名
+            if not file_path.lower().endswith(('.xlsx', '.xls')):
+                return False
+            
+            # 尝试读取文件的前几行
+            df = pd.read_excel(file_path, header=None, nrows=20)
+            
+            # 使用extract_account_info方法尝试提取账户信息
+            account_name, account_number = self.extract_account_info(df)
+            
+            # 如果能提取到账户信息，说明是招商银行的交易明细
+            if account_name and account_number:
+                self.logger.info(f"成功识别为招商银行交易明细 - 户名: {account_name}, 账号: {account_number}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"检查文件时出错: {e}")
+            return False
+    
     def is_date_format(self, value):
         """检查值是否符合日期格式（支持多种格式）"""
         if pd.isna(value):
@@ -81,114 +112,62 @@ class CMBTransactionExtractor(BankTransactionExtractor):
             
         return account_name, account_number
     
-    def extract_transactions(self, file_path):
-        """从招商银行Excel文件中提取交易记录"""
-        self.logger.info(f"处理招商银行文件: {file_path}")
-        
+    def extract_transactions(self, file_path, data_dir):
+        """提取交易数据"""
         try:
-            # 读取Excel文件的所有工作表
-            excel_file = pd.ExcelFile(file_path)
-        except Exception as e:
-            self.logger.error(f"打开Excel文件时出错: {e}")
-            return None
-        
-        # 用于存储所有符合条件的数据
-        all_filtered_data = []
-        
-        # 定义列名映射，根据实际数据调整
-        column_names = {
-            0: '交易日期',
-            1: '货币',
-            2: '交易金额',
-            3: '账户余额',
-            4: '交易类型',
-            5: '交易对象',
-        }
-        
-        # 用于存储户名和账号信息
-        account_name = ""
-        account_number = ""
-        
-        for sheet_name in excel_file.sheet_names:
-            self.logger.info(f"  处理工作表: {sheet_name}")
+            # 读取Excel文件
+            df = pd.read_excel(file_path)
             
-            try:
-                # 读取当前工作表，不指定表头
-                df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
-            except Exception as e:
-                self.logger.error(f"读取工作表 {sheet_name} 时出错: {e}")
-                continue
-            
-            # 确保DataFrame不为空且至少有一列
-            if df.empty or len(df.columns) == 0:
-                self.logger.warning(f"工作表 {sheet_name} 为空或没有列")
-                continue
-            
-            # 从工作表中提取户名和账号信息
-            sheet_account_name, sheet_account_number = self.extract_account_info(df)
-            
-            # 如果能找到户名和账号，更新变量
-            if sheet_account_name:
-                account_name = sheet_account_name
-            if sheet_account_number:
-                account_number = sheet_account_number
-            
-            # 筛选首列符合日期格式的行
-            filtered_rows = []
-            for idx, row in df.iterrows():
-                # 确保行有至少一个元素
-                if len(row) == 0:
-                    continue
-                    
-                # 获取第一列的值
-                first_cell_value = row[0]
-                if self.is_date_format(first_cell_value):
-                    # 只保留需要的列
-                    filtered_rows.append(row)
-            
-            # 如果找到符合条件的行，添加到结果中
-            if filtered_rows:
-                filtered_df = pd.DataFrame(filtered_rows)
-                
-                # 确保不会索引超出范围
-                if len(filtered_df.columns) < 6:
-                    self.logger.warning(f"工作表 {sheet_name} 的列数不足，当前列数: {len(filtered_df.columns)}")
-                    # 添加缺失的列
-                    for i in range(len(filtered_df.columns), 6):
-                        filtered_df[i] = None
-                
-                # 添加户名和账号列
-                filtered_df['户名'] = account_name
-                filtered_df['账号'] = account_number
-                all_filtered_data.append(filtered_df)
-            else:
-                self.logger.warning(f"在工作表 {sheet_name} 中未找到符合条件的数据")
-        
-        # 如果找到符合条件的数据，将其合并并返回
-        if all_filtered_data:
-            try:
-                result_df = pd.concat(all_filtered_data, ignore_index=True)
-                
-                # 标准化日期
-                if 0 in result_df.columns:
-                    result_df[0] = result_df[0].apply(self.standardize_date)
-                
-                # 确保数值列是数值类型
-                for col in [2, 3]:  # 交易金额和账户余额列
-                    if col in result_df.columns:
-                        result_df[col] = result_df[col].apply(self.clean_numeric)
-                
-                # 重命名列
-                rename_dict = {i: name for i, name in column_names.items() if i in result_df.columns}
-                result_df = result_df.rename(columns=rename_dict)
-                
-                self.logger.info(f"从文件 {file_path} 中提取了 {len(result_df)} 行数据")
-                return result_df
-            except Exception as e:
-                self.logger.error(f"处理提取的数据时出错: {e}")
+            # 提取账户信息
+            account_info = self.extract_account_info(df)
+            if not account_info:
+                logger.error("无法提取账户信息")
                 return None
-        else:
-            self.logger.warning(f"在文件 {file_path} 中未找到符合条件的数据")
+                
+            # 提取交易记录
+            transactions = self.extract_transaction_records(df)
+            if not transactions:
+                logger.error("无法提取交易记录")
+                return None
+                
+            # 创建结果DataFrame
+            result_df = pd.DataFrame(transactions)
+            
+            # 添加账户信息
+            result_df['account_name'] = account_info['account_name']
+            result_df['account_number'] = account_info['account_number']
+            result_df['bank_name'] = self.bank_name
+            
+            # 保存到数据库
+            try:
+                # 获取数据库连接
+                conn = self.db_manager.get_connection()
+                if conn:
+                    # 导入数据到数据库
+                    success = self.db_manager.import_dataframe(result_df, conn=conn)
+                    if success:
+                        logger.info(f"成功将{len(result_df)}条交易记录保存到数据库")
+                        return {
+                            'bank': self.bank_name,
+                            'account_name': account_info['account_name'],
+                            'account_number': account_info['account_number'],
+                            'record_count': len(result_df)
+                        }
+                    else:
+                        logger.error("保存到数据库失败")
+                else:
+                    logger.error("无法获取数据库连接")
+            except Exception as e:
+                logger.error(f"保存到数据库时出错: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"提取交易数据时出错: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
     
     def get_bank_keyword(self):

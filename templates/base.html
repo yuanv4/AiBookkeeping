@@ -488,38 +488,6 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.path == url_for('yearly_analysis') %}active{% endif %}" href="{{ url_for('yearly_analysis') }}">
-                    <div class="nav-icon-round">
-                        <i class="material-icons-round">calendar_today</i>
-                    </div>
-                    年度分析
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path == url_for('category_analysis') %}active{% endif %}" href="{{ url_for('category_analysis') }}">
-                    <div class="nav-icon-round">
-                        <i class="material-icons-round">category</i>
-                    </div>
-                    分类分析
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path == url_for('time_analysis') %}active{% endif %}" href="{{ url_for('time_analysis') }}">
-                    <div class="nav-icon-round">
-                        <i class="material-icons-round">schedule</i>
-                    </div>
-                    时间分析
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path == url_for('merchant_analysis') %}active{% endif %}" href="{{ url_for('merchant_analysis') }}">
-                    <div class="nav-icon-round">
-                        <i class="material-icons-round">store</i>
-                    </div>
-                    商户分析
-                </a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link {% if request.path == url_for('transactions') %}active{% endif %}" href="{{ url_for('transactions') }}">
                     <div class="nav-icon-round">
                         <i class="material-icons-round">receipt_long</i>

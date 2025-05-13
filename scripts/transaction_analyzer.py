@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import calendar
 import json
 import logging
+from scripts.db_manager import DBManager
 
 # 配置日志
 logging.basicConfig(
@@ -29,8 +30,12 @@ except:
     font = None
 
 class TransactionAnalyzer:
-    def __init__(self, csv_file=None, df=None):
-        """初始化交易分析器"""
+    def __init__(self, db_manager=None):
+        """初始化交易分析器
+        
+        Args:
+            db_manager: DBManager实例，如果为None则创建新实例
+        """
         self.categories = {
             '餐饮': ['餐', '饮', '食', '厅', '粉', '小吃', '肉', '面', '饭', '咖啡', '外卖', '美团', '肯德基', '金拱门', '瑞幸', '喜茶'],
             '交通': ['地铁', '公交', '出行', '滴滴', '顺风车', '深圳通'],
@@ -48,69 +53,68 @@ class TransactionAnalyzer:
             '其他': []
         }
         
-        if df is not None:
-            self.df = df
-        elif csv_file and os.path.exists(csv_file):
-            self.load_data(csv_file)
-        else:
-            self.df = None
+        self.db_manager = db_manager if db_manager else DBManager()
+        self.df = None
     
-    def load_data(self, csv_file):
-        """加载CSV数据文件"""
-        try:
-            logger.info(f"开始加载CSV文件: {csv_file}")
-            # 读取CSV文件
-            self.df = pd.read_csv(csv_file, encoding='utf-8')
-            logger.info(f"CSV文件加载成功，数据行数: {len(self.df)}")
+    def load_data(self, start_date=None, end_date=None, account_id=None):
+        """从数据库加载交易数据
+        
+        Args:
+            start_date: 开始日期，格式：YYYY-MM-DD
+            end_date: 结束日期，格式：YYYY-MM-DD
+            account_id: 账户ID，如果为None则加载所有账户数据
             
-            # 记录交易日期列的原始数据样本
-            date_samples = self.df['交易日期'].head(10).tolist()
-            logger.info(f"交易日期样本数据: {date_samples}")
+        Returns:
+            bool: 是否成功加载数据
+        """
+        try:
+            logger.info(f"开始从数据库加载交易数据: start_date={start_date}, end_date={end_date}, account_id={account_id}")
+            
+            # 从数据库获取交易数据
+            transactions = self.db_manager.get_transactions(
+                account_id=account_id,
+                start_date=start_date,
+                end_date=end_date,
+                limit=100000  # 设置一个合理的限制
+            )
+            
+            if not transactions:
+                logger.warning("未找到交易数据")
+                return False
+            
+            # 转换为DataFrame
+            self.df = pd.DataFrame(transactions)
+            
+            # 重命名列以匹配原有代码
+            column_mapping = {
+                'transaction_date': '交易日期',
+                'amount': '交易金额',
+                'counterparty': '交易对象',
+                'description': '交易描述',
+                'category': '交易分类',
+                'transaction_type': '交易类型',
+                'account_number': '账号',
+                'bank_name': '银行'
+            }
+            self.df = self.df.rename(columns=column_mapping)
             
             # 确保交易日期是日期类型
-            logger.info("开始转换交易日期为日期类型")
-            try:
-                # 尝试不同的日期格式
-                if any(" 00:00:00" in str(date) for date in self.df['交易日期'].head(10)):
-                    logger.info("检测到日期包含时间部分，尝试使用自定义格式转换")
-                    # 先移除时间部分然后再转换
-                    self.df['交易日期'] = self.df['交易日期'].str.replace(' 00:00:00', '')
-                
-                self.df['交易日期'] = pd.to_datetime(self.df['交易日期'], format='%Y-%m-%d', errors='coerce')
-                # 检查是否有NaT值
-                nat_count = self.df['交易日期'].isna().sum()
-                if nat_count > 0:
-                    logger.warning(f"日期转换后有{nat_count}个无效日期值")
-                logger.info("交易日期转换完成")
-            except Exception as e:
-                logger.error(f"转换交易日期时出错: {e}")
-                return False
-            
-            # 将交易金额转为数值型
-            logger.info("开始转换交易金额为数值型")
-            self.df['交易金额'] = pd.to_numeric(self.df['交易金额'])
+            self.df['交易日期'] = pd.to_datetime(self.df['交易日期'])
             
             # 从日期字段提取年月日星期
-            logger.info("开始从日期提取年月日星期")
-            try:
-                self.df['年'] = self.df['交易日期'].dt.year
-                logger.info(f"年列创建成功，示例值: {self.df['年'].head(5).tolist()}")
-                
-                self.df['月'] = self.df['交易日期'].dt.month  
-                logger.info(f"月列创建成功，示例值: {self.df['月'].head(5).tolist()}")
-                
-                self.df['日'] = self.df['交易日期'].dt.day
-                self.df['星期'] = self.df['交易日期'].dt.dayofweek
-                logger.info("年月日星期列提取完成")
-            except Exception as e:
-                logger.error(f"从日期提取年月日星期时出错: {e}")
-                return False
+            self.df['年'] = self.df['交易日期'].dt.year
+            self.df['月'] = self.df['交易日期'].dt.month
+            self.df['日'] = self.df['交易日期'].dt.day
+            self.df['星期'] = self.df['交易日期'].dt.dayofweek
             
             # 添加分类
             self.categorize_transactions()
+            
+            logger.info(f"成功从数据库加载 {len(self.df)} 条交易记录")
             return True
+            
         except Exception as e:
-            logger.error(f"加载数据失败: {e}")
+            logger.error(f"从数据库加载数据失败: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False
@@ -609,104 +613,6 @@ class TransactionAnalyzer:
             except TypeError:
                 logger.error(f"路径 {path} 存在不可序列化的值: {type(data)} - {data}")
 
-    def load_multiple_data(self, directory_path):
-        """加载指定目录下的所有CSV文件并合并数据"""
-        try:
-            logger.info(f"开始从目录加载CSV文件: {directory_path}")
-            if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
-                logger.error(f"目录不存在或不是有效目录: {directory_path}")
-                return False
-            
-            # 获取目录中所有CSV文件
-            csv_files = [os.path.join(directory_path, f) for f in os.listdir(directory_path) 
-                        if f.endswith('.csv') and not f.startswith('.')]
-            
-            if not csv_files:
-                logger.warning(f"在目录 {directory_path} 中未找到CSV文件")
-                return False
-            
-            logger.info(f"找到 {len(csv_files)} 个CSV文件: {[os.path.basename(f) for f in csv_files]}")
-            
-            # 读取并合并所有CSV文件
-            all_data = []
-            for csv_file in csv_files:
-                try:
-                    logger.info(f"正在读取文件: {os.path.basename(csv_file)}")
-                    # 读取CSV文件
-                    df = pd.read_csv(csv_file, encoding='utf-8')
-                    logger.info(f"文件 {os.path.basename(csv_file)} 读取成功，数据行数: {len(df)}")
-                    all_data.append(df)
-                except Exception as e:
-                    logger.error(f"读取文件 {os.path.basename(csv_file)} 时出错: {e}")
-                    continue
-            
-            if not all_data:
-                logger.error("没有成功读取任何数据文件")
-                return False
-            
-            # 合并所有数据
-            self.df = pd.concat(all_data, ignore_index=True)
-            
-            # 去除完全重复的记录
-            original_len = len(self.df)
-            self.df = self.df.drop_duplicates()
-            dedup_len = len(self.df)
-            if original_len > dedup_len:
-                logger.info(f"数据去重: 从{original_len}行减少到{dedup_len}行，移除了{original_len-dedup_len}条重复记录")
-            
-            logger.info(f"所有数据合并成功，总行数: {len(self.df)}")
-            
-            # 确保交易日期是日期类型
-            logger.info("开始转换交易日期为日期类型")
-            try:
-                # 尝试不同的日期格式
-                if any(" 00:00:00" in str(date) for date in self.df['交易日期'].head(10)):
-                    logger.info("检测到日期包含时间部分，尝试使用自定义格式转换")
-                    # 先移除时间部分然后再转换
-                    self.df['交易日期'] = self.df['交易日期'].str.replace(' 00:00:00', '')
-                
-                self.df['交易日期'] = pd.to_datetime(self.df['交易日期'], format='%Y-%m-%d', errors='coerce')
-                # 检查是否有NaT值
-                nat_count = self.df['交易日期'].isna().sum()
-                if nat_count > 0:
-                    logger.warning(f"日期转换后有{nat_count}个无效日期值")
-                logger.info("交易日期转换完成")
-            except Exception as e:
-                logger.error(f"转换交易日期时出错: {e}")
-                return False
-            
-            # 将交易金额转为数值型
-            logger.info("开始转换交易金额为数值型")
-            self.df['交易金额'] = pd.to_numeric(self.df['交易金额'])
-            
-            # 从日期字段提取年月日星期
-            logger.info("开始从日期提取年月日星期")
-            try:
-                self.df['年'] = self.df['交易日期'].dt.year
-                logger.info(f"年列创建成功，示例值: {self.df['年'].head(5).tolist()}")
-                
-                self.df['月'] = self.df['交易日期'].dt.month  
-                logger.info(f"月列创建成功，示例值: {self.df['月'].head(5).tolist()}")
-                
-                self.df['日'] = self.df['交易日期'].dt.day
-                self.df['星期'] = self.df['交易日期'].dt.dayofweek
-                logger.info("年月日星期列提取完成")
-            except Exception as e:
-                logger.error(f"从日期提取年月日星期时出错: {e}")
-                return False
-            
-            # 确保数据按日期排序
-            self.df.sort_values('交易日期', inplace=True)
-            
-            # 添加分类
-            self.categorize_transactions()
-            return True
-        except Exception as e:
-            logger.error(f"加载多个CSV文件失败: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return False
-            
     def get_transaction_count(self):
         """获取当前加载的交易数据条数"""
         if self.df is None:
@@ -1078,16 +984,16 @@ class TransactionAnalyzer:
 
 # 使用示例
 if __name__ == "__main__":
-    # 获取当前脚本所在目录的父目录（项目根目录）
-    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    DATA_FOLDER = os.path.join(ROOT_DIR, 'data')
-    TRANSACTIONS_FOLDER = os.path.join(DATA_FOLDER, 'transactions')
-    
-    # 创建分析器并加载所有交易CSV文件
+    # 创建分析器实例
     analyzer = TransactionAnalyzer()
-    if analyzer.load_multiple_data(TRANSACTIONS_FOLDER):
+    
+    # 从数据库加载最近一年的数据
+    end_date = datetime.now().strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+    
+    if analyzer.load_data(start_date=start_date, end_date=end_date):
         # 生成输出文件路径
-        output_file = os.path.join(DATA_FOLDER, 'analysis_data.json')
+        output_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'analysis_data.json')
         # 生成分析数据
         if analyzer.generate_json_data(output_file):
             print(f"分析数据已保存到 {output_file}")

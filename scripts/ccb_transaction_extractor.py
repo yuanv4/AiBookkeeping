@@ -24,6 +24,37 @@ class CCBTransactionExtractor(BankTransactionExtractor):
         """初始化建设银行交易提取器"""
         super().__init__('CCB')
     
+    def can_process_file(self, file_path):
+        """检查是否可以处理给定的文件
+        
+        Args:
+            file_path: 文件路径
+            
+        Returns:
+            bool: 是否可以处理该文件
+        """
+        try:
+            # 检查文件扩展名
+            if not file_path.lower().endswith(('.xlsx', '.xls')):
+                return False
+            
+            # 尝试读取文件的前几行
+            df = pd.read_excel(file_path, header=None, nrows=20)
+            
+            # 使用extract_account_info方法尝试提取账户信息
+            account_name, account_number = self.extract_account_info(df)
+            
+            # 如果能提取到账户信息，说明是建设银行的交易明细
+            if account_name and account_number:
+                self.logger.info(f"成功识别为建设银行交易明细 - 户名: {account_name}, 账号: {account_number}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"检查文件时出错: {e}")
+            return False
+
     def standardize_date(self, date_value):
         """将各种日期格式标准化为YYYY-MM-DD"""
         if pd.isna(date_value):
