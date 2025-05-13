@@ -1,30 +1,55 @@
-# 银行交易数据分析系统
+# AI Bookkeeping
 
-这是一个全功能的银行交易数据分析系统，用于从招商银行Excel文件中提取交易数据，并提供多维度的账单分析功能。
+## 项目结构
+```
+AiBookkeeping/
+├── app.py                 # Flask应用主文件
+├── data/                  # 数据目录
+│   ├── transactions.db    # SQLite数据库文件
+│   └── analysis_data.json # 分析结果数据
+├── scripts/               # 脚本目录
+│   ├── bank_transaction_extractor.py  # 银行交易提取器基类
+│   ├── ccb_transaction_extractor.py   # 建设银行交易提取器
+│   ├── cmb_transaction_extractor.py   # 招商银行交易提取器
+│   ├── transaction_analyzer.py        # 交易分析器
+│   ├── visualization_helper.py        # 可视化助手
+│   └── db_manager.py                  # 数据库管理器
+├── templates/             # HTML模板目录
+│   ├── base.html         # 基础模板
+│   ├── dashboard.html    # 仪表盘页面
+│   ├── transactions.html # 交易记录页面
+│   └── upload.html       # 上传页面
+├── uploads/              # 上传文件目录
+├── tests/                # 测试目录
+│   ├── unit/            # 单元测试
+│   └── integration/     # 集成测试
+├── requirements.txt      # 依赖包列表
+└── README.md            # 项目说明文档
+```
 
-## 功能
+## 功能特点
+- 自动识别银行交易明细文件格式
+- 支持多银行交易数据导入
+- 自动分析交易数据
+- 生成可视化报表
+- 支持数据导出功能
 
-- **数据导入**
-  - 上传一个或多个招商银行交易流水Excel文件
-  - 自动处理文件，提取交易数据
-  - 支持增量更新，避免重复导入相同交易记录
+## 数据存储
+- 所有交易数据存储在SQLite数据库中
+- 分析结果保存在JSON文件中
+- 支持导出数据为CSV格式
 
-- **多维度分析**
-  - **仪表盘**: 总体收支概览和关键指标
-  - **月度分析**: 按月份统计收支趋势和变化
-  - **分类分析**: 支出类别占比和详情
-  - **时间分析**: 按星期/日期的消费模式
-  - **商户分析**: 交易商户的消费统计
-  - **交易记录**: 完整交易明细查询和筛选
+## 使用说明
+1. 将银行交易明细文件（Excel格式）放入uploads目录
+2. 启动应用，系统会自动处理文件并导入数据库
+3. 在仪表板查看分析结果
+4. 可以导出数据为CSV格式
 
-- **数据可视化**
-  - 月度收支趋势图
-  - 支出类别饼图
-  - 按星期消费柱状图
-  - 消费最多的商户条形图
-  - 日支出趋势线图
-  - 类别-月份热力图
-  - **所有图表均支持交互式操作**，如缩放、平移、点击查看详情等
+## 开发说明
+- 使用Flask作为Web框架
+- 使用SQLite作为数据库
+- 使用pandas进行数据分析
+- 使用matplotlib和seaborn进行数据可视化
 
 ## 交互式图表功能
 
@@ -38,34 +63,6 @@
 - **数据标签**：部分图表显示数据标签，提供直观的数值参考
 
 这些交互式功能让数据分析变得更加直观和灵活，用户可以根据自己的需求自由探索数据。
-
-## 项目结构
-
-```
-/
-├── app.py                         # Web应用主程序
-├── scripts/                       # 脚本目录
-│   ├── cmb_transaction_extractor.py  # 招商银行交易数据提取脚本
-│   ├── transaction_analyzer.py    # 交易数据分析器
-│   └── visualization_helper.py    # 可视化助手
-├── data/                          # 数据目录
-│   ├── bank_transactions.csv      # 交易数据CSV文件
-│   └── analysis_data.json         # 分析结果JSON数据
-├── uploads/                       # 上传文件目录
-├── templates/                     # HTML模板目录
-│   ├── base.html                  # 基础模板
-│   ├── dashboard.html             # 仪表盘页面
-│   ├── monthly.html               # 月度分析页面
-│   ├── category.html              # 分类分析页面
-│   ├── time.html                  # 时间分析页面
-│   ├── merchant.html              # 商户分析页面
-│   ├── transactions.html          # 交易记录页面
-│   ├── upload.html                # 上传页面
-│   └── download.html              # 下载页面
-├── requirements.txt               # 依赖包列表
-├── start_app.bat                  # 启动应用的批处理文件
-└── README.md                      # 项目说明文档
-```
 
 ## 安装
 
@@ -115,10 +112,10 @@ python app.py
 
 ## 注意事项
 
-- 支持的文件类型：.xlsx
+- 支持的文件类型：.xlsx, .xls
 - 上传的文件将保存在uploads目录中
-- 提取的数据将保存为data目录下的"bank_transactions.csv"文件
-- 分析结果将保存为data目录下的"analysis_data.json"文件
+- 所有数据存储在SQLite数据库中
+- 分析结果保存在JSON文件中
 - 所有文件采用UTF-8编码
 
 ## 交易类别说明
