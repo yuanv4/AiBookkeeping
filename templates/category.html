@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}分类分析 - 银行账单分析系统{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="fas fa-tags me-2"></i>分类分析</h1>
+
+<!-- 图表部分 -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-chart-pie me-2"></i>支出类别占比
+            </div>
+            <div class="card-body chart-container">
+                {% if category_chart %}
+                <img src="data:image/png;base64,{{ category_chart }}" class="img-fluid" alt="支出类别占比">
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                    <p>暂无分类统计数据</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-th me-2"></i>月度-类别热力图
+            </div>
+            <div class="card-body chart-container">
+                {% if heatmap_chart %}
+                <img src="data:image/png;base64,{{ heatmap_chart }}" class="img-fluid" alt="月度-类别热力图">
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-th fa-3x mb-3"></i>
+                    <p>暂无热力图数据</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 分类详情表格 -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-table me-2"></i>支出类别详情
+    </div>
+    <div class="card-body">
+        {% if category_stats|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>排名</th>
+                        <th>类别</th>
+                        <th>总支出 (元)</th>
+                        <th>占比</th>
+                        <th>交易笔数</th>
+                        <th>平均值 (元/笔)</th>
+                        <th>可视化</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in category_stats %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ category.分类 }}</td>
+                        <td>{{ "%.2f"|format(category.总额) }}</td>
+                        <td>{{ "%.2f"|format(category.占比) }}%</td>
+                        <td>{{ category.笔数 }}</td>
+                        <td>{{ "%.2f"|format(category.平均值) }}</td>
+                        <td>
+                            <div class="progress">
+                                <div class="progress-bar bg-primary" role="progressbar" 
+                                     style="width: {{ category.占比 }}%;" 
+                                     aria-valuenow="{{ category.占比 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-primary">
+                    <tr>
+                        <th colspan="2">总计</th>
+                        <th>{{ "%.2f"|format(category_stats|sum(attribute='总额')) }}</th>
+                        <th>100.00%</th>
+                        <th>{{ category_stats|sum(attribute='笔数') }}</th>
+                        <th>{{ "%.2f"|format(category_stats|sum(attribute='总额') / category_stats|sum(attribute='笔数')) }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <!-- 分类分析洞察 -->
+        <div class="mt-4">
+            <h4><i class="fas fa-lightbulb me-2"></i>消费类别洞察</h4>
+            
+            {% set top_categories = category_stats[:3] %}
+            {% set total_expense = category_stats|sum(attribute='总额') %}
+            
+            <div class="alert alert-info">
+                <h5>主要消费集中在这些类别</h5>
+                <p>
+                    在总支出中，排名前三的消费类别为
+                    {% for cat in top_categories %}
+                    <strong>{{ cat.分类 }}</strong> ({{ "%.2f"|format(cat.占比) }}%){% if not loop.last %}、{% endif %}
+                    {% endfor %}，
+                    合计占总支出的 <strong>{{ "%.2f"|format(top_categories|sum(attribute='占比')) }}%</strong>。
+                </p>
+            </div>
+            
+            {% if category_stats|selectattr('分类', 'equalto', '餐饮')|list|length > 0 %}
+            {% set food = category_stats|selectattr('分类', 'equalto', '餐饮')|first %}
+            <div class="alert alert-warning">
+                <h5>餐饮消费情况</h5>
+                <p>
+                    餐饮消费总额为 <strong>{{ "%.2f"|format(food.总额) }}</strong> 元，
+                    占总支出的 <strong>{{ "%.2f"|format(food.占比) }}%</strong>，
+                    共 {{ food.笔数 }} 笔交易，平均每笔 {{ "%.2f"|format(food.平均值) }} 元。
+                </p>
+            </div>
+            {% endif %}
+            
+            {% if category_stats|selectattr('分类', 'equalto', '购物')|list|length > 0 %}
+            {% set shopping = category_stats|selectattr('分类', 'equalto', '购物')|first %}
+            <div class="alert alert-success">
+                <h5>购物消费情况</h5>
+                <p>
+                    购物消费总额为 <strong>{{ "%.2f"|format(shopping.总额) }}</strong> 元，
+                    占总支出的 <strong>{{ "%.2f"|format(shopping.占比) }}%</strong>，
+                    共 {{ shopping.笔数 }} 笔交易，平均每笔 {{ "%.2f"|format(shopping.平均值) }} 元。
+                </p>
+            </div>
+            {% endif %}
+            
+            {% if category_stats|selectattr('分类', 'equalto', '交通')|list|length > 0 %}
+            {% set transport = category_stats|selectattr('分类', 'equalto', '交通')|first %}
+            <div class="alert alert-primary">
+                <h5>交通消费情况</h5>
+                <p>
+                    交通消费总额为 <strong>{{ "%.2f"|format(transport.总额) }}</strong> 元，
+                    占总支出的 <strong>{{ "%.2f"|format(transport.占比) }}%</strong>，
+                    共 {{ transport.笔数 }} 笔交易，平均每笔 {{ "%.2f"|format(transport.平均值) }} 元。
+                </p>
+            </div>
+            {% endif %}
+            
+            <!-- 优化建议 -->
+            <div class="alert alert-secondary">
+                <h5><i class="fas fa-bullseye me-2"></i>优化建议</h5>
+                <ul>
+                    {% for cat in top_categories %}
+                    <li>
+                        <strong>{{ cat.分类 }}</strong>: 
+                        支出占比{{ "%.2f"|format(cat.占比) }}%，平均每笔{{ "%.2f"|format(cat.平均值) }}元。
+                        {% if cat.分类 == '餐饮' %}
+                        可以考虑减少外卖和餐厅就餐频率，增加在家做饭的频率，控制每餐消费。
+                        {% elif cat.分类 == '购物' %}
+                        购物前可以多做比价，避免冲动消费，关注促销活动，合理安排大额购物时间。
+                        {% elif cat.分类 == '交通' %}
+                        可以优先选择公共交通工具，减少打车频率，合理规划出行路线。
+                        {% elif cat.分类 == '住房' %}
+                        可以节约水电使用，关注房租价格变动，寻找性价比更高的住所。
+                        {% elif cat.分类 == '娱乐' %}
+                        可以寻找免费或低成本的娱乐方式，合理控制订阅服务的数量。
+                        {% else %}
+                        建议仔细审查该类别的消费，看是否有可以优化的空间。
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-table fa-3x mb-3"></i>
+            <p>暂无分类统计数据</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

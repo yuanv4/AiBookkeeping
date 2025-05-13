@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}上传数据 - 银行账单分析系统{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-3">
+            <i class="material-icons mr-2">cloud_upload</i>
+            上传数据
+        </h1>
+        <p class="subheading">上传您的银行账单数据进行分析</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="material-icons mr-2">info</i>上传说明
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="material-icons mr-2" style="color: var(--md-primary);">description</i>
+                        <span class="fw-medium">支持的文件类型：</span>
+                    </div>
+                    <p class="ms-4 mb-3">Excel文件 (.xlsx)</p>
+                    
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="material-icons mr-2" style="color: var(--md-primary);">help</i>
+                        <span class="fw-medium">使用方法：</span>
+                    </div>
+                    <p class="ms-4 mb-3">选择一个或多个Excel文件，然后点击"上传并处理"按钮。</p>
+                    
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="material-icons mr-2" style="color: var(--md-primary);">settings</i>
+                        <span class="fw-medium">数据处理：</span>
+                    </div>
+                    <p class="ms-4">系统将自动提取符合日期格式的数据行，并进行解析和分类。</p>
+                </div>
+
+                <form method="post" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label for="file" class="form-label">选择要处理的Excel文件:</label>
+                        <div class="input-group">
+                            <input type="file" id="file" name="file" class="form-control shadow-none" multiple accept=".xlsx">
+                            <button class="btn btn-outline-primary" type="button" id="file-info-btn">
+                                <i class="material-icons">help_outline</i>
+                            </button>
+                        </div>
+                        <div class="form-text">可以同时选择多个文件一起处理</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="material-icons" style="font-size: 18px; vertical-align: text-bottom;">cloud_upload</i>
+                            上传并处理
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="material-icons mr-2">tips_and_updates</i>数据格式要求
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="subheading">必需字段</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="material-icons mr-2" style="font-size: 16px; color: var(--md-primary);">event</i>
+                                <span>交易日期</span>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="material-icons mr-2" style="font-size: 16px; color: var(--md-primary);">paid</i>
+                                <span>交易金额</span>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="material-icons mr-2" style="font-size: 16px; color: var(--md-primary);">category</i>
+                                <span>交易类型</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="subheading">推荐字段</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="material-icons mr-2" style="font-size: 16px; color: var(--md-primary);">store</i>
+                                <span>交易对象/商户名称</span>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="material-icons mr-2" style="font-size: 16px; color: var(--md-primary);">account_balance</i>
+                                <span>账户余额</span>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="material-icons mr-2" style="font-size: 16px; color: var(--md-primary);">account_balance_wallet</i>
+                                <span>账号</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 文件上传时的样式效果
+    const fileInput = document.getElementById('file');
+    const fileInfoBtn = document.getElementById('file-info-btn');
+    
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            let fileNames = Array.from(this.files).map(file => file.name).join(', ');
+            this.setAttribute('title', fileNames);
+        } else {
+            this.removeAttribute('title');
+        }
+    });
+    
+    fileInfoBtn.addEventListener('click', function() {
+        alert('支持上传多个Excel文件(.xlsx)，系统将自动提取其中的交易数据并进行解析。\n\n请确保Excel文件中包含必要的列，如交易日期、交易金额、交易类型等信息。');
+    });
+</script>
+{% endblock %} 

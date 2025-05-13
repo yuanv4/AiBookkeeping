@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}年度分析 - 银行账单分析系统{% endblock %}
+
+{% block header_title %}年度分析{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">年度分析</h1>
+            <p class="text-muted">按年度查看收支趋势，了解长期财务状况</p>
+        </div>
+        <div>
+            <span class="badge bg-primary me-2">{{ yearly_stats|length if yearly_stats else 0 }} 年数据</span>
+        </div>
+    </div>
+
+    <!-- 年度图表 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="material-icons-round me-2" style="vertical-align: -4px;">bar_chart</i>年度收支趋势
+        </div>
+        <div class="card-body chart-container">
+            {% if yearly_data %}
+            <canvas id="yearlyChart" style="width: 100%; height: 400px;"></canvas>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="material-icons-round" style="font-size: 48px;">bar_chart</i>
+                <p class="mt-3">暂无年度统计数据</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 年度数据表格 -->
+    <div class="card">
+        <div class="card-header">
+            <i class="material-icons-round me-2" style="vertical-align: -4px;">table_chart</i>年度收支详情
+        </div>
+        <div class="card-body">
+            {% if yearly_stats|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>年份</th>
+                            <th>收入 (元)</th>
+                            <th>支出 (元)</th>
+                            <th>净收支 (元)</th>
+                            <th>结余率</th>
+                            <th>趋势</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for year in yearly_stats %}
+                        <tr>
+                            <td>{{ year.年份 }}</td>
+                            <td class="text-success">{{ "%.2f"|format(year.收入) }}</td>
+                            <td class="text-danger">{{ "%.2f"|format(year.支出) }}</td>
+                            <td class="{% if year.净额 >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "%.2f"|format(year.净额) }}
+                            </td>
+                            <td>
+                                {% if year.收入 > 0 %}
+                                {{ "%.1f"|format((year.收入 - year.支出) / year.收入 * 100) }}%
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if loop.index > 1 and yearly_stats[loop.index-2].净额 != 0 %}
+                                {% set change = (year.净额 - yearly_stats[loop.index-2].净额) / yearly_stats[loop.index-2].净额 * 100 if yearly_stats[loop.index-2].净额 != 0 else 0 %}
+                                {% if change > 10 %}
+                                <span class="text-success"><i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">trending_up</i> {{ "%.1f"|format(change) }}%</span>
+                                {% elif change < -10 %}
+                                <span class="text-danger"><i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">trending_down</i> {{ "%.1f"|format(change)|replace('-', '') }}%</span>
+                                {% else %}
+                                <span class="text-muted"><i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">trending_flat</i> {{ "%.1f"|format(change) }}%</span>
+                                {% endif %}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('monthly_analysis', year=year.年份.split('.')[0]) }}" class="btn btn-sm btn-primary">
+                                    <i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">calendar_month</i> 月度详情
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-primary">
+                        <tr>
+                            <th>总计</th>
+                            <th class="text-success">{{ "%.2f"|format(yearly_stats|sum(attribute='收入')) }}</th>
+                            <th class="text-danger">{{ "%.2f"|format(yearly_stats|sum(attribute='支出')) }}</th>
+                            <th class="{% if yearly_stats|sum(attribute='净额') >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "%.2f"|format(yearly_stats|sum(attribute='净额')) }}
+                            </th>
+                            <th>
+                                {% set total_income = yearly_stats|sum(attribute='收入') %}
+                                {% set total_expense = yearly_stats|sum(attribute='支出') %}
+                                {% if total_income > 0 %}
+                                {{ "%.1f"|format((total_income - total_expense) / total_income * 100) }}%
+                                {% else %}
+                                -
+                                {% endif %}
+                            </th>
+                            <th>-</th>
+                            <th>-</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <!-- 年度统计分析 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <i class="material-icons-round me-2" style="vertical-align: -4px;">lightbulb</i>年度收支分析洞察
+                </div>
+                <div class="card-body">
+                    {% set highest_income_year = yearly_stats|sort(attribute='收入')|last %}
+                    {% set highest_expense_year = yearly_stats|sort(attribute='支出')|last %}
+                    {% set lowest_income_year = yearly_stats|sort(attribute='收入')|first %}
+                    {% set lowest_expense_year = yearly_stats|sort(attribute='支出')|first %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="alert alert-success">
+                                <h5><i class="material-icons-round me-2" style="vertical-align: -4px;">arrow_upward</i>收入最高的年份</h5>
+                                <p>{{ highest_income_year.年份 }}年收入达到 <strong>{{ "%.2f"|format(highest_income_year.收入) }}</strong> 元，
+                                同期支出 {{ "%.2f"|format(highest_income_year.支出) }} 元，净收支 {{ "%.2f"|format(highest_income_year.净额) }} 元。</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-danger">
+                                <h5><i class="material-icons-round me-2" style="vertical-align: -4px;">arrow_upward</i>支出最高的年份</h5>
+                                <p>{{ highest_expense_year.年份 }}年支出达到 <strong>{{ "%.2f"|format(highest_expense_year.支出) }}</strong> 元，
+                                同期收入 {{ "%.2f"|format(highest_expense_year.收入) }} 元，净收支 {{ "%.2f"|format(highest_expense_year.净额) }} 元。</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="alert alert-warning">
+                                <h5><i class="material-icons-round me-2" style="vertical-align: -4px;">arrow_downward</i>收入最低的年份</h5>
+                                <p>{{ lowest_income_year.年份 }}年收入仅为 <strong>{{ "%.2f"|format(lowest_income_year.收入) }}</strong> 元，
+                                同期支出 {{ "%.2f"|format(lowest_income_year.支出) }} 元，净收支 {{ "%.2f"|format(lowest_income_year.净额) }} 元。</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-info">
+                                <h5><i class="material-icons-round me-2" style="vertical-align: -4px;">arrow_downward</i>支出最低的年份</h5>
+                                <p>{{ lowest_expense_year.年份 }}年支出仅为 <strong>{{ "%.2f"|format(lowest_expense_year.支出) }}</strong> 元，
+                                同期收入 {{ "%.2f"|format(lowest_expense_year.收入) }} 元，净收支 {{ "%.2f"|format(lowest_expense_year.净额) }} 元。</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-primary mt-3">
+                        <h5><i class="material-icons-round me-2" style="vertical-align: -4px;">show_chart</i>年度收支趋势分析</h5>
+                        <p>
+                        {% set avg_income = yearly_stats|sum(attribute='收入') / yearly_stats|length %}
+                        {% set avg_expense = yearly_stats|sum(attribute='支出') / yearly_stats|length %}
+                        {% set avg_net = yearly_stats|sum(attribute='净额') / yearly_stats|length %}
+                        
+                        在分析期间，年均收入为 <strong>{{ "%.2f"|format(avg_income) }}</strong> 元，
+                        年均支出为 <strong>{{ "%.2f"|format(avg_expense) }}</strong> 元，
+                        年均净收支为 <strong>{{ "%.2f"|format(avg_net) }}</strong> 元。
+                        
+                        {% if yearly_stats|length > 1 %}
+                        {% set first_year = yearly_stats|first %}
+                        {% set last_year = yearly_stats|last %}
+                        {% set income_change = (last_year.收入 - first_year.收入) / first_year.收入 * 100 if first_year.收入 != 0 else 0 %}
+                        {% set expense_change = (last_year.支出 - first_year.支出) / first_year.支出 * 100 if first_year.支出 != 0 else 0 %}
+                        
+                        从 {{ first_year.年份 }} 到 {{ last_year.年份 }}，
+                        收入{% if income_change > 0 %}增长了{% else %}下降了{% endif %} <strong>{{ "%.1f"|format(income_change)|replace('-', '') }}%</strong>，
+                        支出{% if expense_change > 0 %}增长了{% else %}下降了{% endif %} <strong>{{ "%.1f"|format(expense_change)|replace('-', '') }}%</strong>。
+                        {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="material-icons-round" style="font-size: 48px;">table_chart</i>
+                <p class="mt-3">暂无年度统计数据</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 颜色配置
+const colorPalette = {
+    primary: '#4663ac',
+    success: '#47b881',
+    danger: '#ec4c47',
+    warning: '#ffab00',
+    info: '#1070ca',
+    neutral: ['#4663ac', '#6c84ca', '#8ea2d8', '#b0bfe5', '#d2dcf3']
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    {% if yearly_data %}
+    // 初始化年度图表
+    const yearlyCtx = document.getElementById('yearlyChart').getContext('2d');
+    const yearlyChart = new Chart(yearlyCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ yearly_data.labels|tojson }},
+            datasets: [
+                {
+                    label: '收入',
+                    data: {{ yearly_data.income|tojson }},
+                    backgroundColor: colorPalette.success,
+                    borderColor: colorPalette.success,
+                    borderWidth: 1
+                },
+                {
+                    label: '支出',
+                    data: {{ yearly_data.expense|tojson }},
+                    backgroundColor: colorPalette.danger,
+                    borderColor: colorPalette.danger,
+                    borderWidth: 1
+                },
+                {
+                    label: '净额',
+                    data: {{ yearly_data.net|tojson }},
+                    type: 'line',
+                    fill: false,
+                    borderColor: colorPalette.primary,
+                    backgroundColor: colorPalette.primary,
+                    pointBorderColor: colorPalette.primary,
+                    pointBackgroundColor: '#fff',
+                    pointRadius: 4,
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    onClick(e, legendItem, legend) {
+                        const index = legendItem.datasetIndex;
+                        const ci = legend.chart;
+                        const meta = ci.getDatasetMeta(index);
+                        
+                        // 更新数据集的可见性
+                        meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+                        
+                        // 更新图表
+                        ci.update();
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += new Intl.NumberFormat('zh-CN', { 
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2 
+                                }).format(context.parsed.y);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback(value) {
+                            return new Intl.NumberFormat('zh-CN', { 
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }).format(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+});
+</script>
+{% endblock %} 

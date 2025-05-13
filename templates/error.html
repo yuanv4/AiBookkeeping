@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}错误 - 银行账单分析系统{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex align-items-center" style="background-color: var(--md-error); color: white;">
+                    <i class="material-icons mr-2">error_outline</i>系统错误
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <i class="material-icons" style="font-size: 72px; color: var(--md-error);">error</i>
+                        <h2 class="mt-3">系统遇到了一个错误</h2>
+                        <div class="alert alert-danger mt-3">
+                            {{ error }}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6 class="subheading mb-3">您可以尝试以下操作：</h6>
+                        <div class="ps-3">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="material-icons mr-2" style="color: var(--md-primary);">refresh</i>
+                                <span>刷新页面，重试操作</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="material-icons mr-2" style="color: var(--md-primary);">dashboard</i>
+                                <span>返回<a href="{{ url_for('dashboard') }}" class="ms-1 me-1">仪表盘</a>或<a href="{{ url_for('upload_file') }}" class="ms-1">上传新数据</a></span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="material-icons mr-2" style="color: var(--md-primary);">check_circle</i>
+                                <span>检查数据格式是否正确</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="material-icons mr-2" style="color: var(--md-primary);">contact_support</i>
+                                <span>联系系统管理员寻求帮助</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if traceback %}
+                    <div class="mt-4">
+                        <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#errorDetails">
+                            <i class="material-icons" style="font-size: 18px; vertical-align: text-bottom;">code</i>
+                            显示详细错误信息
+                        </button>
+                        <div class="collapse mt-3" id="errorDetails">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <i class="material-icons mr-2">bug_report</i>错误详情
+                                </div>
+                                <div class="card-body p-0">
+                                    <pre class="m-0 p-3" style="background-color: #f5f5f5; color: var(--md-error); overflow-x: auto; font-size: 12px;"><code>{{ traceback }}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+                        <i class="material-icons" style="font-size: 18px; vertical-align: text-bottom;">dashboard</i>
+                        返回仪表盘
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">
+                        <i class="material-icons" style="font-size: 18px; vertical-align: text-bottom;">home</i>
+                        返回首页
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

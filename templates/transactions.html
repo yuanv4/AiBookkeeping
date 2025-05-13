@@ -1,0 +1,673 @@
+{% extends "base.html" %}
+
+{% block title %}交易记录 - 银行账单分析系统{% endblock %}
+
+{% block header_title %}交易记录{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-2">交易记录</h1>
+        <p class="subheading">查看和搜索您的所有交易记录，共 <span class="badge bg-primary rounded-pill" id="total-count">{{ transactions|length }}</span> 条</p>
+    </div>
+</div>
+
+<!-- 筛选表单 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            <i class="material-icons-round me-2" style="color: var(--primary);">filter_list</i>
+            <span>筛选条件</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <form id="filter-form" class="row g-3">
+            <div class="col-lg-3 col-md-6">
+                <label for="category" class="form-label">交易类型</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="material-icons-round" style="font-size: 18px;">category</i></span>
+                    <select class="form-select" id="category">
+                        <option value="">全部类型</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label for="bank" class="form-label">银行</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="material-icons-round" style="font-size: 18px;">account_balance</i></span>
+                    <select class="form-select" id="bank">
+                        <option value="">全部银行</option>
+                        <!-- 银行选项将通过JavaScript动态填充 -->
+                    </select>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label for="account" class="form-label">卡号</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="material-icons-round" style="font-size: 18px;">credit_card</i></span>
+                    <select class="form-select" id="account">
+                        <option value="">全部卡号</option>
+                        <!-- 卡号选项将通过JavaScript动态填充 -->
+                    </select>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label for="start" class="form-label">开始日期</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="material-icons-round" style="font-size: 18px;">event</i></span>
+                    <input type="date" class="form-control" id="start" value="{{ min_date }}">
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label for="end" class="form-label">结束日期</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="material-icons-round" style="font-size: 18px;">event</i></span>
+                    <input type="date" class="form-control" id="end" value="{{ max_date }}">
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label for="search" class="form-label">关键词搜索</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="material-icons-round" style="font-size: 18px;">search</i></span>
+                    <input type="text" class="form-control" id="search" placeholder="输入关键词...">
+                </div>
+            </div>
+            <div class="col-12 text-end mt-4">
+                <button type="button" id="reset-filters" class="btn btn-outline-secondary me-2">
+                    <i class="material-icons-round" style="font-size: 18px; vertical-align: text-bottom;">refresh</i>
+                    重置
+                </button>
+                <button type="button" id="apply-filters" class="btn btn-primary">
+                    <i class="material-icons-round" style="font-size: 18px; vertical-align: text-bottom;">search</i>
+                    搜索
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 交易记录表格 -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <i class="material-icons-round me-2" style="color: var(--primary);">receipt_long</i>
+            <span>交易明细</span>
+        </div>
+        <div>
+            <button id="download-csv" class="btn btn-sm btn-outline-primary me-2">
+                <i class="material-icons-round" style="font-size: 18px; vertical-align: text-bottom;">download</i>
+                导出CSV
+            </button>
+            <span class="badge rounded-pill bg-primary" id="filtered-count">{{ transactions|length }}</span> / <span class="badge rounded-pill bg-secondary">{{ transactions|length }}</span>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="transactions-table">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>日期</th>
+                        <th>类型</th>
+                        <th>交易对象</th>
+                        <th>金额</th>
+                        <th>账户余额</th>
+                        <th>账号</th>
+                        <th>银行</th>
+                    </tr>
+                </thead>
+                <tbody id="transactions-body">
+                    <!-- 表格内容将通过JavaScript动态填充 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 分页控件 -->
+        <div id="pagination-container" class="p-3">
+            <ul class="pagination justify-content-center" id="pagination">
+                <!-- 分页按钮将通过JavaScript动态填充 -->
+            </ul>
+        </div>
+        
+        <!-- 无数据提示 -->
+        <div id="no-data" class="text-center py-5" style="display: none;">
+            <i class="material-icons-round" style="font-size: 48px; color: rgba(0,0,0,0.15);">search_off</i>
+            <p class="mt-3 text-muted">没有找到匹配的交易记录</p>
+            <button id="reset-all" class="btn btn-outline-primary mt-2">
+                <i class="material-icons-round" style="font-size: 18px; vertical-align: text-bottom;">refresh</i>
+                重置筛选条件
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化数据
+        let allTransactions = [];
+        try {
+            // 尝试解析交易数据
+            console.log("正在解析交易数据");
+            // 使用直接传递的JSON字符串
+            const transactionsJson = {{ transactions_json|safe }};
+            // 如果已经是对象，直接使用；如果是字符串，则解析
+            if (typeof transactionsJson === 'string') {
+                allTransactions = JSON.parse(transactionsJson);
+            } else {
+                allTransactions = transactionsJson;
+            }
+            console.log(`成功解析${allTransactions.length}条交易记录`);
+            
+            // 检查第一条记录
+            if (allTransactions.length > 0) {
+                console.log("第一条记录示例:", allTransactions[0]);
+            }
+            
+            // 填充银行和卡号筛选器选项
+            populateBankAndAccountOptions();
+        } catch (error) {
+            console.error("解析交易数据时出错:", error);
+            // 解析失败时使用空数组
+            allTransactions = [];
+        }
+        
+        let filteredTransactions = [...allTransactions];
+        const itemsPerPage = 50;
+        let currentPage = 1;
+        
+        // 初始化表格
+        renderTable();
+        
+        // 绑定事件
+        document.getElementById('apply-filters').addEventListener('click', applyFilters);
+        document.getElementById('reset-filters').addEventListener('click', resetFilters);
+        document.getElementById('reset-all').addEventListener('click', resetFilters);
+        document.getElementById('download-csv').addEventListener('click', downloadCSV);
+        
+        // 银行选择变化时更新卡号选项
+        document.getElementById('bank').addEventListener('change', function() {
+            updateAccountOptions(this.value);
+        });
+        
+        // 日期区间验证
+        document.getElementById('start').addEventListener('change', function() {
+            var startDate = this.value;
+            var endDate = document.getElementById('end').value;
+            if (startDate && endDate && startDate > endDate) {
+                document.getElementById('end').value = startDate;
+            }
+        });
+        
+        document.getElementById('end').addEventListener('change', function() {
+            var endDate = this.value;
+            var startDate = document.getElementById('start').value;
+            if (startDate && endDate && endDate < startDate) {
+                document.getElementById('start').value = endDate;
+            }
+        });
+        
+        /**
+         * 填充银行和卡号下拉列表选项
+         */
+        function populateBankAndAccountOptions() {
+            // 获取所有唯一的银行
+            const bankSet = new Set();
+            
+            // 创建银行到卡号的映射
+            window.bankToAccounts = {};
+            
+            allTransactions.forEach(transaction => {
+                const bank = transaction['银行'] || '未知银行';
+                const account = transaction['账号'] || '未知账号';
+                
+                // 添加银行
+                bankSet.add(bank);
+                
+                // 添加卡号到对应银行
+                if (!window.bankToAccounts[bank]) {
+                    window.bankToAccounts[bank] = new Set();
+                }
+                window.bankToAccounts[bank].add(account);
+            });
+            
+            // 填充银行选项
+            const bankSelect = document.getElementById('bank');
+            bankSelect.innerHTML = '<option value="">全部银行</option>';
+            Array.from(bankSet).sort().forEach(bank => {
+                const option = document.createElement('option');
+                option.value = bank;
+                option.textContent = bank;
+                bankSelect.appendChild(option);
+            });
+            
+            // 初始加载所有卡号
+            updateAccountOptions('');
+        }
+        
+        /**
+         * 根据选择的银行更新卡号选项
+         */
+        function updateAccountOptions(selectedBank) {
+            const accountSelect = document.getElementById('account');
+            accountSelect.innerHTML = '<option value="">全部卡号</option>';
+            
+            // 获取要显示的卡号集合
+            let accountsToShow = new Set();
+            
+            if (selectedBank === '') {
+                // 如果没有选择银行，显示所有卡号
+                Object.values(window.bankToAccounts).forEach(accounts => {
+                    accounts.forEach(account => accountsToShow.add(account));
+                });
+            } else if (window.bankToAccounts[selectedBank]) {
+                // 如果选择了银行，只显示该银行的卡号
+                window.bankToAccounts[selectedBank].forEach(account => accountsToShow.add(account));
+            }
+            
+            // 填充卡号选项
+            Array.from(accountsToShow).sort().forEach(account => {
+                const option = document.createElement('option');
+                option.value = account;
+                option.textContent = account;
+                accountSelect.appendChild(option);
+            });
+        }
+        
+        /**
+         * 应用筛选条件
+         */
+        function applyFilters() {
+            const category = document.getElementById('category').value;
+            const bank = document.getElementById('bank').value;
+            const account = document.getElementById('account').value;
+            const startDate = document.getElementById('start').value;
+            const endDate = document.getElementById('end').value;
+            const search = document.getElementById('search').value.toLowerCase();
+            
+            console.log("应用筛选条件:", {
+                "银行": bank,
+                "卡号": account,
+                "类型": category,
+                "开始日期": startDate,
+                "结束日期": endDate,
+                "关键词": search
+            });
+            
+            // 检查所有交易记录中是否有符合特定银行和卡号的数据
+            if(bank === '建设银行' || account.includes('6217007200025792832')) {
+                const matches = allTransactions.filter(t => 
+                    (bank ? t['银行'] === bank : true) && 
+                    (account ? t['账号'] === account : true)
+                );
+                console.log(`找到 ${matches.length} 条匹配建设银行和指定卡号的记录`);
+                if(matches.length > 0) {
+                    console.log("第一条匹配记录:", matches[0]);
+                }
+                
+                // 检查银行名称是否完全匹配
+                const bankValues = new Set(allTransactions.map(t => t['银行']));
+                console.log("所有银行名称:", Array.from(bankValues));
+                
+                // 检查卡号是否完全匹配
+                const cardValues = new Set(allTransactions.map(t => t['账号']));
+                console.log("所有卡号:", Array.from(cardValues));
+            }
+            
+            filteredTransactions = allTransactions.filter(transaction => {
+                // 筛选类别
+                if (category && transaction['交易类型'] !== category) {
+                    return false;
+                }
+                
+                // 筛选银行
+                if (bank && String(transaction['银行']).trim() !== bank.trim()) {
+                    return false;
+                }
+                
+                // 筛选卡号
+                if (account && String(transaction['账号']).trim() !== account.trim()) {
+                    return false;
+                }
+                
+                // 筛选日期范围
+                if (startDate && transaction['交易日期'] < startDate) {
+                    return false;
+                }
+                if (endDate && transaction['交易日期'] > endDate) {
+                    return false;
+                }
+                
+                // 关键词搜索
+                if (search) {
+                    const searchFields = ['交易类型', '交易对象', '户名', '账号'];
+                    let matchFound = false;
+                    for (const field of searchFields) {
+                        if (transaction[field] && String(transaction[field]).toLowerCase().includes(search)) {
+                            matchFound = true;
+                            break;
+                        }
+                    }
+                    if (!matchFound) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            console.log(`筛选后剩余 ${filteredTransactions.length} 条记录`);
+            
+            // 重置到第一页
+            currentPage = 1;
+            
+            // 渲染表格
+            renderTable();
+        }
+        
+        /**
+         * 重置筛选条件
+         */
+        function resetFilters() {
+            document.getElementById('category').value = '';
+            document.getElementById('bank').value = '';
+            document.getElementById('account').value = '';
+            document.getElementById('start').value = '{{ min_date }}';
+            document.getElementById('end').value = '{{ max_date }}';
+            document.getElementById('search').value = '';
+            
+            // 重置卡号下拉列表
+            updateAccountOptions('');
+            
+            filteredTransactions = [...allTransactions];
+            currentPage = 1;
+            renderTable();
+        }
+        
+        /**
+         * 渲染表格和分页
+         */
+        function renderTable() {
+            console.log("开始渲染表格，数据条数:", filteredTransactions.length);
+            
+            // 更新计数
+            document.getElementById('filtered-count').textContent = filteredTransactions.length;
+            document.getElementById('total-count').textContent = allTransactions.length;
+            
+            // 显示/隐藏无数据提示
+            if (filteredTransactions.length === 0) {
+                document.getElementById('transactions-table').style.display = 'none';
+                document.getElementById('pagination-container').style.display = 'none';
+                document.getElementById('no-data').style.display = 'block';
+                return;
+            } else {
+                document.getElementById('transactions-table').style.display = 'table';
+                document.getElementById('pagination-container').style.display = 'block';
+                document.getElementById('no-data').style.display = 'none';
+            }
+            
+            // 计算分页
+            const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, filteredTransactions.length);
+            const pageItems = filteredTransactions.slice(startIndex, endIndex);
+            
+            // 渲染表格内容
+            const tbody = document.getElementById('transactions-body');
+            tbody.innerHTML = '';
+            
+            pageItems.forEach((transaction, index) => {
+                try {
+                    const tr = document.createElement('tr');
+                    
+                    // 获取日期，确保日期存在
+                    let formattedDate = transaction['交易日期'] || '';
+                    
+                    // 格式化金额，确保金额是数字，否则默认为0
+                    let amount = 0;
+                    try {
+                        amount = parseFloat(transaction['交易金额']);
+                        if (isNaN(amount)) amount = 0;
+                    } catch (e) {
+                        console.error("金额解析错误:", e);
+                        amount = 0;
+                    }
+                    const formattedAmount = amount.toFixed(2);
+                    const amountClass = amount > 0 ? 'positive' : (amount < 0 ? 'negative' : '');
+                    
+                    // 格式化余额，确保余额是数字，否则默认为0
+                    let balance = 0;
+                    try {
+                        balance = parseFloat(transaction['账户余额']);
+                        if (isNaN(balance)) balance = 0;
+                    } catch (e) {
+                        console.error("余额解析错误:", e);
+                        balance = 0;
+                    }
+                    const formattedBalance = balance.toFixed(2);
+                    
+                    // 确定交易类型标签颜色
+                    let typeClass = 'bg-primary';
+                    let transactionType = transaction['交易类型'] || '未知';
+                    if (transactionType.includes('退款')) {
+                        typeClass = 'bg-success';
+                    } else if (transactionType.includes('转账')) {
+                        typeClass = 'bg-info';
+                    } else if (transactionType.includes('收入') || transactionType.includes('收款')) {
+                        typeClass = 'bg-success';
+                    }
+                    
+                    // 设置交易对象
+                    const transactionObject = transaction['交易对象'] || '';
+                    
+                    // 获取银行和账号信息
+                    const bank = transaction['银行'] || '未知银行';
+                    const accountNumber = transaction['账号'] || '未知账号';
+                    
+                    tr.innerHTML = `
+                        <td>${startIndex + index + 1}</td>
+                        <td>${formattedDate}</td>
+                        <td><span class="badge ${typeClass}">${transactionType}</span></td>
+                        <td>${transactionObject}</td>
+                        <td class="${amountClass}">${amount > 0 ? '+' : ''}${formattedAmount}</td>
+                        <td>${formattedBalance}</td>
+                        <td><span class="badge bg-light text-dark">${accountNumber}</span></td>
+                        <td><span class="badge bg-secondary">${bank}</span></td>
+                    `;
+                    
+                    tbody.appendChild(tr);
+                } catch (error) {
+                    console.error("渲染表格行时出错:", error, "数据:", transaction);
+                }
+            });
+            
+            // 渲染分页控件
+            renderPagination(totalPages);
+        }
+        
+        /**
+         * 渲染分页控件
+         */
+        function renderPagination(totalPages) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            // 如果只有一页，不显示分页
+            if (totalPages <= 1) {
+                document.getElementById('pagination-container').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('pagination-container').style.display = 'block';
+            
+            // 上一页按钮
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `
+                <a class="page-link" href="#" aria-label="上一页">
+                    <i class="material-icons-round">chevron_left</i>
+                </a>
+            `;
+            if (currentPage > 1) {
+                prevLi.addEventListener('click', () => {
+                    currentPage--;
+                    renderTable();
+                });
+            }
+            pagination.appendChild(prevLi);
+            
+            // 计算显示的页码范围
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+            
+            // 调整，确保显示5个页码
+            if (endPage - startPage < 4) {
+                if (startPage === 1) {
+                    endPage = Math.min(5, totalPages);
+                } else if (endPage === totalPages) {
+                    startPage = Math.max(1, totalPages - 4);
+                }
+            }
+            
+            // 第一页
+            if (startPage > 1) {
+                const firstLi = document.createElement('li');
+                firstLi.className = 'page-item';
+                firstLi.innerHTML = '<a class="page-link" href="#">1</a>';
+                firstLi.addEventListener('click', () => {
+                    currentPage = 1;
+                    renderTable();
+                });
+                pagination.appendChild(firstLi);
+                
+                // 省略号
+                if (startPage > 2) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+            }
+            
+            // 页码
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                pageLi.addEventListener('click', () => {
+                    currentPage = i;
+                    renderTable();
+                });
+                pagination.appendChild(pageLi);
+            }
+            
+            // 省略号和最后一页
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+                
+                const lastLi = document.createElement('li');
+                lastLi.className = 'page-item';
+                lastLi.innerHTML = `<a class="page-link" href="#">${totalPages}</a>`;
+                lastLi.addEventListener('click', () => {
+                    currentPage = totalPages;
+                    renderTable();
+                });
+                pagination.appendChild(lastLi);
+            }
+            
+            // 下一页按钮
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `
+                <a class="page-link" href="#" aria-label="下一页">
+                    <i class="material-icons-round">chevron_right</i>
+                </a>
+            `;
+            if (currentPage < totalPages) {
+                nextLi.addEventListener('click', () => {
+                    currentPage++;
+                    renderTable();
+                });
+            }
+            pagination.appendChild(nextLi);
+        }
+        
+        /**
+         * 导出CSV文件
+         */
+        function downloadCSV() {
+            // 表头
+            const headers = [
+                '序号', '交易日期', '交易类型', '交易对象', '交易金额', 
+                '账户余额', '户名', '账号', '银行'
+            ];
+            
+            // 处理数据
+            const rows = filteredTransactions.map((item, index) => {
+                return [
+                    index + 1,
+                    item['交易日期'],
+                    item['交易类型'],
+                    item['交易对象'] || '',
+                    item['交易金额'],
+                    item['账户余额'],
+                    item['户名'] || '',
+                    item['账号'] || '',
+                    item['银行'] || '未知银行'
+                ];
+            });
+            
+            // 组合为CSV内容
+            let csvContent = '\uFEFF'; // 添加BOM，解决中文乱码问题
+            csvContent += headers.join(',') + '\n';
+            rows.forEach(row => {
+                // 处理CSV中的特殊字符
+                const formattedRow = row.map(cell => {
+                    if (cell === null || cell === undefined) {
+                        return '';
+                    }
+                    
+                    const cellStr = String(cell);
+                    // 如果含有逗号、引号或换行符，则需要用引号包裹并转义引号
+                    if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                        return '"' + cellStr.replace(/"/g, '""') + '"';
+                    }
+                    return cellStr;
+                });
+                csvContent += formattedRow.join(',') + '\n';
+            });
+            
+            // 创建下载链接
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', '交易记录_' + new Date().toISOString().split('T')[0] + '.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    });
+</script>
+
+<style>
+    .positive {
+        color: #28a745;
+        font-weight: bold;
+    }
+    .negative {
+        color: #dc3545;
+        font-weight: bold;
+    }
+</style>
+{% endblock %} 

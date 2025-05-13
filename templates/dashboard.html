@@ -1,0 +1,914 @@
+{% extends "base.html" %}
+
+{% block title %}仪表盘 - 银行账单分析系统{% endblock %}
+
+{% block header_title %}仪表盘{% endblock %}
+
+{% block styles %}
+<style>
+    /* 仪表盘特定样式 */
+    .dashboard-section {
+        margin-bottom: 2.5rem;
+    }
+    
+    .dashboard-section-header {
+        margin-bottom: 1.5rem;
+    }
+    
+    .dashboard-card {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    
+    .dashboard-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
+    }
+    
+    .stat-card {
+        height: 100%;
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: rgba(70, 99, 172, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .stat-icon i {
+        font-size: 24px;
+        color: var(--primary);
+    }
+    
+    .stat-content {
+        flex: 1;
+    }
+    
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+        color: var(--secondary);
+        font-size: 0.875rem;
+    }
+    
+    .card-header h5 {
+        display: flex;
+        align-items: center;
+    }
+    
+    .card-header h5 i {
+        margin-right: 8px;
+        vertical-align: -4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-section">
+    <div class="dashboard-section-header">
+        <h1 class="mb-2">财务总览</h1>
+        <p class="subheading m-0">{{ summary.起始日期 }} 至 {{ summary.结束日期 }} 的账单数据分析</p>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <!-- 资金状况卡片 -->
+        <div class="col-xl-6 col-md-12">
+            <div class="card dashboard-card border-primary h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0"><i class="material-icons-round me-1">account_balance_wallet</i> 当前资金状况</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="stat-icon" style="background-color: rgba(71, 184, 129, 0.1);">
+                                    <i class="material-icons-round" style="color: var(--success);">savings</i>
+                                </div>
+                                <div class="ms-3">
+                                    <h3 class="mb-0">{{ "%.2f"|format(summary.账户余额) }}</h3>
+                                    <p class="text-muted mb-0">当前可用资金</p>
+                                </div>
+                            </div>
+                            
+                            {% if summary.账户余额列表 and summary.账户余额列表|length > 0 %}
+                            <div class="mt-2">
+                                <div class="accordion" id="accountBalanceAccordion">
+                                    <div class="accordion-item border-0">
+                                        <h2 class="accordion-header" id="headingAccounts">
+                                            <button class="accordion-button collapsed p-1 ps-1 small bg-transparent" type="button" 
+                                                    data-bs-toggle="collapse" data-bs-target="#collapseAccounts" 
+                                                    aria-expanded="false" aria-controls="collapseAccounts">
+                                                查看所有账户余额 ({{ summary.账户余额列表|length }}个账户)
+                                            </button>
+                                        </h2>
+                                        <div id="collapseAccounts" class="accordion-collapse collapse" 
+                                             aria-labelledby="headingAccounts" data-bs-parent="#accountBalanceAccordion">
+                                            <div class="accordion-body p-1 ps-3">
+                                                <ul class="list-unstyled small mb-0">
+                                                    {% for account in summary.账户余额列表 %}
+                                                    <li class="mb-1">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span class="text-muted">{{ account.银行 }} ({{ (account.账号|string)[-4:] if (account.账号|string)|length >= 4 else account.账号|string }})</span>
+                                                            <span class="fw-bold">{{ "%.2f"|format(account.余额) }}</span>
+                                                        </div>
+                                                    </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="stat-icon" style="background-color: {% if summary.净收支 >= 0 %}rgba(71, 184, 129, 0.1){% else %}rgba(236, 76, 71, 0.1){% endif %};" id="netIcon">
+                                    <i class="material-icons-round" style="color: {% if summary.净收支 >= 0 %}var(--success){% else %}var(--danger){% endif %};" id="netIconInner">account_balance</i>
+                                </div>
+                                <div class="ms-3">
+                                    <h3 class="mb-0 {% if summary.净收支 >= 0 %}text-success{% else %}text-danger{% endif %}" id="netAmount">
+                                        {{ "%.2f"|format(summary.净收支) }}
+                                    </h3>
+                                    <p class="text-muted mb-0">总净收支</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% if summary.总收入 > 0 %}
+                        <div class="col-12 mt-2">
+                            <h6 class="mb-2">收支比例</h6>
+                            <div class="progress" style="height: 10px; border-radius: 5px; background-color: rgba(0,0,0,0.05);">
+                                {% set percent = (summary.总支出 / summary.总收入 * 100)|round|int %}
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: {{ percent }}%; border-radius: 5px;" aria-valuenow="{{ percent }}" aria-valuemin="0" aria-valuemax="100" id="expenseRateBar"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1" style="font-size: 0.85rem; color: #6c757d;">
+                                <span>支出率: <span id="expenseRate">{{ percent }}%</span></span>
+                                <span>节余: <span id="remainingRate">{{ "%.1f"|format(100 - percent) }}%</span></span>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="col-12 mt-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <div class="stat-icon" style="width: 36px; height: 36px; background-color: rgba(25, 118, 210, 0.1);">
+                                            <i class="material-icons-round" style="font-size: 18px; color: var(--primary);">trending_up</i>
+                                        </div>
+                                        <div class="ms-2">
+                                            <div class="fs-6 fw-bold">{{ "%.2f"|format(data.get('max_balance', 0)) }}</div>
+                                            <div class="small text-muted">最高余额</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <div class="stat-icon" style="width: 36px; height: 36px; background-color: rgba(236, 76, 71, 0.1);">
+                                            <i class="material-icons-round" style="font-size: 18px; color: var(--danger);">trending_down</i>
+                                        </div>
+                                        <div class="ms-2">
+                                            <div class="fs-6 fw-bold">{{ "%.2f"|format(data.get('min_balance', 0)) }}</div>
+                                            <div class="small text-muted">最低余额</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <div class="alert 
+                                {% if summary.净收支 > summary.总收入 * 0.3 %}
+                                    alert-success
+                                {% elif summary.净收支 > 0 %}
+                                    alert-success
+                                {% elif summary.净收支 > summary.总支出 * -0.1 %}
+                                    alert-warning
+                                {% else %}
+                                    alert-danger
+                                {% endif %} mb-0">
+                                <i class="material-icons-round me-1" style="vertical-align: -4px;">
+                                    {% if summary.净收支 > summary.总收入 * 0.3 %}
+                                        sentiment_very_satisfied
+                                    {% elif summary.净收支 > 0 %}
+                                        sentiment_satisfied
+                                    {% elif summary.净收支 > summary.总支出 * -0.1 %}
+                                        sentiment_neutral
+                                    {% else %}
+                                        sentiment_very_dissatisfied
+                                    {% endif %}
+                                </i>
+                                <span class="fw-bold">财务状况：</span>
+                                {% if summary.净收支 > summary.总收入 * 0.3 %}
+                                    非常健康，有充足结余
+                                    <div class="mt-1 small text-success">您的收支结余超过收入的30%，建议考虑适当投资</div>
+                                {% elif summary.净收支 > 0 %}
+                                    良好，收支平衡有结余
+                                    <div class="mt-1 small text-success">保持良好习惯，可适当增加储蓄比例</div>
+                                {% elif summary.净收支 > summary.总支出 * -0.1 %}
+                                    一般，略有超支
+                                    <div class="mt-1 small text-warning">支出略高于收入，建议控制非必要支出</div>
+                                {% else %}
+                                    需注意，支出明显超过收入
+                                    <div class="mt-1 small text-danger">支出明显高于收入，建议制定预算计划并削减开支</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 收支统计卡片组 -->
+        <div class="col-xl-6 col-md-12">
+            <div class="row g-4 h-100">
+                <!-- 收入统计卡片 -->
+                <div class="col-md-6">
+                    <div class="card dashboard-card h-100">
+                        <div class="card-body">
+                            <div class="stat-icon" style="background-color: rgba(71, 184, 129, 0.1);">
+                                <i class="material-icons-round" style="color: var(--success);">arrow_upward</i>
+                            </div>
+                            <div class="stat-content mt-3">
+                                <div class="stat-value text-success" id="totalIncome">{{ "%.2f"|format(summary.总收入) }}</div>
+                                <div class="stat-label">总收入 <span id="incomeCount" class="badge bg-success">{{ summary.收入笔数 }}笔</span></div>
+                                <div class="mt-2">
+                                    <small class="text-muted">月均收入：{{ "%.2f"|format(summary.总收入 / ((data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1))) }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 支出统计卡片 -->
+                <div class="col-md-6">
+                    <div class="card dashboard-card h-100">
+                        <div class="card-body">
+                            <div class="stat-icon" style="background-color: rgba(236, 76, 71, 0.1);">
+                                <i class="material-icons-round" style="color: var(--danger);">arrow_downward</i>
+                            </div>
+                            <div class="stat-content mt-3">
+                                <div class="stat-value text-danger" id="totalExpense">{{ "%.2f"|format(summary.总支出) }}</div>
+                                <div class="stat-label">总支出 <span id="expenseCount" class="badge bg-danger">{{ summary.支出笔数 }}笔</span></div>
+                                <div class="mt-2">
+                                    <small class="text-muted">月均支出：{{ "%.2f"|format(summary.总支出 / ((data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1))) }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 交易概览卡片 -->
+                <div class="col-md-12">
+                    <div class="card dashboard-card h-100">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <div class="stat-icon">
+                                            <i class="material-icons-round">calendar_today</i>
+                                        </div>
+                                        <div class="ms-3">
+                                            <h4 class="mb-0">{{ summary.交易笔数 }}</h4>
+                                            <p class="text-muted mb-0">总交易笔数</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <div class="stat-icon" style="background-color: rgba(25, 118, 210, 0.1);">
+                                            <i class="material-icons-round" style="color: var(--primary);">payments</i>
+                                        </div>
+                                        <div class="ms-3">
+                                            <h4 class="mb-0">{{ "%.2f"|format(data.get('avg_transaction', 0)) }}</h4>
+                                            <p class="text-muted mb-0">平均交易金额</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近交易记录 -->
+    <div class="dashboard-section">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="m-0">最近交易</h2>
+            <div class="d-flex align-items-center gap-3">
+                <select class="form-select form-select-sm" id="transactionTypeFilter" style="width: auto;">
+                    <option value="all">全部交易</option>
+                    <option value="income">仅收入</option>
+                    <option value="expense">仅支出</option>
+                </select>
+                <a href="{{ url_for('transactions') }}" class="btn btn-outline-primary">查看全部</a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body p-0">
+                {% if recent_transactions|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>类型</th>
+                                <th>交易对象</th>
+                                <th>金额</th>
+                                <th>账户余额</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.交易日期 if transaction.交易日期 else '' }}</td>
+                                <td>
+                                    <span class="badge {% if '退款' in transaction.交易类型 %}bg-success{% elif '转账' in transaction.交易类型 %}bg-info{% elif '收入' in transaction.交易类型 or '收款' in transaction.交易类型 %}bg-success{% else %}bg-primary{% endif %}">
+                                        {{ transaction.交易类型 }}
+                                    </span>
+                                </td>
+                                <td>{{ transaction.交易对象 }}</td>
+                                <td class="{% if transaction.交易金额 > 0 %}positive{% elif transaction.交易金额 < 0 %}negative{% endif %}">
+                                    {% if transaction.交易金额 > 0 %}+{% endif %}{{ "%.2f"|format(transaction.交易金额) }}
+                                </td>
+                                <td>{{ "%.2f"|format(transaction.账户余额) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="material-icons-round" style="font-size: 48px; color: rgba(0,0,0,0.15);">receipt_long</i>
+                    <p class="mt-3 text-muted">暂无交易记录</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 配置图表主题样式
+Chart.defaults.color = '#334152';
+Chart.defaults.font.family = "'Noto Sans SC', sans-serif";
+Chart.defaults.elements.line.borderWidth = 2;
+Chart.defaults.elements.point.radius = 3;
+Chart.defaults.elements.point.hoverRadius = 5;
+
+// 颜色配置
+const colorPalette = {
+    primary: '#4663ac',
+    success: '#47b881',
+    danger: '#ec4c47',
+    warning: '#ffab00',
+    info: '#1070ca',
+    neutral: ['#4663ac', '#6c84ca', '#8ea2d8', '#b0bfe5', '#d2dcf3'],
+    category: ['#4663ac', '#47b881', '#ec4c47', '#f7d154', '#1070ca', '#9c36b5', '#00bcd4', '#ff9800']
+};
+
+// 注册Chart.js插件
+Chart.register(ChartDataLabels);
+
+// 存储原始数据
+const originalData = {
+    summary: {
+        交易笔数: {{ summary.交易笔数 }},
+        总收入: {{ summary.总收入 }},
+        总支出: {{ summary.总支出 }},
+        净收支: {{ summary.净收支 }},
+        收入笔数: {{ summary.收入笔数 }},
+        支出笔数: {{ summary.支出笔数 }}
+    }
+    {% if charts.yearly_data %},
+    yearly: {
+        labels: {{ charts.yearly_data.labels|tojson }},
+        income: {{ charts.yearly_data.income|tojson }},
+        expense: {{ charts.yearly_data.expense|tojson }},
+        net: {{ charts.yearly_data.net|tojson }}
+    }
+    {% endif %}
+};
+
+// 图表实例
+const charts = {
+    yearly: null,
+    category: null,
+    weekday: null,
+    merchant: null
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    setupEventListeners();
+});
+
+function initializeCharts() {
+    {% if charts.yearly_data %}
+    // 年度收支统计图表
+    const yearlyCtx = document.getElementById('yearlyChart').getContext('2d');
+    charts.yearly = new Chart(yearlyCtx, {
+        type: 'bar',
+        data: {
+            labels: originalData.yearly.labels,
+            datasets: [
+                {
+                    label: '收入',
+                    data: originalData.yearly.income,
+                    backgroundColor: colorPalette.success,
+                    borderColor: colorPalette.success,
+                    borderWidth: 1
+                },
+                {
+                    label: '支出',
+                    data: originalData.yearly.expense,
+                    backgroundColor: colorPalette.danger,
+                    borderColor: colorPalette.danger,
+                    borderWidth: 1
+                },
+                {
+                    label: '净额',
+                    data: originalData.yearly.net,
+                    type: 'line',
+                    fill: false,
+                    borderColor: colorPalette.primary,
+                    backgroundColor: colorPalette.primary,
+                    pointBorderColor: colorPalette.primary,
+                    pointBackgroundColor: '#fff',
+                    pointRadius: 4,
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    onClick: function(e, legendItem, legend) {
+                        const index = legendItem.datasetIndex;
+                        const ci = legend.chart;
+                        const meta = ci.getDatasetMeta(index);
+                        
+                        // 更新数据集的可见性
+                        meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+                        
+                        // 更新图表
+                        ci.update();
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += new Intl.NumberFormat('zh-CN', { 
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2 
+                                }).format(context.parsed.y);
+                            }
+                            return label;
+                        }
+                    }
+                },
+                zoom: {
+                    zoom: {
+                        wheel: {
+                            enabled: true,
+                        },
+                        pinch: {
+                            enabled: true
+                        },
+                        mode: 'x',
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'x',
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('zh-CN', { 
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }).format(value);
+                        }
+                    }
+                }
+            },
+            onClick: function(e, elements) {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const label = this.data.labels[index];
+                    // 如果点击了某个年份，可以设置跳转到该年份的详细分析页面
+                    window.location.href = `/yearly?year=${label}`;
+                }
+            },
+            hover: {
+                mode: 'index',
+                intersect: false
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    {% endif %}
+
+    {% if charts.category_data %}
+    // 支出类别占比图表
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const categoryData = {{ charts.category_data|tojson }};
+    charts.category = new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: categoryData.labels,
+            datasets: [{
+                data: categoryData.values,
+                backgroundColor: colorPalette.category,
+                borderWidth: 1,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                datalabels: {
+                    formatter: function(value, ctx) {
+                        // 只在一定值以上的扇区显示标签
+                        const sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = (value * 100 / sum).toFixed(1) + '%';
+                        return percentage > 3 ? percentage : ''; // 只显示占比大于3%的标签
+                    },
+                    color: '#fff',
+                    font: {
+                        weight: 'bold',
+                        size: 11
+                    }
+                },
+                legend: {
+                    position: 'right',
+                    align: 'start',
+                    labels: {
+                        boxWidth: 15,
+                        padding: 15
+                    },
+                    onClick: function(e, legendItem, legend) {
+                        // 获取点击的类别索引
+                        const index = legendItem.index;
+                        
+                        // 如果点击了某个类别，可以跳转到该类别的详情页面
+                        window.location.href = `/category?category=${categoryData.labels[index]}`;
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return `${label}: ${new Intl.NumberFormat('zh-CN', { 
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2 
+                            }).format(value)} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '60%',
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 1000,
+                easing: 'easeOutQuart'
+            },
+            onClick: function(e, elements) {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const label = this.data.labels[index];
+                    // 如果点击了某个类别扇区，跳转到该类别的详情页面
+                    window.location.href = `/category?category=${label}`;
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    {% if charts.weekday_data %}
+    // 按星期消费统计图表
+    const weekdayCtx = document.getElementById('weekdayChart').getContext('2d');
+    const weekdayData = {{ charts.weekday_data|tojson }};
+    charts.weekday = new Chart(weekdayCtx, {
+        type: 'bar',
+        data: {
+            labels: weekdayData.labels,
+            datasets: [{
+                label: '消费金额',
+                data: weekdayData.values,
+                backgroundColor: colorPalette.neutral,
+                borderColor: colorPalette.primary,
+                borderWidth: 1
+            }, {
+                label: '交易笔数',
+                data: weekdayData.counts,
+                type: 'line',
+                fill: false,
+                borderColor: colorPalette.info,
+                backgroundColor: colorPalette.info,
+                pointBorderColor: colorPalette.info,
+                pointBackgroundColor: '#fff',
+                pointRadius: 4,
+                borderWidth: 2,
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                datalabels: {
+                    // 星期图表的数据标签配置
+                    align: 'end',
+                    anchor: 'end',
+                    formatter: function(value, context) {
+                        // 根据数据集类型显示不同格式
+                        if (context.datasetIndex === 0) { // 金额
+                            return value > 1000 ? (value/1000).toFixed(1) + 'k' : value.toFixed(0);
+                        } else { // 笔数
+                            return value;
+                        }
+                    },
+                    font: {
+                        size: 10
+                    },
+                    color: function(context) {
+                        return context.datasetIndex === 0 ? colorPalette.primary : colorPalette.info;
+                    },
+                    offset: 3,
+                    display: function(context) {
+                        // 根据图表宽度决定是否显示标签
+                        const chart = context.chart;
+                        const meta = chart.getDatasetMeta(context.datasetIndex);
+                        const width = chart.width;
+                        // 如果图表较窄，不显示标签
+                        return width > 400;
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                if (label.includes('金额')) {
+                                    label += new Intl.NumberFormat('zh-CN', { 
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2 
+                                    }).format(context.parsed.y);
+                                } else {
+                                    label += context.parsed.y;
+                                }
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '金额'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('zh-CN', { 
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }).format(value);
+                        }
+                    }
+                },
+                y1: {
+                    beginAtZero: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: '笔数'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
+            },
+            onClick: function(e, elements) {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const label = this.data.labels[index];
+                    // 如果点击了某个星期，跳转到时间分析页面
+                    window.location.href = `/time?day=${index}`;
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    {% endif %}
+
+    {% if charts.merchant_data %}
+    // 消费最多的商户图表
+    const merchantCtx = document.getElementById('merchantChart').getContext('2d');
+    const merchantData = {{ charts.merchant_data|tojson }};
+    charts.merchant = new Chart(merchantCtx, {
+        type: 'bar',
+        data: {
+            labels: merchantData.labels,
+            datasets: [{
+                label: '消费金额',
+                data: merchantData.values,
+                backgroundColor: colorPalette.info,
+                borderColor: colorPalette.info,
+                borderWidth: 1
+            }, {
+                label: '交易笔数',
+                data: merchantData.counts,
+                type: 'line',
+                fill: false,
+                borderColor: colorPalette.warning,
+                backgroundColor: colorPalette.warning,
+                pointBorderColor: colorPalette.warning,
+                pointBackgroundColor: '#fff',
+                pointRadius: 4,
+                borderWidth: 2,
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                datalabels: {
+                    display: false  // 禁用数据标签，避免商户图表上的数据标签堆叠
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.x !== null) {
+                                if (label.includes('金额')) {
+                                    label += new Intl.NumberFormat('zh-CN', { 
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2 
+                                    }).format(context.parsed.x);
+                                } else {
+                                    label += context.parsed.x;
+                                }
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '金额'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('zh-CN', { 
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0 
+                            }).format(value);
+                        }
+                    }
+                },
+                y: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        callback: function(value, index) {
+                            let label = this.getLabelForValue(value);
+                            // 如果商户名称太长，截断并添加省略号
+                            if (label && label.length > 10) {
+                                return label.substring(0, 10) + '...';
+                            }
+                            return label;
+                        }
+                    }
+                },
+                y1: {
+                    position: 'right',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '笔数'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
+            },
+            onClick: function(e, elements) {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const label = this.data.labels[index];
+                    // 如果点击了某个商户，跳转到该商户的详情页面
+                    window.location.href = `/merchant?merchant=${encodeURIComponent(label)}`;
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    {% endif %}
+}
+
+function setupEventListeners() {
+    // 交易记录的过滤下拉框
+    const transactionTypeFilter = document.getElementById('transactionTypeFilter');
+    if (transactionTypeFilter) {
+        transactionTypeFilter.addEventListener('change', function() {
+            filterTransactions(this.value);
+        });
+    }
+}
+
+function filterTransactions(filterType) {
+    // 根据选择的类型过滤交易记录表
+    switch(filterType) {
+        case 'all':
+            alert('显示全部交易');
+            break;
+        case 'income':
+            alert('仅显示收入交易');
+            break;
+        case 'expense':
+            alert('仅显示支出交易');
+            break;
+    }
+}
+</script>
+{% endblock %} 
