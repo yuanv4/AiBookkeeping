@@ -1,13 +1,16 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import pandas as pd
 import re
-import os
 import glob
 import logging
-import sys
 from datetime import datetime
 from pathlib import Path
+import numpy as np
 
-from bank_transaction_extractor import BankTransactionExtractor
+from scripts.bank_transaction_extractor import BankTransactionExtractor
 
 # 配置日志
 logging.basicConfig(
@@ -55,62 +58,42 @@ class CCBTransactionExtractor(BankTransactionExtractor):
             self.logger.error(f"检查文件时出错: {e}")
             return False
 
-    def standardize_date(self, date_value):
-        """将各种日期格式标准化为YYYY-MM-DD"""
-        if pd.isna(date_value):
+    def standardize_date(self, date_str):
+        """标准化日期格式"""
+        if pd.isna(date_str):
             return None
-        
-        # 尝试将数字格式转换为日期格式 (YYYYMMDD -> YYYY-MM-DD)
-        if isinstance(date_value, (int, float)) or (isinstance(date_value, str) and date_value.isdigit()):
-            try:
-                date_str = str(int(date_value))
-                if len(date_str) == 8:  # YYYYMMDD
-                    return f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}"
-            except:
-                pass
-        
-        # 处理字符串格式
-        if isinstance(date_value, str):
-            # 已经是标准格式
-            if re.match(r'^\d{4}-\d{2}-\d{2}$', date_value):
-                return date_value
-            
-            # 处理YYYY/MM/DD格式
-            if re.match(r'^\d{4}/\d{1,2}/\d{1,2}$', date_value):
-                parts = date_value.split('/')
-                year = parts[0]
-                month = parts[1].zfill(2)
-                day = parts[2].zfill(2)
-                return f"{year}-{month}-{day}"
-        
-        # 其他情况，尝试转换为datetime然后格式化
         try:
-            return pd.to_datetime(date_value).strftime('%Y-%m-%d')
+            # 尝试解析日期
+            date_obj = pd.to_datetime(date_str)
+            return date_obj.strftime('%Y-%m-%d')
         except:
-            self.logger.warning(f"无法标准化日期: {date_value}")
+            return None
+
+    def standardize_time(self, time_str):
+        """标准化时间格式"""
+        if pd.isna(time_str):
+            return None
+        try:
+            # 尝试解析时间
+            time_obj = pd.to_datetime(time_str)
+            return time_obj.strftime('%H:%M:%S')
+        except:
             return None
 
     def clean_numeric(self, value):
-        """清理并转换数值型数据"""
+        """清理数值数据"""
         if pd.isna(value):
-            return 0.0
-        
-        if isinstance(value, (int, float)):
+            return None
+        try:
+            # 如果是字符串，移除所有非数字字符（保留小数点和负号）
+            if isinstance(value, str):
+                # 移除所有空格
+                value = value.strip()
+                # 移除所有非数字字符（保留小数点和负号）
+                value = ''.join(c for c in value if c.isdigit() or c in '.-')
             return float(value)
-        
-        if isinstance(value, str):
-            # 移除货币符号、逗号和空白
-            cleaned = re.sub(r'[,¥$€£\s]', '', value)
-            # 处理带括号的负数
-            if cleaned.startswith('(') and cleaned.endswith(')'):
-                cleaned = '-' + cleaned[1:-1]
-            
-            try:
-                return float(cleaned)
-            except:
-                return 0.0
-        
-        return 0.0
+        except:
+            return None
 
     def extract_account_info(self, df):
         """从DataFrame中提取户名和账号信息"""
@@ -175,255 +158,130 @@ class CCBTransactionExtractor(BankTransactionExtractor):
         return account_name, account_number
     
     def extract_transactions(self, file_path):
-        """从建设银行Excel文件中提取交易记录"""
-        self.logger.info(f"处理建设银行文件: {file_path}")
-        print(f"处理文件: {file_path}")  # 添加控制台输出
-        
+        """从Excel文件中提取交易数据"""
         try:
-            # 尝试读取Excel文件
-            print(f"尝试读取Excel文件...")
-            print(f"文件路径: {os.path.abspath(file_path)}")
-            print(f"文件是否存在: {os.path.exists(file_path)}")
+            # 先读取前几行数据用于提取账户信息
+            df_meta = pd.read_excel(file_path, header=None, nrows=10)
+            account_name, account_number = self.extract_account_info(df_meta)
             
-            # 尝试不同的引擎
-            for engine in ['openpyxl', 'xlrd']:
-                try:
-                    print(f"尝试使用 {engine} 引擎读取...")
-                    if engine == 'xlrd':
-                        df = pd.read_excel(file_path, header=None, engine=engine)
-                    else:
-                        df = pd.read_excel(file_path, header=None, engine=engine)
-                    print(f"使用 {engine} 引擎成功读取，行数: {len(df)}")
-                    break
-                except Exception as e:
-                    print(f"使用 {engine} 引擎失败: {e}")
-            else:
-                raise Exception("所有引擎都失败了")
-            
-            # 如果文件为空，返回空DataFrame
-            if df.empty:
-                self.logger.warning(f"文件为空: {file_path}")
-                print("文件为空")
-                return None
-            
-            # 打印前10行数据用于调试
-            print("\n前10行数据:")
-            for i, row in df.head(10).iterrows():
-                print(f"行 {i}: {row.tolist()}")
-            
-            # 检查文件内容，找到表头行
+            # 找到真正的数据标题行（通常包含"序号"、"摘要"、"交易日期"等字段）
             header_row_idx = None
-            print("\n查找表头行...")
-            for idx, row in df.iterrows():
-                # 检查是否包含典型的表头字段
-                row_values = [str(val).strip() for val in row if pd.notna(val)]
-                row_text = ' '.join(row_values).lower()
-                print(f"行 {idx} 文本: {row_text}")
-                
-                # 直接打印该行的值
-                print(f"行 {idx} 值: {row.tolist()}")
-                
-                # 检查是否包含多个关键字段
-                keywords = ['序号', '摘要', '交易日期', '交易金额']
-                keyword_count = sum(1 for keyword in keywords if keyword.lower() in row_text)
-                
-                if keyword_count >= 3:  # 如果至少包含3个关键字段
+            for idx, row in df_meta.iterrows():
+                # 查找包含"序号"或"交易日期"的行作为标题行
+                row_values = [str(val).strip() if not pd.isna(val) else "" for val in row]
+                row_text = " ".join(row_values).lower()
+                if "序号" in row_text and "交易日期" in row_text:
                     header_row_idx = idx
-                    print(f"找到表头行 {idx}: {row_text}")
-                    break
-                
-                # 只检查前20行
-                if idx >= 20:
+                    self.logger.info(f"找到标题行：索引={header_row_idx}, 内容={row_values}")
                     break
             
             if header_row_idx is None:
-                self.logger.warning(f"无法找到表头行: {file_path}")
-                print("无法找到表头行，尝试查找具有更多列的行...")
-                
-                # 查找具有最多非空值的行作为表头
-                max_columns = 0
-                for idx, row in df.iterrows():
-                    non_na_count = row.notna().sum()
-                    if non_na_count > max_columns:
-                        max_columns = non_na_count
-                        header_row_idx = idx
-                    
-                    # 只检查前20行
-                    if idx >= 20:
-                        break
-                
-                print(f"选择行 {header_row_idx} 作为表头，该行有 {max_columns} 个非空值")
+                self.logger.error("无法找到标题行")
+                return None
             
-            # 使用找到的表头行作为列名
-            headers = []
-            for col in df.iloc[header_row_idx]:
-                if pd.isna(col):
-                    headers.append('')
-                else:
-                    headers.append(str(col).strip())
+            # 重新读取Excel文件，使用找到的标题行作为列名
+            df = pd.read_excel(file_path, header=header_row_idx)
             
-            print(f"\n使用的表头: {headers}")
+            # 打印列名，用于调试
+            print(f"\n找到的列名: {df.columns.tolist()}")
             
-            # 创建新的DataFrame，使用表头下的数据
-            data_df = df.iloc[header_row_idx+1:].reset_index(drop=True)
-            data_df.columns = headers
-            
-            print(f"\n数据行数: {len(data_df)}")
-            if not data_df.empty:
-                print("数据前5行:")
-                for i, row in data_df.head(5).iterrows():
-                    print(f"行 {i}: {dict(zip(headers, row.tolist()))}")
-            
-            # 查找必要的列
-            required_columns = ['交易日期', '摘要', '交易金额', '账户余额', '币别', '对方账号与户名']
-            print(f"\n需要查找的列: {required_columns}")
-            print(f"现有的列: {[col for col in data_df.columns if col]}")
-            
-            # 将'交易地点/附言'保留为单独的列，避免映射冲突
-            column_mapping = {}
-            for col in data_df.columns:
-                if not col or not isinstance(col, str):
+            # 尝试标准化列名
+            rename_map = {}
+            for col in df.columns:
+                if not isinstance(col, str):
                     continue
                     
-                col_lower = col.lower()
+                col_str = str(col).strip().lower()
                 
-                print(f"检查列: '{col}'")
-                
-                if '日期' in col_lower or '时间' in col_lower:
-                    column_mapping[col] = '交易日期'
-                    print(f"  '{col}' -> '交易日期'")
-                elif '摘要' in col_lower or '类型' in col_lower:
-                    column_mapping[col] = '交易类型'
-                    print(f"  '{col}' -> '交易类型'")
-                elif ('金额' in col_lower or '发生额' in col_lower) and ('交易' in col_lower or not '余额' in col_lower):
-                    column_mapping[col] = '交易金额'
-                    print(f"  '{col}' -> '交易金额'")
-                elif '余额' in col_lower:
-                    column_mapping[col] = '账户余额'
-                    print(f"  '{col}' -> '账户余额'")
-                elif '币' in col_lower or '币别' in col_lower:
-                    column_mapping[col] = '货币'
-                    print(f"  '{col}' -> '货币'")
-                # 不要在此处映射交易地点/附言，保持原样
-                # 也不要在此处映射对方账号与户名，以避免冲突
-            
-            print(f"\n列映射: {column_mapping}")
+                if "序号" in col_str:
+                    rename_map[col] = "序号"
+                elif "交易日期" in col_str:
+                    rename_map[col] = "交易日期"
+                elif "摘要" in col_str:
+                    rename_map[col] = "交易类型"
+                elif "币别" in col_str:
+                    rename_map[col] = "货币"
+                elif "交易金额" in col_str:
+                    rename_map[col] = "交易金额"
+                elif "账户余额" in col_str:
+                    rename_map[col] = "账户余额"
             
             # 重命名列
-            data_df = data_df.rename(columns=column_mapping)
-            
-            print(f"\n重命名后的列: {data_df.columns.tolist()}")
-            
-            # 提取账户信息
-            account_name, account_number = self.extract_account_info(df)
+            df = df.rename(columns=rename_map)
+            print(f"\n标准化后的列名: {df.columns.tolist()}")
             
             # 创建标准格式的DataFrame
-            result_columns = ['交易日期', '货币', '交易金额', '账户余额', '交易类型', '交易对象', '户名', '账号']
-            result_df = pd.DataFrame(columns=result_columns)
+            result_columns = ['交易日期', '货币', '交易金额', '账户余额', '交易类型', '交易对象', '户名', '账号', 'row_index']
+            result_df = pd.DataFrame(index=df.index)
             
-            # 赋值数据
-            if '交易日期' in data_df.columns:
-                print(f"\n交易日期样例: {data_df['交易日期'].head().tolist()}")
-                result_df['交易日期'] = data_df['交易日期'].apply(self.standardize_date)
-                print(f"标准化后的交易日期样例: {result_df['交易日期'].head().tolist()}")
+            # 填充必要的数据
+            if "交易日期" in df.columns:
+                # 处理交易日期列
+                try:
+                    # 转换为日期格式
+                    print(f"交易日期列原始数据样例: {df['交易日期'].head().tolist()}")
+                    df['交易日期'] = df['交易日期'].astype(str)
+                    df['交易日期'] = pd.to_datetime(df['交易日期'], errors='coerce')
+                    
+                    # 检查并填充无效日期
+                    mask = pd.isna(df['交易日期'])
+                    if mask.any():
+                        self.logger.warning(f"发现{mask.sum()}条无效的交易日期，将使用当前日期替代")
+                        df.loc[mask, '交易日期'] = pd.Timestamp.today().normalize()
+                    
+                    # 标准化为字符串格式的日期 (YYYY-MM-DD)
+                    result_df['交易日期'] = df['交易日期'].dt.strftime('%Y-%m-%d')
+                except Exception as e:
+                    self.logger.error(f"处理交易日期时出错: {str(e)}")
+                    # 使用当前日期作为默认值
+                    today = pd.Timestamp.today().strftime('%Y-%m-%d')
+                    self.logger.warning(f"由于处理错误，所有交易日期将使用今天的日期: {today}")
+                    result_df['交易日期'] = today
             else:
-                self.logger.warning("未找到交易日期列")
-                print("\n未找到交易日期列。所有列名: ", [col for col in data_df.columns if col])
-                
-                # 检查是否有其他列可能包含日期
-                date_cols = []
-                for col in data_df.columns:
-                    if col and any(keyword in str(col).lower() for keyword in ['日期', '时间', 'date', 'time']):
-                        date_cols.append(col)
-                
-                if date_cols:
-                    print(f"可能包含日期的其他列: {date_cols}")
-                    # 尝试第一个可能的日期列
-                    result_df['交易日期'] = data_df[date_cols[0]].apply(self.standardize_date)
-                    print(f"使用列 {date_cols[0]} 作为交易日期")
-                else:
-                    print("未找到任何可能包含日期的列")
-                    return None
+                self.logger.warning(f"没有找到交易日期列，所有交易日期将使用今天的日期: {pd.Timestamp.today().strftime('%Y-%m-%d')}")
+                result_df['交易日期'] = pd.Timestamp.today().strftime('%Y-%m-%d')
+            
+            # 处理序号作为row_index
+            result_df['row_index'] = self.standardize_row_index(df, header_row_idx, "序号")
             
             # 处理货币列
-            if '货币' in data_df.columns:
-                result_df['货币'] = data_df['货币'].apply(lambda x: 'CNY' if pd.isna(x) or '人民币' in str(x) else str(x)[:3])
+            if "货币" in df.columns:
+                result_df['货币'] = df['货币'].fillna('CNY')
             else:
-                # 默认使用人民币
                 result_df['货币'] = 'CNY'
             
             # 处理金额和余额
-            if '交易金额' in data_df.columns:
-                print(f"\n交易金额样例: {data_df['交易金额'].head().tolist()}")
-                result_df['交易金额'] = data_df['交易金额'].apply(self.clean_numeric)
-                print(f"清理后的交易金额样例: {result_df['交易金额'].head().tolist()}")
+            if "交易金额" in df.columns:
+                result_df['交易金额'] = df['交易金额'].apply(self.clean_numeric)
             else:
-                # 查找可能包含金额的列
-                amount_cols = []
-                for col in data_df.columns:
-                    if col and any(keyword in str(col).lower() for keyword in ['金额', '发生额', 'amount']):
-                        amount_cols.append(col)
-                
-                if amount_cols:
-                    print(f"可能包含交易金额的其他列: {amount_cols}")
-                    result_df['交易金额'] = data_df[amount_cols[0]].apply(self.clean_numeric)
-                else:
-                    result_df['交易金额'] = 0.0
+                result_df['交易金额'] = 0.0
             
-            if '账户余额' in data_df.columns:
-                result_df['账户余额'] = data_df['账户余额'].apply(self.clean_numeric)
+            if "账户余额" in df.columns:
+                result_df['账户余额'] = df['账户余额'].apply(self.clean_numeric)
             else:
-                # 查找可能包含余额的列
-                balance_cols = []
-                for col in data_df.columns:
-                    if col and any(keyword in str(col).lower() for keyword in ['余额', 'balance']):
-                        balance_cols.append(col)
-                
-                if balance_cols:
-                    print(f"可能包含账户余额的其他列: {balance_cols}")
-                    result_df['账户余额'] = data_df[balance_cols[0]].apply(self.clean_numeric)
-                else:
-                    result_df['账户余额'] = 0.0
+                result_df['账户余额'] = 0.0
             
-            # 处理交易类型和交易对象
-            if '交易类型' in data_df.columns:
-                result_df['交易类型'] = data_df['交易类型']
-            elif '摘要' in data_df.columns:
-                result_df['交易类型'] = data_df['摘要']
+            # 处理交易类型
+            if "交易类型" in df.columns:
+                result_df['交易类型'] = df['交易类型'].fillna('其他')
             else:
-                result_df['交易类型'] = '未知'
-            
-            # 处理交易对象 - 明确使用交易地点/附言作为交易对象
-            if '交易地点/附言' in data_df.columns:
-                print("使用'交易地点/附言'列作为交易对象")
-                result_df['交易对象'] = data_df['交易地点/附言'].astype(str)
-            elif '对方账号与户名' in data_df.columns:
-                print("使用'对方账号与户名'列作为交易对象")
-                result_df['交易对象'] = data_df['对方账号与户名'].astype(str)
+                result_df['交易类型'] = '其他'
+
+            if "交易地点/附言" in df.columns:
+                result_df['交易对象'] = df['交易地点/附言'].fillna('')
             else:
-                print("未找到合适的交易对象列，使用空值")
                 result_df['交易对象'] = ''
             
-            # 添加户名和账号
+            # 添加账户信息
             result_df['户名'] = account_name
             result_df['账号'] = account_number
             
-            # 过滤掉无效记录
-            result_df = result_df[result_df['交易日期'].notna()]
-            
-            print(f"\n提取的交易记录数: {len(result_df)}")
-            if not result_df.empty:
-                print("提取的数据前5行:")
-                print(result_df.head().to_string())
-            
-            self.logger.info(f"从文件中提取了 {len(result_df)} 条交易记录")
             return result_df
-        
+            
         except Exception as e:
-            self.logger.error(f"处理文件时出错: {e}")
-            print(f"处理文件时出错: {e}")
+            self.logger.error(f"提取交易数据时出错: {str(e)}")
             import traceback
-            traceback.print_exc()
+            self.logger.error(traceback.format_exc())
             return None
     
     def get_bank_keyword(self):

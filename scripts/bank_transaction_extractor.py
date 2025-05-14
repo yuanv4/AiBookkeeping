@@ -93,29 +93,6 @@ class BankTransactionExtractor:
         
         return 0.0
     
-    def get_bank_name_from_filename(self, file_path):
-        """从文件名中提取银行名称"""
-        file_name = Path(file_path).name.lower()
-        
-        if '招商银行' in file_name:
-            return 'cmb'
-        elif '建设银行' in file_name or 'ccb' in file_name:
-            return 'ccb'
-        elif '工商银行' in file_name or 'icbc' in file_name:
-            return 'icbc'
-        elif '农业银行' in file_name or 'abc' in file_name:
-            return 'abc'
-        elif '中国银行' in file_name or 'boc' in file_name:
-            return 'boc'
-        elif '交通银行' in file_name or 'bocom' in file_name:
-            return 'bocom'
-        else:
-            # 从文件名中提取日期范围作为标识
-            date_match = re.search(r'(\d{4}[-_]\d{2}[-_]\d{2})', file_name)
-            if date_match:
-                return f"bank_{date_match.group(1)}"
-            return 'unknown_bank'
-    
     def save_to_database(self, df, file_path):
         """将交易数据保存到SQLite数据库
         
@@ -151,6 +128,20 @@ class BankTransactionExtractor:
                 for _, group in potential_duplicates.groupby(['交易日期', '交易金额']):
                     self.logger.debug(f"潜在重复: {group[['交易日期', '交易金额', '交易对象']].to_dict('records')}")
         
+        # 检测完全相同的交易（除了row_index外所有字段都相同）
+        columns_to_check = [col for col in df.columns if col != 'row_index']
+        if len(columns_to_check) > 0:
+            # 找出除row_index外其他所有字段都相同的记录
+            exact_duplicates = df[df.duplicated(subset=columns_to_check, keep=False)]
+            if not exact_duplicates.empty:
+                self.logger.warning(f"检测到{len(exact_duplicates)}条重复交易（除row_index外所有数据相同）")
+                for _, group in exact_duplicates.groupby(columns_to_check):
+                    self.logger.debug(f"完全重复: {group[['交易日期', '交易金额', '交易对象', 'row_index']].to_dict('records')}")
+                    # 仅保留row_index值最小的一条记录（通常是原始Excel中最先出现的记录）
+                    duplicate_indices = group.index[1:]  # 保留第一条，删除其余记录
+                    df = df.drop(duplicate_indices)
+                    self.logger.info(f"移除了{len(duplicate_indices)}条重复交易记录")
+        
         # 添加银行名称列
         if '银行' not in df.columns:
             # 使用提取器的银行名称
@@ -171,18 +162,35 @@ class BankTransactionExtractor:
         account_groups = df.groupby('账号')
         
         for account_number, account_df in account_groups:
-            # 获取银行代码
-            bank_code = self.bank_name.upper()
-            
-            # 导入到数据库
-            batch_id = f"import_{datetime.now().strftime('%Y%m%d%H%M%S')}_{Path(file_path).stem}"
-            imported_count = self.db_manager.import_dataframe(account_df, bank_code, batch_id)
-            
-            if imported_count > 0:
-                self.logger.info(f"成功导入账号 {account_number} 的 {imported_count} 条交易记录到数据库")
-                total_imported += imported_count
-            else:
-                self.logger.warning(f"账号 {account_number} 的交易记录导入失败或无新数据")
+            try:
+                # 获取银行代码
+                bank_code = self.bank_name.upper()
+                bank_name = bank_name_map.get(bank_code, self.bank_name)
+                
+                # 1. 先插入银行数据
+                try:
+                    self.db_manager.init_db()  # 确保表结构和基础数据存在
+                    # 确保银行记录存在
+                    bank_id = self.db_manager.get_or_create_bank(bank_code, bank_name)
+                    self.logger.info(f"获取银行ID成功: {bank_code} -> {bank_id}")
+                except Exception as e:
+                    self.logger.error(f"获取银行ID时出错: {str(e)}")
+                    # 如果无法获取银行ID，设置为1（假设ID=1的银行记录已存在）
+                    bank_id = 1
+                    self.logger.warning(f"使用默认银行ID: {bank_id}")
+                
+                # 导入到数据库
+                batch_id = f"import_{datetime.now().strftime('%Y%m%d%H%M%S')}_{Path(file_path).stem}"
+                imported_count = self.db_manager.import_transactions(account_df, bank_id, batch_id)
+                
+                if imported_count > 0:
+                    self.logger.info(f"成功导入账号 {account_number} 的 {imported_count} 条交易记录到数据库")
+                    total_imported += imported_count
+                else:
+                    self.logger.warning(f"账号 {account_number} 的交易记录导入失败或无新数据")
+            except Exception as e:
+                self.logger.error(f"处理账号 {account_number} 时出错: {str(e)}")
+                continue
         
         self.logger.info(f"总共导入 {total_imported} 条交易记录到数据库")
         return total_imported
@@ -202,6 +210,29 @@ class BankTransactionExtractor:
         """从文件中提取交易明细，由子类实现"""
         raise NotImplementedError("子类必须实现extract_transactions方法")
     
+    def standardize_row_index(self, df, header_row_idx=None, id_column_name="序号"):
+        """标准化处理行号，确保每条记录有唯一的row_index
+        
+        Args:
+            df: 要处理的DataFrame
+            header_row_idx: 表头行索引，如果提供，则用于计算实际Excel行号
+            id_column_name: 表示序号的列名，默认为"序号"
+            
+        Returns:
+            处理后的row_index Series
+        """
+        if id_column_name in df.columns and not df[id_column_name].isnull().all():
+            # 如果有序号列，直接使用
+            return df[id_column_name]
+        else:
+            # 如果没有序号列，使用DataFrame的索引
+            if header_row_idx is not None:
+                # 如果提供了表头行索引，加上偏移量得到实际Excel行号
+                return df.index + header_row_idx + 1
+            else:
+                # 否则直接使用索引作为row_index
+                return df.index
+    
     def extract_account_info(self, df):
         """从DataFrame中提取账户信息，可由子类重写"""
         # 默认实现是从df中获取账号字段的第一个值
@@ -220,7 +251,7 @@ class BankTransactionExtractor:
         
         Args:
             upload_dir: 上传文件目录
-            data_dir: 可选，数据保存目录，默认为None（直接保存到数据库）
+            data_dir: 已弃用参数，保留是为了向后兼容
             
         Returns:
             处理结果信息列表
@@ -280,7 +311,7 @@ class BankTransactionExtractor:
         
         Args:
             upload_dir: 上传文件目录
-            data_dir: 数据保存目录，默认为None（直接保存到数据库）
+            data_dir: 已弃用参数，保留是为了向后兼容
             
         Returns:
             处理结果信息列表
@@ -360,17 +391,15 @@ class BankTransactionExtractor:
     def run(self):
         """运行交易明细提取器"""
         try:
-            # 获取上传和数据保存目录
+            # 获取上传目录
             root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             upload_dir = os.path.join(root_dir, 'uploads')
-            data_dir = os.path.join(root_dir, 'data', 'transactions')
             
             # 确保目录存在
             os.makedirs(upload_dir, exist_ok=True)
-            os.makedirs(data_dir, exist_ok=True)
             
             # 处理上传目录中的文件
-            processed_files = self.process_files(upload_dir, data_dir)
+            processed_files = self.process_files(upload_dir)
             
             if processed_files:
                 # 统计处理结果
@@ -404,17 +433,15 @@ class BankTransactionExtractor:
     def run_auto_detect():
         """运行自动检测银行类型并处理交易数据"""
         try:
-            # 获取上传和数据保存目录
+            # 获取上传目录
             root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             upload_dir = os.path.join(root_dir, 'uploads')
-            data_dir = os.path.join(root_dir, 'data', 'transactions')
             
             # 确保目录存在
             os.makedirs(upload_dir, exist_ok=True)
-            os.makedirs(data_dir, exist_ok=True)
             
             # 自动检测并处理
-            processed_files = BankTransactionExtractor.auto_detect_bank_and_process(upload_dir, data_dir)
+            processed_files = BankTransactionExtractor.auto_detect_bank_and_process(upload_dir)
             
             if processed_files:
                 # 统计处理结果
@@ -441,7 +468,7 @@ class BankTransactionExtractor:
                 
         except Exception as e:
             logging.error(f"运行过程中出错: {str(e)}")
-            logging.error(f"错误详情: {logging.traceback.format_exc()}")
+            logging.error(f"错误详情: {traceback.format_exc()}")
             return []
     
     def get_bank_keyword(self):

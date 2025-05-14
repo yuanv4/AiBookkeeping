@@ -98,6 +98,14 @@ class TransactionAnalyzer:
             }
             self.df = self.df.rename(columns=column_mapping)
             
+            # 重置索引并移除重复数据（如果存在）
+            # 这是为了解决"cannot assemble with duplicate keys"错误
+            self.df = self.df.reset_index(drop=True)
+            
+            # 移除可能存在的同时拥有'transaction_date'和'交易日期'列的情况
+            if 'transaction_date' in self.df.columns and '交易日期' in self.df.columns:
+                self.df = self.df.drop(columns=['transaction_date'])
+            
             # 确保交易日期是日期类型
             self.df['交易日期'] = pd.to_datetime(self.df['交易日期'])
             

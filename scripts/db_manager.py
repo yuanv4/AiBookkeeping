@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 import json
+import numpy as np
 
 # 配置日志
 logger = logging.getLogger('db_manager')
@@ -52,15 +53,15 @@ class DBManager:
     
     def init_db(self):
         """初始化数据库表结构"""
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
             # 创建银行表
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS banks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                bank_code TEXT NOT NULL UNIQUE,
+                bank_code TEXT UNIQUE NOT NULL,
                 bank_name TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -70,7 +71,7 @@ class DBManager:
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS accounts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                account_number TEXT NOT NULL UNIQUE,
+                account_number TEXT UNIQUE NOT NULL,
                 bank_id INTEGER NOT NULL,
                 account_name TEXT,
                 account_type TEXT,
@@ -83,8 +84,9 @@ class DBManager:
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS transaction_types (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                type_code TEXT NOT NULL UNIQUE,
                 type_name TEXT NOT NULL,
+                type_code TEXT,
+                category TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             ''')
@@ -95,6 +97,7 @@ class DBManager:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 account_id INTEGER NOT NULL,
                 transaction_date DATE NOT NULL,
+                row_index INTEGER,
                 amount REAL NOT NULL,
                 balance REAL,
                 transaction_type_id INTEGER,
@@ -109,91 +112,103 @@ class DBManager:
             )
             ''')
             
-            # 创建索引提高查询性能
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_date)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(transaction_type_id)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_amount ON transactions(amount)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_counterparty ON transactions(counterparty)')
+            # 创建索引
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_trans_date ON transactions(transaction_date)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_trans_account ON transactions(account_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_trans_type ON transactions(transaction_type_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_trans_amount ON transactions(amount)')
             
-            # 预插入常见银行
-            banks = [
+            # 添加常见交易类型
+            common_transaction_types = [
+                ('收入', 'INCOME', '收入'),
+                ('支出', 'EXPENSE', '支出'),
+                ('转账', 'TRANSFER', '转账'),
+                ('存款', 'DEPOSIT', '收入'),
+                ('取款', 'WITHDRAW', '支出'),
+                ('利息', 'INTEREST', '收入'),
+                ('信用卡还款', 'CREDIT_PAYMENT', '转账'),
+                ('投资', 'INVESTMENT', '投资'),
+                ('退款', 'REFUND', '收入'),
+                ('工资', 'SALARY', '收入'),
+                ('红包', 'GIFT', '收入'),
+                ('餐饮', 'FOOD', '支出'),
+                ('购物', 'SHOPPING', '支出'),
+                ('交通', 'TRANSPORT', '支出'),
+                ('房租', 'RENT', '支出'),
+                ('医疗', 'HEALTHCARE', '支出'),
+                ('教育', 'EDUCATION', '支出'),
+                ('娱乐', 'ENTERTAINMENT', '支出'),
+                ('旅行', 'TRAVEL', '支出'),
+                ('其他', 'OTHER', '其他'),
+            ]
+            
+            for type_info in common_transaction_types:
+                self.get_or_create_transaction_type(type_info[0], type_info[1], type_info[2])
+            
+            # 添加常见银行
+            common_banks = [
                 ('CCB', '建设银行'),
                 ('ICBC', '工商银行'),
-                ('BOC', '中国银行'),
                 ('ABC', '农业银行'),
-                ('BOCOM', '交通银行'),
-                ('CMB', '招商银行')
+                ('BOC', '中国银行'),
+                ('COMM', '交通银行'),
+                ('CMBC', '招商银行'),
+                ('CITIC', '中信银行'),
+                ('SPDB', '浦发银行'),
+                ('CEB', '光大银行'),
+                ('PAB', '平安银行'),
+                ('PSBC', '邮储银行'),
+                ('CMB', '民生银行'),
+                ('CIB', '兴业银行'),
+                ('OTHER', '其他银行'),
             ]
             
-            for bank_code, bank_name in banks:
-                cursor.execute(
-                    'INSERT OR IGNORE INTO banks (bank_code, bank_name) VALUES (?, ?)',
-                    (bank_code, bank_name)
-                )
-            
-            # 预插入常见交易类型
-            transaction_types = [
-                ('income', '收入'),
-                ('expense', '支出'),
-                ('transfer_in', '转入'),
-                ('transfer_out', '转出'),
-                ('refund', '退款'),
-                ('payment', '付款'),
-                ('withdrawal', '取款'),
-                ('deposit', '存款'),
-                ('interest', '利息'),
-                ('fee', '手续费'),
-                ('other', '其他')
-            ]
-            
-            for type_code, type_name in transaction_types:
-                cursor.execute(
-                    'INSERT OR IGNORE INTO transaction_types (type_code, type_name) VALUES (?, ?)',
-                    (type_code, type_name)
-                )
+            for bank_info in common_banks:
+                self.get_or_create_bank(bank_info[0], bank_info[1])
             
             conn.commit()
-            self.logger.info("数据库表结构初始化完成")
-            
         except Exception as e:
             self.logger.error(f"初始化数据库时出错: {str(e)}")
-            if conn:
-                conn.rollback()
-            raise
-        finally:
-            if conn:
-                conn.close()
-    
-    def get_or_create_bank(self, bank_code, bank_name):
-        """获取或创建银行记录"""
-        conn = self.get_connection()
-        try:
-            cursor = conn.cursor()
-            
-            # 先查找是否存在
-            cursor.execute('SELECT id FROM banks WHERE bank_code = ?', (bank_code,))
-            result = cursor.fetchone()
-            
-            if result:
-                return result['id']
-            
-            # 不存在则创建
-            cursor.execute(
-                'INSERT INTO banks (bank_code, bank_name) VALUES (?, ?)',
-                (bank_code, bank_name)
-            )
-            conn.commit()
-            
-            # 返回新创建的ID
-            return cursor.lastrowid
-            
-        except Exception as e:
-            self.logger.error(f"获取或创建银行记录时出错: {str(e)}")
             conn.rollback()
             raise
         finally:
             conn.close()
+    
+    def get_or_create_bank(self, bank_code, bank_name):
+        """获取或创建银行记录"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM banks WHERE bank_code = ?', (bank_code,))
+        bank = cursor.fetchone()
+        
+        if bank:
+            return bank[0]
+        
+        cursor.execute('INSERT INTO banks (bank_code, bank_name) VALUES (?, ?)', (bank_code, bank_name))
+        conn.commit()
+        return cursor.lastrowid
+    
+    def clean_numeric(self, value):
+        """清理数字格式的数据"""
+        if pd.isna(value):
+            return None
+        
+        if isinstance(value, (int, float)):
+            return float(value)
+        
+        # 处理字符串类型的数值
+        if isinstance(value, str):
+            # 移除千分位分隔符和其他非数字字符
+            value = value.replace(',', '').replace(' ', '')
+            # 保留加减号和数字以及小数点
+            value = ''.join(c for c in value if c.isdigit() or c in '.-+')
+            
+            try:
+                return float(value)
+            except ValueError:
+                return None
+        
+        return None
     
     def get_or_create_account(self, account_number, bank_id, account_name=None):
         """获取或创建账户记录"""
@@ -225,119 +240,41 @@ class DBManager:
         finally:
             conn.close()
     
-    def get_or_create_transaction_type(self, type_name):
-        """根据名称获取或创建交易类型"""
-        conn = None
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            # 先查找是否存在
-            cursor.execute('SELECT id FROM transaction_types WHERE type_name = ?', (type_name,))
-            result = cursor.fetchone()
-            
-            if result:
-                return result['id']
-            
-            # 不存在则查找近似名称
-            cursor.execute('SELECT id, type_name FROM transaction_types')
-            all_types = {row['type_name']: row['id'] for row in cursor.fetchall()}
-            
-            # 简单的名称映射
-            type_mapping = {
-                '收入': ['收入', '收款'],
-                '支出': ['支出', '消费', '购物'],
-                '转入': ['转入', '存入'],
-                '转出': ['转出', '转账'],
-                '退款': ['退款'],
-                '付款': ['付款', '支付'],
-                '取款': ['取款', 'ATM'],
-                '存款': ['存款'],
-                '利息': ['利息'],
-                '手续费': ['手续费', '服务费']
-            }
-            
-            # 检查是否匹配任何预定义类型
-            for base_type, keywords in type_mapping.items():
-                if any(keyword in type_name for keyword in keywords):
-                    return all_types.get(base_type)
-            
-            # 如果都不匹配，创建新类型
-            type_code = 'custom_' + str(hash(type_name) % 10000)
-            cursor.execute(
-                'INSERT INTO transaction_types (type_code, type_name) VALUES (?, ?)',
-                (type_code, type_name)
-            )
-            conn.commit()
-            
-            # 返回新创建的ID
-            return cursor.lastrowid
-            
-        except Exception as e:
-            self.logger.error(f"获取或创建交易类型时出错: {str(e)}")
-            if conn:
-                conn.rollback()
-            raise
-        finally:
-            if conn:
-                try:
-                    conn.close()
-                except Exception as e:
-                    self.logger.error(f"关闭数据库连接时出错: {str(e)}")
+    def get_or_create_transaction_type(self, type_name, type_code=None, category=None):
+        """获取或创建交易类型"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # 尝试根据type_name查找
+        cursor.execute('SELECT id FROM transaction_types WHERE type_name = ?', (type_name,))
+        transaction_type = cursor.fetchone()
+        
+        if transaction_type:
+            return transaction_type[0]
+        
+        # 如果没有找到，则创建新的
+        cursor.execute(
+            'INSERT INTO transaction_types (type_name, type_code, category) VALUES (?, ?, ?)',
+            (type_name, type_code, category)
+        )
+        conn.commit()
+        
+        return cursor.lastrowid
     
-    def import_dataframe(self, df, bank_code, batch_id=None):
-        """导入DataFrame数据到数据库
-        
-        Args:
-            df: 包含交易数据的DataFrame
-            bank_code: 银行代码
-            batch_id: 导入批次ID，默认使用当前时间戳
-            
-        Returns:
-            导入的记录数
-        """
-        if df is None or df.empty:
-            self.logger.warning("没有数据可导入")
-            return 0
-            
-        # 生成批次ID
-        if batch_id is None:
-            batch_id = f"import_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            
-        # 确保必要的列存在
-        required_columns = ['交易日期', '交易金额', '账号']
-        for col in required_columns:
-            if col not in df.columns:
-                self.logger.error(f"数据缺少必要的列: {col}")
-                return 0
-        
-        conn = None
+    def import_transactions(self, df, bank_id, import_batch=None):
+        """导入交易数据到数据库"""
+        conn = self.get_connection()
+        total_imported = 0  # 用于记录总共导入的记录数
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
-            # 获取或创建银行ID
-            bank_name = None
-            if '银行' in df.columns and not df['银行'].isnull().all():
-                bank_name = df['银行'].iloc[0]
-                
-            bank_id = self.get_or_create_bank(bank_code, bank_name or bank_code)
-            
-            # 预先获取所有需要的交易类型
+            # 获取或创建交易类型
             transaction_types = {}
-            if '交易类型' in df.columns:
-                unique_types = df['交易类型'].unique()
-                for type_name in unique_types:
-                    if pd.notna(type_name):
-                        try:
-                            type_id = self.get_or_create_transaction_type(type_name)
-                            transaction_types[type_name] = type_id
-                        except Exception as e:
-                            self.logger.error(f"获取交易类型时出错: {str(e)}, 类型: {type_name}")
-                            transaction_types[type_name] = None
+            for type_name in df['交易类型'].unique():
+                if pd.notna(type_name):
+                    type_id = self.get_or_create_transaction_type(type_name)
+                    transaction_types[type_name] = type_id
             
-            # 处理每个账户的交易
-            imported_count = 0
             for account_number, account_df in df.groupby('账号'):
                 try:
                     # 获取或创建账户
@@ -345,93 +282,78 @@ class DBManager:
                     
                     # 准备批量插入的数据
                     insert_data = []
+                    
+                    # 准备插入数据
                     for _, row in account_df.iterrows():
                         try:
-                            # 转换日期格式
-                            transaction_date = pd.to_datetime(row['交易日期']).strftime('%Y-%m-%d')
+                            # 处理日期
+                            transaction_date = None
+                            if pd.notna(row['交易日期']):
+                                # 确保日期是字符串格式，如果是Timestamp则转为字符串
+                                if isinstance(row['交易日期'], (pd.Timestamp, datetime)):
+                                    transaction_date = row['交易日期'].strftime('%Y-%m-%d')
+                                else:
+                                    transaction_date = str(row['交易日期'])
                             
-                            # 获取交易类型ID
-                            transaction_type = row.get('交易类型', '其他')
-                            transaction_type_id = transaction_types.get(transaction_type)
+                            # 处理row_index
+                            row_index = row['row_index'] if pd.notna(row['row_index']) else None
                             
-                            # 提取交易金额
-                            amount = float(row['交易金额'])
+                            # 处理金额
+                            amount = self.clean_numeric(row['交易金额']) if pd.notna(row['交易金额']) else 0
+                            balance = self.clean_numeric(row['账户余额']) if pd.notna(row['账户余额']) else None
                             
-                            # 获取交易对方
-                            counterparty = row.get('交易对象', '')
-                            if pd.isna(counterparty):
-                                counterparty = ''
-                                
-                            # 获取账户余额
-                            balance = row.get('账户余额')
-                            if pd.isna(balance):
-                                balance = None
-                            else:
-                                balance = float(balance)
-                                
-                            # 获取交易描述
-                            description = row.get('交易摘要', '')
-                            if pd.isna(description):
-                                description = ''
-                                
-                            # 获取交易分类
-                            category = row.get('交易分类', '')
-                            if pd.isna(category):
-                                category = ''
+                            # 处理交易类型
+                            trans_type = row['交易类型'] if pd.notna(row['交易类型']) else None
+                            trans_type_id = transaction_types.get(trans_type) if trans_type else None
                             
-                            # 检查是否存在完全相同的交易记录
-                            cursor.execute('''
-                                SELECT id FROM transactions 
-                                WHERE account_id = ? AND transaction_date = ? AND amount = ? AND counterparty = ?
-                            ''', (account_id, transaction_date, amount, counterparty))
+                            # 处理交易对象和描述
+                            counterparty = row['交易对象'] if pd.notna(row['交易对象']) else None
                             
-                            if cursor.fetchone() is None:
-                                insert_data.append((
-                                    account_id, transaction_date, amount, balance, transaction_type_id,
-                                    counterparty, description, category, batch_id
-                                ))
-                                
+                            # 将数据添加到批量插入列表
+                            insert_data.append((
+                                account_id,
+                                transaction_date,
+                                row_index,
+                                amount,
+                                balance,
+                                trans_type_id,
+                                counterparty,
+                                None,  # description
+                                None,  # category
+                                None,  # notes
+                                import_batch
+                            ))
+                            total_imported += 1
+                            
                         except Exception as e:
-                            self.logger.error(f"处理交易记录时出错: {str(e)}, 数据: {row.to_dict()}")
-                            continue
+                            self.logger.error(f"处理交易记录时出错: {str(e)}")
                     
                     # 批量插入数据
                     if insert_data:
-                        cursor.executemany('''
+                        try:
+                            cursor.executemany('''
                             INSERT INTO transactions 
-                            (account_id, transaction_date, amount, balance, transaction_type_id, 
-                            counterparty, description, category, import_batch)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ''', insert_data)
-                        imported_count += len(insert_data)
-                        
-                        # 每1000条记录提交一次事务
-                        if imported_count % 1000 == 0:
+                            (account_id, transaction_date, row_index, amount, balance, 
+                             transaction_type_id, counterparty, description, category, notes, import_batch)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ''', insert_data)
                             conn.commit()
-                            
+                        except Exception as e:
+                            self.logger.error(f"导入交易记录到数据库时出错: {str(e)}")
+                            conn.rollback()
+                
                 except Exception as e:
-                    self.logger.error(f"处理账户 {account_number} 时出错: {str(e)}")
-                    if conn:
-                        conn.rollback()
-                    continue
-            
-            # 最后提交所有更改
-            if conn:
-                conn.commit()
-            self.logger.info(f"成功导入 {imported_count} 条交易记录")
-            return imported_count
+                    self.logger.error(f"处理账号 {account_number} 时出错: {str(e)}")
+                    conn.rollback()
+                    
+            self.logger.info(f"总共导入 {total_imported} 条交易记录到数据库")
+            return total_imported
             
         except Exception as e:
-            self.logger.error(f"导入数据时出错: {str(e)}")
-            if conn:
-                conn.rollback()
-            return 0
+            self.logger.error(f"导入交易数据时出错: {str(e)}")
+            conn.rollback()
         finally:
-            if conn:
-                try:
-                    conn.close()
-                except Exception as e:
-                    self.logger.error(f"关闭数据库连接时出错: {str(e)}")
+            conn.close()
     
     def get_transactions(self, account_id=None, start_date=None, end_date=None, 
                          min_amount=None, max_amount=None, transaction_type=None,
@@ -496,30 +418,75 @@ class DBManager:
             # 查询交易记录
             query = f'''
                 SELECT 
-                    t.id, t.transaction_date, t.amount, t.balance, t.counterparty, 
-                    t.description, t.category, t.created_at,
-                    a.account_number, tt.type_name as transaction_type, b.bank_name
+                    t.id, 
+                    t.transaction_date, 
+                    t.amount, 
+                    t.balance, 
+                    t.counterparty, 
+                    t.description, 
+                    t.category, 
+                    t.created_at, 
+                    t.row_index,
+                    a.account_number, 
+                    tt.type_name as transaction_type, 
+                    b.bank_name
                 FROM transactions t
                 JOIN accounts a ON t.account_id = a.id
                 JOIN banks b ON a.bank_id = b.id
                 LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
                 {where_clause}
-                ORDER BY t.transaction_date DESC
+                ORDER BY t.transaction_date DESC, t.row_index DESC
                 LIMIT ? OFFSET ?
             '''
             
+            # 添加参数
             params.extend([limit, offset])
+            
+            # 记录查询信息
+            self.logger.info(f"执行交易查询: limit={limit}, offset={offset}")
+            self.logger.info(f"SQL: {query}")
+            self.logger.info(f"参数: {params}")
+            
             cursor.execute(query, params)
             
-            # 返回结果
+            # 获取结果并添加中文字段名
             results = []
             for row in cursor.fetchall():
-                results.append(dict(row))
+                # 转换为字典
+                record = dict(row)
+                
+                # 移除英文键，只保留中文键名（避免duplicate keys问题）
+                chinese_names = {
+                    '交易日期': record['transaction_date'],
+                    '交易金额': record['amount'],
+                    '账户余额': record['balance'],
+                    '交易对象': record['counterparty'],
+                    '交易描述': record['description'],
+                    '交易分类': record['category'],
+                    '交易类型': record['transaction_type'],
+                    '银行': record['bank_name'],
+                    '账号': record['account_number'],
+                    'id': record['id'],
+                    'row_index': record['row_index'],
+                    'created_at': record['created_at']
+                }
+                
+                # 不再合并字典，而是直接使用中文键名的字典
+                # 这样可以避免同时有英文和中文键指向相同数据导致的duplicate keys问题
+                results.append(chinese_names)
+            
+            # 记录查询结果数量
+            self.logger.info(f"查询到 {len(results)} 条交易记录")
+            
+            # 如果查询到了结果，记录第一条记录的信息
+            if results:
+                self.logger.info(f"第一条记录: {results[0]}")
             
             return results
             
         except Exception as e:
             self.logger.error(f"查询交易记录时出错: {str(e)}")
+            self.logger.error(f"详细错误: {e}")
             return []
         finally:
             conn.close()
@@ -559,40 +526,59 @@ class DBManager:
         try:
             cursor = conn.cursor()
             
+            # 使用Common Table Expression (CTE) 获取每个账户的最新余额
+            # 按交易日期和row_index排序以确保正确的余额顺序
             query = '''
-                WITH latest_transactions AS (
-                    SELECT 
-                        t.account_id,
-                        t.balance,
-                        t.transaction_date,
-                        ROW_NUMBER() OVER (PARTITION BY t.account_id ORDER BY t.transaction_date DESC) as rn
-                    FROM transactions t
-                    WHERE t.balance IS NOT NULL
-                )
+            WITH latest_transactions AS (
                 SELECT 
-                    a.id as account_id,
-                    a.account_number,
-                    a.account_name,
-                    b.bank_name,
-                    lt.balance as latest_balance,
-                    lt.transaction_date as balance_date
-                FROM accounts a
-                JOIN banks b ON a.bank_id = b.id
-                LEFT JOIN latest_transactions lt ON a.id = lt.account_id AND lt.rn = 1
-                ORDER BY b.bank_name, a.account_number
+                    t.account_id,
+                    t.balance,
+                    t.transaction_date,
+                    ROW_NUMBER() OVER (PARTITION BY t.account_id ORDER BY t.transaction_date DESC, t.id DESC) as row_num
+                FROM transactions t
+                WHERE t.balance IS NOT NULL
+            )
+            SELECT 
+                a.id as account_id,
+                a.account_number,
+                a.account_name,
+                b.bank_name,
+                lt.balance as latest_balance,
+                lt.transaction_date as balance_date
+            FROM 
+                accounts a
+            JOIN 
+                banks b ON a.bank_id = b.id
+            LEFT JOIN 
+                latest_transactions lt ON a.id = lt.account_id AND lt.row_num = 1
+            ORDER BY 
+                b.bank_name, a.account_number
             '''
             
             cursor.execute(query)
+            results = cursor.fetchall()
             
-            # 返回结果
-            results = []
-            for row in cursor.fetchall():
-                results.append(dict(row))
+            # 转换为适合前端使用的格式
+            balance_summary = []
+            for row in results:
+                balance_summary.append({
+                    'account_id': row['account_id'],
+                    'account_number': row['account_number'],
+                    'account_name': row['account_name'] or '未命名账户',
+                    'bank_name': row['bank_name'],
+                    'latest_balance': row['latest_balance'] if row['latest_balance'] is not None else 0,
+                    'balance_date': row['balance_date']
+                })
             
-            return results
+            # 调试日志 - 输出找到的余额信息
+            self.logger.info(f"找到 {len(balance_summary)} 个账户的余额信息")
+            for account in balance_summary:
+                self.logger.info(f"账户 {account['account_number']} ({account['bank_name']}): 余额 = {account['latest_balance']}")
             
+            return balance_summary
         except Exception as e:
             self.logger.error(f"获取余额汇总时出错: {str(e)}")
+            self.logger.error(f"详细错误: {e}")
             return []
         finally:
             conn.close()
@@ -704,7 +690,7 @@ class DBManager:
                         SELECT balance
                         FROM transactions
                         WHERE account_id = a.id AND balance IS NOT NULL
-                        ORDER BY transaction_date DESC
+                        ORDER BY transaction_date DESC, row_index DESC
                         LIMIT 1
                     ) as latest_balance
                 FROM accounts a
@@ -720,6 +706,46 @@ class DBManager:
         except Exception as e:
             self.logger.error(f"获取统计信息时出错: {str(e)}")
             return {}
+        finally:
+            conn.close()
+            
+    def get_balance_range(self):
+        """获取历史余额的最高值和最低值
+        
+        Returns:
+            字典，包含最高余额和最低余额
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # 查询所有有余额记录的交易
+            query = """
+            SELECT 
+                MAX(balance) as max_balance,
+                MIN(balance) as min_balance
+            FROM transactions
+            WHERE balance IS NOT NULL
+            """
+            
+            cursor.execute(query)
+            result = cursor.fetchone()
+            
+            # 提取结果
+            max_balance = result['max_balance'] if result and result['max_balance'] is not None else 0
+            min_balance = result['min_balance'] if result and result['min_balance'] is not None else 0
+            
+            self.logger.info(f"余额范围: 最高 = {max_balance}, 最低 = {min_balance}")
+            
+            return {
+                'max_balance': float(max_balance),
+                'min_balance': float(min_balance)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"获取余额范围时出错: {str(e)}")
+            self.logger.error(f"详细错误: {e}")
+            return {'max_balance': 0, 'min_balance': 0}
         finally:
             conn.close()
 

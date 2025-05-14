@@ -12,6 +12,7 @@ import traceback
 import sys
 import shutil
 from pathlib import Path
+from datetime import datetime
 
 # 配置日志
 logging.basicConfig(
@@ -41,14 +42,12 @@ app.secret_key = 'your_secret_key'  # 用于flash消息
 # 配置上传文件夹和数据文件夹
 UPLOAD_FOLDER = os.path.join(ROOT_DIR, 'uploads')
 DATA_FOLDER = os.path.join(ROOT_DIR, 'data')
-TRANSACTIONS_FOLDER = os.path.join(DATA_FOLDER, 'transactions')
 SCRIPTS_FOLDER = os.path.join(ROOT_DIR, 'scripts')
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
 # 确保上传文件夹和数据文件夹存在
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(DATA_FOLDER, exist_ok=True)
-os.makedirs(TRANSACTIONS_FOLDER, exist_ok=True)
 
 # 初始化数据库管理器
 db_manager = DBManager()
@@ -67,17 +66,17 @@ def init_database():
                 logger.info(f"发现 {len(excel_files)} 个Excel文件，开始自动处理")
                 
                 # 使用自动检测功能处理文件
-                processed_files = BankTransactionExtractor.auto_detect_bank_and_process(upload_dir, Path(TRANSACTIONS_FOLDER))
+                processed_files = BankTransactionExtractor.auto_detect_bank_and_process(upload_dir)
                 
                 if processed_files:
                     logger.info(f"成功处理 {len(processed_files)} 个文件")
                     # 处理完成后删除已处理的文件
-                    for file in excel_files:
-                        try:
-                            file.unlink()
-                            logger.info(f"已删除处理过的文件: {file}")
-                        except Exception as e:
-                            logger.error(f"删除文件 {file} 时出错: {e}")
+                    # for file in excel_files:
+                    #     try:
+                    #         file.unlink()
+                    #         logger.info(f"已删除处理过的文件: {file}")
+                    #     except Exception as e:
+                    #         logger.error(f"删除文件 {file} 时出错: {e}")
                             
                     # 创建交易分析器实例
                     logger.info("开始分析交易数据")
@@ -195,10 +194,9 @@ def upload_file():
             
             # 调用自动检测和处理函数
             upload_dir = Path(UPLOAD_FOLDER)
-            data_dir = Path(TRANSACTIONS_FOLDER)
             
             # 使用自动检测功能处理文件
-            processed_files = BankTransactionExtractor.auto_detect_bank_and_process(upload_dir, data_dir)
+            processed_files = BankTransactionExtractor.auto_detect_bank_and_process(upload_dir)
             
             if processed_files:
                 # 构建处理结果消息
@@ -254,21 +252,41 @@ def dashboard():
         # 格式化余额列表用于展示
         account_balances = []
         for account in balance_summary:
-            if account.get('latest_balance') is not None:
-                account_balances.append({
-                    '账号': account['account_number'],
-                    '银行': account['bank_name'],
-                    '余额': float(account['latest_balance']),
-                    '更新日期': account['balance_date']
-                })
+            account_balances.append({
+                '账号': account['account_number'],
+                '银行': account['bank_name'],
+                '余额': float(account['latest_balance'] or 0),
+                '更新日期': account['balance_date']
+            })
         
         # 获取统计信息
         db_stats = db_manager.get_statistics()
+        
+        # 获取余额范围（最高和最低）
+        balance_range = db_manager.get_balance_range()
         
         # 收支数据
         income = db_stats.get('total_income', 0)
         expense = abs(db_stats.get('total_expense', 0))  # 转为正数以便于展示
         net_income = db_stats.get('net_amount', 0)  
+        
+        # 计算月份数量（如果有开始和结束日期）
+        months_count = 1
+        if db_stats.get('min_date') and db_stats.get('max_date'):
+            try:
+                start_date = datetime.strptime(db_stats['min_date'], '%Y-%m-%d')
+                end_date = datetime.strptime(db_stats['max_date'], '%Y-%m-%d')
+                months_count = (end_date.year - start_date.year) * 12 + end_date.month - start_date.month + 1
+                if months_count < 1:
+                    months_count = 1
+            except Exception as e:
+                logger.warning(f"计算月份数时出错: {e}")
+        
+        # 计算平均交易金额
+        avg_transaction = 0
+        if db_stats.get('total_transactions', 0) > 0:
+            total_amount = abs(income) + abs(expense)
+            avg_transaction = total_amount / db_stats['total_transactions']
         
         # 组织返回数据
         data = {
@@ -283,7 +301,11 @@ def dashboard():
                 '交易笔数': db_stats.get('total_transactions', 0)
             },
             'transactions': recent_transactions,
-            'charts': {}  # 添加空的charts对象
+            'charts': {},  # 添加空的charts对象
+            'max_balance': balance_range.get('max_balance', 0),
+            'min_balance': balance_range.get('min_balance', 0),
+            'months_count': months_count,
+            'avg_transaction': avg_transaction
         }
         
         # 如果有近期交易，添加到数据中
@@ -291,6 +313,10 @@ def dashboard():
             logger.info(f"仪表盘显示 {len(recent_transactions)} 条近期交易")
         else:
             logger.warning("没有近期交易数据可显示")
+        
+        # 日志记录总余额和余额范围
+        logger.info(f"仪表盘总余额: {total_balance}")
+        logger.info(f"余额范围: 最高 = {balance_range.get('max_balance', 0)}, 最低 = {balance_range.get('min_balance', 0)}")
         
         return render_template('dashboard.html', data=data)
         
@@ -312,7 +338,11 @@ def dashboard():
                 '交易笔数': 0
             },
             'transactions': [],
-            'charts': {}  # 添加空的charts对象
+            'charts': {},  # 添加空的charts对象
+            'max_balance': 0,
+            'min_balance': 0,
+            'months_count': 1,
+            'avg_transaction': 0
         })
 
 @app.route('/transactions')
