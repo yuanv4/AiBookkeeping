@@ -194,87 +194,92 @@ class CCBTransactionExtractor(BankTransactionExtractor):
                 col_str = str(col).strip().lower()
                 
                 if "序号" in col_str:
-                    rename_map[col] = "序号"
+                    rename_map[col] = "row_index"
                 elif "交易日期" in col_str:
-                    rename_map[col] = "交易日期"
+                    rename_map[col] = "transaction_date"
                 elif "摘要" in col_str:
-                    rename_map[col] = "交易类型"
+                    rename_map[col] = "transaction_type"
                 elif "币别" in col_str:
-                    rename_map[col] = "货币"
+                    rename_map[col] = "currency"
                 elif "交易金额" in col_str:
-                    rename_map[col] = "交易金额"
+                    rename_map[col] = "amount"
                 elif "账户余额" in col_str:
-                    rename_map[col] = "账户余额"
+                    rename_map[col] = "balance"
+                elif "交易地点/附言" in col_str:
+                    rename_map[col] = "counterparty"
+                elif "对方账号与户名" in col_str:
+                    rename_map[col] = "counterparty_account"
             
             # 重命名列
             df = df.rename(columns=rename_map)
             print(f"\n标准化后的列名: {df.columns.tolist()}")
             
             # 创建标准格式的DataFrame
-            result_columns = ['交易日期', '货币', '交易金额', '账户余额', '交易类型', '交易对象', '户名', '账号', 'row_index']
+            result_columns = ['transaction_date', 'currency', 'amount', 'balance', 'transaction_type', 
+                            'counterparty', 'account_name', 'account_number', 'row_index']
             result_df = pd.DataFrame(index=df.index)
             
             # 填充必要的数据
-            if "交易日期" in df.columns:
+            if "transaction_date" in df.columns:
                 # 处理交易日期列
                 try:
                     # 转换为日期格式
-                    print(f"交易日期列原始数据样例: {df['交易日期'].head().tolist()}")
-                    df['交易日期'] = df['交易日期'].astype(str)
-                    df['交易日期'] = pd.to_datetime(df['交易日期'], errors='coerce')
+                    print(f"交易日期列原始数据样例: {df['transaction_date'].head().tolist()}")
+                    df['transaction_date'] = df['transaction_date'].astype(str)
+                    df['transaction_date'] = pd.to_datetime(df['transaction_date'], errors='coerce')
                     
                     # 检查并填充无效日期
-                    mask = pd.isna(df['交易日期'])
+                    mask = pd.isna(df['transaction_date'])
                     if mask.any():
                         self.logger.warning(f"发现{mask.sum()}条无效的交易日期，将使用当前日期替代")
-                        df.loc[mask, '交易日期'] = pd.Timestamp.today().normalize()
+                        df.loc[mask, 'transaction_date'] = pd.Timestamp.today().normalize()
                     
                     # 标准化为字符串格式的日期 (YYYY-MM-DD)
-                    result_df['交易日期'] = df['交易日期'].dt.strftime('%Y-%m-%d')
+                    result_df['transaction_date'] = df['transaction_date'].dt.strftime('%Y-%m-%d')
                 except Exception as e:
                     self.logger.error(f"处理交易日期时出错: {str(e)}")
                     # 使用当前日期作为默认值
                     today = pd.Timestamp.today().strftime('%Y-%m-%d')
                     self.logger.warning(f"由于处理错误，所有交易日期将使用今天的日期: {today}")
-                    result_df['交易日期'] = today
+                    result_df['transaction_date'] = today
             else:
                 self.logger.warning(f"没有找到交易日期列，所有交易日期将使用今天的日期: {pd.Timestamp.today().strftime('%Y-%m-%d')}")
-                result_df['交易日期'] = pd.Timestamp.today().strftime('%Y-%m-%d')
+                result_df['transaction_date'] = pd.Timestamp.today().strftime('%Y-%m-%d')
             
             # 处理序号作为row_index
-            result_df['row_index'] = self.standardize_row_index(df, header_row_idx, "序号")
+            result_df['row_index'] = self.standardize_row_index(df, header_row_idx, "row_index")
             
             # 处理货币列
-            if "货币" in df.columns:
-                result_df['货币'] = df['货币'].fillna('CNY')
+            if "currency" in df.columns:
+                result_df['currency'] = df['currency'].fillna('CNY')
             else:
-                result_df['货币'] = 'CNY'
+                result_df['currency'] = 'CNY'
             
             # 处理金额和余额
-            if "交易金额" in df.columns:
-                result_df['交易金额'] = df['交易金额'].apply(self.clean_numeric)
+            if "amount" in df.columns:
+                result_df['amount'] = df['amount'].apply(self.clean_numeric)
             else:
-                result_df['交易金额'] = 0.0
+                result_df['amount'] = 0.0
             
-            if "账户余额" in df.columns:
-                result_df['账户余额'] = df['账户余额'].apply(self.clean_numeric)
+            if "balance" in df.columns:
+                result_df['balance'] = df['balance'].apply(self.clean_numeric)
             else:
-                result_df['账户余额'] = 0.0
+                result_df['balance'] = 0.0
             
             # 处理交易类型
-            if "交易类型" in df.columns:
-                result_df['交易类型'] = df['交易类型'].fillna('其他')
+            if "transaction_type" in df.columns:
+                result_df['transaction_type'] = df['transaction_type'].fillna('其他')
             else:
-                result_df['交易类型'] = '其他'
+                result_df['transaction_type'] = '其他'
 
-            if "交易地点/附言" in df.columns:
-                result_df['交易对象'] = df['交易地点/附言'].fillna('')
+            if "counterparty" in df.columns:
+                result_df['counterparty'] = df['counterparty'].fillna('')
             else:
-                result_df['交易对象'] = ''
+                result_df['counterparty'] = ''
             
             # 添加账户信息
-            result_df['户名'] = account_name
-            result_df['账号'] = account_number
+            result_df['account_name'] = account_name
+            result_df['account_number'] = account_number
             
             return result_df
             

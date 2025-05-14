@@ -49,31 +49,31 @@ class VisualizationHelper:
                 try:
                     matplotlib.rcParams['font.family'] = [font]
                     matplotlib.rcParams['axes.unicode_minus'] = False  # 正确显示负号
-                    logger.info(f"成功设置中文字体: {font}")
+                    logger.info(f"Successfully set Chinese font: {font}")
                     font_found = True
                     break
                 except:
                     continue
             
             if not font_found:
-                logger.warning("未找到中文字体，图表中文可能显示为方块")
+                logger.warning("Chinese font not found, chart Chinese characters may appear as blocks")
         except Exception as e:
-            logger.error(f"设置中文字体时出错: {e}")
+            logger.error(f"Error setting Chinese font: {e}")
     
     def _load_data(self, json_file):
         """从JSON文件加载数据"""
         try:
             with open(json_file, 'r', encoding='utf-8') as f:
                 self.data = json.load(f)
-            logger.info(f"成功加载分析数据: {json_file}")
+            logger.info(f"Successfully loaded analysis data: {json_file}")
         except Exception as e:
-            logger.error(f"加载数据失败: {e}")
+            logger.error(f"Failed to load data: {e}")
             self.data = {}
     
     def generate_all_charts(self):
         """生成所有图表并返回它们的路径"""
         if not self.data:
-            logger.error("没有数据可供可视化")
+            logger.error("No data available for visualization")
             return {}
         
         charts = {}
@@ -104,45 +104,45 @@ class VisualizationHelper:
             if merchant_chart:
                 charts['merchant'] = merchant_chart
                 
-            logger.info(f"成功生成 {len(charts)} 个图表")
+            logger.info(f"Successfully generated {len(charts)} charts")
             return charts
             
         except Exception as e:
-            logger.error(f"生成图表时出错: {e}")
+            logger.error(f"Error generating charts: {e}")
             return {}
     
     def generate_income_expense_chart(self):
         """生成收入和支出趋势图"""
         try:
             if 'monthly_stats' not in self.data or not self.data['monthly_stats']:
-                logger.warning("没有月度数据可供绘图")
+                logger.warning("No monthly data available for plotting")
                 return None
             
-            monthly_stats = sorted(self.data['monthly_stats'], key=lambda x: x['月份'])
+            monthly_stats = sorted(self.data['monthly_stats'], key=lambda x: x['month_label'])
             
             # 限制只显示最近12个月
             if len(monthly_stats) > 12:
                 monthly_stats = monthly_stats[-12:]
             
-            months = [m['月份'] for m in monthly_stats]
-            incomes = [m['收入'] for m in monthly_stats]
-            expenses = [m['支出'] for m in monthly_stats]
-            nets = [m['净额'] for m in monthly_stats]
+            months = [m['month_label'] for m in monthly_stats]
+            incomes = [m['income'] for m in monthly_stats]
+            expenses = [m['expense'] for m in monthly_stats]
+            nets = [m['net'] for m in monthly_stats]
             
             fig, ax = plt.subplots(figsize=(10, 6))
             
             # 绘制条形图
             x = np.arange(len(months))
             width = 0.35
-            ax.bar(x - width/2, incomes, width, label='收入', color='#4CAF50', alpha=0.7)
-            ax.bar(x + width/2, [-e for e in expenses], width, label='支出', color='#F44336', alpha=0.7)
+            ax.bar(x - width/2, incomes, width, label='income', color='#4CAF50', alpha=0.7)
+            ax.bar(x + width/2, [-e for e in expenses], width, label='expense', color='#F44336', alpha=0.7)
             
             # 绘制净额线
-            ax.plot(x, nets, 'o-', label='净额', color='#2196F3', linewidth=2)
+            ax.plot(x, nets, 'o-', label='net', color='#2196F3', linewidth=2)
             
             # 设置坐标轴
-            ax.set_ylabel('金额 (元)')
-            ax.set_title('月度收支趋势')
+            ax.set_ylabel('amount (yuan)')
+            ax.set_title('monthly income and expense trend')
             ax.set_xticks(x)
             ax.set_xticklabels(months, rotation=45)
             ax.legend()
@@ -160,11 +160,11 @@ class VisualizationHelper:
             plt.savefig(chart_path, dpi=100)
             plt.close()
             
-            logger.info(f"收支趋势图已保存至: {chart_path}")
+            logger.info(f"income and expense trend chart saved to: {chart_path}")
             return os.path.basename(chart_path)
         
         except Exception as e:
-            logger.error(f"生成收支趋势图时出错: {e}")
+            logger.error(f"Error generating income and expense trend chart: {e}")
             return None
     
     def generate_category_pie_chart(self):
@@ -173,36 +173,42 @@ class VisualizationHelper:
             # 检查category_stats或原始字段是否存在
             if 'category_stats' in self.data and self.data['category_stats']:
                 category_stats = self.data['category_stats']
-                # 检查键名是否为'分类'或'类别'
-                if '分类' in category_stats[0]:
+                # 检查键名是否为'category'
+                if 'category' in category_stats[0]:
+                    key_name = 'category'
+                elif '分类' in category_stats[0]:
                     key_name = '分类'
                 elif '类别' in category_stats[0]:
                     key_name = '类别'
                 else:
-                    logger.warning(f"类别数据中找不到'分类'或'类别'字段，尝试其他字段: {category_stats[0].keys()}")
+                    logger.warning(f"类别数据中找不到'category'、'分类'或'类别'字段，尝试其他字段: {category_stats[0].keys()}")
                     # 尝试找到类似类别的字段
                     possible_keys = [k for k in category_stats[0].keys() if '类' in k or '分' in k]
                     if possible_keys:
                         key_name = possible_keys[0]
-                        logger.info(f"使用替代字段名: {key_name}")
+                        logger.info(f"Using alternative field name: {key_name}")
                     else:
-                        logger.warning("没有找到合适的类别字段")
+                        logger.warning("No suitable category field found")
                         return None
                 
                 # 检查金额字段
-                if '总额' in category_stats[0]:
+                if 'total' in category_stats[0]:
+                    amount_key = 'total'
+                elif 'amount' in category_stats[0]:
+                    amount_key = 'amount'
+                elif '总额' in category_stats[0]:
                     amount_key = '总额'
                 elif '金额' in category_stats[0]:
                     amount_key = '金额'
                 else:
-                    logger.warning(f"类别数据中找不到'总额'或'金额'字段，尝试其他字段: {category_stats[0].keys()}")
+                    logger.warning(f"类别数据中找不到'total'、'amount'、'总额'或'金额'字段，尝试其他字段: {category_stats[0].keys()}")
                     # 尝试找到类似金额的字段
                     possible_keys = [k for k in category_stats[0].keys() if '额' in k or '金' in k]
                     if possible_keys:
                         amount_key = possible_keys[0]
-                        logger.info(f"使用替代金额字段名: {amount_key}")
+                        logger.info(f"Using alternative amount field name: {amount_key}")
                     else:
-                        logger.warning("没有找到合适的金额字段")
+                        logger.warning("No suitable amount field found")
                         return None
                 
                 # 排序并限制类别数量，避免过多
@@ -212,12 +218,12 @@ class VisualizationHelper:
                     # 保留前7个类别，其余归为"其他"
                     top_categories = category_stats[:7]
                     other_amount = sum(c[amount_key] for c in category_stats[7:])
-                    other_count = sum(c.get('笔数', 0) for c in category_stats[7:])
+                    other_count = sum(c.get('count', c.get('笔数', 0)) for c in category_stats[7:])
                     
                     top_categories.append({
-                        key_name: '其他',
+                        key_name: 'Others',
                         amount_key: other_amount,
-                        '笔数': other_count
+                        'count': other_count
                     })
                     category_stats = top_categories
                 
@@ -240,8 +246,8 @@ class VisualizationHelper:
                 fig.gca().add_artist(circle)
                 
                 # 设置标题和图例
-                ax.set_title('交易类别分布')
-                ax.legend(wedges, [f'{l} ({a:.0f}元)' for l, a in zip(labels, amounts)], 
+                ax.set_title('transaction category distribution')
+                ax.legend(wedges, [f'{l} ({a:.0f}yuan)' for l, a in zip(labels, amounts)], 
                         loc='center left', bbox_to_anchor=(1, 0.5))
                 
                 # 设置自动文本的样式
@@ -255,21 +261,21 @@ class VisualizationHelper:
                 plt.savefig(chart_path, dpi=100, bbox_inches='tight')
                 plt.close()
                 
-                logger.info(f"类别饼图已保存至: {chart_path}")
+                logger.info(f"Category pie chart saved to: {chart_path}")
                 return os.path.basename(chart_path)
             else:
-                logger.warning("没有类别数据可供绘图")
+                logger.warning("No category data available for plotting")
                 return None
             
         except Exception as e:
-            logger.error(f"生成类别饼图时出错: {e}")
+            logger.error(f"Error generating category pie chart: {e}")
             return None
     
     def generate_recent_transactions_chart(self):
         """生成最近交易的柱状图"""
         try:
             if 'daily_stats' not in self.data or not self.data['daily_stats']:
-                logger.warning("没有每日数据可供绘图")
+                logger.warning("No daily data available for plotting")
                 return None
             
             daily_stats = sorted(self.data['daily_stats'], key=lambda x: x['日期'])
@@ -291,8 +297,8 @@ class VisualizationHelper:
             ])
             
             # 设置坐标轴
-            ax1.set_ylabel('交易金额 (元)', color='#333333')
-            ax1.set_title('最近交易趋势')
+            ax1.set_ylabel('transaction amount (yuan)', color='#333333')
+            ax1.set_title('recent transaction trend')
             ax1.set_xticks(dates)
             ax1.set_xticklabels(dates, rotation=45)
             ax1.tick_params(axis='y', colors='#333333')
@@ -300,8 +306,8 @@ class VisualizationHelper:
             
             # 创建第二个坐标轴，显示交易笔数
             ax2 = ax1.twinx()
-            ax2.plot(dates, counts, 'o-', color='#2196F3', linewidth=2, label='交易笔数')
-            ax2.set_ylabel('交易笔数', color='#2196F3')
+            ax2.plot(dates, counts, 'o-', color='#2196F3', linewidth=2, label='transaction count')
+            ax2.set_ylabel('transaction count', color='#2196F3')
             ax2.tick_params(axis='y', colors='#2196F3')
             
             # 添加数值标签
@@ -317,7 +323,7 @@ class VisualizationHelper:
                 Line2D([0], [0], color='#F44336', lw=0, marker='s', markersize=10, alpha=0.6),
                 Line2D([0], [0], color='#2196F3', lw=2, marker='o', markersize=5)
             ]
-            ax1.legend(custom_lines, ['收入', '支出', '交易笔数'], loc='upper left')
+            ax1.legend(custom_lines, ['income', 'expense', 'transaction count'], loc='upper left')
             
             # 保存图表
             plt.tight_layout()
@@ -329,21 +335,21 @@ class VisualizationHelper:
             return os.path.basename(chart_path)
         
         except Exception as e:
-            logger.error(f"生成最近交易图时出错: {e}")
+            logger.error(f"Error generating recent transactions chart: {e}")
             return None
     
     def generate_weekday_chart(self):
         """生成按星期分析的图表"""
         try:
             if 'weekly_stats' not in self.data or not self.data['weekly_stats']:
-                logger.warning("没有星期数据可供绘图")
+                logger.warning("No weekly data available for plotting")
                 return None
             
-            weekly_stats = sorted(self.data['weekly_stats'], key=lambda x: x['星期'])
+            weekly_stats = sorted(self.data['weekly_stats'], key=lambda x: x['weekday'])
             
-            weekdays = [w['星期名'] for w in weekly_stats]
-            amounts = [w['总额'] for w in weekly_stats]
-            counts = [w['笔数'] for w in weekly_stats]
+            weekdays = [w['weekday_name'] for w in weekly_stats]
+            amounts = [w['total'] for w in weekly_stats]
+            counts = [w['count'] for w in weekly_stats]
             
             # 创建柱状图
             fig, ax1 = plt.subplots(figsize=(10, 6))
@@ -353,8 +359,8 @@ class VisualizationHelper:
             bars = ax1.bar(x, amounts, alpha=0.7, width=0.6, color='#3F51B5')
             
             # 设置坐标轴
-            ax1.set_ylabel('日均交易金额 (元)', color='#333333')
-            ax1.set_title('按星期分析')
+            ax1.set_ylabel('daily average transaction amount (yuan)', color='#333333')
+            ax1.set_title('weekday analysis')
             ax1.set_xticks(x)
             ax1.set_xticklabels(weekdays)
             ax1.tick_params(axis='y', colors='#333333')
@@ -362,8 +368,8 @@ class VisualizationHelper:
             
             # 创建第二个坐标轴，显示交易笔数
             ax2 = ax1.twinx()
-            ax2.plot(x, counts, 'o-', color='#FF9800', linewidth=2, label='日均交易笔数')
-            ax2.set_ylabel('日均交易笔数', color='#FF9800')
+            ax2.plot(x, counts, 'o-', color='#FF9800', linewidth=2, label='daily average transaction count')
+            ax2.set_ylabel('daily average transaction count', color='#FF9800')
             ax2.tick_params(axis='y', colors='#FF9800')
             
             # 添加数值标签
@@ -377,7 +383,7 @@ class VisualizationHelper:
                 Line2D([0], [0], color='#3F51B5', lw=0, marker='s', markersize=10, alpha=0.7),
                 Line2D([0], [0], color='#FF9800', lw=2, marker='o', markersize=5)
             ]
-            ax1.legend(custom_lines, ['日均交易金额', '日均交易笔数'], loc='upper right')
+            ax1.legend(custom_lines, ['daily average transaction amount', 'daily average transaction count'], loc='upper right')
             
             # 保存图表
             plt.tight_layout()
@@ -389,7 +395,7 @@ class VisualizationHelper:
             return os.path.basename(chart_path)
         
         except Exception as e:
-            logger.error(f"生成星期分析图时出错: {e}")
+            logger.error(f"Error generating weekday analysis chart: {e}")
             return None
     
     def generate_merchant_chart(self):
@@ -402,35 +408,43 @@ class VisualizationHelper:
                 merchants_by_amount = self.data['top_merchants']['by_amount']
                 
                 # 检查字段名称
-                if '商户' in merchants_by_amount[0]:
+                if 'merchant' in merchants_by_amount[0]:
+                    merchant_key = 'merchant'
+                elif 'counterparty' in merchants_by_amount[0]:
+                    merchant_key = 'counterparty'
+                elif '商户' in merchants_by_amount[0]:
                     merchant_key = '商户'
                 elif '交易对象' in merchants_by_amount[0]:
                     merchant_key = '交易对象'
                 else:
-                    logger.warning(f"商户数据中找不到'商户'或'交易对象'字段，尝试其他字段: {merchants_by_amount[0].keys()}")
+                    logger.warning(f"商户数据中找不到'merchant'、'counterparty'、'商户'或'交易对象'字段，尝试其他字段: {merchants_by_amount[0].keys()}")
                     # 尝试找到类似商户的字段
                     possible_keys = [k for k in merchants_by_amount[0].keys() if '商' in k or '户' in k or '对' in k]
                     if possible_keys:
                         merchant_key = possible_keys[0]
-                        logger.info(f"使用替代商户字段名: {merchant_key}")
+                        logger.info(f"Using alternative merchant field name: {merchant_key}")
                     else:
-                        logger.warning("没有找到合适的商户字段")
+                        logger.warning("No suitable merchant field found")
                         return None
                 
                 # 检查金额字段
-                if '金额' in merchants_by_amount[0]:
+                if 'total' in merchants_by_amount[0]:
+                    amount_key = 'total'
+                elif 'amount' in merchants_by_amount[0]:
+                    amount_key = 'amount'
+                elif '金额' in merchants_by_amount[0]:
                     amount_key = '金额'
                 elif '总额' in merchants_by_amount[0]:
                     amount_key = '总额'
                 else:
-                    logger.warning(f"商户数据中找不到'金额'或'总额'字段，尝试其他字段: {merchants_by_amount[0].keys()}")
+                    logger.warning(f"商户数据中找不到'total'、'amount'、'金额'或'总额'字段，尝试其他字段: {merchants_by_amount[0].keys()}")
                     # 尝试找到类似金额的字段
                     possible_keys = [k for k in merchants_by_amount[0].keys() if '额' in k or '金' in k]
                     if possible_keys:
                         amount_key = possible_keys[0]
-                        logger.info(f"使用替代金额字段名: {amount_key}")
+                        logger.info(f"Using alternative amount field name: {amount_key}")
                     else:
-                        logger.warning("没有找到合适的金额字段")
+                        logger.warning("No suitable amount field found")
                         return None
                 
                 # 只取前10个商户
@@ -446,7 +460,9 @@ class VisualizationHelper:
                 # 获取交易笔数
                 counts = []
                 for m in merchants_by_amount:
-                    if '笔数' in m:
+                    if 'count' in m:
+                        counts.append(m['count'])
+                    elif '笔数' in m:
                         counts.append(m['笔数'])
                     else:
                         counts.append(0)  # 如果没有笔数字段，设置为0
@@ -459,15 +475,15 @@ class VisualizationHelper:
                 bars = ax.barh(y, amounts, alpha=0.7, color='#009688')
                 
                 # 设置坐标轴
-                ax.set_xlabel('消费金额 (元)')
-                ax.set_title('商户消费分析 (Top 10)')
+                ax.set_xlabel('transaction amount (yuan)')
+                ax.set_title('merchant transaction analysis (Top 10)')
                 ax.set_yticks(y)
                 ax.set_yticklabels(merchants)
                 ax.grid(axis='x', linestyle='--', alpha=0.7)
                 
                 # 添加数值标签
                 for i, v in enumerate(amounts):
-                    ax.text(v + max(amounts) * 0.01, i, f'{v:.0f}元', va='center')
+                    ax.text(v + max(amounts) * 0.01, i, f'{v:.0f}yuan', va='center')
                 
                 # 保存图表
                 plt.tight_layout()
@@ -478,11 +494,11 @@ class VisualizationHelper:
                 logger.info(f"商户分析图已保存至: {chart_path}")
                 return os.path.basename(chart_path)
             else:
-                logger.warning("没有商户数据可供绘图")
+                logger.warning("No merchant data available for plotting")
                 return None
             
         except Exception as e:
-            logger.error(f"生成商户分析图时出错: {e}")
+            logger.error(f"Error generating merchant analysis chart: {e}")
             return None
     
     # 以下方法用于返回前端需要的图表数据
@@ -493,36 +509,42 @@ class VisualizationHelper:
             
         category_stats = self.data['category_stats']
         
-        # 检查键名是否为'分类'或'类别'
-        if '分类' in category_stats[0]:
+        # 检查键名
+        if 'category' in category_stats[0]:
+            key_name = 'category'
+        elif '分类' in category_stats[0]:
             key_name = '分类'
         elif '类别' in category_stats[0]:
             key_name = '类别'
         else:
-            logger.warning(f"类别数据中找不到'分类'或'类别'字段，尝试其他字段: {category_stats[0].keys()}")
+            logger.warning(f"类别数据中找不到'category'、'分类'或'类别'字段，尝试其他字段: {category_stats[0].keys()}")
             # 尝试找到类似类别的字段
             possible_keys = [k for k in category_stats[0].keys() if '类' in k or '分' in k]
             if possible_keys:
                 key_name = possible_keys[0]
-                logger.info(f"使用替代字段名: {key_name}")
+                logger.info(f"Using alternative field name: {key_name}")
             else:
-                logger.warning("没有找到合适的类别字段")
+                logger.warning("No suitable category field found")
                 return None
         
         # 检查金额字段
-        if '总额' in category_stats[0]:
+        if 'total' in category_stats[0]:
+            amount_key = 'total'
+        elif 'amount' in category_stats[0]:
+            amount_key = 'amount'
+        elif '总额' in category_stats[0]:
             amount_key = '总额'
         elif '金额' in category_stats[0]:
             amount_key = '金额'
         else:
-            logger.warning(f"类别数据中找不到'总额'或'金额'字段，尝试其他字段: {category_stats[0].keys()}")
+            logger.warning(f"类别数据中找不到'total'、'amount'、'总额'或'金额'字段，尝试其他字段: {category_stats[0].keys()}")
             # 尝试找到类似金额的字段
             possible_keys = [k for k in category_stats[0].keys() if '额' in k or '金' in k]
             if possible_keys:
                 amount_key = possible_keys[0]
-                logger.info(f"使用替代金额字段名: {amount_key}")
+                logger.info(f"Using alternative amount field name: {amount_key}")
             else:
-                logger.warning("没有找到合适的金额字段")
+                logger.warning("No suitable amount field found")
                 return None
                 
         category_stats = sorted(category_stats, key=lambda x: abs(x[amount_key]), reverse=True)
@@ -531,12 +553,12 @@ class VisualizationHelper:
         if len(category_stats) > 8:
             top_categories = category_stats[:7]
             other_amount = sum(c[amount_key] for c in category_stats[7:])
-            other_count = sum(c.get('笔数', 0) for c in category_stats[7:])
+            other_count = sum(c.get('count', c.get('笔数', 0)) for c in category_stats[7:])
             
             top_categories.append({
                 key_name: '其他',
                 amount_key: other_amount,
-                '笔数': other_count
+                'count': other_count
             })
             category_stats = top_categories
         
@@ -558,35 +580,43 @@ class VisualizationHelper:
         merchants_by_amount = self.data['top_merchants']['by_amount']
         
         # 检查字段名称
-        if '商户' in merchants_by_amount[0]:
+        if 'merchant' in merchants_by_amount[0]:
+            merchant_key = 'merchant'
+        elif 'counterparty' in merchants_by_amount[0]:
+            merchant_key = 'counterparty'
+        elif '商户' in merchants_by_amount[0]:
             merchant_key = '商户'
         elif '交易对象' in merchants_by_amount[0]:
             merchant_key = '交易对象'
         else:
-            logger.warning(f"商户数据中找不到'商户'或'交易对象'字段，尝试其他字段: {merchants_by_amount[0].keys()}")
+            logger.warning(f"Merchant data does not contain 'merchant', 'counterparty', or similar fields, trying other fields: {merchants_by_amount[0].keys()}")
             # 尝试找到类似商户的字段
             possible_keys = [k for k in merchants_by_amount[0].keys() if '商' in k or '户' in k or '对' in k]
             if possible_keys:
                 merchant_key = possible_keys[0]
-                logger.info(f"使用替代商户字段名: {merchant_key}")
+                logger.info(f"Using alternative merchant field name: {merchant_key}")
             else:
-                logger.warning("没有找到合适的商户字段")
+                logger.warning("No suitable merchant field found")
                 return None
         
         # 检查金额字段
-        if '金额' in merchants_by_amount[0]:
+        if 'total' in merchants_by_amount[0]:
+            amount_key = 'total'
+        elif 'amount' in merchants_by_amount[0]:
+            amount_key = 'amount'
+        elif '金额' in merchants_by_amount[0]:
             amount_key = '金额'
         elif '总额' in merchants_by_amount[0]:
             amount_key = '总额'
         else:
-            logger.warning(f"商户数据中找不到'金额'或'总额'字段，尝试其他字段: {merchants_by_amount[0].keys()}")
+            logger.warning(f"Merchant data does not contain 'total', 'amount', or similar fields, trying other fields: {merchants_by_amount[0].keys()}")
             # 尝试找到类似金额的字段
             possible_keys = [k for k in merchants_by_amount[0].keys() if '额' in k or '金' in k]
             if possible_keys:
                 amount_key = possible_keys[0]
-                logger.info(f"使用替代金额字段名: {amount_key}")
+                logger.info(f"Using alternative amount field name: {amount_key}")
             else:
-                logger.warning("没有找到合适的金额字段")
+                logger.warning("No suitable amount field found")
                 return None
         
         # 只取前10个商户
@@ -599,7 +629,9 @@ class VisualizationHelper:
         # 获取交易笔数
         counts = []
         for m in merchants_by_amount:
-            if '笔数' in m:
+            if 'count' in m:
+                counts.append(m['count'])
+            elif '笔数' in m:
                 counts.append(m['笔数'])
             else:
                 counts.append(0)  # 如果没有笔数字段，设置为0
@@ -615,11 +647,11 @@ class VisualizationHelper:
         if 'weekly_stats' not in self.data or not self.data['weekly_stats']:
             return None
         
-        weekly_stats = sorted(self.data['weekly_stats'], key=lambda x: x['星期'])
+        weekly_stats = sorted(self.data['weekly_stats'], key=lambda x: x['weekday'])
         
-        weekdays = [w['星期名'] for w in weekly_stats]
-        amounts = [w['总额'] for w in weekly_stats]
-        counts = [w['笔数'] for w in weekly_stats]
+        weekdays = [w['weekday_name'] for w in weekly_stats]
+        amounts = [w['total'] for w in weekly_stats]
+        counts = [w['count'] for w in weekly_stats]
         
         return {
             'labels': weekdays,
@@ -632,16 +664,16 @@ class VisualizationHelper:
         if 'monthly_stats' not in self.data or not self.data['monthly_stats']:
             return None
         
-        monthly_stats = sorted(self.data['monthly_stats'], key=lambda x: x['月份'])
+        monthly_stats = sorted(self.data['monthly_stats'], key=lambda x: x['month_label'])
         
         # 限制只显示最近12个月
         if len(monthly_stats) > 12:
             monthly_stats = monthly_stats[-12:]
         
-        months = [m['月份'] for m in monthly_stats]
-        incomes = [m['收入'] for m in monthly_stats]
-        expenses = [m['支出'] for m in monthly_stats]
-        nets = [m['净额'] for m in monthly_stats]
+        months = [m['month_label'] for m in monthly_stats]
+        incomes = [m['income'] for m in monthly_stats]
+        expenses = [m['expense'] for m in monthly_stats]
+        nets = [m['net'] for m in monthly_stats]
         
         return {
             'labels': months,
@@ -655,12 +687,12 @@ class VisualizationHelper:
         if 'yearly_stats' not in self.data or not self.data['yearly_stats']:
             return None
         
-        yearly_stats = sorted(self.data['yearly_stats'], key=lambda x: x['年份'])
+        yearly_stats = sorted(self.data['yearly_stats'], key=lambda x: x['year'])
         
-        years = [y['年份'] for y in yearly_stats]
-        incomes = [y['收入'] for y in yearly_stats]
-        expenses = [y['支出'] for y in yearly_stats]
-        nets = [y['净额'] for y in yearly_stats]
+        years = [y['year_label'] for y in yearly_stats]
+        incomes = [y['income'] for y in yearly_stats]
+        expenses = [y['expense'] for y in yearly_stats]
+        nets = [y['net'] for y in yearly_stats]
         
         return {
             'labels': years,

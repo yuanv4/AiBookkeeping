@@ -152,13 +152,13 @@ class DBManager:
                 ('ABC', '农业银行'),
                 ('BOC', '中国银行'),
                 ('COMM', '交通银行'),
-                ('CMBC', '招商银行'),
+                ('CMBC', '民生银行'),
                 ('CITIC', '中信银行'),
                 ('SPDB', '浦发银行'),
                 ('CEB', '光大银行'),
                 ('PAB', '平安银行'),
                 ('PSBC', '邮储银行'),
-                ('CMB', '民生银行'),
+                ('CMB', '招商银行'),
                 ('CIB', '兴业银行'),
                 ('OTHER', '其他银行'),
             ]
@@ -270,12 +270,12 @@ class DBManager:
             
             # 获取或创建交易类型
             transaction_types = {}
-            for type_name in df['交易类型'].unique():
+            for type_name in df['transaction_type'].unique():
                 if pd.notna(type_name):
                     type_id = self.get_or_create_transaction_type(type_name)
                     transaction_types[type_name] = type_id
             
-            for account_number, account_df in df.groupby('账号'):
+            for account_number, account_df in df.groupby('account_number'):
                 try:
                     # 获取或创建账户
                     account_id = self.get_or_create_account(str(account_number), bank_id)
@@ -288,26 +288,26 @@ class DBManager:
                         try:
                             # 处理日期
                             transaction_date = None
-                            if pd.notna(row['交易日期']):
+                            if pd.notna(row['transaction_date']):
                                 # 确保日期是字符串格式，如果是Timestamp则转为字符串
-                                if isinstance(row['交易日期'], (pd.Timestamp, datetime)):
-                                    transaction_date = row['交易日期'].strftime('%Y-%m-%d')
+                                if isinstance(row['transaction_date'], (pd.Timestamp, datetime)):
+                                    transaction_date = row['transaction_date'].strftime('%Y-%m-%d')
                                 else:
-                                    transaction_date = str(row['交易日期'])
+                                    transaction_date = str(row['transaction_date'])
                             
                             # 处理row_index
                             row_index = row['row_index'] if pd.notna(row['row_index']) else None
                             
                             # 处理金额
-                            amount = self.clean_numeric(row['交易金额']) if pd.notna(row['交易金额']) else 0
-                            balance = self.clean_numeric(row['账户余额']) if pd.notna(row['账户余额']) else None
+                            amount = self.clean_numeric(row['amount']) if pd.notna(row['amount']) else 0
+                            balance = self.clean_numeric(row['balance']) if pd.notna(row['balance']) else None
                             
                             # 处理交易类型
-                            trans_type = row['交易类型'] if pd.notna(row['交易类型']) else None
+                            trans_type = row['transaction_type'] if pd.notna(row['transaction_type']) else None
                             trans_type_id = transaction_types.get(trans_type) if trans_type else None
                             
                             # 处理交易对象和描述
-                            counterparty = row['交易对象'] if pd.notna(row['交易对象']) else None
+                            counterparty = row['counterparty'] if pd.notna(row['counterparty']) else None
                             
                             # 将数据添加到批量插入列表
                             insert_data.append((
@@ -357,7 +357,7 @@ class DBManager:
     
     def get_transactions(self, account_id=None, start_date=None, end_date=None, 
                          min_amount=None, max_amount=None, transaction_type=None,
-                         counterparty=None, limit=1000, offset=0):
+                         counterparty=None, limit=1000, offset=0, distinct=False):
         """按条件查询交易记录
         
         Args:
@@ -370,6 +370,7 @@ class DBManager:
             counterparty: 交易对方
             limit: 返回记录数限制
             offset: 分页偏移量
+            distinct: 是否去除重复交易（根据日期、金额、交易类型和交易对象判断）
             
         Returns:
             交易记录字典列表
@@ -416,64 +417,70 @@ class DBManager:
                 where_clause = "WHERE " + " AND ".join(conditions)
             
             # 查询交易记录
-            query = f'''
-                SELECT 
-                    t.id, 
-                    t.transaction_date, 
-                    t.amount, 
-                    t.balance, 
-                    t.counterparty, 
-                    t.description, 
-                    t.category, 
-                    t.created_at, 
-                    t.row_index,
-                    a.account_number, 
-                    tt.type_name as transaction_type, 
-                    b.bank_name
-                FROM transactions t
-                JOIN accounts a ON t.account_id = a.id
-                JOIN banks b ON a.bank_id = b.id
-                LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
-                {where_clause}
-                ORDER BY t.transaction_date DESC, t.row_index DESC
-                LIMIT ? OFFSET ?
-            '''
+            # 如果需要去重，使用GROUP BY子句
+            if distinct:
+                query = f'''
+                    SELECT 
+                        MIN(t.id) as id, 
+                        t.transaction_date, 
+                        t.amount, 
+                        t.balance, 
+                        t.counterparty, 
+                        t.description, 
+                        t.category, 
+                        MIN(t.created_at) as created_at, 
+                        t.row_index,
+                        a.account_number, 
+                        tt.type_name as transaction_type, 
+                        b.bank_name
+                    FROM transactions t
+                    JOIN accounts a ON t.account_id = a.id
+                    JOIN banks b ON a.bank_id = b.id
+                    LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
+                    {where_clause}
+                    GROUP BY t.transaction_date, t.amount, t.counterparty, tt.type_name
+                    ORDER BY t.transaction_date DESC, t.row_index DESC
+                    LIMIT ? OFFSET ?
+                '''
+            else:
+                query = f'''
+                    SELECT 
+                        t.id, 
+                        t.transaction_date, 
+                        t.amount, 
+                        t.balance, 
+                        t.counterparty, 
+                        t.description, 
+                        t.category, 
+                        t.created_at, 
+                        t.row_index,
+                        a.account_number, 
+                        tt.type_name as transaction_type, 
+                        b.bank_name
+                    FROM transactions t
+                    JOIN accounts a ON t.account_id = a.id
+                    JOIN banks b ON a.bank_id = b.id
+                    LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
+                    {where_clause}
+                    ORDER BY t.transaction_date DESC, t.row_index DESC
+                    LIMIT ? OFFSET ?
+                '''
             
             # 添加参数
             params.extend([limit, offset])
             
             # 记录查询信息
-            self.logger.info(f"执行交易查询: limit={limit}, offset={offset}")
+            self.logger.info(f"执行交易查询: limit={limit}, offset={offset}, distinct={distinct}")
             self.logger.info(f"SQL: {query}")
             self.logger.info(f"参数: {params}")
             
             cursor.execute(query, params)
             
-            # 获取结果并添加中文字段名
+            # 获取结果，不再添加中文字段名，只使用原始英文字段名
             results = []
             for row in cursor.fetchall():
-                # 转换为字典
-                record = dict(row)
-                
-                # 移除英文键，只保留中文键名（避免duplicate keys问题）
-                chinese_names = {
-                    '交易日期': record['transaction_date'],
-                    '交易金额': record['amount'],
-                    '账户余额': record['balance'],
-                    '交易对象': record['counterparty'],
-                    '交易描述': record['description'],
-                    '交易分类': record['category'],
-                    '交易类型': record['transaction_type'],
-                    '银行': record['bank_name'],
-                    '账号': record['account_number'],
-                    'id': record['id'],
-                    'row_index': record['row_index'],
-                    'created_at': record['created_at']
-                }
-                
-                # 不再合并字典，而是直接使用中文键名的字典
-                # 这样可以避免同时有英文和中文键指向相同数据导致的duplicate keys问题
-                results.append(chinese_names)
+                # 转换为字典并直接添加到结果中
+                results.append(dict(row))
             
             # 记录查询结果数量
             self.logger.info(f"查询到 {len(results)} 条交易记录")
@@ -631,26 +638,37 @@ class DBManager:
             # 总统计数据
             stats = {}
             
-            # 交易总数
-            cursor.execute("SELECT COUNT(*) as count FROM transactions")
+            # 交易总数 - 使用DISTINCT消除重复
+            cursor.execute("""
+                SELECT COUNT(DISTINCT transaction_date || '_' || amount || '_' || IFNULL(counterparty, '')) as count 
+                FROM transactions
+            """)
             stats['total_transactions'] = cursor.fetchone()['count']
             
             # 账户总数
             cursor.execute("SELECT COUNT(*) as count FROM accounts")
             stats['total_accounts'] = cursor.fetchone()['count']
             
-            # 收入和支出总额
+            # 收入和支出总额 - 使用子查询和DISTINCT消除重复
             cursor.execute("""
+                WITH distinct_transactions AS (
+                    SELECT DISTINCT transaction_date, amount, IFNULL(counterparty, '') as counterparty
+                    FROM transactions
+                )
                 SELECT 
                     SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as total_income,
                     SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as total_expense,
-                    SUM(amount) as net_amount
-                FROM transactions
+                    SUM(amount) as net_amount,
+                    COUNT(CASE WHEN amount > 0 THEN 1 END) as income_count,
+                    COUNT(CASE WHEN amount < 0 THEN 1 END) as expense_count
+                FROM distinct_transactions
             """)
             result = cursor.fetchone()
             stats['total_income'] = result['total_income'] or 0
             stats['total_expense'] = result['total_expense'] or 0
             stats['net_amount'] = result['net_amount'] or 0
+            stats['income_count'] = result['income_count'] or 0
+            stats['expense_count'] = result['expense_count'] or 0
             
             # 交易日期范围
             cursor.execute("""
@@ -663,29 +681,37 @@ class DBManager:
             stats['min_date'] = result['min_date']
             stats['max_date'] = result['max_date']
             
-            # 按银行统计
+            # 按银行统计 - 使用子查询和DISTINCT消除重复
             cursor.execute("""
+                WITH distinct_transactions AS (
+                    SELECT DISTINCT t.transaction_date, t.amount, IFNULL(t.counterparty, '') as counterparty, t.account_id
+                    FROM transactions t
+                )
                 SELECT 
                     b.bank_name,
-                    COUNT(t.id) as transaction_count,
-                    SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END) as income,
-                    SUM(CASE WHEN t.amount < 0 THEN t.amount ELSE 0 END) as expense
-                FROM transactions t
-                JOIN accounts a ON t.account_id = a.id
+                    COUNT(dt.transaction_date) as transaction_count,
+                    SUM(CASE WHEN dt.amount > 0 THEN dt.amount ELSE 0 END) as income,
+                    SUM(CASE WHEN dt.amount < 0 THEN dt.amount ELSE 0 END) as expense
+                FROM distinct_transactions dt
+                JOIN accounts a ON dt.account_id = a.id
                 JOIN banks b ON a.bank_id = b.id
                 GROUP BY b.bank_name
                 ORDER BY transaction_count DESC
             """)
             stats['bank_stats'] = [dict(row) for row in cursor.fetchall()]
             
-            # 按账户统计
+            # 按账户统计 - 使用子查询和DISTINCT消除重复
             cursor.execute("""
+                WITH distinct_transactions AS (
+                    SELECT DISTINCT t.transaction_date, t.amount, IFNULL(t.counterparty, '') as counterparty, t.account_id
+                    FROM transactions t
+                )
                 SELECT 
                     a.account_number,
                     b.bank_name,
-                    COUNT(t.id) as transaction_count,
-                    SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END) as income,
-                    SUM(CASE WHEN t.amount < 0 THEN t.amount ELSE 0 END) as expense,
+                    COUNT(dt.transaction_date) as transaction_count,
+                    SUM(CASE WHEN dt.amount > 0 THEN dt.amount ELSE 0 END) as income,
+                    SUM(CASE WHEN dt.amount < 0 THEN dt.amount ELSE 0 END) as expense,
                     (
                         SELECT balance
                         FROM transactions
@@ -695,7 +721,7 @@ class DBManager:
                     ) as latest_balance
                 FROM accounts a
                 JOIN banks b ON a.bank_id = b.id
-                LEFT JOIN transactions t ON a.id = t.account_id
+                LEFT JOIN distinct_transactions dt ON a.id = dt.account_id
                 GROUP BY a.account_number, b.bank_name
                 ORDER BY transaction_count DESC
             """)
@@ -746,6 +772,106 @@ class DBManager:
             self.logger.error(f"获取余额范围时出错: {str(e)}")
             self.logger.error(f"详细错误: {e}")
             return {'max_balance': 0, 'min_balance': 0}
+        finally:
+            conn.close()
+
+    def get_transactions_count(self, account_id=None, start_date=None, end_date=None, 
+                          min_amount=None, max_amount=None, transaction_type=None,
+                          counterparty=None, distinct=False):
+        """获取符合条件的交易记录总数
+        
+        Args:
+            account_id: 账户ID
+            start_date: 开始日期
+            end_date: 结束日期
+            min_amount: 最小金额
+            max_amount: 最大金额
+            transaction_type: 交易类型
+            counterparty: 交易对方
+            distinct: 是否去除重复交易
+            
+        Returns:
+            符合条件的交易记录总数
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # 构建查询条件
+            conditions = []
+            params = []
+            
+            if account_id:
+                conditions.append("t.account_id = ?")
+                params.append(account_id)
+                
+            if start_date:
+                conditions.append("t.transaction_date >= ?")
+                params.append(start_date)
+                
+            if end_date:
+                conditions.append("t.transaction_date <= ?")
+                params.append(end_date)
+                
+            if min_amount is not None:
+                conditions.append("t.amount >= ?")
+                params.append(min_amount)
+                
+            if max_amount is not None:
+                conditions.append("t.amount <= ?")
+                params.append(max_amount)
+                
+            if transaction_type:
+                conditions.append("tt.type_name LIKE ?")
+                params.append(f"%{transaction_type}%")
+                
+            if counterparty:
+                conditions.append("t.counterparty LIKE ?")
+                params.append(f"%{counterparty}%")
+            
+            # 构建WHERE子句
+            where_clause = ""
+            if conditions:
+                where_clause = "WHERE " + " AND ".join(conditions)
+            
+            # 查询记录总数
+            if distinct:
+                query = f'''
+                    SELECT COUNT(DISTINCT t.transaction_date || '_' || t.amount || '_' || IFNULL(t.counterparty, '')) as total_count
+                    FROM transactions t
+                    JOIN accounts a ON t.account_id = a.id
+                    JOIN banks b ON a.bank_id = b.id
+                    LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
+                    {where_clause}
+                '''
+            else:
+                query = f'''
+                    SELECT COUNT(*) as total_count
+                    FROM transactions t
+                    JOIN accounts a ON t.account_id = a.id
+                    JOIN banks b ON a.bank_id = b.id
+                    LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
+                    {where_clause}
+                '''
+            
+            # 记录查询信息
+            self.logger.info(f"执行交易记录总数查询: distinct={distinct}")
+            self.logger.info(f"SQL: {query}")
+            self.logger.info(f"参数: {params}")
+            
+            cursor.execute(query, params)
+            result = cursor.fetchone()
+            total_count = result['total_count'] if result else 0
+            
+            # 记录查询结果
+            self.logger.info(f"符合条件的交易记录总数: {total_count}")
+            
+            return total_count
+            
+        except Exception as e:
+            self.logger.error(f"查询交易记录总数时出错: {str(e)}")
+            self.logger.error(f"详细错误: {e}")
+            return 0
         finally:
             conn.close()
 

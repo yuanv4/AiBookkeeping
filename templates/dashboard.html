@@ -77,8 +77,8 @@
     <div class="dashboard-section-header">
         <h1 class="mb-2">财务总览</h1>
         <p class="subheading m-0">
-            {% if data.summary.起始日期 and data.summary.结束日期 %}
-                {{ data.summary.起始日期 }} 至 {{ data.summary.结束日期 }} 的账单数据分析
+            {% if data.summary.start_date and data.summary.end_date %}
+                {{ data.summary.start_date }} 至 {{ data.summary.end_date }} 的账单数据分析
             {% else %}
                 账单数据分析
             {% endif %}
@@ -100,12 +100,12 @@
                                     <i class="material-icons-round" style="color: var(--success);">savings</i>
                                 </div>
                                 <div class="ms-3">
-                                    <h3 class="mb-0">{{ "%.2f"|format(data.summary.账户余额 or 0) }}</h3>
+                                    <h3 class="mb-0">{{ "%.2f"|format(data.summary.account_balance or 0) }}</h3>
                                     <p class="text-muted mb-0">当前可用资金</p>
                                 </div>
                             </div>
                             
-                            {% if data.summary.账户余额列表 and data.summary.账户余额列表|length > 0 %}
+                            {% if data.summary.account_balance_list and data.summary.account_balance_list|length > 0 %}
                             <div class="mt-2">
                                 <div class="accordion" id="accountBalanceAccordion">
                                     <div class="accordion-item border-0">
@@ -113,18 +113,18 @@
                                             <button class="accordion-button collapsed p-1 ps-1 small bg-transparent" type="button" 
                                                     data-bs-toggle="collapse" data-bs-target="#collapseAccounts" 
                                                     aria-expanded="false" aria-controls="collapseAccounts">
-                                                查看所有账户余额 ({{ data.summary.账户余额列表|length }}个账户)
+                                                查看所有账户余额 ({{ data.summary.account_balance_list|length }}个账户)
                                             </button>
                                         </h2>
                                         <div id="collapseAccounts" class="accordion-collapse collapse" 
                                              aria-labelledby="headingAccounts" data-bs-parent="#accountBalanceAccordion">
                                             <div class="accordion-body p-1 ps-3">
                                                 <ul class="list-unstyled small mb-0">
-                                                    {% for account in data.summary.账户余额列表 %}
+                                                    {% for account in data.summary.account_balance_list %}
                                                     <li class="mb-1">
                                                         <div class="d-flex justify-content-between">
-                                                            <span class="text-muted">{{ account.银行 }} ({{ (account.账号|string)[-4:] if (account.账号|string)|length >= 4 else account.账号|string }})</span>
-                                                            <span class="fw-bold">{{ "%.2f"|format(account.余额) }}</span>
+                                                            <span class="text-muted">{{ account.bank }} ({{ (account.account|string)[-4:] if (account.account|string)|length >= 4 else account.account|string }})</span>
+                                                            <span class="fw-bold">{{ "%.2f"|format(account.balance) }}</span>
                                                         </div>
                                                     </li>
                                                     {% endfor %}
@@ -138,23 +138,33 @@
                         </div>
                         <div class="col-md-6">
                             <div class="d-flex align-items-center mb-3">
-                                <div class="stat-icon" style="background-color: {% if data.summary.净收支 >= 0 %}rgba(71, 184, 129, 0.1){% else %}rgba(236, 76, 71, 0.1){% endif %};" id="netIcon">
-                                    <i class="material-icons-round" style="color: {% if data.summary.净收支 >= 0 %}var(--success){% else %}var(--danger){% endif %};" id="netIconInner">account_balance</i>
+                                <div class="stat-icon" 
+                                     style="background-color: rgba(71, 184, 129, 0.1);" 
+                                     id="netIcon">
+                                    <i class="material-icons-round" 
+                                       style="color: var(--success);" 
+                                       id="netIconInner">account_balance</i>
                                 </div>
                                 <div class="ms-3">
-                                    <h3 class="mb-0 {% if data.summary.净收支 >= 0 %}text-success{% else %}text-danger{% endif %}" id="netAmount">
-                                        {{ "%.2f"|format(data.summary.净收支 or 0) }}
+                                    <h3 class="mb-0 text-success" id="netAmount">
+                                        {{ "%.2f"|format(data.summary.net_amount or 0) }}
                                     </h3>
                                     <p class="text-muted mb-0">总净收支</p>
                                 </div>
                             </div>
                         </div>
-                        {% if data.summary.收入 > 0 %}
+                        {% if data.summary.total_income > 0 %}
                         <div class="col-12 mt-2">
                             <h6 class="mb-2">收支比例</h6>
                             <div class="progress" style="height: 10px; border-radius: 5px; background-color: rgba(0,0,0,0.05);">
-                                {% set percent = ((data.summary.支出 or 0) / data.summary.收入 * 100)|round|int %}
-                                <div class="progress-bar bg-danger" role="progressbar" style="width: {{ percent }}%; border-radius: 5px;" aria-valuenow="{{ percent }}" aria-valuemin="0" aria-valuemax="100" id="expenseRateBar"></div>
+                                {% set percent = ((data.summary.total_expense or 0) / data.summary.total_income * 100)|round|int %}
+                                <div class="progress-bar bg-danger" 
+                                     role="progressbar" 
+                                     style="width: {{ percent }}%; border-radius: 5px;" 
+                                     aria-valuenow="{{ percent }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100" 
+                                     id="expenseRateBar"></div>
                             </div>
                             <div class="d-flex justify-content-between mt-1" style="font-size: 0.85rem; color: #6c757d;">
                                 <span>支出率: <span id="expenseRate">{{ percent }}%</span></span>
@@ -192,34 +202,34 @@
 
                         <div class="col-12 mt-3">
                             <div class="alert 
-                                {% if data.summary.净收支 > data.summary.收入 * 0.3 %}
+                                {% if data.summary.net_amount > data.summary.total_income * 0.3 %}
                                     alert-success
-                                {% elif data.summary.净收支 > 0 %}
+                                {% elif data.summary.net_amount > 0 %}
                                     alert-success
-                                {% elif data.summary.净收支 > data.summary.支出 * -0.1 %}
+                                {% elif data.summary.net_amount > data.summary.total_expense * -0.1 %}
                                     alert-warning
                                 {% else %}
                                     alert-danger
                                 {% endif %} mb-0">
                                 <i class="material-icons-round me-1" style="vertical-align: -4px;">
-                                    {% if data.summary.净收支 > data.summary.收入 * 0.3 %}
+                                    {% if data.summary.net_amount > data.summary.total_income * 0.3 %}
                                         sentiment_very_satisfied
-                                    {% elif data.summary.净收支 > 0 %}
+                                    {% elif data.summary.net_amount > 0 %}
                                         sentiment_satisfied
-                                    {% elif data.summary.净收支 > data.summary.支出 * -0.1 %}
+                                    {% elif data.summary.net_amount > data.summary.total_expense * -0.1 %}
                                         sentiment_neutral
                                     {% else %}
                                         sentiment_very_dissatisfied
                                     {% endif %}
                                 </i>
                                 <span class="fw-bold">财务状况：</span>
-                                {% if data.summary.净收支 > data.summary.收入 * 0.3 %}
+                                {% if data.summary.net_amount > data.summary.total_income * 0.3 %}
                                     非常健康，有充足结余
                                     <div class="mt-1 small text-success">您的收支结余超过收入的30%，建议考虑适当投资</div>
-                                {% elif data.summary.净收支 > 0 %}
+                                {% elif data.summary.net_amount > 0 %}
                                     良好，收支平衡有结余
                                     <div class="mt-1 small text-success">保持良好习惯，可适当增加储蓄比例</div>
-                                {% elif data.summary.净收支 > data.summary.支出 * -0.1 %}
+                                {% elif data.summary.net_amount > data.summary.total_expense * -0.1 %}
                                     一般，略有超支
                                     <div class="mt-1 small text-warning">支出略高于收入，建议控制非必要支出</div>
                                 {% else %}
@@ -244,10 +254,10 @@
                                 <i class="material-icons-round" style="color: var(--success);">arrow_upward</i>
                             </div>
                             <div class="stat-content mt-3">
-                                <div class="stat-value text-success" id="totalIncome">{{ "%.2f"|format(data.summary.收入 or 0) }}</div>
-                                <div class="stat-label">总收入 <span id="incomeCount" class="badge bg-success">{{ data.summary.收入笔数 or 0 }}笔</span></div>
+                                <div class="stat-value text-success" id="totalIncome">{{ "%.2f"|format(data.summary.total_income or 0) }}</div>
+                                <div class="stat-label">总收入 <span id="incomeCount" class="badge bg-success">{{ data.summary.income_count or 0 }}笔</span></div>
                                 <div class="mt-2">
-                                    <small class="text-muted">月均收入：{{ "%.2f"|format(data.summary.收入 / ((data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1)) or 0) }}</small>
+                                    <small class="text-muted">月均收入：{{ "%.2f"|format(data.summary.total_income / ((data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1)) or 0) }}</small>
                                 </div>
                             </div>
                         </div>
@@ -262,10 +272,10 @@
                                 <i class="material-icons-round" style="color: var(--danger);">arrow_downward</i>
                             </div>
                             <div class="stat-content mt-3">
-                                <div class="stat-value text-danger" id="totalExpense">{{ "%.2f"|format(data.summary.支出 or 0) }}</div>
-                                <div class="stat-label">总支出 <span id="expenseCount" class="badge bg-danger">{{ data.summary.支出笔数 or 0 }}笔</span></div>
+                                <div class="stat-value text-danger" id="totalExpense">{{ "%.2f"|format(data.summary.total_expense or 0) }}</div>
+                                <div class="stat-label">总支出 <span id="expenseCount" class="badge bg-danger">{{ data.summary.expense_count or 0 }}笔</span></div>
                                 <div class="mt-2">
-                                    <small class="text-muted">月均支出：{{ "%.2f"|format(data.summary.支出 / ((data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1)) or 0) }}</small>
+                                    <small class="text-muted">月均支出：{{ "%.2f"|format(data.summary.total_expense / ((data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1)) or 0) }}</small>
                                 </div>
                             </div>
                         </div>
@@ -283,7 +293,7 @@
                                             <i class="material-icons-round">calendar_today</i>
                                         </div>
                                         <div class="ms-3">
-                                            <h4 class="mb-0">{{ data.summary.交易笔数 or 0 }}</h4>
+                                            <h4 class="mb-0">{{ data.summary.total_transactions or 0 }}</h4>
                                             <p class="text-muted mb-0">总交易笔数</p>
                                         </div>
                                     </div>
@@ -338,17 +348,17 @@
                         <tbody>
                             {% for transaction in data.transactions %}
                             <tr>
-                                <td>{{ transaction.交易日期 if transaction.交易日期 else '' }}</td>
+                                <td>{{ transaction.transaction_date if transaction.transaction_date else '' }}</td>
                                 <td>
-                                    <span class="badge {% if '退款' in transaction.交易类型 %}bg-success{% elif '转账' in transaction.交易类型 %}bg-info{% elif '收入' in transaction.交易类型 or '收款' in transaction.交易类型 %}bg-success{% else %}bg-primary{% endif %}">
-                                        {{ transaction.交易类型 }}
+                                    <span class="badge {% if '退款' in transaction.transaction_type %}bg-success{% elif '转账' in transaction.transaction_type %}bg-info{% elif 'income' in transaction.transaction_type or '收款' in transaction.transaction_type %}bg-success{% else %}bg-primary{% endif %}">
+                                        {{ transaction.transaction_type }}
                                     </span>
                                 </td>
-                                <td>{{ transaction.交易对象 }}</td>
-                                <td class="{% if transaction.交易金额 > 0 %}text-success{% elif transaction.交易金额 < 0 %}text-danger{% endif %}">
-                                    {% if transaction.交易金额 > 0 %}+{% endif %}{{ "%.2f"|format(transaction.交易金额 or 0) }}
+                                <td>{{ transaction.counterparty }}</td>
+                                <td class="{% if transaction.amount > 0 %}text-success{% elif transaction.amount < 0 %}text-danger{% endif %}">
+                                    {% if transaction.amount > 0 %}+{% endif %}{{ "%.2f"|format(transaction.amount or 0) }}
                                 </td>
-                                <td>{{ "%.2f"|format(transaction.账户余额 or 0) }}</td>
+                                <td>{{ "%.2f"|format(transaction.balance or 0) }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -391,15 +401,16 @@ if (typeof ChartDataLabels !== 'undefined') {
     Chart.register(ChartDataLabels);
 }
 
-// 存储原始数据
+// 原始数据
 const originalData = {
     summary: {
-        交易笔数: {{ data.summary.交易笔数 or 0 }},
-        收入: {{ data.summary.收入 or 0 }},
-        支出: {{ data.summary.支出 or 0 }},
-        净收支: {{ data.summary.净收支 or 0 }},
-        收入笔数: {{ data.summary.收入笔数 or 0 }},
-        支出笔数: {{ data.summary.支出笔数 or 0 }}
+        起始日期: "{{ data.summary.start_date or '' }}",
+        结束日期: "{{ data.summary.end_date or '' }}",
+        总收入: {{ data.summary.total_income or 0 }},
+        总支出: {{ data.summary.total_expense or 0 }},
+        净收支: {{ data.summary.net_amount or 0 }},
+        收入笔数: {{ data.summary.income_count or 0 }},
+        支出笔数: {{ data.summary.expense_count or 0 }}
     }
     {% if data.charts.yearly_data %},
     yearly: {

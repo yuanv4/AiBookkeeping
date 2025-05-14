@@ -5,6 +5,13 @@ import glob
 import logging
 from datetime import datetime
 from pathlib import Path
+import sys
+
+# 添加项目根目录到PYTHONPATH以解决导入问题
+current_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(current_dir)
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
 
 from scripts.bank_transaction_extractor import BankTransactionExtractor
 
@@ -115,79 +122,157 @@ class CMBTransactionExtractor(BankTransactionExtractor):
     def extract_transactions(self, file_path):
         """提取交易数据"""
         try:
-            # 读取Excel文件
-            df = pd.read_excel(file_path)
-            
-            # 找到标题行（招商银行通常在前几行有标题）
-            header_row_idx = self.find_header_row(df)
-            if header_row_idx is not None:
-                # 重新读取Excel文件，使用找到的标题行
-                df = pd.read_excel(file_path, header=header_row_idx)
+            # 先尝试读取Excel文件获取基本信息
+            df_info = pd.read_excel(file_path, header=None, nrows=20)
             
             # 提取账户信息
-            account_name, account_number = self.extract_account_info(df)
+            account_name, account_number = self.extract_account_info(df_info)
             if not account_name or not account_number:
                 self.logger.error("无法提取账户信息")
                 return None
             
+            # 查找标题行
+            header_row_idx = self.find_header_row(df_info)
+            if header_row_idx is None:
+                self.logger.error("无法找到标题行")
+                return None
+                
+            self.logger.info(f"找到标题行，索引为 {header_row_idx}")
+            
+            # 重新读取Excel文件，正确处理标题行
+            try:
+                # 尝试使用多级标题（招商银行特殊格式）
+                df = pd.read_excel(file_path, header=[header_row_idx, header_row_idx+1])
+                self.logger.info(f"使用多级标题格式读取数据，列名: {df.columns.tolist()}")
+            except Exception as e:
+                self.logger.warning(f"使用多级标题读取失败: {e}，尝试单级标题")
+                # 如果多级标题读取失败，尝试使用单级标题
+                df = pd.read_excel(file_path, header=header_row_idx)
+                self.logger.info(f"使用单级标题格式读取数据，列名: {df.columns.tolist()}")
+            
             # 创建标准格式的DataFrame
-            result_columns = ['交易日期', '货币', '交易金额', '账户余额', '交易类型', '交易对象', '户名', '账号', 'row_index']
-            result_df = pd.DataFrame(index=df.index)
+            result_columns = ['transaction_date', 'currency', 'amount', 'balance', 'transaction_type', 'counterparty', 'account_name', 'account_number', 'row_index']
+            result_df = pd.DataFrame(index=df.index, columns=result_columns)
             
-            # 标准化列名（根据招商银行的特定格式进行映射）
-            column_mapping = self.get_column_mapping(df.columns)
-            
-            # 填充必要的数据
             # 处理交易日期
-            if "交易日期" in column_mapping and column_mapping["交易日期"] in df.columns:
-                date_column = column_mapping["交易日期"]
-                result_df['交易日期'] = df[date_column].apply(self.standardize_date)
-            else:
-                # 使用当前日期作为默认值
-                self.logger.warning(f"没有找到交易日期列，使用今天的日期")
-                result_df['交易日期'] = pd.Timestamp.today().strftime('%Y-%m-%d')
-            
-            # 处理金额
-            if "交易金额" in column_mapping and column_mapping["交易金额"] in df.columns:
-                amount_column = column_mapping["交易金额"]
-                result_df['交易金额'] = df[amount_column].apply(self.clean_numeric)
-            else:
-                result_df['交易金额'] = 0.0
-            
-            # 处理余额
-            if "账户余额" in column_mapping and column_mapping["账户余额"] in df.columns:
-                balance_column = column_mapping["账户余额"]
-                result_df['账户余额'] = df[balance_column].apply(self.clean_numeric)
-            else:
-                result_df['账户余额'] = 0.0
-            
-            # 处理交易类型
-            if "交易类型" in column_mapping and column_mapping["交易类型"] in df.columns:
-                type_column = column_mapping["交易类型"]
-                result_df['交易类型'] = df[type_column].fillna('其他')
-            else:
-                result_df['交易类型'] = '其他'
-            
-            # 处理交易对象
-            if "交易对象" in column_mapping and column_mapping["交易对象"] in df.columns:
-                obj_column = column_mapping["交易对象"]
-                result_df['交易对象'] = df[obj_column].fillna('')
-            else:
-                result_df['交易对象'] = ''
-            
-            # 处理货币
-            if "货币" in column_mapping and column_mapping["货币"] in df.columns:
-                currency_column = column_mapping["货币"]
-                result_df['货币'] = df[currency_column].fillna('CNY')
-            else:
-                result_df['货币'] = 'CNY'
+            for col in df.columns:
+                col_name = col[0] if isinstance(col, tuple) else col
+                col_name_str = str(col_name).lower()
+                
+                # 日期列
+                if '日期' in col_name_str or 'date' in col_name_str.lower():
+                    self.logger.info(f"找到日期列: {col}")
+                    result_df['transaction_date'] = df[col].apply(lambda x: self.standardize_date(x))
+                
+                # 金额列
+                elif '金额' in col_name_str or 'amount' in col_name_str.lower() or 'transaction' in col_name_str.lower():
+                    self.logger.info(f"找到金额列: {col}")
+                    result_df['amount'] = df[col].apply(lambda x: self.clean_numeric(x))
+                
+                # 余额列
+                elif '余额' in col_name_str or 'balance' in col_name_str.lower():
+                    self.logger.info(f"找到余额列: {col}")
+                    result_df['balance'] = df[col].apply(lambda x: self.clean_numeric(x))
+                
+                # 交易类型列
+                elif '摘要' in col_name_str or '交易类型' in col_name_str or 'type' in col_name_str.lower():
+                    self.logger.info(f"找到交易类型列: {col}")
+                    result_df['transaction_type'] = df[col].fillna('其他')
+                
+                # 交易对象列
+                elif '对手' in col_name_str or '对方' in col_name_str or 'counter' in col_name_str.lower() or 'party' in col_name_str.lower():
+                    self.logger.info(f"找到交易对象列: {col}")
+                    result_df['counterparty'] = df[col].fillna('')
+                
+                # 货币列
+                elif '货币' in col_name_str or '币种' in col_name_str or 'currency' in col_name_str.lower():
+                    self.logger.info(f"找到货币列: {col}")
+                    result_df['currency'] = df[col].fillna('CNY')
             
             # 处理row_index - 使用父类的标准化方法
-            result_df['row_index'] = self.standardize_row_index(df, header_row_idx)
+            # 先保存这个值，稍后在过滤后再添加
+            row_indices = self.standardize_row_index(df, header_row_idx)
+            
+            # 过滤掉无用数据：表头、空行、或含有"Amount"、"Date"、"Transaction"、"Balance"等关键词的行
+            # 这些可能是Excel中的列名或子标题
+            invalid_rows = []
+            keywords = ['amount', 'date', 'transaction', 'balance', 'currency', 'counter party', 'type']
+            
+            for idx, row in result_df.iterrows():
+                # 检查是否是表头或含有关键词的行
+                is_header_row = False
+                
+                # 检查交易对象是否是列标题
+                if pd.notna(row['counterparty']):
+                    counterparty_lower = str(row['counterparty']).lower()
+                    if any(keyword in counterparty_lower for keyword in keywords):
+                        is_header_row = True
+                
+                # 检查金额是否为0和日期是否缺失
+                if (pd.isna(row['transaction_date']) or 
+                    row['amount'] == 0 or 
+                    is_header_row):
+                    invalid_rows.append(idx)
+            
+            # 移除无效行
+            if invalid_rows:
+                self.logger.info(f"过滤掉 {len(invalid_rows)} 条无效数据行")
+                result_df = result_df.drop(invalid_rows)
+            
+            # 检查是否找到日期列，如果没找到则使用当前日期，但仅对有效的交易记录
+            valid_transactions = result_df[(result_df['amount'] != 0) & (~result_df['transaction_date'].isna())]
+            if len(valid_transactions) == 0:
+                self.logger.warning("未找到有效的交易记录")
+                return None
+                
+            if valid_transactions['transaction_date'].isna().all():
+                self.logger.warning(f"没有找到交易日期列，使用原始记录的日期")
+                # 如果没有有效日期，尝试从Excel中提取年份范围
+                try:
+                    file_name = os.path.basename(file_path)
+                    year_match = re.search(r'(\d{4})', file_name)
+                    if year_match:
+                        default_date = f"{year_match.group(1)}-01-01"
+                        self.logger.info(f"使用文件名中的年份作为默认日期: {default_date}")
+                    else:
+                        default_date = "2023-01-01"  # 使用固定的历史日期而非当前日期
+                except:
+                    default_date = "2023-01-01"  # 使用固定的历史日期而非当前日期
+                
+                result_df['transaction_date'] = result_df['transaction_date'].apply(
+                    lambda x: default_date if x is None else x
+                )
+            
+            # 确保所有行的transaction_date字段都有值，使用原始数据的日期范围而非当前日期
+            oldest_date = valid_transactions['transaction_date'].min()
+            if oldest_date is not None and not pd.isna(oldest_date):
+                result_df['transaction_date'] = result_df['transaction_date'].apply(
+                    lambda x: oldest_date if x is None else x
+                )
+            
+            # 确保金额和余额列的值是数值型
+            result_df['amount'] = result_df['amount'].apply(lambda x: 0.0 if pd.isna(x) else float(x))
+            result_df['balance'] = result_df['balance'].apply(lambda x: 0.0 if pd.isna(x) else float(x))
+            
+            # 处理默认值
+            result_df['transaction_type'] = result_df['transaction_type'].fillna('其他')
+            result_df['counterparty'] = result_df['counterparty'].fillna('')
+            result_df['currency'] = result_df['currency'].fillna('CNY')
+            
+            # 现在添加row_index - 创建一个新的序列，从0开始到结果dataframe的长度
+            result_df['row_index'] = range(len(result_df))
             
             # 添加账户信息
-            result_df['户名'] = account_name
-            result_df['账号'] = account_number
+            result_df['account_name'] = account_name
+            result_df['account_number'] = account_number
+            
+            # 删除空行（金额和日期都为空的行）
+            result_df = result_df.dropna(subset=['transaction_date', 'amount'], how='all')
+            
+            # 记录提取结果
+            self.logger.info(f"共提取 {len(result_df)} 条交易记录")
+            if not result_df.empty:
+                self.logger.info(f"提取的第一条记录: {result_df.iloc[0].to_dict()}")
             
             return result_df
             
@@ -199,93 +284,105 @@ class CMBTransactionExtractor(BankTransactionExtractor):
     
     def find_header_row(self, df):
         """查找标题行"""
-        # 尝试在前10行找到包含标题关键字的行
-        for idx in range(min(10, len(df))):
+        # 尝试在前20行找到包含标题关键字的行
+        for idx in range(min(20, len(df))):
             row = df.iloc[idx]
             # 将行转为字符串后合并
             row_text = " ".join([str(val) for val in row if pd.notna(val)]).lower()
             # 检查是否包含常见的标题关键字
-            if "交易日期" in row_text and ("金额" in row_text or "发生额" in row_text):
+            if any(keyword in row_text for keyword in ["记账日期", "交易日期", "账务日期", "交易金额", "发生额"]):
                 return idx
         return None
     
-    def get_column_mapping(self, columns):
-        """根据招商银行的特定格式获取列名映射"""
-        mapping = {}
+    def standardize_date(self, date_value):
+        """将各种日期格式标准化为YYYY-MM-DD"""
+        if pd.isna(date_value):
+            return None
         
-        for col in columns:
-            col_str = str(col).lower()
+        # 已经是datetime对象
+        if isinstance(date_value, datetime):
+            # 确保日期不在未来
+            today = datetime.today()
+            if date_value > today:
+                self.logger.warning(f"发现未来日期: {date_value}，替换为当前日期")
+                return today.strftime('%Y-%m-%d')
+            return date_value.strftime('%Y-%m-%d')
+        
+        # 处理字符串格式
+        if isinstance(date_value, str):
+            # 检查是否包含关键词：这些可能是列标题，不是真正的日期
+            if any(keyword in date_value.lower() for keyword in ['date', 'amount', 'transaction', 'balance']):
+                self.logger.debug(f"跳过日期列标题: {date_value}")
+                return None
+                
+            # 已经是标准格式
+            if re.match(r'^\d{4}-\d{2}-\d{2}$', date_value):
+                # 检查是否是未来日期
+                try:
+                    parsed_date = datetime.strptime(date_value, '%Y-%m-%d')
+                    if parsed_date > datetime.today():
+                        self.logger.warning(f"发现未来日期: {date_value}，替换为当前日期")
+                        return datetime.today().strftime('%Y-%m-%d')
+                except:
+                    pass
+                return date_value
             
-            if "日期" in col_str or "时间" in col_str:
-                mapping["交易日期"] = col
-            elif "金额" in col_str or "发生额" in col_str:
-                mapping["交易金额"] = col
-            elif "余额" in col_str:
-                mapping["账户余额"] = col
-            elif "摘要" in col_str or "描述" in col_str:
-                mapping["交易类型"] = col
-            elif "对方" in col_str or "收款人" in col_str or "付款人" in col_str:
-                mapping["交易对象"] = col
-            elif "币种" in col_str:
-                mapping["货币"] = col
+            # 处理YYYY/MM/DD格式
+            if re.match(r'^\d{4}/\d{1,2}/\d{1,2}$', date_value):
+                parts = date_value.split('/')
+                year = parts[0]
+                month = parts[1].zfill(2)
+                day = parts[2].zfill(2)
+                date_str = f"{year}-{month}-{day}"
+                
+                # 检查是否是未来日期
+                try:
+                    parsed_date = datetime.strptime(date_str, '%Y-%m-%d')
+                    if parsed_date > datetime.today():
+                        self.logger.warning(f"发现未来日期: {date_str}，替换为当前日期")
+                        return datetime.today().strftime('%Y-%m-%d')
+                except:
+                    pass
+                return date_str
         
-        return mapping
+        # 其他情况，尝试转换为datetime然后格式化
+        try:
+            parsed_date = pd.to_datetime(date_value)
+            # 检查是否是未来日期
+            if parsed_date > pd.Timestamp.today():
+                self.logger.warning(f"发现未来日期: {parsed_date}，替换为当前日期")
+                return pd.Timestamp.today().strftime('%Y-%m-%d')
+            return parsed_date.strftime('%Y-%m-%d')
+        except:
+            self.logger.warning(f"无法标准化日期: {date_value}")
+            return None
+    
+    def clean_numeric(self, value):
+        """清理并转换数值型数据"""
+        if pd.isna(value):
+            return 0.0
+        
+        if isinstance(value, (int, float)):
+            return float(value)
+        
+        if isinstance(value, str):
+            # 移除货币符号、逗号和空白
+            cleaned = re.sub(r'[,¥$€£\s]', '', value)
+            # 处理带括号的负数
+            if cleaned.startswith('(') and cleaned.endswith(')'):
+                cleaned = '-' + cleaned[1:-1]
+            
+            try:
+                return float(cleaned)
+            except:
+                self.logger.warning(f"无法转换为数值: {value}")
+                return 0.0
+        
+        return 0.0
     
     def get_bank_keyword(self):
         """获取银行关键字用于筛选文件"""
         return '招商银行'
-
-def standardize_date(date_value):
-    """将各种日期格式标准化为YYYY-MM-DD"""
-    if pd.isna(date_value):
-        return None
-    
-    # 已经是datetime对象
-    if isinstance(date_value, datetime):
-        return date_value.strftime('%Y-%m-%d')
-    
-    # 处理字符串格式
-    if isinstance(date_value, str):
-        # 已经是标准格式
-        if re.match(r'^\d{4}-\d{2}-\d{2}$', date_value):
-            return date_value
-        
-        # 处理YYYY/MM/DD格式
-        if re.match(r'^\d{4}/\d{1,2}/\d{1,2}$', date_value):
-            parts = date_value.split('/')
-            year = parts[0]
-            month = parts[1].zfill(2)
-            day = parts[2].zfill(2)
-            return f"{year}-{month}-{day}"
-    
-    # 其他情况，尝试转换为datetime然后格式化
-    try:
-        return pd.to_datetime(date_value).strftime('%Y-%m-%d')
-    except:
-        logger.warning(f"无法标准化日期: {date_value}")
-        return None
-
-def clean_numeric(value):
-    """清理并转换数值型数据"""
-    if pd.isna(value):
-        return 0.0
-    
-    if isinstance(value, (int, float)):
-        return float(value)
-    
-    if isinstance(value, str):
-        # 移除货币符号、逗号和空白
-        cleaned = re.sub(r'[,¥$€£\s]', '', value)
-        # 处理带括号的负数
-        if cleaned.startswith('(') and cleaned.endswith(')'):
-            cleaned = '-' + cleaned[1:-1]
-        
-        try:
-            return float(cleaned)
-        except:
-            return 0.0
-    
-    return 0.0
 
 def main():
     try:

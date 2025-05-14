@@ -109,24 +109,24 @@ class BankTransactionExtractor:
             return 0
         
         # 检查是否有账号字段
-        if '账号' not in df.columns or df['账号'].isnull().all():
+        if 'account_number' not in df.columns or df['account_number'].isnull().all():
             self.logger.warning(f"数据中不包含有效的账号字段，无法导入到数据库")
             return 0
         
         # 转换日期格式
-        if '交易日期' in df.columns:
-            df['交易日期'] = pd.to_datetime(df['交易日期'], errors='coerce')
+        if 'transaction_date' in df.columns:
+            df['transaction_date'] = pd.to_datetime(df['transaction_date'], errors='coerce')
             
         # 去除完全相同的记录
         df = df.drop_duplicates()
         
         # 检测可能的重复交易（同一天、相同金额但对手方略有不同）
-        if '交易金额' in df.columns:
-            potential_duplicates = df[df.duplicated(subset=['交易日期', '交易金额'], keep=False)]
+        if 'amount' in df.columns:
+            potential_duplicates = df[df.duplicated(subset=['transaction_date', 'amount'], keep=False)]
             if not potential_duplicates.empty:
                 self.logger.warning(f"检测到{len(potential_duplicates)}条潜在重复交易（相同日期和金额）")
-                for _, group in potential_duplicates.groupby(['交易日期', '交易金额']):
-                    self.logger.debug(f"潜在重复: {group[['交易日期', '交易金额', '交易对象']].to_dict('records')}")
+                for _, group in potential_duplicates.groupby(['transaction_date', 'amount']):
+                    self.logger.debug(f"潜在重复: {group[['transaction_date', 'amount', 'counterparty']].to_dict('records')}")
         
         # 检测完全相同的交易（除了row_index外所有字段都相同）
         columns_to_check = [col for col in df.columns if col != 'row_index']
@@ -136,14 +136,14 @@ class BankTransactionExtractor:
             if not exact_duplicates.empty:
                 self.logger.warning(f"检测到{len(exact_duplicates)}条重复交易（除row_index外所有数据相同）")
                 for _, group in exact_duplicates.groupby(columns_to_check):
-                    self.logger.debug(f"完全重复: {group[['交易日期', '交易金额', '交易对象', 'row_index']].to_dict('records')}")
+                    self.logger.debug(f"完全重复: {group[['transaction_date', 'amount', 'counterparty', 'row_index']].to_dict('records')}")
                     # 仅保留row_index值最小的一条记录（通常是原始Excel中最先出现的记录）
                     duplicate_indices = group.index[1:]  # 保留第一条，删除其余记录
                     df = df.drop(duplicate_indices)
                     self.logger.info(f"移除了{len(duplicate_indices)}条重复交易记录")
         
         # 添加银行名称列
-        if '银行' not in df.columns:
+        if 'bank' not in df.columns:
             # 使用提取器的银行名称
             bank_name_map = {
                 'CCB': '建设银行',
@@ -154,12 +154,12 @@ class BankTransactionExtractor:
                 'CMB': '招商银行'
             }
             display_bank_name = bank_name_map.get(self.bank_name.upper(), self.bank_name)
-            df['银行'] = display_bank_name
+            df['bank'] = display_bank_name
             self.logger.info(f"添加银行名称列: {display_bank_name}")
         
         # 根据账号分组导入到数据库
         total_imported = 0
-        account_groups = df.groupby('账号')
+        account_groups = df.groupby('account_number')
         
         for account_number, account_df in account_groups:
             try:
@@ -210,13 +210,13 @@ class BankTransactionExtractor:
         """从文件中提取交易明细，由子类实现"""
         raise NotImplementedError("子类必须实现extract_transactions方法")
     
-    def standardize_row_index(self, df, header_row_idx=None, id_column_name="序号"):
+    def standardize_row_index(self, df, header_row_idx=None, id_column_name="row_index"):
         """标准化处理行号，确保每条记录有唯一的row_index
         
         Args:
             df: 要处理的DataFrame
             header_row_idx: 表头行索引，如果提供，则用于计算实际Excel行号
-            id_column_name: 表示序号的列名，默认为"序号"
+            id_column_name: 表示序号的列名，默认为"row_index"
             
         Returns:
             处理后的row_index Series
@@ -236,9 +236,9 @@ class BankTransactionExtractor:
     def extract_account_info(self, df):
         """从DataFrame中提取账户信息，可由子类重写"""
         # 默认实现是从df中获取账号字段的第一个值
-        if df is not None and not df.empty and '账号' in df.columns:
-            account_number = df['账号'].iloc[0]
-            return {'账号': account_number}
+        if df is not None and not df.empty and 'account_number' in df.columns:
+            account_number = df['account_number'].iloc[0]
+            return {'account_number': account_number}
         return None
     
     def can_process_file(self, file_path):

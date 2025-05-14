@@ -247,16 +247,16 @@ def dashboard():
         total_balance = sum(float(account.get('latest_balance', 0) or 0) for account in balance_summary)
         
         # 取得近期交易记录（最新的10条）
-        recent_transactions = db_manager.get_transactions(limit=10)
+        recent_transactions = db_manager.get_transactions(limit=10, distinct=True)
         
         # 格式化余额列表用于展示
         account_balances = []
         for account in balance_summary:
             account_balances.append({
-                '账号': account['account_number'],
-                '银行': account['bank_name'],
-                '余额': float(account['latest_balance'] or 0),
-                '更新日期': account['balance_date']
+                'account': account['account_number'],
+                'bank': account['bank_name'],
+                'balance': float(account['latest_balance'] or 0),
+                'update_date': account['balance_date']
             })
         
         # 获取统计信息
@@ -291,14 +291,14 @@ def dashboard():
         # 组织返回数据
         data = {
             'summary': {
-                '账户余额': total_balance,
-                '账户余额列表': account_balances,
-                '收入': income,
-                '支出': expense,
-                '净收支': net_income,
-                '收入笔数': db_stats.get('income_count', 0),
-                '支出笔数': db_stats.get('expense_count', 0),
-                '交易笔数': db_stats.get('total_transactions', 0)
+                'account_balance': total_balance,
+                'account_balance_list': account_balances,
+                'total_income': income,
+                'total_expense': expense,
+                'net_amount': net_income,
+                'income_count': db_stats.get('income_count', 0),
+                'expense_count': db_stats.get('expense_count', 0),
+                'total_transactions': db_stats.get('total_transactions', 0)
             },
             'transactions': recent_transactions,
             'charts': {},  # 添加空的charts对象
@@ -328,14 +328,14 @@ def dashboard():
         # 返回带有默认值的数据结构
         return render_template('dashboard.html', data={
             'summary': {
-                '账户余额': 0,
-                '账户余额列表': [],
-                '收入': 0,
-                '支出': 0,
-                '净收支': 0,
-                '收入笔数': 0,
-                '支出笔数': 0,
-                '交易笔数': 0
+                'account_balance': 0,
+                'account_balance_list': [],
+                'total_income': 0,
+                'total_expense': 0,
+                'net_amount': 0,
+                'income_count': 0,
+                'expense_count': 0,
+                'total_transactions': 0
             },
             'transactions': [],
             'charts': {},  # 添加空的charts对象
@@ -353,12 +353,35 @@ def transactions():
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 50, type=int)
         account_id = request.args.get('account_id', None, type=int)
+        account_number = request.args.get('account_number', None)
+        bank_name = request.args.get('bank', None)
         start_date = request.args.get('start_date', None)
         end_date = request.args.get('end_date', None)
         min_amount = request.args.get('min_amount', None, type=float)
         max_amount = request.args.get('max_amount', None, type=float)
         transaction_type = request.args.get('type', None)
         counterparty = request.args.get('counterparty', None)
+        
+        # 如果提供了account_number，查找对应的account_id
+        if account_number and not account_id:
+            conn = db_manager.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM accounts WHERE account_number = ?", (account_number,))
+            result = cursor.fetchone()
+            if result:
+                account_id = result['id']
+            conn.close()
+        
+        # 如果提供了bank_name，则只获取该银行的交易
+        bank_id = None
+        if bank_name:
+            conn = db_manager.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM banks WHERE bank_name = ?", (bank_name,))
+            result = cursor.fetchone()
+            if result:
+                bank_id = result['id']
+            conn.close()
         
         # 计算偏移量
         offset = (page - 1) * limit
@@ -373,21 +396,53 @@ def transactions():
             'transaction_type': transaction_type,
             'counterparty': counterparty,
             'limit': limit,
-            'offset': offset
+            'offset': offset,
+            'distinct': True  # 使用去重逻辑
         }
         
-        # 获取交易记录
+        # 获取交易记录总数
+        total_count = db_manager.get_transactions_count(**{k: v for k, v in query_params.items() if k not in ['limit', 'offset']})
+        
+        # 获取当前页的交易记录
         transactions = db_manager.get_transactions(**query_params)
+        
+        # 为前端准备带有中文字段名的交易数据
+        transactions_with_chinese_fields = []
+        for tx in transactions:
+            # 映射英文字段名到中文字段名
+            mapped_tx = {
+                '交易日期': tx.get('transaction_date', ''),
+                '交易金额': tx.get('amount', 0),
+                '账户余额': tx.get('balance', 0),
+                '交易对象': tx.get('counterparty', ''),
+                '交易类型': tx.get('transaction_type', ''),
+                '户名': tx.get('account_name', ''),
+                '账号': tx.get('account_number', ''),
+                '银行': tx.get('bank_name', ''),
+                '货币': tx.get('currency', 'CNY'),
+                '备注': tx.get('description', '')
+            }
+            transactions_with_chinese_fields.append(mapped_tx)
         
         # 获取所有账户信息，用于过滤选择
         accounts = db_manager.get_accounts()
+        
+        # 获取所有交易类型（独立查询，确保获取所有类型）
+        conn = db_manager.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT type_name FROM transaction_types WHERE type_name IS NOT NULL ORDER BY type_name")
+        transaction_types = [row['type_name'] for row in cursor.fetchall()]
+        conn.close()
         
         # 组织返回数据
         data = {
             'transactions': transactions,
             'accounts': accounts,
+            'categories': transaction_types,
             'filters': {
                 'account_id': account_id,
+                'account_number': account_number,
+                'bank': bank_name,
                 'start_date': start_date,
                 'end_date': end_date,
                 'min_amount': min_amount,
@@ -397,41 +452,133 @@ def transactions():
             },
             'pagination': {
                 'page': page,
-                'limit': limit
+                'limit': limit,
+                'total': total_count,
+                'pages': (total_count + limit - 1) // limit
             }
         }
         
-        return render_template('transactions.html', data=data)
+        # 将交易数据转换为JSON字符串，用于前端处理
+        transactions_json = json.dumps(transactions_with_chinese_fields, ensure_ascii=False)
+        
+        return render_template('transactions.html', data=data, transactions_json=transactions_json, total_count=total_count)
         
     except Exception as e:
         error_message = str(e)
         logger.error(f"加载交易记录出错: {error_message}")
         logger.error(traceback.format_exc())
         flash(f'加载交易记录时出错: {error_message}')
-        return render_template('transactions.html', data={'transactions': [], 'accounts': []})
+        return render_template('transactions.html', data={'transactions': [], 'accounts': [], 'categories': []}, transactions_json="[]", total_count=0)
 
 @app.route('/api/data')
 def api_data():
-    """API接口，返回数据库统计信息"""
+    """API接口获取分析数据"""
     try:
-        # 获取数据库统计信息
-        stats = db_manager.get_statistics()
-        
-        # 返回JSON格式的数据
-        return jsonify({
-            'success': True,
-            'data': stats
-        })
-        
+        # 检查是否有data/analysis_data.json文件
+        analysis_file = os.path.join(DATA_FOLDER, 'analysis_data.json')
+        if os.path.exists(analysis_file):
+            with open(analysis_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                
+            # 如果数据为空或无效，重新生成分析数据
+            if not data or not isinstance(data, dict) or 'summary' not in data:
+                analyzer = TransactionAnalyzer(db_manager)
+                if analyzer.load_data():
+                    data = analyzer.analyze_transaction_data()
+                    # 保存最新分析结果
+                    with open(analysis_file, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, ensure_ascii=False, indent=2)
+                else:
+                    # 如果加载数据失败，返回空结果
+                    return jsonify({
+                        'success': False,
+                        'error': 'Failed to load transaction data'
+                    })
+            
+            # 返回分析数据
+            return jsonify({
+                'success': True,
+                'data': data
+            })
+        else:
+            # 如果分析文件不存在，尝试重新生成
+            analyzer = TransactionAnalyzer(db_manager)
+            if analyzer.load_data():
+                data = analyzer.analyze_transaction_data()
+                # 保存分析结果
+                with open(analysis_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                
+                # 返回分析数据
+                return jsonify({
+                    'success': True,
+                    'data': data
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'No analysis data found and failed to generate'
+                })
     except Exception as e:
-        error_message = str(e)
-        logger.error(f"API数据请求出错: {error_message}")
+        logger.error(f"获取分析数据时出错: {str(e)}")
         logger.error(traceback.format_exc())
-        
         return jsonify({
             'success': False,
-            'error': error_message
-        }), 500
+            'error': str(e)
+        })
+
+@app.route('/api/export_transactions')
+def export_transactions():
+    """导出交易记录为CSV文件"""
+    try:
+        # 解析查询参数
+        account_id = request.args.get('account_id', None, type=int)
+        start_date = request.args.get('start_date', None)
+        end_date = request.args.get('end_date', None)
+        min_amount = request.args.get('min_amount', None, type=float)
+        max_amount = request.args.get('max_amount', None, type=float)
+        transaction_type = request.args.get('type', None)
+        counterparty = request.args.get('counterparty', None)
+        
+        # 构建查询参数
+        query_params = {
+            'account_id': account_id,
+            'start_date': start_date,
+            'end_date': end_date,
+            'min_amount': min_amount,
+            'max_amount': max_amount,
+            'transaction_type': transaction_type,
+            'counterparty': counterparty,
+            'distinct': True  # 使用去重逻辑
+        }
+        
+        # 导出文件名
+        filename = f'交易记录_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        # 获取导出路径
+        temp_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp')
+        os.makedirs(temp_path, exist_ok=True)
+        output_path = os.path.join(temp_path, filename)
+        
+        # 导出CSV文件
+        result = db_manager.export_to_csv(query_params, output_path)
+        
+        if result and os.path.exists(output_path):
+            # 返回CSV文件
+            return send_file(output_path, 
+                            mimetype='text/csv',
+                            as_attachment=True,
+                            download_name=filename)
+        else:
+            flash('导出CSV文件失败，请重试')
+            return redirect(url_for('transactions'))
+    
+    except Exception as e:
+        error_message = str(e)
+        logger.error(f"导出交易记录时出错: {error_message}")
+        logger.error(traceback.format_exc())
+        flash(f'导出交易记录时出错: {error_message}')
+        return redirect(url_for('transactions'))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000) 

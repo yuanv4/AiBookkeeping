@@ -85,35 +85,17 @@ class TransactionAnalyzer:
             # 转换为DataFrame
             self.df = pd.DataFrame(transactions)
             
-            # 重命名列以匹配原有代码
-            column_mapping = {
-                'transaction_date': '交易日期',
-                'amount': '交易金额',
-                'counterparty': '交易对象',
-                'description': '交易描述',
-                'category': '交易分类',
-                'transaction_type': '交易类型',
-                'account_number': '账号',
-                'bank_name': '银行'
-            }
-            self.df = self.df.rename(columns=column_mapping)
-            
             # 重置索引并移除重复数据（如果存在）
-            # 这是为了解决"cannot assemble with duplicate keys"错误
             self.df = self.df.reset_index(drop=True)
             
-            # 移除可能存在的同时拥有'transaction_date'和'交易日期'列的情况
-            if 'transaction_date' in self.df.columns and '交易日期' in self.df.columns:
-                self.df = self.df.drop(columns=['transaction_date'])
-            
             # 确保交易日期是日期类型
-            self.df['交易日期'] = pd.to_datetime(self.df['交易日期'])
+            self.df['transaction_date'] = pd.to_datetime(self.df['transaction_date'])
             
             # 从日期字段提取年月日星期
-            self.df['年'] = self.df['交易日期'].dt.year
-            self.df['月'] = self.df['交易日期'].dt.month
-            self.df['日'] = self.df['交易日期'].dt.day
-            self.df['星期'] = self.df['交易日期'].dt.dayofweek
+            self.df['year'] = self.df['transaction_date'].dt.year
+            self.df['month'] = self.df['transaction_date'].dt.month
+            self.df['day'] = self.df['transaction_date'].dt.day
+            self.df['weekday'] = self.df['transaction_date'].dt.dayofweek
             
             # 添加分类
             self.categorize_transactions()
@@ -132,23 +114,23 @@ class TransactionAnalyzer:
         # 创建分类函数
         def get_category(row):
             # 收入类别
-            if row['交易金额'] > 0:
-                if '工资' in row['交易类型'] or '工资' in str(row['交易对象']):
+            if row['amount'] > 0:
+                if '工资' in row['transaction_type'] or '工资' in str(row['counterparty']):
                     return '工资'
-                elif '退款' in row['交易类型']:
+                elif '退款' in row['transaction_type']:
                     return '退款'
-                elif '结息' in row['交易类型']:
+                elif '结息' in row['transaction_type']:
                     return '利息'
                 else:
                     return '其他收入'
             # 支出类别
             else:
                 # 转账类
-                if '转账' in row['交易类型'] or '转账' in str(row['交易对象']) or '汇款' in row['交易类型']:
+                if '转账' in row['transaction_type'] or '转账' in str(row['counterparty']) or '汇款' in row['transaction_type']:
                     return '转账'
                     
                 # 其他支出类别
-                transaction_info = f"{row['交易类型']} {row['交易对象']}"
+                transaction_info = f"{row['transaction_type']} {row['counterparty']}"
                 for category, keywords in self.categories.items():
                     for keyword in keywords:
                         if keyword in transaction_info:
@@ -158,7 +140,7 @@ class TransactionAnalyzer:
                 return '其他'
         
         # 应用分类函数
-        self.df['交易分类'] = self.df.apply(get_category, axis=1)
+        self.df['category'] = self.df.apply(get_category, axis=1)
     
     def get_summary(self):
         """获取交易数据的总体摘要"""
@@ -167,10 +149,10 @@ class TransactionAnalyzer:
             return None
         
         try:
-            start_date = self.df['交易日期'].min()
-            end_date = self.df['交易日期'].max()
-            total_income = self.df[self.df['交易金额'] > 0]['交易金额'].sum()
-            total_expense = abs(self.df[self.df['交易金额'] < 0]['交易金额'].sum())
+            start_date = self.df['transaction_date'].min()
+            end_date = self.df['transaction_date'].max()
+            total_income = self.df[self.df['amount'] > 0]['amount'].sum()
+            total_expense = abs(self.df[self.df['amount'] < 0]['amount'].sum())
             
             # 确保start_date和end_date是datetime对象
             if not isinstance(start_date, datetime):
@@ -178,25 +160,40 @@ class TransactionAnalyzer:
             if not isinstance(end_date, datetime):
                 end_date = pd.to_datetime(end_date)
             
-            avg_daily_expense = total_expense / (end_date - start_date).days if (end_date - start_date).days > 0 else 0
+            days_count = (end_date - start_date).days
+            avg_daily_expense = total_expense / days_count if days_count > 0 else 0
             
             # 计算转账相关统计（仍然计算但不用于前端过滤）
-            transfer_df = self.df[self.df['交易分类'] == '转账']
-            transfer_amount = abs(transfer_df[transfer_df['交易金额'] < 0]['交易金额'].sum())
-            transfer_count = len(transfer_df[transfer_df['交易金额'] < 0])
+            transfer_df = self.df[self.df['category'] == '转账']
+            transfer_amount = abs(transfer_df[transfer_df['amount'] < 0]['amount'].sum())
+            transfer_count = len(transfer_df[transfer_df['amount'] < 0])
+            
+            # 计算数据 - 获取账户余额信息（需要通过db_manager）
+            latest_balance = 0
+            try:
+                balance_summary = self.db_manager.get_balance_summary()
+                latest_balance = sum(float(account.get('latest_balance', 0) or 0) for account in balance_summary)
+            except Exception as e:
+                logger.error(f"获取账户余额时出错: {e}")
+            
+            # 计算还能支撑多少天
+            remaining_funds = latest_balance
+            days_coverage = remaining_funds / avg_daily_expense if avg_daily_expense > 0 else 0
             
             return {
-                '起始日期': start_date.strftime('%Y-%m-%d') if not pd.isna(start_date) else '',
-                '结束日期': end_date.strftime('%Y-%m-%d') if not pd.isna(end_date) else '',
-                '总收入': float(total_income) if not pd.isna(total_income) else 0,
-                '总支出': float(total_expense) if not pd.isna(total_expense) else 0,
-                '净收支': float(total_income - total_expense) if not (pd.isna(total_income) or pd.isna(total_expense)) else 0,
-                '日均支出': float(avg_daily_expense) if not pd.isna(avg_daily_expense) else 0,
-                '交易笔数': int(len(self.df)),
-                '收入笔数': int(len(self.df[self.df['交易金额'] > 0])),
-                '支出笔数': int(len(self.df[self.df['交易金额'] < 0])),
-                '转账总额': float(transfer_amount) if not pd.isna(transfer_amount) else 0,
-                '转账笔数': int(transfer_count)
+                'start_date': start_date.strftime('%Y-%m-%d') if not pd.isna(start_date) else '',
+                'end_date': end_date.strftime('%Y-%m-%d') if not pd.isna(end_date) else '',
+                'total_income': float(total_income) if not pd.isna(total_income) else 0,
+                'total_expense': float(total_expense) if not pd.isna(total_expense) else 0,
+                'net_amount': float(total_income - total_expense) if not (pd.isna(total_income) or pd.isna(total_expense)) else 0,
+                'daily_avg_expense': float(avg_daily_expense) if not pd.isna(avg_daily_expense) else 0,
+                'transaction_count': int(len(self.df)),
+                'income_count': int(len(self.df[self.df['amount'] > 0])),
+                'expense_count': int(len(self.df[self.df['amount'] < 0])),
+                'transfer_amount': float(transfer_amount) if not pd.isna(transfer_amount) else 0,
+                'transfer_count': int(transfer_count),
+                'remaining_funds': float(remaining_funds),
+                'days_coverage': float(days_coverage)
             }
         except Exception as e:
             logger.error(f"获取摘要数据时出错: {e}")
@@ -213,38 +210,38 @@ class TransactionAnalyzer:
         logger.info("开始获取月度统计数据")
         try:
             # 检查年月列是否存在
-            if '年' not in self.df.columns or '月' not in self.df.columns:
-                logger.error("数据中缺少'年'或'月'列")
+            if 'year' not in self.df.columns or 'month' not in self.df.columns:
+                logger.error("数据中缺少'year'或'month'列")
                 # 如果缺少这些列，尝试从交易日期重新生成
                 logger.info("尝试从交易日期重新生成年月列")
-                self.df['年'] = self.df['交易日期'].dt.year
-                self.df['月'] = self.df['交易日期'].dt.month
+                self.df['year'] = self.df['transaction_date'].dt.year
+                self.df['month'] = self.df['transaction_date'].dt.month
             
             # 记录分组前的年月数据样本
-            year_samples = self.df['年'].head(10).tolist()
-            month_samples = self.df['月'].head(10).tolist()
-            logger.info(f"年列样本数据: {year_samples}")
-            logger.info(f"月列样本数据: {month_samples}")
+            year_samples = self.df['year'].head(10).tolist()
+            month_samples = self.df['month'].head(10).tolist()
+            logger.info(f"year列样本数据: {year_samples}")
+            logger.info(f"month列样本数据: {month_samples}")
             
             # 按年月分组
             logger.info("开始按年月分组数据")
-            monthly_data = self.df.groupby(['年', '月']).agg({
-                '交易金额': [
-                    ('收入', lambda x: x[x > 0].sum()),
-                    ('支出', lambda x: abs(x[x < 0].sum())),
-                    ('净额', 'sum')
+            monthly_data = self.df.groupby(['year', 'month']).agg({
+                'amount': [
+                    ('income', lambda x: x[x > 0].sum()),
+                    ('expense', lambda x: abs(x[x < 0].sum())),
+                    ('net', 'sum')
                 ]
             })
             
             # 重置索引，并展平多级列
             monthly_data = monthly_data.reset_index()
-            monthly_data.columns = ['年', '月', '收入', '支出', '净额']
+            monthly_data.columns = ['year', 'month', 'income', 'expense', 'net']
             
             # 添加月份标签
-            monthly_data['月份'] = monthly_data.apply(lambda row: f"{int(row['年'])}-{int(row['月']):02d}", axis=1)
+            monthly_data['month_label'] = monthly_data.apply(lambda row: f"{int(row['year'])}-{int(row['month']):02d}", axis=1)
             
             # 排序
-            monthly_data = monthly_data.sort_values(['年', '月'])
+            monthly_data = monthly_data.sort_values(['year', 'month'])
             
             logger.info(f"月度统计数据生成成功，行数: {len(monthly_data)}")
             return monthly_data
@@ -263,35 +260,35 @@ class TransactionAnalyzer:
         logger.info("开始获取年度统计数据")
         try:
             # 检查年列是否存在
-            if '年' not in self.df.columns:
-                logger.error("数据中缺少'年'列")
+            if 'year' not in self.df.columns:
+                logger.error("数据中缺少'year'列")
                 # 如果缺少年列，尝试从交易日期重新生成
                 logger.info("尝试从交易日期重新生成年列")
-                self.df['年'] = self.df['交易日期'].dt.year
+                self.df['year'] = self.df['transaction_date'].dt.year
             
             # 记录分组前的年数据样本
-            year_samples = self.df['年'].head(10).tolist()
-            logger.info(f"年列样本数据: {year_samples}")
+            year_samples = self.df['year'].head(10).tolist()
+            logger.info(f"year列样本数据: {year_samples}")
             
             # 按年分组
             logger.info("开始按年分组数据")
-            yearly_data = self.df.groupby(['年']).agg({
-                '交易金额': [
-                    ('收入', lambda x: x[x > 0].sum()),
-                    ('支出', lambda x: abs(x[x < 0].sum())),
-                    ('净额', 'sum')
+            yearly_data = self.df.groupby(['year']).agg({
+                'amount': [
+                    ('income', lambda x: x[x > 0].sum()),
+                    ('expense', lambda x: abs(x[x < 0].sum())),
+                    ('net', 'sum')
                 ]
             })
             
             # 重置索引，并展平多级列
             yearly_data = yearly_data.reset_index()
-            yearly_data.columns = ['年', '收入', '支出', '净额']
+            yearly_data.columns = ['year', 'income', 'expense', 'net']
             
             # 添加年份标签为字符串类型
-            yearly_data['年份'] = yearly_data['年'].astype(str)
+            yearly_data['year_label'] = yearly_data['year'].astype(str)
             
             # 排序
-            yearly_data = yearly_data.sort_values(['年'])
+            yearly_data = yearly_data.sort_values(['year'])
             
             logger.info(f"年度统计数据生成成功，行数: {len(yearly_data)}")
             return yearly_data
@@ -307,25 +304,25 @@ class TransactionAnalyzer:
             return None
         
         # 支出类别统计
-        expense_df = self.df[self.df['交易金额'] < 0]
-        category_stats = expense_df.groupby('交易分类').agg({
-            '交易金额': [
-                ('总额', lambda x: abs(x.sum())),
-                ('笔数', 'count'),
-                ('平均值', lambda x: abs(x.mean()))
+        expense_df = self.df[self.df['amount'] < 0]
+        category_stats = expense_df.groupby('category').agg({
+            'amount': [
+                ('total', lambda x: abs(x.sum())),
+                ('count', 'count'),
+                ('average', lambda x: abs(x.mean()))
             ]
         })
         
         # 重置索引，并展平多级列
         category_stats = category_stats.reset_index()
-        category_stats.columns = ['分类', '总额', '笔数', '平均值']
+        category_stats.columns = ['category', 'total', 'count', 'average']
         
         # 计算占比
-        total_expense = category_stats['总额'].sum()
-        category_stats['占比'] = category_stats['总额'] / total_expense * 100
+        total_expense = category_stats['total'].sum()
+        category_stats['percentage'] = category_stats['total'] / total_expense * 100
         
         # 排序
-        category_stats = category_stats.sort_values('总额', ascending=False)
+        category_stats = category_stats.sort_values('total', ascending=False)
         
         return category_stats
     
@@ -335,35 +332,35 @@ class TransactionAnalyzer:
             return None
         
         # 只考虑支出
-        expense_df = self.df[self.df['交易金额'] < 0]
+        expense_df = self.df[self.df['amount'] < 0]
         
         # 按星期分组
-        weekday_stats = expense_df.groupby('星期').agg({
-            '交易金额': [
-                ('总额', lambda x: abs(x.sum())),
-                ('笔数', 'count'),
-                ('平均值', lambda x: abs(x.mean()))
+        weekday_stats = expense_df.groupby('weekday').agg({
+            'amount': [
+                ('total', lambda x: abs(x.sum())),
+                ('count', 'count'),
+                ('average', lambda x: abs(x.mean()))
             ]
         })
         
         # 重置索引，并展平多级列
         weekday_stats = weekday_stats.reset_index()
-        weekday_stats.columns = ['星期', '总额', '笔数', '平均值']
+        weekday_stats.columns = ['weekday', 'total', 'count', 'average']
         
         # 添加星期标签
         weekday_names = {
-            0: '周一',
-            1: '周二',
-            2: '周三',
-            3: '周四',
-            4: '周五',
-            5: '周六',
-            6: '周日'
+            0: 'Monday',
+            1: 'Tuesday',
+            2: 'Wednesday',
+            3: 'Thursday',
+            4: 'Friday',
+            5: 'Saturday',
+            6: 'Sunday'
         }
-        weekday_stats['星期名'] = weekday_stats['星期'].map(weekday_names)
+        weekday_stats['weekday_name'] = weekday_stats['weekday'].map(weekday_names)
         
         # 排序
-        weekday_stats = weekday_stats.sort_values('星期')
+        weekday_stats = weekday_stats.sort_values('weekday')
         
         return weekday_stats
     
@@ -373,25 +370,25 @@ class TransactionAnalyzer:
             return None
         
         # 只考虑支出
-        expense_df = self.df[self.df['交易金额'] < 0]
+        expense_df = self.df[self.df['amount'] < 0]
         
         # 按日期分组
-        daily_stats = expense_df.groupby('交易日期').agg({
-            '交易金额': [
-                ('总额', lambda x: abs(x.sum())),
-                ('笔数', 'count')
+        daily_stats = expense_df.groupby('transaction_date').agg({
+            'amount': [
+                ('total', lambda x: abs(x.sum())),
+                ('count', 'count')
             ]
         })
         
         # 重置索引，并展平多级列
         daily_stats = daily_stats.reset_index()
-        daily_stats.columns = ['日期', '总额', '笔数']
+        daily_stats.columns = ['date', 'total', 'count']
         
         # 将日期转为字符串，解决JSON序列化问题
-        daily_stats['日期'] = daily_stats['日期'].dt.strftime('%Y-%m-%d')
+        daily_stats['date'] = daily_stats['date'].dt.strftime('%Y-%m-%d')
         
         # 排序
-        daily_stats = daily_stats.sort_values('日期')
+        daily_stats = daily_stats.sort_values('date')
         
         return daily_stats
     
@@ -401,24 +398,24 @@ class TransactionAnalyzer:
             return None
         
         # 只考虑支出
-        expense_df = self.df[self.df['交易金额'] < 0]
+        expense_df = self.df[self.df['amount'] < 0]
         
         # 按商户分组
-        merchant_stats = expense_df.groupby('交易对象').agg({
-            '交易金额': [
-                ('总额', lambda x: abs(x.sum())),
-                ('笔数', 'count'),
-                ('平均值', lambda x: abs(x.mean()))
+        merchant_stats = expense_df.groupby('counterparty').agg({
+            'amount': [
+                ('total', lambda x: abs(x.sum())),
+                ('count', 'count'),
+                ('average', lambda x: abs(x.mean()))
             ]
         })
         
         # 重置索引，并展平多级列
         merchant_stats = merchant_stats.reset_index()
-        merchant_stats.columns = ['商户', '总额', '笔数', '平均值']
+        merchant_stats.columns = ['merchant', 'total', 'count', 'average']
         
         # 排序并取前N个
-        top_by_count = merchant_stats.sort_values('笔数', ascending=False).head(n)
-        top_by_amount = merchant_stats.sort_values('总额', ascending=False).head(n)
+        top_by_count = merchant_stats.sort_values('count', ascending=False).head(n)
+        top_by_amount = merchant_stats.sort_values('total', ascending=False).head(n)
         
         return {
             'by_count': top_by_count,
@@ -436,12 +433,12 @@ class TransactionAnalyzer:
             monthly_stats = self.get_monthly_stats()
             if monthly_stats is None or monthly_stats.empty:
                 logger.error("获取月度统计数据失败")
-                monthly_stats = pd.DataFrame(columns=['年', '月', '收入', '支出', '净额', '月份'])
+                monthly_stats = pd.DataFrame(columns=['year', 'month', 'income', 'expense', 'net', 'month_label'])
             
             yearly_stats = self.get_yearly_stats()
             if yearly_stats is None or yearly_stats.empty:
                 logger.error("获取年度统计数据失败")
-                yearly_stats = pd.DataFrame(columns=['年', '收入', '支出', '净额', '年份'])
+                yearly_stats = pd.DataFrame(columns=['year', 'income', 'expense', 'net', 'year_label'])
             
             category_stats = self.get_category_stats()
             if category_stats is None:
@@ -472,8 +469,8 @@ class TransactionAnalyzer:
             logger.info("添加原始交易数据到分析结果")
             # 确保交易日期是字符串格式
             transaction_df = self.df.copy()
-            if '交易日期' in transaction_df.columns:
-                transaction_df['交易日期'] = transaction_df['交易日期'].dt.strftime('%Y-%m-%d')
+            if 'transaction_date' in transaction_df.columns:
+                transaction_df['transaction_date'] = transaction_df['transaction_date'].dt.strftime('%Y-%m-%d')
             
             # 转换DataFrame为字典列表
             try:
@@ -567,12 +564,12 @@ class TransactionAnalyzer:
                     if 'monthly_stats' in analysis_data and analysis_data['monthly_stats']:
                         # 从月度数据创建年度数据
                         monthly_stats = pd.DataFrame(analysis_data['monthly_stats'])
-                        yearly_data = monthly_stats.groupby('年').agg({
-                            '收入': 'sum',
-                            '支出': 'sum',
-                            '净额': 'sum'
+                        yearly_data = monthly_stats.groupby('year').agg({
+                            'income': 'sum',
+                            'expense': 'sum',
+                            'net': 'sum'
                         }).reset_index()
-                        yearly_data['年份'] = yearly_data['年'].astype(str)
+                        yearly_data['year_label'] = yearly_data['year'].astype(str)
                         analysis_data['yearly_stats'] = yearly_data.to_dict('records')
                         logger.info(f"成功从月度数据生成了{len(yearly_data)}条年度数据")
                 
@@ -655,8 +652,8 @@ class TransactionAnalyzer:
             return self.df.copy(), pd.DataFrame()
         
         # 预处理：分离收入和支出数据
-        income_df = self.df[self.df['交易金额'] > 0]
-        expense_df = self.df[self.df['交易金额'] < 0]
+        income_df = self.df[self.df['amount'] > 0]
+        expense_df = self.df[self.df['amount'] < 0]
         
         # 如果收入或支出数据不足，则将所有该类型交易作为核心交易
         if len(income_df) < min_transaction_count / 2:
@@ -712,23 +709,23 @@ class TransactionAnalyzer:
         if df.empty:
             return pd.Series(dtype=bool)
             
-        amounts = df['交易金额'].abs()
+        amounts = df['amount'].abs()
         
         # 预处理：如果recurring_only=True，识别重复出现的交易
         if recurring_only:
             # 根据交易对象和交易描述识别重复交易
-            if '交易对象' in df.columns and '交易描述' in df.columns:
+            if 'counterparty' in df.columns and 'description' in df.columns:
                 # 获取重复出现的交易对象
-                repeat_counter = df['交易对象'].value_counts()
+                repeat_counter = df['counterparty'].value_counts()
                 repeat_merchants = set(repeat_counter[repeat_counter > 1].index)
                 
                 # 标记重复交易
-                is_recurring = df['交易对象'].isin(repeat_merchants)
+                is_recurring = df['counterparty'].isin(repeat_merchants)
                 
                 # 对于没有交易对象但有相似描述的交易，也视为重复交易
-                if '交易描述' in df.columns:
+                if 'description' in df.columns:
                     # 简化描述（移除日期、金额等变化部分）
-                    simplified_desc = df['交易描述'].str.replace(r'\d+', '').str.replace(r'[.-]', '')
+                    simplified_desc = df['description'].str.replace(r'\d+', '').str.replace(r'[.-]', '')
                     repeat_desc = simplified_desc.value_counts()
                     repeat_descriptions = set(repeat_desc[repeat_desc > 1].index)
                     is_recurring = is_recurring | simplified_desc.isin(repeat_descriptions)
@@ -854,11 +851,11 @@ class TransactionAnalyzer:
                 'core_expense_count': 0
             }
             
-        core_income_df = core_trans[core_trans['交易金额'] > 0]
-        core_expense_df = core_trans[core_trans['交易金额'] < 0]
+        core_income_df = core_trans[core_trans['amount'] > 0]
+        core_expense_df = core_trans[core_trans['amount'] < 0]
         
-        core_income = core_income_df['交易金额'].sum()
-        core_expense = core_expense_df['交易金额'].sum()
+        core_income = core_income_df['amount'].sum()
+        core_expense = core_expense_df['amount'].sum()
         core_net = core_income + core_expense
         
         return {
@@ -893,12 +890,12 @@ class TransactionAnalyzer:
         result_df['异常分数'] = 0.0
         
         # 分别处理收入和支出
-        for trans_type, condition in [('收入', self.df['交易金额'] > 0), ('支出', self.df['交易金额'] < 0)]:
+        for trans_type, condition in [('收入', self.df['amount'] > 0), ('支出', self.df['amount'] < 0)]:
             type_df = self.df[condition]
             if type_df.empty:
                 continue
                 
-            amounts = type_df['交易金额'].abs()  # 取绝对值进行计算
+            amounts = type_df['amount'].abs()  # 取绝对值进行计算
             
             if method == 'iqr':
                 # 四分位距法 (IQR)
@@ -974,16 +971,16 @@ class TransactionAnalyzer:
         outliers = outliers.sort_values('异常分数', ascending=False)
         
         # 统计异常收入和支出
-        outlier_income = outliers[outliers['交易金额'] > 0]
-        outlier_expense = outliers[outliers['交易金额'] < 0]
+        outlier_income = outliers[outliers['amount'] > 0]
+        outlier_expense = outliers[outliers['amount'] < 0]
         
         # 构建返回的统计信息
         stats = {
             'outlier_count': len(outliers),
             'outlier_income_count': len(outlier_income),
             'outlier_expense_count': len(outlier_expense),
-            'outlier_income_amount': outlier_income['交易金额'].sum() if not outlier_income.empty else 0,
-            'outlier_expense_amount': outlier_expense['交易金额'].sum() if not outlier_expense.empty else 0,
+            'outlier_income_amount': outlier_income['amount'].sum() if not outlier_income.empty else 0,
+            'outlier_expense_amount': outlier_expense['amount'].sum() if not outlier_expense.empty else 0,
             'outlier_percentage': len(outliers) / len(self.df) * 100 if not self.df.empty else 0,
             'outliers': outliers.head(10).to_dict('records')  # 取前10条异常交易
         }
