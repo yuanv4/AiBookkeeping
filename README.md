@@ -163,4 +163,22 @@ run_tests.bat
 python -m tests.unit.test_bank_detection
 python -m tests.integration.test_load_csv
 python -m tests.integration.test_generate_analysis
-``` 
+```
+
+## 最近代码优化
+
+为了提高代码质量和可维护性，我们对提取器结构进行了以下优化：
+
+1. 在基类`BankTransactionExtractor`中添加了`create_standard_dataframe`方法，用于创建标准格式的DataFrame
+2. 统一了`extract_account_info`方法的接口，使其返回格式一致
+3. 从子类中移除了重复的代码逻辑，如标准日期字段、默认值设置等
+4. 改进了数据提取失败的处理机制，确保在关键数据字段缺失时明确返回提取失败，而不是使用默认值
+5. 增强了数据验证逻辑，对于账号、交易日期、金额等关键字段进行严格检查
+6. 添加了`validate_transaction_data`方法，对标准格式DataFrame的所有字段进行全面验证：
+   - 必要字段存在性检查（交易日期、金额、账号等）
+   - 数据有效性检查（无空值、无无效值）
+   - 数据类型检查（日期格式、数值类型）
+   - 业务逻辑检查（金额不为零）
+7. 优化了验证流程，将严格验证集中在基类的`save_to_database`方法中执行，避免在各银行提取器中重复验证
+8. 在数据导入数据库前进行严格验证，确保只有高质量的数据被保存
+9. 通过这些修改，使得添加新银行的提取器更加简单，仅需专注于特定银行的数据提取逻辑 

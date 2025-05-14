@@ -164,6 +164,10 @@ class CCBTransactionExtractor(BankTransactionExtractor):
             df_meta = pd.read_excel(file_path, header=None, nrows=10)
             account_name, account_number = self.extract_account_info(df_meta)
             
+            if not account_name or not account_number:
+                self.logger.error("无法提取账户信息")
+                return None
+            
             # 找到真正的数据标题行（通常包含"序号"、"摘要"、"交易日期"等字段）
             header_row_idx = None
             for idx, row in df_meta.iterrows():
@@ -214,10 +218,17 @@ class CCBTransactionExtractor(BankTransactionExtractor):
             df = df.rename(columns=rename_map)
             print(f"\n标准化后的列名: {df.columns.tolist()}")
             
-            # 创建标准格式的DataFrame
-            result_columns = ['transaction_date', 'currency', 'amount', 'balance', 'transaction_type', 
-                            'counterparty', 'account_name', 'account_number', 'row_index']
-            result_df = pd.DataFrame(index=df.index)
+            # 使用基类方法创建标准格式的DataFrame
+            result_df = self.create_standard_dataframe(df, account_name, account_number, header_row_idx)
+            
+            # 如果创建标准DataFrame失败，则返回None
+            if result_df is None:
+                self.logger.error("创建标准格式DataFrame失败")
+                return None
+            
+            # 初始化变量，用于跟踪是否找到必要字段
+            found_date = False
+            found_amount = False
             
             # 填充必要的数据
             if "transaction_date" in df.columns:
@@ -231,40 +242,38 @@ class CCBTransactionExtractor(BankTransactionExtractor):
                     # 检查并填充无效日期
                     mask = pd.isna(df['transaction_date'])
                     if mask.any():
-                        self.logger.warning(f"发现{mask.sum()}条无效的交易日期，将使用当前日期替代")
-                        df.loc[mask, 'transaction_date'] = pd.Timestamp.today().normalize()
+                        self.logger.warning(f"发现{mask.sum()}条无效的交易日期")
                     
                     # 标准化为字符串格式的日期 (YYYY-MM-DD)
                     result_df['transaction_date'] = df['transaction_date'].dt.strftime('%Y-%m-%d')
+                    found_date = True
                 except Exception as e:
                     self.logger.error(f"处理交易日期时出错: {str(e)}")
-                    # 使用当前日期作为默认值
-                    today = pd.Timestamp.today().strftime('%Y-%m-%d')
-                    self.logger.warning(f"由于处理错误，所有交易日期将使用今天的日期: {today}")
-                    result_df['transaction_date'] = today
-            else:
-                self.logger.warning(f"没有找到交易日期列，所有交易日期将使用今天的日期: {pd.Timestamp.today().strftime('%Y-%m-%d')}")
-                result_df['transaction_date'] = pd.Timestamp.today().strftime('%Y-%m-%d')
             
-            # 处理序号作为row_index
-            result_df['row_index'] = self.standardize_row_index(df, header_row_idx, "row_index")
-            
-            # 处理货币列
-            if "currency" in df.columns:
-                result_df['currency'] = df['currency'].fillna('CNY')
-            else:
-                result_df['currency'] = 'CNY'
+            # 如果未找到交易日期字段，返回提取失败
+            if not found_date:
+                self.logger.error("未找到交易日期字段，提取失败")
+                return None
             
             # 处理金额和余额
             if "amount" in df.columns:
                 result_df['amount'] = df['amount'].apply(self.clean_numeric)
-            else:
-                result_df['amount'] = 0.0
+                found_amount = True
+            
+            # 如果未找到金额字段，返回提取失败
+            if not found_amount:
+                self.logger.error("未找到交易金额字段，提取失败")
+                return None
             
             if "balance" in df.columns:
                 result_df['balance'] = df['balance'].apply(self.clean_numeric)
             else:
-                result_df['balance'] = 0.0
+                # 尝试计算余额（虽然不完全准确）
+                self.logger.warning("未找到余额字段，将使用交易金额累计计算")
+                # 按日期排序
+                result_df = result_df.sort_values('transaction_date')
+                # 计算累计余额
+                result_df['balance'] = result_df['amount'].cumsum()
             
             # 处理交易类型
             if "transaction_type" in df.columns:
@@ -276,10 +285,27 @@ class CCBTransactionExtractor(BankTransactionExtractor):
                 result_df['counterparty'] = df['counterparty'].fillna('')
             else:
                 result_df['counterparty'] = ''
+                
+            # 处理货币
+            if "currency" in df.columns:
+                result_df['currency'] = df['currency'].fillna('CNY')
+            else:
+                result_df['currency'] = 'CNY'
             
-            # 添加账户信息
-            result_df['account_name'] = account_name
-            result_df['account_number'] = account_number
+            # 过滤掉无效行（如金额为0或日期为空的行）
+            invalid_rows = []
+            for idx, row in result_df.iterrows():
+                if pd.isna(row['transaction_date']) or pd.isna(row['amount']) or row['amount'] == 0:
+                    invalid_rows.append(idx)
+            
+            if invalid_rows:
+                self.logger.info(f"过滤掉 {len(invalid_rows)} 条无效数据行")
+                result_df = result_df.drop(invalid_rows)
+            
+            # 检查是否有有效的交易记录
+            if len(result_df) == 0:
+                self.logger.warning("过滤后没有有效的交易记录")
+                return None
             
             return result_df
             

@@ -150,11 +150,21 @@ class CMBTransactionExtractor(BankTransactionExtractor):
                 df = pd.read_excel(file_path, header=header_row_idx)
                 self.logger.info(f"使用单级标题格式读取数据，列名: {df.columns.tolist()}")
             
-            # 创建标准格式的DataFrame
-            result_columns = ['transaction_date', 'currency', 'amount', 'balance', 'transaction_type', 'counterparty', 'account_name', 'account_number', 'row_index']
-            result_df = pd.DataFrame(index=df.index, columns=result_columns)
+            # 使用基类方法创建标准格式的DataFrame
+            result_df = self.create_standard_dataframe(df, account_name, account_number, header_row_idx)
             
-            # 处理交易日期
+            # 如果创建标准DataFrame失败，则返回None
+            if result_df is None:
+                self.logger.error("创建标准格式DataFrame失败")
+                return None
+            
+            # 初始化跟踪变量，用于检查是否找到所有必要字段
+            found_fields = {
+                'date': False,
+                'amount': False
+            }
+            
+            # 处理交易日期和其他字段
             for col in df.columns:
                 col_name = col[0] if isinstance(col, tuple) else col
                 col_name_str = str(col_name).lower()
@@ -163,11 +173,13 @@ class CMBTransactionExtractor(BankTransactionExtractor):
                 if '日期' in col_name_str or 'date' in col_name_str.lower():
                     self.logger.info(f"找到日期列: {col}")
                     result_df['transaction_date'] = df[col].apply(lambda x: self.standardize_date(x))
+                    found_fields['date'] = True
                 
                 # 金额列
                 elif '金额' in col_name_str or 'amount' in col_name_str.lower() or 'transaction' in col_name_str.lower():
                     self.logger.info(f"找到金额列: {col}")
                     result_df['amount'] = df[col].apply(lambda x: self.clean_numeric(x))
+                    found_fields['amount'] = True
                 
                 # 余额列
                 elif '余额' in col_name_str or 'balance' in col_name_str.lower():
@@ -189,9 +201,35 @@ class CMBTransactionExtractor(BankTransactionExtractor):
                     self.logger.info(f"找到货币列: {col}")
                     result_df['currency'] = df[col].fillna('CNY')
             
-            # 处理row_index - 使用父类的标准化方法
-            # 先保存这个值，稍后在过滤后再添加
-            row_indices = self.standardize_row_index(df, header_row_idx)
+            # 检查是否找到了必要的字段
+            if not found_fields['date']:
+                self.logger.error("未找到交易日期列，提取失败")
+                return None
+                
+            if not found_fields['amount']:
+                self.logger.error("未找到交易金额列，提取失败")
+                return None
+            
+            # 确保所有字段都有值
+            # 货币默认为CNY
+            if result_df['currency'].isnull().all():
+                result_df['currency'] = 'CNY'
+                
+            # 交易类型默认为其他
+            if result_df['transaction_type'].isnull().all():
+                result_df['transaction_type'] = '其他'
+                
+            # 交易对手方默认为空字符串
+            if result_df['counterparty'].isnull().all():
+                result_df['counterparty'] = ''
+                
+            # 余额如果没有则计算累计（不完全准确但比没有好）
+            if result_df['balance'].isnull().all():
+                self.logger.warning("未找到余额列，将使用交易金额累计计算")
+                # 按日期排序
+                result_df = result_df.sort_values('transaction_date')
+                # 计算累计余额
+                result_df['balance'] = result_df['amount'].cumsum()
             
             # 过滤掉无用数据：表头、空行、或含有"Amount"、"Date"、"Transaction"、"Balance"等关键词的行
             # 这些可能是Excel中的列名或子标题
@@ -208,8 +246,9 @@ class CMBTransactionExtractor(BankTransactionExtractor):
                     if any(keyword in counterparty_lower for keyword in keywords):
                         is_header_row = True
                 
-                # 检查金额是否为0和日期是否缺失
+                # 检查金额是否为0/None和日期是否缺失
                 if (pd.isna(row['transaction_date']) or 
+                    pd.isna(row['amount']) or 
                     row['amount'] == 0 or 
                     is_header_row):
                     invalid_rows.append(idx)
@@ -219,52 +258,31 @@ class CMBTransactionExtractor(BankTransactionExtractor):
                 self.logger.info(f"过滤掉 {len(invalid_rows)} 条无效数据行")
                 result_df = result_df.drop(invalid_rows)
             
-            # 检查是否找到日期列，如果没找到则使用当前日期，但仅对有效的交易记录
-            valid_transactions = result_df[(result_df['amount'] != 0) & (~result_df['transaction_date'].isna())]
+            # 检查是否有有效的交易记录
+            valid_transactions = result_df[(~result_df['amount'].isna()) & (~result_df['transaction_date'].isna())]
+            
             if len(valid_transactions) == 0:
-                self.logger.warning("未找到有效的交易记录")
+                self.logger.warning("过滤后没有有效的交易记录")
                 return None
-                
+            
+            # 检查日期是否全部为空，如有需要尝试从文件名提取年份
             if valid_transactions['transaction_date'].isna().all():
-                self.logger.warning(f"没有找到交易日期列，使用原始记录的日期")
-                # 如果没有有效日期，尝试从Excel中提取年份范围
+                self.logger.warning("所有交易记录的日期字段为空")
+                # 尝试从文件名提取年份
                 try:
                     file_name = os.path.basename(file_path)
                     year_match = re.search(r'(\d{4})', file_name)
                     if year_match:
                         default_date = f"{year_match.group(1)}-01-01"
-                        self.logger.info(f"使用文件名中的年份作为默认日期: {default_date}")
-                    else:
-                        default_date = "2023-01-01"  # 使用固定的历史日期而非当前日期
+                        self.logger.warning(f"未能提取有效日期，无法推断交易日期")
+                        return None
                 except:
-                    default_date = "2023-01-01"  # 使用固定的历史日期而非当前日期
-                
-                result_df['transaction_date'] = result_df['transaction_date'].apply(
-                    lambda x: default_date if x is None else x
-                )
+                    self.logger.warning("未能提取有效日期，无法推断交易日期")
+                    return None
             
-            # 确保所有行的transaction_date字段都有值，使用原始数据的日期范围而非当前日期
-            oldest_date = valid_transactions['transaction_date'].min()
-            if oldest_date is not None and not pd.isna(oldest_date):
-                result_df['transaction_date'] = result_df['transaction_date'].apply(
-                    lambda x: oldest_date if x is None else x
-                )
-            
-            # 确保金额和余额列的值是数值型
-            result_df['amount'] = result_df['amount'].apply(lambda x: 0.0 if pd.isna(x) else float(x))
-            result_df['balance'] = result_df['balance'].apply(lambda x: 0.0 if pd.isna(x) else float(x))
-            
-            # 处理默认值
-            result_df['transaction_type'] = result_df['transaction_type'].fillna('其他')
-            result_df['counterparty'] = result_df['counterparty'].fillna('')
-            result_df['currency'] = result_df['currency'].fillna('CNY')
-            
-            # 现在添加row_index - 创建一个新的序列，从0开始到结果dataframe的长度
-            result_df['row_index'] = range(len(result_df))
-            
-            # 添加账户信息
-            result_df['account_name'] = account_name
-            result_df['account_number'] = account_number
+            # 确保所有数值字段都是数值型
+            result_df['amount'] = result_df['amount'].apply(lambda x: float(x) if pd.notna(x) else None)
+            result_df['balance'] = result_df['balance'].apply(lambda x: float(x) if pd.notna(x) else None)
             
             # 删除空行（金额和日期都为空的行）
             result_df = result_df.dropna(subset=['transaction_date', 'amount'], how='all')

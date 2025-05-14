@@ -93,6 +93,56 @@ class BankTransactionExtractor:
         
         return 0.0
     
+    def create_standard_dataframe(self, df=None, account_name="", account_number="", header_row_idx=None):
+        """创建标准格式的DataFrame
+        
+        Args:
+            df: 原始数据DataFrame，如果为None则创建空的标准格式DataFrame
+            account_name: 账户名称
+            account_number: 账户号码
+            header_row_idx: 表头行索引，用于计算row_index
+            
+        Returns:
+            标准格式的DataFrame或None（如果账号等必要信息缺失）
+        """
+        # 检查关键信息是否存在
+        if not account_number:
+            self.logger.error("无法提取账户号码，数据提取失败")
+            return None
+            
+        # 标准结果列
+        result_columns = [
+            'transaction_date', 'currency', 'amount', 'balance', 
+            'transaction_type', 'counterparty', 'account_name', 
+            'account_number', 'row_index'
+        ]
+        
+        # 如果df为None，返回提取失败
+        if df is None:
+            self.logger.error("提取的DataFrame为空，无法创建标准格式数据")
+            return None
+        
+        # 创建结果DataFrame
+        result_df = pd.DataFrame(index=df.index, columns=result_columns)
+        
+        # 处理row_index
+        result_df['row_index'] = self.standardize_row_index(df, header_row_idx)
+        
+        # 添加账户信息
+        result_df['account_name'] = account_name
+        result_df['account_number'] = account_number
+        
+        # 初始化字段，但不设置默认值
+        # 这些字段将在子类中根据实际数据填充
+        result_df['currency'] = None
+        result_df['transaction_type'] = None
+        result_df['counterparty'] = None
+        result_df['amount'] = None
+        result_df['balance'] = None
+        result_df['transaction_date'] = None
+        
+        return result_df
+    
     def save_to_database(self, df, file_path):
         """将交易数据保存到SQLite数据库
         
@@ -107,8 +157,14 @@ class BankTransactionExtractor:
             self.logger.warning(f"没有数据可保存: {file_path}")
             print("没有数据可保存")
             return 0
+            
+        # 数据验证 - 严格校验所有字段
+        validation_result = self.validate_transaction_data(df)
+        if not validation_result['valid']:
+            self.logger.error(f"数据验证未通过: {validation_result['reason']}, 文件: {file_path}")
+            return 0
         
-        # 检查是否有账号字段
+        # 检查是否有账号字段 (已在验证方法中检查，这里保留作为额外安全检查)
         if 'account_number' not in df.columns or df['account_number'].isnull().all():
             self.logger.warning(f"数据中不包含有效的账号字段，无法导入到数据库")
             return 0
@@ -175,9 +231,8 @@ class BankTransactionExtractor:
                     self.logger.info(f"获取银行ID成功: {bank_code} -> {bank_id}")
                 except Exception as e:
                     self.logger.error(f"获取银行ID时出错: {str(e)}")
-                    # 如果无法获取银行ID，设置为1（假设ID=1的银行记录已存在）
-                    bank_id = 1
-                    self.logger.warning(f"使用默认银行ID: {bank_id}")
+                    # 如果无法获取银行ID，直接返回失败，不使用默认值
+                    return 0
                 
                 # 导入到数据库
                 batch_id = f"import_{datetime.now().strftime('%Y%m%d%H%M%S')}_{Path(file_path).stem}"
@@ -234,12 +289,25 @@ class BankTransactionExtractor:
                 return df.index
     
     def extract_account_info(self, df):
-        """从DataFrame中提取账户信息，可由子类重写"""
-        # 默认实现是从df中获取账号字段的第一个值
+        """从DataFrame中提取账户信息，可由子类重写
+        
+        Args:
+            df: 包含账户信息的DataFrame
+            
+        Returns:
+            tuple: (account_name, account_number) 元组，如果无法提取则返回("", "")
+        """
+        # 默认实现尝试从DataFrame中提取账号信息
+        account_name = ""
+        account_number = ""
+        
         if df is not None and not df.empty and 'account_number' in df.columns:
             account_number = df['account_number'].iloc[0]
-            return {'account_number': account_number}
-        return None
+            
+        if df is not None and not df.empty and 'account_name' in df.columns:
+            account_name = df['account_name'].iloc[0]
+            
+        return account_name, account_number
     
     def can_process_file(self, file_path):
         """检查是否可以处理给定的文件，由子类实现"""
@@ -474,6 +542,86 @@ class BankTransactionExtractor:
     def get_bank_keyword(self):
         """获取银行关键词，用于文件匹配"""
         return self.bank_name
+
+    def validate_transaction_data(self, df):
+        """对交易数据进行严格校验
+        
+        Args:
+            df: 标准格式的交易数据DataFrame
+            
+        Returns:
+            dict: 包含validation_result['valid']和validation_result['reason']的字典
+        """
+        result = {'valid': True, 'reason': ''}
+        
+        # 1. 检查DataFrame是否为空
+        if df is None or df.empty:
+            result['valid'] = False
+            result['reason'] = '数据为空'
+            return result
+            
+        # 2. 检查必要字段是否存在
+        required_fields = ['transaction_date', 'amount', 'account_number']
+        for field in required_fields:
+            if field not in df.columns:
+                result['valid'] = False
+                result['reason'] = f'缺少必要字段: {field}'
+                return result
+                
+        # 3. 检查必要字段是否都有有效值
+        # 交易日期
+        if df['transaction_date'].isnull().any():
+            result['valid'] = False
+            result['reason'] = '存在交易记录缺少交易日期'
+            return result
+            
+        # 交易金额
+        if df['amount'].isnull().any():
+            result['valid'] = False
+            result['reason'] = '存在交易记录缺少交易金额'
+            return result
+            
+        # 检查是否有无效(0)金额
+        if (df['amount'] == 0).any():
+            result['valid'] = False
+            result['reason'] = '存在金额为0的交易记录'
+            return result
+            
+        # 账号
+        if df['account_number'].isnull().any():
+            result['valid'] = False
+            result['reason'] = '存在交易记录缺少账号'
+            return result
+            
+        # 4. 检查其他字段是否有有效值
+        # 交易类型
+        if 'transaction_type' in df.columns and df['transaction_type'].isnull().any():
+            result['valid'] = False
+            result['reason'] = '存在交易记录缺少交易类型'
+            return result
+            
+        # 5. 检查日期格式
+        try:
+            pd.to_datetime(df['transaction_date'], errors='raise')
+        except Exception:
+            result['valid'] = False
+            result['reason'] = '交易日期格式无效'
+            return result
+            
+        # 6. 检查余额是否为数值
+        if 'balance' in df.columns and not pd.api.types.is_numeric_dtype(df['balance']):
+            result['valid'] = False
+            result['reason'] = '余额不是数值类型'
+            return result
+            
+        # 7. 检查金额是否为数值
+        if not pd.api.types.is_numeric_dtype(df['amount']):
+            result['valid'] = False
+            result['reason'] = '金额不是数值类型'
+            return result
+            
+        # 所有检查都通过
+        return result
 
 # 程序入口点
 if __name__ == "__main__":
