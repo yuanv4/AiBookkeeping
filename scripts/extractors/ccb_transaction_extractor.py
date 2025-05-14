@@ -1,6 +1,10 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+scripts_dir = os.path.dirname(current_dir)
+root_dir = os.path.dirname(scripts_dir)
+sys.path.append(root_dir)
+sys.path.append(scripts_dir)
 
 import pandas as pd
 import re
@@ -10,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 import numpy as np
 
-from scripts.bank_transaction_extractor import BankTransactionExtractor
+from scripts.extractors.bank_transaction_extractor import BankTransactionExtractor
 
 # 配置日志
 logging.basicConfig(

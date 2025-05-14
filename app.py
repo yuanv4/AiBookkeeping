@@ -29,12 +29,13 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # 添加scripts目录到Python路径，以便导入模块
 sys.path.append(os.path.join(ROOT_DIR, 'scripts'))
+sys.path.append(ROOT_DIR)
 
-# 导入自定义模块
-from scripts.transaction_analyzer import TransactionAnalyzer
-from scripts.visualization_helper import VisualizationHelper
-from scripts.bank_transaction_extractor import BankTransactionExtractor
-from scripts.db_manager import DBManager
+# 导入自定义模块 - 更新为新的模块结构
+from scripts.analyzers.transaction_analyzer import TransactionAnalyzer
+from scripts.visualization.visualization_helper import VisualizationHelper
+from scripts.extractors.bank_transaction_extractor import BankTransactionExtractor
+from scripts.db.db_manager import DBManager
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # 用于flash消息

@@ -6,15 +6,19 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import sys
+import traceback
 
 # 添加项目根目录到PYTHONPATH，以便导入相关模块
 current_dir = os.path.dirname(os.path.abspath(__file__))
-root_dir = os.path.dirname(current_dir)
+scripts_dir = os.path.dirname(current_dir)
+root_dir = os.path.dirname(scripts_dir)
 if root_dir not in sys.path:
     sys.path.append(root_dir)
+if scripts_dir not in sys.path:
+    sys.path.append(scripts_dir)
 
 # 导入数据库管理模块
-from scripts.db_manager import DBManager
+from scripts.db.db_manager import DBManager
 
 # 配置日志
 logging.basicConfig(
@@ -369,7 +373,7 @@ class BankTransactionExtractor:
             
             except Exception as e:
                 self.logger.error(f"处理文件 {file_path} 时出错: {str(e)}")
-                self.logger.error(f"错误详情: {logging.traceback.format_exc()}")
+                self.logger.error(f"错误详情: {traceback.format_exc()}")
         
         return processed_files
     
@@ -397,8 +401,8 @@ class BankTransactionExtractor:
         
         # 导入所有银行的提取器
         # 由于循环导入问题，这里使用动态导入
-        from scripts.cmb_transaction_extractor import CMBTransactionExtractor
-        from scripts.ccb_transaction_extractor import CCBTransactionExtractor
+        from scripts.extractors.cmb_transaction_extractor import CMBTransactionExtractor
+        from scripts.extractors.ccb_transaction_extractor import CCBTransactionExtractor
         
         # 所有可用的提取器实例
         extractors = [
@@ -449,7 +453,7 @@ class BankTransactionExtractor:
                     
                     except Exception as e:
                         logging.error(f"使用 {extractor.bank_name} 提取器处理文件 {file_path} 时出错: {str(e)}")
-                        logging.error(f"错误详情: {logging.traceback.format_exc()}")
+                        logging.error(f"错误详情: {traceback.format_exc()}")
             
             if not file_processed:
                 logging.warning(f"未找到合适的提取器处理文件: {file_path}")
@@ -494,7 +498,7 @@ class BankTransactionExtractor:
                 
         except Exception as e:
             self.logger.error(f"运行过程中出错: {str(e)}")
-            self.logger.error(f"错误详情: {logging.traceback.format_exc()}")
+            self.logger.error(f"错误详情: {traceback.format_exc()}")
             return []
     
     @staticmethod

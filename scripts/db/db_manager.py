@@ -21,7 +21,7 @@ class DBManager:
         """
         if db_path is None:
             # 默认路径：项目根目录下的data/transactions.db
-            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             data_dir = os.path.join(root_dir, 'data')
             os.makedirs(data_dir, exist_ok=True)
             db_path = os.path.join(data_dir, 'transactions.db')

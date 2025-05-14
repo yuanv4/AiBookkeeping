@@ -6,6 +6,16 @@ matplotlib.use('Agg')  # 设置非交互式后端
 import numpy as np
 from pathlib import Path
 import logging
+import sys
+
+# 添加项目根目录到PYTHONPATH以解决导入问题
+current_dir = os.path.dirname(os.path.abspath(__file__))
+scripts_dir = os.path.dirname(current_dir)
+root_dir = os.path.dirname(scripts_dir)
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
+if scripts_dir not in sys.path:
+    sys.path.append(scripts_dir)
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -35,7 +45,7 @@ class VisualizationHelper:
         self._setup_chinese_font()
         
         # 图表保存目录
-        self.charts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'charts')
+        self.charts_dir = os.path.join(root_dir, 'static', 'charts')
         os.makedirs(self.charts_dir, exist_ok=True)
     
     def _setup_chinese_font(self):

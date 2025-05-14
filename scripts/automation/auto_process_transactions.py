@@ -4,21 +4,19 @@ from pathlib import Path
 
 # 添加脚本目录到Python路径
 script_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-root_dir = script_dir.parent
+scripts_dir = script_dir.parent
+root_dir = scripts_dir.parent
 sys.path.append(str(root_dir))  # 添加项目根目录
-sys.path.append(str(script_dir))  # 添加脚本目录
+sys.path.append(str(scripts_dir))  # 添加脚本目录
 
-# 导入可能位于脚本目录或根目录下的模块
+# 导入各模块
 try:
-    from scripts.bank_transaction_extractor import BankTransactionExtractor
-    from scripts.transaction_analyzer import TransactionAnalyzer
-except ImportError:
-    try:
-        from bank_transaction_extractor import BankTransactionExtractor
-        from transaction_analyzer import TransactionAnalyzer
-    except ImportError:
-        print("导入模块失败，请确保scripts目录在Python路径中")
-        sys.exit(1)
+    from scripts.extractors.bank_transaction_extractor import BankTransactionExtractor
+    from scripts.analyzers.transaction_analyzer import TransactionAnalyzer
+except ImportError as e:
+    print(f"导入模块失败: {e}")
+    print("请确保scripts目录及其子目录在Python路径中")
+    sys.exit(1)
 
 def main():
     """
@@ -32,7 +30,7 @@ def main():
     print("=" * 60)
     
     # 获取脚本的根目录
-    root_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    root_dir = Path(os.path.dirname(script_dir))
     
     # 指定目录路径
     upload_dir = root_dir / "uploads"

@@ -11,7 +11,18 @@ from datetime import datetime, timedelta
 import calendar
 import json
 import logging
-from scripts.db_manager import DBManager
+import sys
+
+# 添加项目根目录到PYTHONPATH以解决导入问题
+current_dir = os.path.dirname(os.path.abspath(__file__))
+scripts_dir = os.path.dirname(current_dir)
+root_dir = os.path.dirname(scripts_dir)
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
+if scripts_dir not in sys.path:
+    sys.path.append(scripts_dir)
+
+from scripts.db.db_manager import DBManager
 
 # 配置日志
 logging.basicConfig(
