@@ -657,9 +657,9 @@ class BankTransactionExtractor(ExtractorInterface):
         for patterns in column_mappings.values():
             header_keywords.extend(patterns)
         
-        # 如果找不到映射，则使用配置中的header_keywords或默认关键词
+        # 如果找不到映射，使用默认关键词
         if not header_keywords:
-            header_keywords = self.bank_config.get("header_keywords", ["交易日期", "金额", "余额", "摘要", "交易地点/附言"])
+            header_keywords = ["交易日期", "金额", "余额", "摘要", "交易地点/附言"]
         
         self.logger.info(f"使用以下关键词识别标题行: {header_keywords}")
         

@@ -4,9 +4,7 @@
     "bank_name": "招商银行",
     "display_name": "招商银行",
     "keywords": ["招商银行", "招行", "CMB"],
-    "header_keywords": ["记账日期", "交易金额", "联机余额", "交易摘要", "对手信息"],
     "column_mappings": {
-      "row_index": ["序号", "交易流水号"],
       "date": ["记账日期"],
       "amount": ["交易金额"],
       "balance": ["联机余额"],
@@ -21,9 +19,7 @@
     "bank_name": "建设银行",
     "display_name": "建设银行",
     "keywords": ["建设银行", "建行", "CCB"],
-    "header_keywords": ["交易日期", "交易金额", "账户余额", "摘要", "交易地点/附言"],
     "column_mappings": {
-      "row_index": ["序号"],
       "date": ["交易日期"],
       "amount": ["交易金额"],
       "balance": ["账户余额"],
