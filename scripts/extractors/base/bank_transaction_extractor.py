@@ -200,6 +200,9 @@ class BankTransactionExtractor(ExtractorInterface):
             print("没有数据可保存")
             return 0
             
+        # 确保所有列的值都是可哈希类型
+        df = self.ensure_hashable_values(df)
+            
         # 数据验证 - 严格校验所有字段
         validation_result = self.validate_transaction_data(df)
         if not validation_result['valid']:
@@ -309,8 +312,357 @@ class BankTransactionExtractor(ExtractorInterface):
         return excel_files
     
     def extract_transactions(self, file_path: str) -> Optional[pd.DataFrame]:
-        """从文件中提取交易明细，由子类实现"""
-        raise NotImplementedError("子类必须实现extract_transactions方法")
+        """从文件中提取交易明细，子类可重写该方法
+        
+        Args:
+            file_path: Excel文件路径
+            
+        Returns:
+            pandas.DataFrame: 标准格式的交易数据，如果提取失败返回None
+        """
+        try:
+            # 读取文件
+            df = self.read_excel_file(file_path)
+            if df is None or df.empty:
+                self.logger.error("读取文件失败或文件为空")
+                return None
+                
+            # 提取交易数据（委托给子类实现的方法）
+            return self.extract_transactions_from_df(df)
+            
+        except Exception as e:
+            self.logger.error(f"提取交易数据时出错: {str(e)}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return None
+            
+    def extract_transactions_from_df(self, df: pd.DataFrame) -> Optional[pd.DataFrame]:
+        """从DataFrame中提取交易数据（模板方法模式）
+        
+        Args:
+            df: 包含交易数据的DataFrame
+            
+        Returns:
+            pandas.DataFrame: 标准格式的交易数据，如果提取失败返回None
+        """
+        try:
+            # 提取账户信息
+            account_name, account_number = self.extract_account_info(df)
+            if not account_name or not account_number:
+                self.logger.error("无法提取账户信息")
+                return None
+            
+            # 查找标题行
+            header_row_idx = self.find_header_row(df)
+            if header_row_idx is None:
+                self.logger.error("无法找到标题行")
+                return None
+                
+            self.logger.info(f"找到标题行，索引为 {header_row_idx}")
+            
+            # 处理标题行和数据（子类可重写此方法）
+            data_df = self.process_header_and_data(df, header_row_idx)
+            
+            # 创建标准格式DataFrame
+            result_df = self.create_standard_dataframe(data_df, account_name, account_number, header_row_idx)
+            if result_df is None:
+                self.logger.error("创建标准格式DataFrame失败")
+                return None
+            
+            # 从配置获取列映射
+            column_mappings = self.bank_config.get("column_mappings", {})
+            
+            # 映射标准字段
+            found_fields = self.map_standard_fields(data_df, result_df, column_mappings)
+            
+            # 检查是否找到必要字段
+            if not self.validate_required_fields(found_fields):
+                return None
+            
+            # 添加行号
+            result_df['row_index'] = self.standardize_row_index(data_df, header_row_idx)
+            
+            # 设置默认值
+            self.set_default_values(result_df)
+            
+            # 过滤无效行
+            result_df = self.filter_invalid_rows(result_df)
+            
+            # 检查是否有有效数据
+            if result_df is None or result_df.empty:
+                self.logger.warning("过滤后没有有效的交易数据")
+                return None
+                
+            # 确保数值类型正确
+            self.ensure_numeric_types(result_df)
+            
+            # 记录提取结果
+            self.logger.info(f"共提取 {len(result_df)} 条交易记录")
+            if not result_df.empty:
+                self.logger.info(f"提取的第一条记录: {result_df.iloc[0][['transaction_date', 'amount', 'balance']].to_dict()}")
+            
+            return result_df
+            
+        except Exception as e:
+            self.logger.error(f"提取交易数据时出错: {str(e)}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return None
+            
+    def process_header_and_data(self, df: pd.DataFrame, header_row_idx: int) -> pd.DataFrame:
+        """处理标题行和数据，创建有效的数据DataFrame
+        
+        Args:
+            df: 原始DataFrame
+            header_row_idx: 标题行索引
+            
+        Returns:
+            pandas.DataFrame: 处理后的数据DataFrame
+        """
+        # 重新读取数据，使用标题行作为列名
+        data_df = df.iloc[(header_row_idx+1):].reset_index(drop=True)
+        header_df = df.iloc[header_row_idx]
+        
+        # 创建列名映射
+        column_names = {}
+        for i, column_value in enumerate(header_df):
+            if pd.notna(column_value):
+                column_names[i] = str(column_value).strip()
+            else:
+                column_names[i] = f"Column_{i}"
+        
+        # 重命名列
+        data_df.columns = [column_names.get(i, f"Column_{i}") for i in range(len(data_df.columns))]
+        self.logger.info(f"重命名后的列名: {data_df.columns.tolist()}")
+        
+        return data_df
+            
+    def map_standard_fields(self, data_df: pd.DataFrame, result_df: pd.DataFrame, column_mappings: Dict[str, List[str]]) -> Dict[str, bool]:
+        """将数据列映射到标准字段
+        
+        Args:
+            data_df: 包含数据的DataFrame
+            result_df: 标准格式的结果DataFrame
+            column_mappings: 列映射配置
+            
+        Returns:
+            dict: 记录找到哪些必要字段的字典
+        """
+        # 初始化跟踪变量
+        found_fields = {
+            'date': False,
+            'amount': False
+        }
+        
+        # 处理各个字段
+        for col in data_df.columns:
+            col_name = str(col).lower()
+            
+            # 日期列
+            if self._match_column_name(col_name, column_mappings.get("date", [])):
+                self.logger.info(f"找到日期列: {col}")
+                result_df['transaction_date'] = data_df[col].apply(lambda x: self.standardize_date(x))
+                found_fields['date'] = True
+            
+            # 金额列
+            elif self._match_column_name(col_name, column_mappings.get("amount", [])):
+                self.logger.info(f"找到金额列: {col}")
+                result_df['amount'] = data_df[col].astype(str).str.strip().apply(lambda x: self.clean_numeric(x))
+                found_fields['amount'] = True
+            
+            # 余额列
+            elif self._match_column_name(col_name, column_mappings.get("balance", [])):
+                self.logger.info(f"找到余额列: {col}")
+                result_df['balance'] = data_df[col].astype(str).str.strip().apply(lambda x: self.clean_numeric(x))
+            
+            # 交易类型列
+            elif self._match_column_name(col_name, column_mappings.get("transaction_type", [])):
+                self.logger.info(f"找到交易类型列: {col}")
+                result_df['transaction_type'] = data_df[col].fillna('其他')
+            
+            # 交易对象列
+            elif self._match_column_name(col_name, column_mappings.get("counterparty", [])):
+                self.logger.info(f"找到交易对象列: {col}")
+                result_df['counterparty'] = data_df[col].fillna('')
+                
+            # 货币列
+            elif '货币' in col_name or '币种' in col_name or 'currency' in col_name:
+                self.logger.info(f"找到货币列: {col}")
+                result_df['currency'] = data_df[col].fillna('CNY')
+        
+        return found_fields
+        
+    def validate_required_fields(self, found_fields: Dict[str, bool]) -> bool:
+        """验证是否找到必要字段
+        
+        Args:
+            found_fields: 记录找到哪些字段的字典
+            
+        Returns:
+            bool: 验证是否通过
+        """
+        if not found_fields.get('date', False):
+            self.logger.error("未找到交易日期列，提取失败")
+            return False
+            
+        if not found_fields.get('amount', False):
+            self.logger.error("未找到交易金额列，提取失败")
+            return False
+            
+        return True
+        
+    def set_default_values(self, df: pd.DataFrame) -> None:
+        """设置默认值
+        
+        Args:
+            df: 标准格式的DataFrame
+        """
+        try:
+            # 货币默认为CNY
+            if 'currency' not in df.columns or df['currency'].isnull().all():
+                df['currency'] = self.bank_config.get("default_currency", "CNY")
+                
+            # 交易类型默认为其他
+            if 'transaction_type' not in df.columns or df['transaction_type'].isnull().all():
+                df['transaction_type'] = '其他'
+                
+            # 交易对手方默认为空字符串
+            if 'counterparty' not in df.columns or df['counterparty'].isnull().all():
+                df['counterparty'] = ''
+            
+            # 余额如果没有则计算累计（不完全准确但比没有好）
+            if 'balance' not in df.columns or df['balance'].isnull().all():
+                self.logger.warning("未找到余额列，将使用交易金额累计计算")
+                # 确保transaction_date列是有效的
+                if 'transaction_date' in df.columns and not df['transaction_date'].isnull().all():
+                    try:
+                        # 按日期排序
+                        df.sort_values('transaction_date', inplace=True)
+                        # 检查amount列是否有效
+                        if 'amount' in df.columns and not df['amount'].isnull().all():
+                            # 确保amount列是数值类型
+                            df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
+                            # 计算累计余额
+                            df['balance'] = df['amount'].cumsum()
+                        else:
+                            df['balance'] = 0.0
+                    except Exception as e:
+                        self.logger.error(f"计算累计余额时出错: {str(e)}")
+                        df['balance'] = 0.0
+                else:
+                    df['balance'] = 0.0
+                    
+            # 确保remarks字段存在
+            if 'remarks' not in df.columns:
+                df['remarks'] = ''
+                
+            # 确保transaction_id字段存在
+            if 'transaction_id' not in df.columns:
+                df['transaction_id'] = None
+                
+        except Exception as e:
+            self.logger.error(f"设置默认值时出错: {str(e)}")
+            # 确保基本字段都有默认值，以防止后续处理出错
+            required_defaults = {
+                'currency': 'CNY',
+                'transaction_type': '其他',
+                'counterparty': '',
+                'balance': 0.0,
+                'remarks': '',
+                'transaction_id': None
+            }
+            
+            for field, default_value in required_defaults.items():
+                if field not in df.columns:
+                    df[field] = default_value
+    
+    def filter_invalid_rows(self, df: pd.DataFrame) -> pd.DataFrame:
+        """过滤无效行
+        
+        Args:
+            df: 待过滤的DataFrame
+            
+        Returns:
+            pandas.DataFrame: 过滤后的DataFrame
+        """
+        if df is None or df.empty:
+            return df
+            
+        # 过滤掉无用数据：表头、空行、或含有关键词的行
+        invalid_rows = []
+        keywords = ['amount', 'date', 'transaction', 'balance', 'currency', 'counter party', 'type']
+        
+        for idx, row in df.iterrows():
+            # 检查是否是表头或含有关键词的行
+            is_header_row = False
+            
+            # 检查交易对象是否是列标题
+            counterparty = row.get('counterparty')
+            if pd.notna(counterparty):
+                # 确保counterparty是字符串
+                if not isinstance(counterparty, str):
+                    counterparty = str(counterparty)
+                    
+                counterparty_lower = counterparty.lower()
+                if any(keyword in counterparty_lower for keyword in keywords):
+                    is_header_row = True
+            
+            # 获取安全的transaction_date和amount值
+            transaction_date = row.get('transaction_date')
+            amount = row.get('amount')
+            
+            # 检查金额是否为0/None和日期是否缺失
+            if (pd.isna(transaction_date) or 
+                pd.isna(amount) or 
+                amount == 0 or 
+                is_header_row):
+                invalid_rows.append(idx)
+        
+        # 移除无效行
+        if invalid_rows:
+            self.logger.info(f"过滤掉 {len(invalid_rows)} 条无效数据行")
+            df = df.drop(invalid_rows)
+        
+        # 删除空行（金额和日期都为空的行）
+        df = df.dropna(subset=['transaction_date', 'amount'], how='all')
+        
+        return df
+        
+    def ensure_numeric_types(self, df: pd.DataFrame) -> None:
+        """确保数值字段是数值类型
+        
+        Args:
+            df: 待处理的DataFrame
+        """
+        if 'amount' in df.columns:
+            df['amount'] = df['amount'].apply(lambda x: float(x) if pd.notna(x) else None)
+            
+        if 'balance' in df.columns:
+            df['balance'] = df['balance'].apply(lambda x: float(x) if pd.notna(x) else None)
+            
+    def find_header_row(self, df: pd.DataFrame) -> Optional[int]:
+        """查找标题行索引
+        
+        Args:
+            df: DataFrame对象
+            
+        Returns:
+            int: 标题行索引，如果未找到返回None
+        """
+        # 获取配置中的标题关键字
+        header_keywords = self.bank_config.get("header_keywords", ["交易日期", "金额", "余额", "摘要", "交易地点/附言"])
+        
+        # 尝试在前30行找到包含至少3个标题关键字的行
+        for idx in range(min(30, len(df))):
+            row = df.iloc[idx]
+            row_text = " ".join([str(val) for val in row if pd.notna(val)]).lower()
+            
+            keyword_count = sum(1 for keyword in header_keywords if keyword.lower() in row_text)
+            if keyword_count >= 3:  # 至少包含3个关键字
+                self.logger.info(f"在第{idx}行找到标题行，包含{keyword_count}个关键字")
+                return idx
+                
+        return None
     
     def standardize_row_index(self, df: pd.DataFrame, 
                              header_row_idx: Optional[int] = None, 
@@ -325,17 +677,32 @@ class BankTransactionExtractor(ExtractorInterface):
         Returns:
             处理后的row_index Series
         """
-        if id_column_name in df.columns and not df[id_column_name].isnull().all():
-            # 如果有序号列，直接使用
-            return df[id_column_name]
+        # 直接使用DataFrame的索引，不再从id_column_name列读取值
+        if header_row_idx is not None:
+            # 如果提供了表头行索引，加上偏移量得到实际Excel行号
+            return df.index + header_row_idx + 2  # +2是因为Excel从1开始计数，且表头行之后开始是数据行
         else:
-            # 如果没有序号列，使用DataFrame的索引
-            if header_row_idx is not None:
-                # 如果提供了表头行索引，加上偏移量得到实际Excel行号
-                return df.index + header_row_idx + 2  # +2是因为Excel从1开始计数，且表头行之后开始是数据行
-            else:
-                # 否则直接使用索引作为row_index
-                return df.index
+            # 否则直接使用索引作为row_index
+            return df.index
+    
+    def _match_column_name(self, col_name: str, patterns: list) -> bool:
+        """匹配列名是否符合给定的模式
+        
+        Args:
+            col_name: 列名，已转换为小写
+            patterns: 模式列表，来自配置
+            
+        Returns:
+            bool: 是否匹配
+        """
+        if not patterns:
+            return False
+            
+        for pattern in patterns:
+            if pattern.lower() in col_name:
+                return True
+                
+        return False
     
     def extract_account_info(self, df: pd.DataFrame) -> Tuple[str, str]:
         """从DataFrame中提取账户信息，可由子类重写
@@ -655,4 +1022,29 @@ class BankTransactionExtractor(ExtractorInterface):
         except Exception as e:
             self.logger.error(f"读取Excel文件时出错: {str(e)}")
             self.logger.error(traceback.format_exc())
-            return None 
+            return None
+    
+    def ensure_hashable_values(self, df: pd.DataFrame) -> pd.DataFrame:
+        """确保DataFrame中所有值都是可哈希类型
+        
+        Args:
+            df: 要处理的DataFrame
+            
+        Returns:
+            pandas.DataFrame: 处理后的DataFrame
+        """
+        # 创建一个新的DataFrame以避免修改原始数据
+        new_df = df.copy()
+        
+        for col in new_df.columns:
+            # 检查列中是否有列表、字典等不可哈希类型
+            if new_df[col].apply(lambda x: isinstance(x, (list, dict, set))).any():
+                self.logger.info(f"转换列 {col} 中的不可哈希类型为字符串")
+                # 将不可哈希类型转换为其字符串表示
+                new_df[col] = new_df[col].apply(lambda x: str(x) if isinstance(x, (list, dict, set)) else x)
+        
+        # 特别处理original_data列，这通常是包含原始数据的列表或字典
+        if 'original_data' in new_df.columns:
+            new_df['original_data'] = new_df['original_data'].apply(lambda x: str(x))
+        
+        return new_df 
