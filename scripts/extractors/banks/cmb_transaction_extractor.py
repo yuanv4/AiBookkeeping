@@ -189,8 +189,14 @@ class CMBTransactionExtractor(BankTransactionExtractor):
                 col_name = col[0] if isinstance(col, tuple) else col
                 col_name_str = str(col_name).lower()
                 
+                # 序号列 - 新增处理
+                if self._match_column_name(col_name_str, column_mappings.get("row_index", [])):
+                    self.logger.info(f"找到序号列: {col}")
+                    result_df['row_index'] = df[col]
+                    found_fields['row_index'] = True
+                
                 # 日期列
-                if self._match_column_name(col_name_str, column_mappings.get("date", [])):
+                elif self._match_column_name(col_name_str, column_mappings.get("date", [])):
                     self.logger.info(f"找到日期列: {col}")
                     result_df['transaction_date'] = df[col].apply(lambda x: self.standardize_date(x))
                     found_fields['date'] = True
@@ -230,6 +236,11 @@ class CMBTransactionExtractor(BankTransactionExtractor):
                 self.logger.error("未找到交易金额列，提取失败")
                 return None
             
+            # 如果没有找到序号列，使用基类的standardize_row_index方法生成序号
+            if 'row_index' not in found_fields or not found_fields.get('row_index', False):
+                self.logger.info("未找到序号列，将自动生成")
+                result_df['row_index'] = self.standardize_row_index(df, header_row_idx)
+                
             # 确保所有字段都有值
             # 货币默认为CNY
             if result_df['currency'].isnull().all():
@@ -242,7 +253,7 @@ class CMBTransactionExtractor(BankTransactionExtractor):
             # 交易对手方默认为空字符串
             if result_df['counterparty'].isnull().all():
                 result_df['counterparty'] = ''
-                
+            
             # 余额如果没有则计算累计（不完全准确但比没有好）
             if result_df['balance'].isnull().all():
                 self.logger.warning("未找到余额列，将使用交易金额累计计算")
