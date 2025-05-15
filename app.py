@@ -34,7 +34,7 @@ sys.path.append(ROOT_DIR)
 # 导入自定义模块 - 更新为新的模块结构
 from scripts.analyzers.transaction_analyzer import TransactionAnalyzer
 from scripts.visualization.visualization_helper import VisualizationHelper
-from scripts.extractors.bank_transaction_extractor import BankTransactionExtractor
+from scripts.extractors.factory.extractor_factory import get_extractor_factory
 from scripts.db.db_manager import DBManager
 
 app = Flask(__name__)
@@ -52,6 +52,8 @@ os.makedirs(DATA_FOLDER, exist_ok=True)
 
 # 初始化数据库管理器
 db_manager = DBManager()
+# 初始化提取器工厂
+extractor_factory = get_extractor_factory()
 
 # 在应用启动时准备数据库
 def init_database():
@@ -66,8 +68,8 @@ def init_database():
             if excel_files:
                 logger.info(f"发现 {len(excel_files)} 个Excel文件，开始自动处理")
                 
-                # 使用自动检测功能处理文件
-                processed_files = BankTransactionExtractor.auto_detect_bank_and_process(upload_dir)
+                # 使用提取器工厂自动处理文件
+                processed_files = extractor_factory.auto_detect_and_process(upload_dir)
                 
                 if processed_files:
                     logger.info(f"成功处理 {len(processed_files)} 个文件")
@@ -196,8 +198,8 @@ def upload_file():
             # 调用自动检测和处理函数
             upload_dir = Path(UPLOAD_FOLDER)
             
-            # 使用自动检测功能处理文件
-            processed_files = BankTransactionExtractor.auto_detect_bank_and_process(upload_dir)
+            # 使用提取器工厂自动处理文件
+            processed_files = extractor_factory.auto_detect_and_process(upload_dir)
             
             if processed_files:
                 # 构建处理结果消息

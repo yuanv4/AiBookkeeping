@@ -1,0 +1,39 @@
+{
+  "CMB": {
+    "bank_code": "CMB",
+    "bank_name": "招商银行",
+    "display_name": "招商银行",
+    "keywords": ["招商银行", "招行", "CMB"],
+    "header_keywords": ["记账日期", "交易日期", "账务日期", "交易金额", "发生额"],
+    "column_mappings": {
+      "date": ["日期", "交易日期", "记账日期", "账务日期", "date"],
+      "amount": ["金额", "交易金额", "发生额", "借方发生额", "贷方发生额", "amount"],
+      "balance": ["余额", "账户余额", "balance"],
+      "transaction_type": ["摘要", "交易类型", "交易摘要", "type"],
+      "counterparty": ["对手", "对方", "对方户名", "交易对手", "counter", "party"]
+    },
+    "default_currency": "CNY",
+    "date_formats": ["%Y-%m-%d", "%Y/%m/%d", "%Y%m%d"]
+  },
+  "CCB": {
+    "bank_code": "CCB",
+    "bank_name": "建设银行",
+    "display_name": "建设银行",
+    "keywords": ["建设银行", "建行", "CCB"],
+    "header_keywords": ["序号", "交易日期", "摘要", "交易金额", "余额"],
+    "column_mappings": {
+      "row_index": ["序号"],
+      "date": ["交易日期", "交易时间", "日期"],
+      "amount": ["交易金额", "金额", "发生额"],
+      "balance": ["账户余额", "余额"],
+      "transaction_type": ["摘要", "交易摘要", "交易类型"],
+      "counterparty": ["交易地点/附言", "对方账号与户名", "对方户名", "备注"]
+    },
+    "account_info_patterns": {
+      "account_number": ["卡号/账号", "账号"],
+      "account_name": ["客户名称", "户名"]
+    },
+    "default_currency": "CNY",
+    "date_formats": ["%Y-%m-%d", "%Y/%m/%d", "%Y%m%d"]
+  }
+} 

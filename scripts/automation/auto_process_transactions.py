@@ -11,7 +11,7 @@ sys.path.append(str(scripts_dir))  # 添加脚本目录
 
 # 导入各模块
 try:
-    from scripts.extractors.bank_transaction_extractor import BankTransactionExtractor
+    from scripts.extractors.factory.extractor_factory import get_extractor_factory
     from scripts.analyzers.transaction_analyzer import TransactionAnalyzer
 except ImportError as e:
     print(f"导入模块失败: {e}")
@@ -41,9 +41,12 @@ def main():
     print(f"数据目录: {data_dir}")
     print(f"分析输出文件: {output_file}")
     
+    # 初始化提取器工厂
+    extractor_factory = get_extractor_factory()
+    
     # 自动检测银行类型并处理文件
     print("\n步骤 1: 自动处理银行交易明细文件...")
-    processed_files = BankTransactionExtractor.auto_detect_bank_and_process(upload_dir, data_dir)
+    processed_files = extractor_factory.auto_detect_and_process(upload_dir)
     
     if not processed_files:
         print("没有处理任何文件，程序结束。")

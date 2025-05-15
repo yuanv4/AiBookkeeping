@@ -1,29 +1,27 @@
+"""招商银行交易明细提取器"""
 import pandas as pd
 import re
 import os
-import glob
 import logging
 from datetime import datetime
-from pathlib import Path
 import sys
+from typing import Optional
 
-# 添加项目根目录到PYTHONPATH以解决导入问题
+# 添加项目根目录到PYTHONPATH
 current_dir = os.path.dirname(os.path.abspath(__file__))
-scripts_dir = os.path.dirname(current_dir)
+banks_dir = os.path.dirname(current_dir)
+extractors_dir = os.path.dirname(banks_dir)
+scripts_dir = os.path.dirname(extractors_dir)
 root_dir = os.path.dirname(scripts_dir)
 if root_dir not in sys.path:
     sys.path.append(root_dir)
 if scripts_dir not in sys.path:
     sys.path.append(scripts_dir)
 
-from scripts.extractors.bank_transaction_extractor import BankTransactionExtractor
+from scripts.extractors.base.bank_transaction_extractor import BankTransactionExtractor
+from scripts.extractors.config.config_loader import get_config_loader
 
 # 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
 logger = logging.getLogger('cmb_extractor')
 
 class CMBTransactionExtractor(BankTransactionExtractor):
@@ -32,8 +30,9 @@ class CMBTransactionExtractor(BankTransactionExtractor):
     def __init__(self):
         """初始化招商银行交易提取器"""
         super().__init__('CMB')
+        self.config = get_config_loader().get_bank_config('CMB')
     
-    def can_process_file(self, file_path):
+    def can_process_file(self, file_path: str) -> bool:
         """检查是否可以处理给定的文件
         
         Args:
@@ -64,7 +63,7 @@ class CMBTransactionExtractor(BankTransactionExtractor):
             self.logger.error(f"检查文件时出错: {e}")
             return False
     
-    def is_date_format(self, value):
+    def is_date_format(self, value) -> bool:
         """检查值是否符合日期格式（支持多种格式）"""
         if pd.isna(value):
             return False
@@ -86,7 +85,7 @@ class CMBTransactionExtractor(BankTransactionExtractor):
         
         return False
     
-    def extract_account_info(self, df):
+    def extract_account_info(self, df: pd.DataFrame) -> tuple:
         """从DataFrame中提取户名和账号信息"""
         account_name = ""
         account_number = ""
@@ -122,36 +121,51 @@ class CMBTransactionExtractor(BankTransactionExtractor):
             
         return account_name, account_number
     
-    def extract_transactions(self, file_path):
-        """提取交易数据"""
-        try:
-            # 先尝试读取Excel文件获取基本信息
-            df_info = pd.read_excel(file_path, header=None, nrows=20)
+    def find_header_row(self, df: pd.DataFrame) -> Optional[int]:
+        """查找标题行索引
+        
+        Args:
+            df: DataFrame对象
             
+        Returns:
+            int: 标题行索引，如果未找到返回None
+        """
+        # 获取配置中的标题关键字
+        header_keywords = self.config.get("header_keywords", ["记账日期", "交易日期", "账务日期", "交易金额", "发生额"])
+        
+        # 尝试在前20行找到包含标题关键字的行
+        for idx in range(min(20, len(df))):
+            row = df.iloc[idx]
+            # 将行转为字符串后合并
+            row_text = " ".join([str(val) for val in row if pd.notna(val)]).lower()
+            # 检查是否包含常见的标题关键字
+            if any(keyword.lower() in row_text for keyword in header_keywords):
+                return idx
+        return None
+    
+    def extract_transactions(self, df: pd.DataFrame) -> pd.DataFrame:
+        """提取交易数据
+        
+        Args:
+            df: 已读取的DataFrame对象
+            
+        Returns:
+            pandas.DataFrame: 提取的交易数据，如果提取失败返回None
+        """
+        try:
             # 提取账户信息
-            account_name, account_number = self.extract_account_info(df_info)
+            account_name, account_number = self.extract_account_info(df)
             if not account_name or not account_number:
                 self.logger.error("无法提取账户信息")
                 return None
             
             # 查找标题行
-            header_row_idx = self.find_header_row(df_info)
+            header_row_idx = self.find_header_row(df)
             if header_row_idx is None:
                 self.logger.error("无法找到标题行")
                 return None
                 
             self.logger.info(f"找到标题行，索引为 {header_row_idx}")
-            
-            # 重新读取Excel文件，正确处理标题行
-            try:
-                # 尝试使用多级标题（招商银行特殊格式）
-                df = pd.read_excel(file_path, header=[header_row_idx, header_row_idx+1])
-                self.logger.info(f"使用多级标题格式读取数据，列名: {df.columns.tolist()}")
-            except Exception as e:
-                self.logger.warning(f"使用多级标题读取失败: {e}，尝试单级标题")
-                # 如果多级标题读取失败，尝试使用单级标题
-                df = pd.read_excel(file_path, header=header_row_idx)
-                self.logger.info(f"使用单级标题格式读取数据，列名: {df.columns.tolist()}")
             
             # 使用基类方法创建标准格式的DataFrame
             result_df = self.create_standard_dataframe(df, account_name, account_number, header_row_idx)
@@ -167,35 +181,38 @@ class CMBTransactionExtractor(BankTransactionExtractor):
                 'amount': False
             }
             
+            # 从配置获取列映射
+            column_mappings = self.config.get("column_mappings", {})
+            
             # 处理交易日期和其他字段
             for col in df.columns:
                 col_name = col[0] if isinstance(col, tuple) else col
                 col_name_str = str(col_name).lower()
                 
                 # 日期列
-                if '日期' in col_name_str or 'date' in col_name_str.lower():
+                if self._match_column_name(col_name_str, column_mappings.get("date", [])):
                     self.logger.info(f"找到日期列: {col}")
                     result_df['transaction_date'] = df[col].apply(lambda x: self.standardize_date(x))
                     found_fields['date'] = True
                 
                 # 金额列
-                elif '金额' in col_name_str or 'amount' in col_name_str.lower() or 'transaction' in col_name_str.lower():
+                elif self._match_column_name(col_name_str, column_mappings.get("amount", [])):
                     self.logger.info(f"找到金额列: {col}")
                     result_df['amount'] = df[col].apply(lambda x: self.clean_numeric(x))
                     found_fields['amount'] = True
                 
                 # 余额列
-                elif '余额' in col_name_str or 'balance' in col_name_str.lower():
+                elif self._match_column_name(col_name_str, column_mappings.get("balance", [])):
                     self.logger.info(f"找到余额列: {col}")
                     result_df['balance'] = df[col].apply(lambda x: self.clean_numeric(x))
                 
                 # 交易类型列
-                elif '摘要' in col_name_str or '交易类型' in col_name_str or 'type' in col_name_str.lower():
+                elif self._match_column_name(col_name_str, column_mappings.get("transaction_type", [])):
                     self.logger.info(f"找到交易类型列: {col}")
                     result_df['transaction_type'] = df[col].fillna('其他')
                 
                 # 交易对象列
-                elif '对手' in col_name_str or '对方' in col_name_str or 'counter' in col_name_str.lower() or 'party' in col_name_str.lower():
+                elif self._match_column_name(col_name_str, column_mappings.get("counterparty", [])):
                     self.logger.info(f"找到交易对象列: {col}")
                     result_df['counterparty'] = df[col].fillna('')
                 
@@ -216,7 +233,7 @@ class CMBTransactionExtractor(BankTransactionExtractor):
             # 确保所有字段都有值
             # 货币默认为CNY
             if result_df['currency'].isnull().all():
-                result_df['currency'] = 'CNY'
+                result_df['currency'] = self.config.get("default_currency", "CNY")
                 
             # 交易类型默认为其他
             if result_df['transaction_type'].isnull().all():
@@ -268,21 +285,6 @@ class CMBTransactionExtractor(BankTransactionExtractor):
                 self.logger.warning("过滤后没有有效的交易记录")
                 return None
             
-            # 检查日期是否全部为空，如有需要尝试从文件名提取年份
-            if valid_transactions['transaction_date'].isna().all():
-                self.logger.warning("所有交易记录的日期字段为空")
-                # 尝试从文件名提取年份
-                try:
-                    file_name = os.path.basename(file_path)
-                    year_match = re.search(r'(\d{4})', file_name)
-                    if year_match:
-                        default_date = f"{year_match.group(1)}-01-01"
-                        self.logger.warning(f"未能提取有效日期，无法推断交易日期")
-                        return None
-                except:
-                    self.logger.warning("未能提取有效日期，无法推断交易日期")
-                    return None
-            
             # 确保所有数值字段都是数值型
             result_df['amount'] = result_df['amount'].apply(lambda x: float(x) if pd.notna(x) else None)
             result_df['balance'] = result_df['balance'].apply(lambda x: float(x) if pd.notna(x) else None)
@@ -303,176 +305,49 @@ class CMBTransactionExtractor(BankTransactionExtractor):
             self.logger.error(traceback.format_exc())
             return None
     
-    def find_header_row(self, df):
-        """查找标题行"""
-        # 尝试在前20行找到包含标题关键字的行
-        for idx in range(min(20, len(df))):
-            row = df.iloc[idx]
-            # 将行转为字符串后合并
-            row_text = " ".join([str(val) for val in row if pd.notna(val)]).lower()
-            # 检查是否包含常见的标题关键字
-            if any(keyword in row_text for keyword in ["记账日期", "交易日期", "账务日期", "交易金额", "发生额"]):
-                return idx
-        return None
-    
-    def standardize_date(self, date_value):
-        """将各种日期格式标准化为YYYY-MM-DD"""
-        if pd.isna(date_value):
-            return None
+    def _match_column_name(self, col_name: str, patterns: list) -> bool:
+        """匹配列名是否符合给定的模式
         
-        # 已经是datetime对象
-        if isinstance(date_value, datetime):
-            # 确保日期不在未来
-            today = datetime.today()
-            if date_value > today:
-                self.logger.warning(f"发现未来日期: {date_value}，替换为当前日期")
-                return today.strftime('%Y-%m-%d')
-            return date_value.strftime('%Y-%m-%d')
-        
-        # 处理字符串格式
-        if isinstance(date_value, str):
-            # 检查是否包含关键词：这些可能是列标题，不是真正的日期
-            if any(keyword in date_value.lower() for keyword in ['date', 'amount', 'transaction', 'balance']):
-                self.logger.debug(f"跳过日期列标题: {date_value}")
-                return None
-                
-            # 已经是标准格式
-            if re.match(r'^\d{4}-\d{2}-\d{2}$', date_value):
-                # 检查是否是未来日期
-                try:
-                    parsed_date = datetime.strptime(date_value, '%Y-%m-%d')
-                    if parsed_date > datetime.today():
-                        self.logger.warning(f"发现未来日期: {date_value}，替换为当前日期")
-                        return datetime.today().strftime('%Y-%m-%d')
-                except:
-                    pass
-                return date_value
+        Args:
+            col_name: 列名，已转换为小写
+            patterns: 模式列表，来自配置
             
-            # 处理YYYY/MM/DD格式
-            if re.match(r'^\d{4}/\d{1,2}/\d{1,2}$', date_value):
-                parts = date_value.split('/')
-                year = parts[0]
-                month = parts[1].zfill(2)
-                day = parts[2].zfill(2)
-                date_str = f"{year}-{month}-{day}"
-                
-                # 检查是否是未来日期
-                try:
-                    parsed_date = datetime.strptime(date_str, '%Y-%m-%d')
-                    if parsed_date > datetime.today():
-                        self.logger.warning(f"发现未来日期: {date_str}，替换为当前日期")
-                        return datetime.today().strftime('%Y-%m-%d')
-                except:
-                    pass
-                return date_str
-        
-        # 其他情况，尝试转换为datetime然后格式化
-        try:
-            parsed_date = pd.to_datetime(date_value)
-            # 检查是否是未来日期
-            if parsed_date > pd.Timestamp.today():
-                self.logger.warning(f"发现未来日期: {parsed_date}，替换为当前日期")
-                return pd.Timestamp.today().strftime('%Y-%m-%d')
-            return parsed_date.strftime('%Y-%m-%d')
-        except:
-            self.logger.warning(f"无法标准化日期: {date_value}")
-            return None
-    
-    def clean_numeric(self, value):
-        """清理并转换数值型数据"""
-        if pd.isna(value):
-            return 0.0
-        
-        if isinstance(value, (int, float)):
-            return float(value)
-        
-        if isinstance(value, str):
-            # 移除货币符号、逗号和空白
-            cleaned = re.sub(r'[,¥$€£\s]', '', value)
-            # 处理带括号的负数
-            if cleaned.startswith('(') and cleaned.endswith(')'):
-                cleaned = '-' + cleaned[1:-1]
+        Returns:
+            bool: 是否匹配
+        """
+        if not patterns:
+            return False
             
-            try:
-                return float(cleaned)
-            except:
-                self.logger.warning(f"无法转换为数值: {value}")
-                return 0.0
-        
-        return 0.0
+        for pattern in patterns:
+            if pattern.lower() in col_name:
+                return True
+                
+        return False
     
-    def get_bank_keyword(self):
-        """获取银行关键字用于筛选文件"""
-        return '招商银行'
-
-def main():
-    try:
-        logger.info("开始处理银行交易明细")
+    def create_standard_dataframe(self, df: pd.DataFrame, account_name: str, account_number: str, header_row_idx: int) -> pd.DataFrame:
+        """创建标准格式的交易数据DataFrame
         
-        # 获取脚本的根目录
-        root_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        Args:
+            df: 原始DataFrame
+            account_name: 账户名称
+            account_number: 账户号码
+            header_row_idx: 标题行索引
+            
+        Returns:
+            pandas.DataFrame: 标准格式的DataFrame
+        """
+        # 先调用基类方法创建标准框架
+        result_df = super().create_standard_dataframe(df, account_name, account_number, header_row_idx)
+        if result_df is None:
+            return None
+            
+        # 将标准DataFrame的索引设置为与原始DataFrame相同
+        result_df = pd.DataFrame(index=df.index, columns=result_df.columns)
         
-        # 指定uploads子目录
-        upload_dir = root_dir / "uploads"
+        # 添加账户和银行信息
+        result_df['account_number'] = account_number
+        result_df['account_name'] = account_name
+        result_df['bank_code'] = self.get_bank_code()
+        result_df['bank_name'] = self.get_bank_name()
         
-        # 检查uploads目录是否存在
-        if not upload_dir.exists() or not upload_dir.is_dir():
-            logger.error(f"错误：{upload_dir} 目录不存在")
-            return
-        
-        # 处理uploads目录下的所有Excel文件，排除以~$开头的临时文件
-        excel_files = []
-        
-        # 支持多种Excel文件格式
-        for ext in ['*.xlsx', '*.xls']:
-            excel_files.extend(list(upload_dir.glob(ext)))
-        
-        # 过滤掉临时文件
-        excel_files = [f for f in excel_files if not f.name.startswith('~$')]
-        
-        if not excel_files:
-            logger.warning(f"在 {upload_dir} 目录下没有找到Excel文件")
-            return
-        
-        logger.info(f"找到 {len(excel_files)} 个Excel文件待处理")
-        
-        # 处理结果统计
-        processed_files = []
-        total_records = 0
-        
-        # 处理每个Excel文件并保存到数据库
-        for excel_file in excel_files:
-            extractor = CMBTransactionExtractor()
-            # 调用修改后的extract_transactions方法
-            result_df = extractor.extract_transactions(excel_file)
-            if result_df is not None and not result_df.empty:
-                # 使用save_to_database方法保存到数据库
-                record_count = extractor.save_to_database(result_df, excel_file)
-                if record_count > 0:
-                    processed_files.append({
-                        'file': excel_file.name,
-                        'bank': extractor.bank_name,
-                        'record_count': record_count,
-                        'original_row_count': len(result_df)
-                    })
-                    total_records += record_count
-                    logger.info(f"成功导入 {excel_file.name} 的 {record_count} 条交易记录到数据库")
-        
-        # 输出处理结果汇总
-        if processed_files:
-            logger.info(f"已处理 {len(processed_files)} 个文件，共导入 {total_records} 条交易记录")
-            logger.info("处理结果汇总:")
-            for i, file_info in enumerate(processed_files, 1):
-                logger.info(f"  {i}. {file_info['file']} -> {file_info['record_count']} 条记录")
-        else:
-            logger.warning("没有找到符合条件的数据")
-        
-        logger.info("银行交易明细处理完成")
-        
-    except Exception as e:
-        logger.error(f"处理过程中发生未预期的错误: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-
-if __name__ == "__main__":
-    main() 
+        return result_df 
