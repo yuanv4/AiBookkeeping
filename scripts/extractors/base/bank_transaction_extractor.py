@@ -649,8 +649,19 @@ class BankTransactionExtractor(ExtractorInterface):
         Returns:
             int: 标题行索引，如果未找到返回None
         """
-        # 获取配置中的标题关键字
-        header_keywords = self.bank_config.get("header_keywords", ["交易日期", "金额", "余额", "摘要", "交易地点/附言"])
+        # 从column_mappings动态生成header_keywords
+        header_keywords = []
+        column_mappings = self.bank_config.get("column_mappings", {})
+        
+        # 收集所有column_mappings中的关键词
+        for patterns in column_mappings.values():
+            header_keywords.extend(patterns)
+        
+        # 如果找不到映射，则使用配置中的header_keywords或默认关键词
+        if not header_keywords:
+            header_keywords = self.bank_config.get("header_keywords", ["交易日期", "金额", "余额", "摘要", "交易地点/附言"])
+        
+        self.logger.info(f"使用以下关键词识别标题行: {header_keywords}")
         
         # 尝试在前30行找到包含至少3个标题关键字的行
         for idx in range(min(30, len(df))):
