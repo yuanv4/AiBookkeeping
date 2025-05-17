@@ -12,6 +12,24 @@
     </div>
 </div>
 
+<!-- 全局无数据提示 -->
+{% if not weekday_data and not yearly_data and not monthly_data %}
+<div class="alert alert-warning" role="alert">
+    <h4 class="alert-heading"><i class="material-icons-round me-2" style="vertical-align: -4px;">info</i>暂无分析数据</h4>
+    <p>当前没有交易数据可供分析。这可能是因为：</p>
+    <ul>
+        <li>数据库中尚未导入交易数据</li>
+        <li>导入的数据不完整或格式不正确</li>
+    </ul>
+    <hr>
+    <p class="mb-0">您可以尝试：</p>
+    <ul>
+        <li>导入更多的交易数据</li>
+        <li>检查导入的数据是否正确</li>
+    </ul>
+</div>
+{% endif %}
+
 <!-- 选项卡导航 -->
 <div class="card mb-4">
     <div class="card-header">
@@ -648,6 +666,7 @@
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
 // 统一颜色配置
 const colorPalette = {
@@ -1239,6 +1258,16 @@ document.addEventListener('DOMContentLoaded', function() {
         updateButtonStates(yearlyChart, '.yearly-toggle-dataset');
         {% endif %}
     }
+    
+    // 如果有些统计数据为空，但其他有数据，自动切换到有数据的选项卡
+    {% if not weekday_data and (yearly_data or monthly_data) %}
+        // 如果月度数据有但周分析没有，切换到月度选项卡
+        {% if monthly_data %}
+            document.getElementById('monthly-tab').click();
+        {% elif yearly_data %}
+            document.getElementById('yearly-tab').click();
+        {% endif %}
+    {% endif %}
 });
 
 // 通用按钮状态更新函数

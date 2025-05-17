@@ -12,7 +12,7 @@ import traceback
 import sys
 import shutil
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # 配置日志
 logging.basicConfig(
@@ -44,11 +44,13 @@ app.secret_key = 'your_secret_key'  # 用于flash消息
 UPLOAD_FOLDER = os.path.join(ROOT_DIR, 'uploads')
 DATA_FOLDER = os.path.join(ROOT_DIR, 'data')
 SCRIPTS_FOLDER = os.path.join(ROOT_DIR, 'scripts')
+PROCESSED_FOLDER = os.path.join(ROOT_DIR, 'processed_files')  # 添加已处理文件存档目录
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
 # 确保上传文件夹和数据文件夹存在
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(DATA_FOLDER, exist_ok=True)
+os.makedirs(PROCESSED_FOLDER, exist_ok=True)  # 确保存档目录存在
 
 # 初始化数据库管理器
 db_manager = DBManager()
@@ -73,13 +75,20 @@ def init_database():
                 
                 if processed_files:
                     logger.info(f"成功处理 {len(processed_files)} 个文件")
-                    # 处理完成后删除已处理的文件
-                    # for file in excel_files:
-                    #     try:
-                    #         file.unlink()
-                    #         logger.info(f"已删除处理过的文件: {file}")
-                    #     except Exception as e:
-                    #         logger.error(f"删除文件 {file} 时出错: {e}")
+                    # 处理完成后移动已处理的文件到存档目录
+                    for file_info in processed_files:
+                        try:
+                            file_name = file_info['file']
+                            source_path = os.path.join(UPLOAD_FOLDER, file_name)
+                            # 添加时间戳前缀，避免文件名冲突
+                            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                            dest_path = os.path.join(PROCESSED_FOLDER, f"{timestamp}_{file_name}")
+                            
+                            # 移动文件
+                            shutil.move(source_path, dest_path)
+                            logger.info(f"已将处理过的文件移动到: {dest_path}")
+                        except Exception as e:
+                            logger.error(f"移动文件 {file_name} 时出错: {e}")
                             
                     # 创建交易分析器实例
                     logger.info("开始分析交易数据")
@@ -161,7 +170,20 @@ def upload_file():
             filename = secure_filename(file.filename)
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             
-            # 检查文件名是否已存在
+            # 检查文件名是否已存在于已处理文件目录中
+            processed_files = os.listdir(PROCESSED_FOLDER)
+            is_processed = False
+            for processed_file in processed_files:
+                # 忽略时间戳前缀，检查文件名是否匹配
+                if processed_file.endswith(filename):
+                    duplicate_files.append(filename)
+                    is_processed = True
+                    break
+            
+            if is_processed:
+                continue
+                
+            # 检查文件名是否已存在于上传目录
             if os.path.exists(file_path):
                 # 检查文件内容是否相同(通过文件大小快速判断)
                 file.seek(0, os.SEEK_END)
@@ -179,12 +201,12 @@ def upload_file():
         
         # 如果所有文件都是重复的，则提示用户并返回
         if not filenames and duplicate_files:
-            flash(f'所选文件已存在并且内容相同，跳过上传: {", ".join(duplicate_files)}')
+            flash(f'所选文件已存在或已处理过，跳过上传: {", ".join(duplicate_files)}')
             return redirect(url_for('dashboard'))
         
         # 如果有部分文件重复，提示用户
         if duplicate_files:
-            flash(f'以下文件已存在并且内容相同，跳过上传: {", ".join(duplicate_files)}')
+            flash(f'以下文件已存在或已处理过，跳过上传: {", ".join(duplicate_files)}')
         
         # 运行交易数据自动检测和提取过程
         try:
@@ -202,6 +224,21 @@ def upload_file():
             processed_files = extractor_factory.auto_detect_and_process(upload_dir)
             
             if processed_files:
+                # 处理完成后移动已处理的文件到存档目录
+                for file_info in processed_files:
+                    try:
+                        file_name = file_info['file']
+                        source_path = os.path.join(UPLOAD_FOLDER, file_name)
+                        # 添加时间戳前缀，避免文件名冲突
+                        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                        dest_path = os.path.join(PROCESSED_FOLDER, f"{timestamp}_{file_name}")
+                        
+                        # 移动文件
+                        shutil.move(source_path, dest_path)
+                        logger.info(f"已将处理过的文件移动到: {dest_path}")
+                    except Exception as e:
+                        logger.error(f"移动文件 {file_name} 时出错: {e}")
+                
                 # 构建处理结果消息
                 result_message = "处理完成。\n"
                 result_message += f"成功处理 {len(processed_files)} 个文件，共提取 "
@@ -477,51 +514,49 @@ def transactions():
 def api_data():
     """API接口获取分析数据"""
     try:
-        # 检查是否有data/analysis_data.json文件
-        analysis_file = os.path.join(DATA_FOLDER, 'analysis_data.json')
-        if os.path.exists(analysis_file):
-            with open(analysis_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                
-            # 如果数据为空或无效，重新生成分析数据
-            if not data or not isinstance(data, dict) or 'summary' not in data:
-                analyzer = TransactionAnalyzer(db_manager)
-                if analyzer.load_data():
-                    data = analyzer.analyze_transaction_data()
-                    # 保存最新分析结果
-                    with open(analysis_file, 'w', encoding='utf-8') as f:
-                        json.dump(data, f, ensure_ascii=False, indent=2)
-                else:
-                    # 如果加载数据失败，返回空结果
-                    return jsonify({
-                        'success': False,
-                        'error': 'Failed to load transaction data'
-                    })
+        # 获取查询参数
+        start_date = request.args.get('start_date', None)
+        end_date = request.args.get('end_date', None)
+        account_id = request.args.get('account_id', None, type=int)
+        
+        # 如果没有指定结束日期，使用当前日期
+        if not end_date:
+            end_date = datetime.now().strftime('%Y-%m-%d')
             
-            # 返回分析数据
+        # 如果没有指定开始日期，默认使用一年前的日期
+        if not start_date:
+            start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+        
+        # 创建分析器并直接分析数据
+        analyzer = TransactionAnalyzer(db_manager)
+        data = analyzer.analyze_transaction_data_direct(start_date=start_date, end_date=end_date, account_id=account_id)
+        
+        if data and isinstance(data, dict) and 'summary' in data:
+            # 直接返回分析数据
             return jsonify({
                 'success': True,
                 'data': data
             })
         else:
-            # 如果分析文件不存在，尝试重新生成
-            analyzer = TransactionAnalyzer(db_manager)
-            if analyzer.load_data():
-                data = analyzer.analyze_transaction_data()
-                # 保存分析结果
-                with open(analysis_file, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
-                
-                # 返回分析数据
-                return jsonify({
-                    'success': True,
-                    'data': data
-                })
-            else:
-                return jsonify({
-                    'success': False,
-                    'error': 'No analysis data found and failed to generate'
-                })
+            # 分析失败，尝试检查是否存在缓存的分析文件
+            analysis_file = os.path.join(DATA_FOLDER, 'analysis_data.json')
+            if os.path.exists(analysis_file):
+                with open(analysis_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    
+                if data and isinstance(data, dict) and 'summary' in data:
+                    logger.info("无法直接分析数据，使用缓存的分析文件")
+                    return jsonify({
+                        'success': True,
+                        'data': data,
+                        'cached': True
+                    })
+            
+            # 无法分析数据且无缓存文件
+            return jsonify({
+                'success': False,
+                'error': '无法分析交易数据'
+            })
     except Exception as e:
         logger.error(f"获取分析数据时出错: {str(e)}")
         logger.error(traceback.format_exc())
@@ -536,12 +571,24 @@ def export_transactions():
     try:
         # 解析查询参数
         account_id = request.args.get('account_id', None, type=int)
+        account_number = request.args.get('account_number', None)
+        bank_name = request.args.get('bank', None)
         start_date = request.args.get('start_date', None)
         end_date = request.args.get('end_date', None)
         min_amount = request.args.get('min_amount', None, type=float)
         max_amount = request.args.get('max_amount', None, type=float)
         transaction_type = request.args.get('type', None)
         counterparty = request.args.get('counterparty', None)
+        
+        # 如果提供了account_number，查找对应的account_id
+        if account_number and not account_id:
+            conn = db_manager.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM accounts WHERE account_number = ?", (account_number,))
+            result = cursor.fetchone()
+            if result:
+                account_id = result['id']
+            conn.close()
         
         # 构建查询参数
         query_params = {
@@ -552,36 +599,216 @@ def export_transactions():
             'max_amount': max_amount,
             'transaction_type': transaction_type,
             'counterparty': counterparty,
-            'distinct': True  # 使用去重逻辑
+            'distinct': True
         }
         
-        # 导出文件名
-        filename = f'交易记录_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
-        
-        # 获取导出路径
-        temp_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp')
-        os.makedirs(temp_path, exist_ok=True)
-        output_path = os.path.join(temp_path, filename)
-        
         # 导出CSV文件
-        result = db_manager.export_to_csv(query_params, output_path)
+        output_file = db_manager.export_to_csv(query_params)
         
-        if result and os.path.exists(output_path):
-            # 返回CSV文件
-            return send_file(output_path, 
-                            mimetype='text/csv',
-                            as_attachment=True,
-                            download_name=filename)
+        if output_file and os.path.exists(output_file):
+            # 创建随机文件名
+            filename = f"交易记录_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv"
+            
+            # 返回文件下载响应
+            return send_file(
+                output_file,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='text/csv'
+            )
         else:
-            flash('导出CSV文件失败，请重试')
+            flash('导出失败，未找到符合条件的交易记录')
             return redirect(url_for('transactions'))
-    
+            
     except Exception as e:
         error_message = str(e)
         logger.error(f"导出交易记录时出错: {error_message}")
         logger.error(traceback.format_exc())
         flash(f'导出交易记录时出错: {error_message}')
         return redirect(url_for('transactions'))
+
+@app.route('/time_analysis')
+def time_analysis():
+    """时间分析页面 - 合并周分析、月度分析和年度分析"""
+    try:
+        # 获取年份筛选参数
+        year_filter = request.args.get('year', None)
+        account_id = request.args.get('account_id', None, type=int)
+        
+        logger.info(f"时间分析页面请求参数: year_filter={year_filter}, account_id={account_id}")
+        
+        # 先检查数据库中是否有交易记录
+        db_stats = db_manager.get_statistics()
+        if db_stats.get('total_transactions', 0) == 0:
+            logger.warning("数据库中没有交易记录，无法进行时间分析")
+            flash('数据库中没有交易记录，请先导入交易数据', 'warning')
+            return render_template('time_analysis.html', 
+                                  weekday_stats=[],
+                                  weekday_data=None,
+                                  yearly_stats=[], 
+                                  yearly_data=None,
+                                  monthly_stats=[],
+                                  monthly_data=None,
+                                  available_years=[],
+                                  current_year=year_filter,
+                                  error_message="数据库中没有交易记录，请先导入交易数据")
+        
+        # 从数据库统计中获取实际的交易日期范围
+        start_date = db_stats.get('min_date')
+        end_date = db_stats.get('max_date')
+        
+        if not start_date:
+            # 兜底方案，使用较早的日期确保包含所有数据
+            start_date = '2000-01-01'
+            logger.info(f"未能从数据库获取最早交易日期，使用默认值: {start_date}")
+            
+        if not end_date:
+            # 兜底方案，使用当前日期
+            end_date = datetime.now().strftime('%Y-%m-%d')
+            logger.info(f"未能从数据库获取最晚交易日期，使用当前日期: {end_date}")
+            
+        logger.info(f"时间分析使用日期范围: {start_date} 至 {end_date}")
+        
+        # 创建分析器实例
+        analyzer = TransactionAnalyzer(db_manager)
+        
+        # 1. 周分析数据 - 直接从数据库获取
+        try:
+            weekday_stats = analyzer.get_weekly_stats_direct(start_date, end_date, account_id)
+            weekday_data = None
+            weekday_stats_list = []
+            
+            if weekday_stats is not None and not weekday_stats.empty:
+                logger.info(f"成功获取周度统计数据: {len(weekday_stats)}行")
+                # 准备适合模板的数据格式
+                for _, row in weekday_stats.iterrows():
+                    weekday_stats_list.append({
+                        '星期': int(row['weekday']),
+                        '星期名': row['weekday_name'],
+                        '总额': float(row['total']),
+                        '笔数': int(row['count']),
+                        '平均值': float(row['average'])
+                    })
+                
+                # 准备Chart.js需要的数据格式
+                weekday_data = {
+                    'labels': weekday_stats['weekday_name'].tolist(),
+                    'total': weekday_stats['total'].tolist(),
+                    'count': weekday_stats['count'].tolist(),
+                    'average': weekday_stats['average'].tolist()
+                }
+            else:
+                logger.warning("未能获取周度统计数据或数据为空")
+        except Exception as e:
+            logger.error(f"获取周度统计数据时出错: {e}")
+            logger.error(traceback.format_exc())
+            weekday_stats_list = []
+            weekday_data = None
+            
+        # 2. 年度分析数据 - 直接从数据库获取
+        try:
+            yearly_stats = analyzer.get_yearly_stats_direct(start_date, end_date, account_id)
+            yearly_data = None
+            yearly_stats_list = []
+            available_years = []
+            
+            if yearly_stats is not None and not yearly_stats.empty:
+                logger.info(f"成功获取年度统计数据: {len(yearly_stats)}行")
+                # 准备模板适用的数据格式
+                for _, row in yearly_stats.iterrows():
+                    yearly_stats_list.append({
+                        '年份': str(row['year']),
+                        '收入': float(row['income']),
+                        '支出': float(row['expense']),
+                        '净额': float(row['net'])
+                    })
+                
+                # 准备图表数据
+                years = [str(year) for year in yearly_stats['year']]
+                income = yearly_stats['income'].tolist()
+                expense = yearly_stats['expense'].tolist()
+                net = yearly_stats['net'].tolist()
+                
+                yearly_data = {
+                    'labels': years,
+                    'income': income,
+                    'expense': expense,
+                    'net': net
+                }
+                
+                available_years = yearly_stats['year'].tolist()
+            else:
+                logger.warning("未能获取年度统计数据或数据为空")
+        except Exception as e:
+            logger.error(f"获取年度统计数据时出错: {e}")
+            logger.error(traceback.format_exc())
+            yearly_stats_list = []
+            yearly_data = None
+            available_years = []
+        
+        # 3. 月度分析数据 - 直接从数据库获取
+        try:
+            monthly_stats = analyzer.get_monthly_stats_direct(start_date, end_date, account_id)
+            monthly_data = None
+            monthly_stats_list = []
+            
+            # 如果有年份筛选，过滤月度数据
+            if monthly_stats is not None and not monthly_stats.empty:
+                logger.info(f"成功获取月度统计数据: {len(monthly_stats)}行")
+                if year_filter:
+                    monthly_stats = monthly_stats[monthly_stats['year'] == int(year_filter)]
+                    logger.info(f"按年份{year_filter}过滤后的月度数据: {len(monthly_stats)}行")
+                
+                # 准备模板适用的数据格式
+                for _, row in monthly_stats.iterrows():
+                    monthly_stats_list.append({
+                        '月份': f"{int(row['month'])}月",
+                        '收入': float(row['income']),
+                        '支出': float(row['expense']),
+                        '净额': float(row['net'])
+                    })
+                
+                # 准备图表数据
+                months = [f"{int(month)}月" for month in monthly_stats['month']]
+                income = monthly_stats['income'].tolist()
+                expense = monthly_stats['expense'].tolist()
+                net = monthly_stats['net'].tolist()
+                
+                monthly_data = {
+                    'labels': months,
+                    'income': income,
+                    'expense': expense,
+                    'net': net
+                }
+            else:
+                logger.warning("未能获取月度统计数据或数据为空")
+        except Exception as e:
+            logger.error(f"获取月度统计数据时出错: {e}")
+            logger.error(traceback.format_exc())
+            monthly_stats_list = []
+            monthly_data = None
+            
+        # 如果所有数据都为空，显示适当的提示信息
+        if (not weekday_stats_list and not yearly_stats_list and not monthly_stats_list):
+            logger.warning("所有统计数据都为空，可能没有符合条件的交易记录")
+            flash('未找到符合条件的交易记录，请尝试调整日期范围或账户选择', 'warning')
+        
+        # 返回视图与所有数据
+        return render_template('time_analysis.html', 
+                              weekday_stats=weekday_stats_list,
+                              weekday_data=weekday_data,
+                              yearly_stats=yearly_stats_list, 
+                              yearly_data=yearly_data,
+                              monthly_stats=monthly_stats_list,
+                              monthly_data=monthly_data,
+                              available_years=available_years,
+                              current_year=year_filter)
+                               
+    except Exception as e:
+        logger.error(f"生成时间分析页面时出错: {str(e)}")
+        logger.error(traceback.format_exc())
+        flash('生成时间分析页面时出错', 'danger')
+        return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000) 
