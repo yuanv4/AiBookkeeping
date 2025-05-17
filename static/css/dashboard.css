@@ -1,0 +1,233 @@
+/* 
+ * AiBookkeeping - 仪表盘样式
+ * 包含仪表盘页面特定的样式
+ */
+
+/* 仪表盘部分样式 */
+.dashboard-section {
+    margin-bottom: 2.5rem;
+}
+
+.dashboard-section-header {
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-card {
+    box-shadow: var(--shadow);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    overflow: hidden;
+}
+
+.dashboard-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.dashboard-card .card-body {
+    padding: 1.25rem;
+}
+
+.dashboard-card .card-header {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/* 数据卡片样式 */
+.stat-card {
+    height: 100%;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: rgba(70, 99, 172, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-icon.small {
+    width: 36px;
+    height: 36px;
+}
+
+.stat-icon i {
+    font-size: 24px;
+    color: var(--primary);
+}
+
+.stat-icon.small i {
+    font-size: 18px;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    color: var(--secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.card-header h5, .card-header h6 {
+    display: flex;
+    align-items: center;
+}
+
+.card-header h5 i, .card-header h6 i {
+    margin-right: 8px;
+    vertical-align: -4px;
+}
+
+/* 美化样式 */
+.bg-light {
+    background-color: rgba(0,0,0,0.02) !important;
+}
+
+.shadow-sm {
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.stat-value.fs-2 {
+    font-size: 1.8rem !important;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.bg-opacity-10 {
+    --bs-bg-opacity: 0.1;
+}
+
+/* 图表容器 */
+.chart-container {
+    position: relative;
+    height: 400px;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.chart-container.sm {
+    height: 200px;
+}
+
+.chart-container.md {
+    height: 300px;
+}
+
+.no-data-message {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.no-data-message i {
+    font-size: 36px;
+    color: rgba(0,0,0,0.2);
+    margin-bottom: 1rem;
+}
+
+.chart-container:hover {
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+}
+
+.chart-legend {
+    padding: 5px 0;
+}
+
+/* 财务状况指标 */
+.financial-status {
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 1rem;
+}
+
+.financial-detail {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* 账户信息折叠面板 */
+.account-accordion .accordion-button {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.account-accordion .accordion-body {
+    padding: 0.75rem 1rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .stat-value.fs-2 {
+        font-size: 1.6rem !important;
+    }
+    
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .stat-icon i {
+        font-size: 20px;
+    }
+    
+    .stat-icon.small {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .stat-icon.small i {
+        font-size: 16px;
+    }
+    
+    .chart-container.sm {
+        height: 150px;
+    }
+}
+
+@media (max-width: 576px) {    
+    .chart-legend {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .chart-legend > div {
+        margin-right: 0 !important;
+    }
+}
+
+/* 趋势分析区域样式 */
+.trend-analysis {
+    background-color: rgba(248, 249, 250, 0.5);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 0 0 8px 8px;
+}
+
+.trend-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    margin-right: 10px;
+    transition: all 0.2s ease;
+}
+
+@media (max-width: 767px) {
+    .trend-analysis .col-md-6 + .col-md-6 {
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        padding-top: 15px;
+    }
+} 

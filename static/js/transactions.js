@@ -7,10 +7,21 @@
 let transactions = [];
 let totalItems = 0;
 let currentPage = 1;
-let itemsPerPage = 10;
+let itemsPerPage = 20;
 let totalPages = 1;
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('transactions.js 脚本已加载');
+    
+    // 从页面检查数据元素是否存在
+    const transactionsDataElement = document.getElementById('transactions-data');
+    if (transactionsDataElement) {
+        console.log('找到transactions-data元素');
+        console.log('data-transactions属性值：', transactionsDataElement.getAttribute('data-transactions'));
+    } else {
+        console.error('找不到transactions-data元素');
+    }
+    
     // 初始化数据
     initializeData();
     
@@ -28,7 +39,7 @@ function initializeData() {
     // 从页面获取数据
     totalItems = parseInt(document.getElementById('total-count').textContent) || 0;
     currentPage = parseInt(document.getElementById('current-page-data').getAttribute('data-page')) || 1;
-    itemsPerPage = parseInt(document.getElementById('current-page-data').getAttribute('data-limit')) || 10;
+    itemsPerPage = parseInt(document.getElementById('current-page-data').getAttribute('data-limit')) || 20;
     totalPages = parseInt(document.getElementById('current-page-data').getAttribute('data-pages')) || 1;
     
     try {
