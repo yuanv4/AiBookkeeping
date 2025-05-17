@@ -369,4 +369,34 @@ h2 {
     .card-body {
         padding: var(--spacing-md);
     }
+}
+
+/* 统计卡片样式 */
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-primary-light {
+    background-color: rgba(70, 99, 172, 0.1);
+}
+
+.bg-success-light {
+    background-color: rgba(71, 184, 129, 0.1);
+}
+
+.bg-danger-light {
+    background-color: rgba(236, 76, 71, 0.1);
+}
+
+.bg-warning-light {
+    background-color: rgba(255, 171, 0, 0.1);
+}
+
+.bg-info-light {
+    background-color: rgba(16, 112, 202, 0.1);
 } 

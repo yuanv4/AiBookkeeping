@@ -297,7 +297,50 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化所有工具提示
     initTooltips();
+    
+    // 初始化侧边栏
+    initSidebar();
+    
+    // 添加消息提示自动关闭功能
+    initAlertAutoDismiss();
 });
+
+/**
+ * 初始化侧边栏交互
+ */
+function initSidebar() {
+    // 移动设备下的侧边栏切换
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('show');
+        });
+    }
+    
+    // 在窗口大小变化时处理响应式布局
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 992) {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                sidebar.classList.remove('show');
+            }
+        }
+    });
+}
+
+/**
+ * 设置提示消息自动关闭
+ */
+function initAlertAutoDismiss() {
+    const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+    alerts.forEach(alert => {
+        // 5秒后自动关闭提示
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 5000);
+    });
+}
 
 // 导出公共函数
 window.app = {

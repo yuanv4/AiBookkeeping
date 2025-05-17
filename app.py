@@ -490,20 +490,8 @@ def transactions():
         # 为前端准备带有中文字段名的交易数据
         transactions_with_chinese_fields = []
         for tx in transactions:
-            # 映射英文字段名到中文字段名
-            mapped_tx = {
-                '交易日期': tx.get('transaction_date', ''),
-                '交易金额': tx.get('amount', 0),
-                '账户余额': tx.get('balance', 0),
-                '交易对象': tx.get('counterparty', ''),
-                '交易类型': tx.get('transaction_type', ''),
-                '户名': tx.get('account_name', ''),
-                '账号': tx.get('account_number', ''),
-                '银行': tx.get('bank_name', ''),
-                '货币': tx.get('currency', 'CNY'),
-                '备注': tx.get('description', '')
-            }
-            transactions_with_chinese_fields.append(mapped_tx)
+            # 不再映射为中文字段名，保持英文字段名
+            transactions_with_chinese_fields.append(tx)
         
         # 获取所有账户信息，用于过滤选择
         accounts = db_manager.get_accounts()
@@ -542,14 +530,25 @@ def transactions():
         # 将交易数据转换为JSON字符串，用于前端处理
         transactions_json = json.dumps(transactions_with_chinese_fields, ensure_ascii=False)
         
-        return render_template('transactions.html', data=data, transactions_json=transactions_json, total_count=total_count)
+        # 将银行账户数据转换为JSON字符串
+        bank_accounts_json = json.dumps(accounts, ensure_ascii=False)
+        
+        return render_template('transactions.html', 
+                             data=data, 
+                             transactions_json=transactions_json, 
+                             bank_accounts_json=bank_accounts_json,
+                             total_count=total_count)
         
     except Exception as e:
         error_message = str(e)
         logger.error(f"加载交易记录出错: {error_message}")
         logger.error(traceback.format_exc())
         flash(f'加载交易记录时出错: {error_message}')
-        return render_template('transactions.html', data={'transactions': [], 'accounts': [], 'categories': []}, transactions_json="[]", total_count=0)
+        return render_template('transactions.html', 
+                             data={'transactions': [], 'accounts': [], 'categories': []}, 
+                             transactions_json="[]", 
+                             bank_accounts_json="[]",
+                             total_count=0)
 
 @app.route('/api/data')
 def api_data():

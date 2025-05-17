@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon, card %}
 
 {% block title %}错误 - 银行账单分析系统{% endblock %}
 
@@ -8,11 +9,11 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header d-flex align-items-center" style="background-color: var(--md-error); color: white;">
-                    <i class="material-icons mr-2">error_outline</i>系统错误
+                    {{ icon("error_outline", "md", "", "me-2") }}系统错误
                 </div>
                 <div class="card-body p-4">
                     <div class="text-center mb-4">
-                        <i class="material-icons" style="font-size: 72px; color: var(--md-error);">error</i>
+                        {{ icon("error", "xxl", "text-danger") }}
                         <h2 class="mt-3">系统遇到了一个错误</h2>
                         <div class="alert alert-danger mt-3">
                             {{ error }}
@@ -23,19 +24,19 @@
                         <h6 class="subheading mb-3">您可以尝试以下操作：</h6>
                         <div class="ps-3">
                             <div class="d-flex align-items-center mb-3">
-                                <i class="material-icons mr-2" style="color: var(--md-primary);">refresh</i>
+                                {{ icon("refresh", "md", "icon-primary", "me-2") }}
                                 <span>刷新页面，重试操作</span>
                             </div>
                             <div class="d-flex align-items-center mb-3">
-                                <i class="material-icons mr-2" style="color: var(--md-primary);">dashboard</i>
+                                {{ icon("dashboard", "md", "icon-primary", "me-2") }}
                                 <span>返回<a href="{{ url_for('dashboard') }}" class="ms-1 me-1">仪表盘</a>或<a href="{{ url_for('upload_file') }}" class="ms-1">上传新数据</a></span>
                             </div>
                             <div class="d-flex align-items-center mb-3">
-                                <i class="material-icons mr-2" style="color: var(--md-primary);">check_circle</i>
+                                {{ icon("check_circle", "md", "icon-primary", "me-2") }}
                                 <span>检查数据格式是否正确</span>
                             </div>
                             <div class="d-flex align-items-center mb-3">
-                                <i class="material-icons mr-2" style="color: var(--md-primary);">contact_support</i>
+                                {{ icon("contact_support", "md", "icon-primary", "me-2") }}
                                 <span>联系系统管理员寻求帮助</span>
                             </div>
                         </div>
@@ -44,13 +45,13 @@
                     {% if traceback %}
                     <div class="mt-4">
                         <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#errorDetails">
-                            <i class="material-icons" style="font-size: 18px; vertical-align: text-bottom;">code</i>
+                            {{ icon("code", "md", "", "icon-align-middle") }}
                             显示详细错误信息
                         </button>
                         <div class="collapse mt-3" id="errorDetails">
                             <div class="card">
                                 <div class="card-header bg-light">
-                                    <i class="material-icons mr-2">bug_report</i>错误详情
+                                    {{ icon("bug_report", "md", "", "me-2") }}错误详情
                                 </div>
                                 <div class="card-body p-0">
                                     <pre class="m-0 p-3" style="background-color: #f5f5f5; color: var(--md-error); overflow-x: auto; font-size: 12px;"><code>{{ traceback }}</code></pre>
@@ -62,11 +63,11 @@
                 </div>
                 <div class="card-footer d-flex justify-content-between align-items-center">
                     <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
-                        <i class="material-icons" style="font-size: 18px; vertical-align: text-bottom;">dashboard</i>
+                        {{ icon("dashboard", "md", "", "icon-align-middle") }}
                         返回仪表盘
                     </a>
                     <a href="{{ url_for('index') }}" class="btn btn-primary">
-                        <i class="material-icons" style="font-size: 18px; vertical-align: text-bottom;">home</i>
+                        {{ icon("home", "md", "", "icon-align-middle") }}
                         返回首页
                     </a>
                 </div>

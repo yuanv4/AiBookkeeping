@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon, card, chart_container, section_header, stat_card %}
 
 {% block title %}仪表盘 - 银行账单分析系统{% endblock %}
 
@@ -6,6 +7,15 @@
 
 {% block page_css %}
 <link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block page_scripts %}
+<!-- 仅在仪表盘页面加载Chart.js及其插件 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
+<!-- 延迟加载仪表盘特定脚本 -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -38,46 +48,29 @@
 </div>
 
 <div class="dashboard-section">
-    <div class="dashboard-section-header bg-light p-4 rounded shadow-sm mb-4">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="mb-2 fw-bold text-primary-dark">财务总览</h1>
-                <p class="subheading m-0 text-muted">
+    {% set subtitle %}
                     {% if data.summary.start_date and data.summary.end_date %}
-                        <i class="material-icons-round me-1 icon-sm icon-align-middle">date_range</i> {{ data.summary.start_date }} 至 {{ data.summary.end_date }} 的账单数据分析
+            {{ icon("date_range", "sm", "", "me-1 icon-align-middle") }} {{ data.summary.start_date }} 至 {{ data.summary.end_date }} 的账单数据分析
                     {% else %}
-                        <i class="material-icons-round me-1 icon-sm icon-align-middle">assessment</i> 账单数据分析
+            {{ icon("assessment", "sm", "", "me-1 icon-align-middle") }} 账单数据分析
                     {% endif %}
-                </p>
-            </div>
-            <div class="text-end">
+    {% endset %}
+    
+    {% set extra_content %}
                 <div class="stat-value fs-4">{{ "%.2f"|format(data.summary.account_balance or 0) }}</div>
                 <div class="small text-muted">当前总资产</div>
-            </div>
-        </div>
-    </div>
+    {% endset %}
+    
+    {{ section_header("财务总览", subtitle, extra_content) }}
 
     <div class="row g-4 mb-5">
         <!-- 资金状况卡片 -->
         <div class="col-xl-8 col-md-12">
-            <div class="card dashboard-card border-primary h-100 shadow-sm">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0"><i class="material-icons-round me-1">account_balance_wallet</i> 当前资金状况</h5>
-                    <span class="badge bg-white text-primary">主要指标</span>
-                </div>
-                <div class="card-body">
+            {% call card("当前资金状况", "account_balance_wallet", "bg-primary text-white", "") %}
                     <div class="row gy-4">
                         <!-- 当前余额和总净收支 -->
                         <div class="col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="stat-icon" style="background-color: rgba(71, 184, 129, 0.1);">
-                                    <i class="material-icons-round" style="color: var(--success);">savings</i>
-                                </div>
-                                <div class="ms-3">
-                                    <h3 class="mb-0 fw-bold">{{ "%.2f"|format(data.summary.account_balance or 0) }}</h3>
-                                    <p class="text-muted mb-0">当前可用资金</p>
-                                </div>
-                            </div>
+                        {{ stat_card("savings", "%.2f"|format(data.summary.account_balance or 0), "当前可用资金", "success") }}
                             
                             {% if data.summary.account_balance_list and data.summary.account_balance_list|length > 0 %}
                             <div class="mt-2">
@@ -111,152 +104,77 @@
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="stat-icon" id="netIcon">
-                                    <i class="material-icons-round" id="netIconInner">account_balance</i>
-                                </div>
-                                <div class="ms-3">
-                                    <h3 class="mb-0 fw-bold {% if data.summary.net_amount >= 0 %}text-success{% else %}text-danger{% endif %}" id="netAmount">
-                                        {{ "%.2f"|format(data.summary.net_amount or 0) }}
-                                    </h3>
-                                    <p class="text-muted mb-0">总净收支</p>
-                                </div>
-                            </div>
+                        {{ stat_card("account_balance", 
+                                   "%.2f"|format(data.summary.net_amount or 0), 
+                                   "总净收支", 
+                                   "primary",
+                                   "success" if data.summary.net_amount >= 0 else "danger") }}
                         </div>
                         
                         <!-- 资金余额趋势图 -->
                         <div class="col-12 mt-4">
-                            <div class="card border-0 shadow-sm rounded">
-                                <div class="card-header bg-primary bg-opacity-10 p-3 border-0">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0 fw-bold">
-                                            <i class="material-icons-round me-1" style="font-size: 1rem; vertical-align: -3px;">trending_up</i>
-                                            可用资金趋势 (最近12个月)
-                                        </h6>
-                                    </div>
+                        {% call chart_container("可用资金趋势 (最近12个月)", "balanceHistoryChart") %}
+                                {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
+                            <div class="chart-legend mt-3 d-flex justify-content-center flex-wrap">
+                                <div class="d-flex align-items-center me-4 mb-2">
+                                    <div style="width: 12px; height: 12px; background-color: rgba(70, 99, 172, 1); border-radius: 50%;"></div>
+                                    <span class="ms-2 small">账户余额</span>
                                 </div>
-                                <div class="card-body p-3">
-                                    {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
-                                    <div class="chart-container" style="position: relative; height: 250px;">
-                                        <canvas id="balanceHistoryChart"></canvas>
-                                    </div>
-                                    <div class="chart-legend mt-3 d-flex justify-content-center flex-wrap">
-                                        <div class="d-flex align-items-center me-4 mb-2">
-                                            <div style="width: 12px; height: 12px; background-color: rgba(70, 99, 172, 1); border-radius: 50%;"></div>
-                                            <span class="ms-2 small">账户余额</span>
-                                        </div>
-                                        <div class="d-flex align-items-center mb-2">
-                                            <div style="width: 12px; height: 12px; background-color: rgba(70, 99, 172, 0.1); border-radius: 0;"></div>
-                                            <span class="ms-2 small">趋势区域</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 余额趋势分析 -->
-                                    {% if data.charts.balance_history|length > 1 %}
-                                    <div class="trend-analysis mt-3 p-2 border-top">
-                                        <div class="row align-items-center">
-                                            <div class="col-md-6">
-                                                {% set first_balance = data.charts.balance_history[0].balance %}
-                                                {% set last_balance = data.charts.balance_history[-1].balance %}
-                                                {% set change = last_balance - first_balance %}
-                                                {% set change_percent = (change / first_balance * 100) if first_balance != 0 else 0 %}
-                                                
-                                                <div class="d-flex align-items-center">
-                                                    <div class="trend-icon rounded-circle d-flex align-items-center justify-content-center me-2"
-                                                         style="width: 30px; height: 30px; background-color: {% if change >= 0 %}rgba(71, 184, 129, 0.1){% else %}rgba(236, 76, 71, 0.1){% endif %}">
-                                                        <i class="material-icons-round" style="font-size: 16px; color: {% if change >= 0 %}var(--success){% else %}var(--danger){% endif %}">
-                                                            {% if change >= 0 %}trending_up{% else %}trending_down{% endif %}
-                                                        </i>
-                                                    </div>
-                                                    <div>
-                                                        <div class="fw-bold {% if change >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                                            {{ "%.2f"|format(change) }} ({{ "%.1f"|format(change_percent) }}%)
-                                                        </div>
-                                                        <div class="small text-muted">从 {{ data.charts.balance_history[0].month }} 到 {{ data.charts.balance_history[-1].month }}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6 mt-3 mt-md-0">
-                                                <div class="d-flex flex-wrap">
-                                                    <div class="me-4">
-                                                        <div class="small text-muted">最高余额</div>
-                                                        <div class="fw-bold">
-                                                            {% set max_balance = data.charts.balance_history|map(attribute='balance')|max %}
-                                                            {{ "%.2f"|format(max_balance) }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="me-4">
-                                                        <div class="small text-muted">最低余额</div>
-                                                        <div class="fw-bold">
-                                                            {% set min_balance = data.charts.balance_history|map(attribute='balance')|min %}
-                                                            {{ "%.2f"|format(min_balance) }}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div class="small text-muted">平均余额</div>
-                                                        <div class="fw-bold">
-                                                            {% set avg_balance = data.charts.balance_history|map(attribute='balance')|sum / data.charts.balance_history|length %}
-                                                            {{ "%.2f"|format(avg_balance) }}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endif %}
-                                    {% else %}
-                                    <div class="text-center py-5 text-muted">
-                                        <i class="material-icons-round" style="font-size: 48px; color: rgba(0,0,0,0.15);">timeline</i>
-                                        <p class="mt-3">暂无余额历史数据</p>
-                                        <small>上传更多银行对账单，系统将生成资金趋势图</small>
-                                    </div>
-                                    {% endif %}
-                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <div style="width: 12px; height: 12px; background-color: rgba(70, 99, 172, 0.1); border-radius: 0;"></div>
+                                    <span class="ms-2 small">趋势区域</span>
                             </div>
                         </div>
 
-                        <!-- 财务状况评估 -->
-                        <div class="col-12">
-                            <div class="alert 
-                                {% if data.summary.net_amount > data.summary.total_income * 0.3 %}
-                                    alert-success
-                                {% elif data.summary.net_amount > 0 %}
-                                    alert-success
-                                {% elif data.summary.net_amount > data.summary.total_expense * -0.1 %}
-                                    alert-warning
-                                {% else %}
-                                    alert-danger
-                                {% endif %} mb-0 shadow-sm">
-                                <i class="material-icons-round me-1" style="vertical-align: -4px;">
-                                    {% if data.summary.net_amount > data.summary.total_income * 0.3 %}
-                                        sentiment_very_satisfied
-                                    {% elif data.summary.net_amount > 0 %}
-                                        sentiment_satisfied
-                                    {% elif data.summary.net_amount > data.summary.total_expense * -0.1 %}
-                                        sentiment_neutral
-                                    {% else %}
-                                        sentiment_very_dissatisfied
-                                    {% endif %}
-                                </i>
-                                <span class="fw-bold">财务状况：</span>
-                                {% if data.summary.net_amount > data.summary.total_income * 0.3 %}
-                                    非常健康，有充足结余
-                                    <div class="mt-1 small text-success">您的收支结余超过收入的30%，建议考虑适当投资</div>
-                                {% elif data.summary.net_amount > 0 %}
-                                    良好，收支平衡有结余
-                                    <div class="mt-1 small text-success">保持良好习惯，可适当增加储蓄比例</div>
-                                {% elif data.summary.net_amount > data.summary.total_expense * -0.1 %}
-                                    一般，略有超支
-                                    <div class="mt-1 small text-warning">支出略高于收入，建议控制非必要支出</div>
-                                {% else %}
-                                    需注意，支出明显超过收入
-                                    <div class="mt-1 small text-danger">支出明显高于收入，建议制定预算计划并削减开支</div>
-                                {% endif %}
+                            <!-- 余额趋势分析 -->
+                            {% if data.charts.balance_history|length > 1 %}
+                            <div class="trend-analysis mt-3 p-2 border-top">
+                                <div class="row align-items-center">
+                                <div class="col-md-6">
+                                        {% set first_balance = data.charts.balance_history[0].balance %}
+                                        {% set last_balance = data.charts.balance_history[-1].balance %}
+                                        {% set change = last_balance - first_balance %}
+                                        {% set change_percent = (change / first_balance * 100) if first_balance != 0 else 0 %}
+                                        
+                                        <div class="d-flex align-items-center">
+                                            <div class="trend-icon rounded-circle d-flex align-items-center justify-content-center me-2"
+                                                 style="width: 30px; height: 30px; background-color: {% if change >= 0 %}rgba(71, 184, 129, 0.1){% else %}rgba(236, 76, 71, 0.1){% endif %}">
+                                                {{ icon("trending_" + ("up" if change >= 0 else "down"), "sm", "text-" + ("success" if change >= 0 else "danger")) }}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold {% if change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {{ "%.2f"|format(change) }} ({{ "%.1f"|format(change_percent) }}%)
+                                            </div>
+                                                <div class="small text-muted">从 {{ data.charts.balance_history[0].month }} 到 {{ data.charts.balance_history[-1].month }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                    <div class="col-md-6 mt-3 mt-md-0">
+                                        <div class="d-flex flex-wrap">
+                                            <div class="me-4">
+                                                <div class="small text-muted">最高余额</div>
+                                                <div class="fw-bold">
+                                                    {% set max_balance = data.charts.balance_history|map(attribute='balance')|max %}
+                                                    {{ "%.2f"|format(max_balance) }}
+                                            </div>
+                                            </div>
+                                            <div class="me-4">
+                                                <div class="small text-muted">最低余额</div>
+                                                <div class="fw-bold">
+                                                    {% set min_balance = data.charts.balance_history|map(attribute='balance')|min %}
+                                                    {{ "%.2f"|format(min_balance) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
+                                    {% endif %}
+                                {% endif %}
+                        {% endcall %}
+                            </div>
+                        </div>
+            {% endcall %}
         </div>
 
         <!-- 收支统计卡片组 -->
@@ -538,111 +456,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-        // 初始化图表
-    initializeCharts();
-        
-        // 为进度条设置宽度
-        document.querySelectorAll('.progress-bar[data-width]').forEach(function(bar) {
-            bar.style.width = bar.getAttribute('data-width') + '%';
-        });
-});
-
-function initializeCharts() {
-        // 余额历史图表
-        try {
-            const balanceHistoryData = document.getElementById('balance-history-data');
-            if (balanceHistoryData) {
-                const chartData = JSON.parse(balanceHistoryData.getAttribute('data-chart'));
-                if (chartData.labels.length > 0) {
-                    // 图表配置
-                    const chartConfig = {
-                        type: 'line',
-                        data: {
-                            labels: chartData.labels,
-                            datasets: [{
-                                label: '账户余额',
-                                data: chartData.values,
-                                backgroundColor: 'rgba(70, 99, 172, 0.1)',
-                                borderColor: 'rgba(70, 99, 172, 1)',
-                                borderWidth: 2,
-                                pointRadius: 4,
-                                pointBackgroundColor: 'rgba(70, 99, 172, 1)',
-                                fill: true,
-                                tension: 0.2
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    display: false  // 隐藏默认图例，使用自定义图例
-                                },
-                                tooltip: {
-                                    mode: 'index',
-                                    intersect: false,
-                                    callbacks: {
-                                        label: function(context) {
-                                            let label = context.dataset.label || '';
-                                            if (label) {
-                                                label += ': ';
-                                            }
-                                            if (context.parsed.y !== null) {
-                                                label += new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY' }).format(context.parsed.y);
-                                            }
-                                            return label;
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                y: {
-                                    beginAtZero: false,
-                                    grid: {
-                                        drawBorder: false,
-                                        color: 'rgba(0, 0, 0, 0.05)'
-                                    },
-                                    ticks: {
-                                        callback: function(value) {
-                                            return new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', notation: 'compact' }).format(value);
-                                        }
-                                    }
-                                },
-                                x: {
-                                    grid: {
-                                        drawBorder: false,
-                                        color: 'rgba(0, 0, 0, 0.05)'
-                                    }
-                                }
-                            },
-                            interaction: {
-                                intersect: false,
-                                mode: 'index'
-                            },
-                            animations: {
-                                tension: {
-                                    duration: 1000,
-                                    easing: 'linear'
-                                }
-                            }
-                        }
-                    };
-                    
-                    // 创建图表
-                    const balanceChart = new Chart(
-                        document.getElementById('balanceHistoryChart'),
-                        chartConfig
-                    );
-                }
-            }
-            
-            // 其他图表初始化代码...
-            
-        } catch (error) {
-            console.error('图表初始化失败:', error);
-        }
-}
-</script>
+<!-- 任何额外的非核心图表脚本可以放在这里 -->
 {% endblock %} 

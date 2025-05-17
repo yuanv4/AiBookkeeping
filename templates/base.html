@@ -4,23 +4,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}银行账单分析系统{% endblock %}</title>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <!-- Chart.js插件 -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js"></script>
-    <!-- 自定义CSS -->
-    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/utilities.css') }}" rel="stylesheet">
-    {% block page_css %}{% endblock %}
+    
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" as="style">
+    <link rel="preload" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" as="style">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style">
+    <link rel="preload" href="{{ url_for('static', filename='css/main.css') }}" as="style">
+    
+    <!-- 关键CSS内联 - 用于最基本的布局和初始渲染 -->
+    <style>
+        :root {
+            --primary: #4663ac;
+            --primary-light: #ebeffa;
+            --primary-dark: #3a5190;
+            --secondary: #6c757d;
+            --success: #47b881;
+            --danger: #ec4c47;
+            --warning: #ffab00;
+            --info: #1070ca;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --sidebar-width: 250px;
+            --header-height: 64px;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f8fafd;
+            color: #334152;
+            min-height: 100vh;
+            display: flex;
+            margin: 0;
+        }
+        
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: white;
+            height: 100vh;
+            position: fixed;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            z-index: 1030;
+            transition: all 0.3s ease;
+            overflow-y: auto;
+        }
+        
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            height: var(--header-height);
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .content {
+            flex: 1;
+            padding: 28px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+        }
+    </style>
+    
+    <!-- 字体加载优化 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" 
+          rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" 
+          rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    </noscript>
+    
+    <!-- 非关键CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+          rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="{{ url_for('static', filename='css/main.css') }}" 
+          rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="{{ url_for('static', filename='css/utilities.css') }}" 
+          rel="stylesheet" media="print" onload="this.media='all'">
+    
+    <!-- Chart.js和插件 - 集中管理，避免重复加载 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
     
     <!-- 公共JS -->
-    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common.js') }}" defer></script>
+    
+    <!-- 页面特定CSS -->
+    {% block page_css %}{% endblock %}
+    
+    <!-- 额外样式 -->
     {% block styles %}{% endblock %}
 </head>
 <body>
@@ -94,41 +187,16 @@
         </div>
     </div>
     
-    <!-- JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // 响应式侧边栏控制
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
-            document.querySelector('.sidebar').classList.toggle('show');
-        });
-        
-        // 在窗口大小变化时处理响应式
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 992) {
-                document.querySelector('.sidebar').classList.remove('show');
-            }
-        });
-        
-        // 处理文件上传
-        document.addEventListener('DOMContentLoaded', function() {
-            const hiddenFileInput = document.getElementById('hiddenFileInput');
-            if (hiddenFileInput) {
-                hiddenFileInput.addEventListener('change', function() {
-                    if (this.files.length > 0) {
-                        // 显示上传中的提示
-                        if (confirm('已选择 ' + this.files.length + ' 个文件，是否开始上传并处理？')) {
-                            document.getElementById('hiddenUploadForm').submit();
-                        }
-                    }
-                });
-            }
-        });
-    </script>
+    <!-- JavaScript - 延迟加载，不阻塞渲染 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
     
     <!-- 隐藏的文件上传表单 -->
     <form id="hiddenUploadForm" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="d-none">
         <input type="file" id="hiddenFileInput" name="file" multiple accept=".xlsx,.xls">
     </form>
+    
+    <!-- 页面特定脚本 -->
+    {% block page_scripts %}{% endblock %}
     
     {% block scripts %}{% endblock %}
 </body>

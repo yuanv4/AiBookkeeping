@@ -114,34 +114,7 @@ function initializeInteractions() {
     }
 }
 
-/**
- * 过滤交易记录
- */
-function filterTransactions(filterType) {
-    // 根据选择的类型过滤交易记录表
-    const table = document.querySelector('.table');
-    if (!table) return;
-    
-    const rows = table.querySelectorAll('tbody tr');
-    
-    rows.forEach(row => {
-        const typeCell = row.querySelector('td:nth-child(3)');
-        if (!typeCell) return;
-        
-        const typeText = typeCell.textContent.trim().toLowerCase();
-        
-        switch(filterType) {
-            case 'income':
-                row.style.display = (typeText.includes('收入') || typeText.includes('退款') || typeText.includes('收款')) ? '' : 'none';
-                break;
-            case 'expense':
-                row.style.display = (typeText.includes('支出') || typeText.includes('消费') || typeText.includes('付款')) ? '' : 'none';
-                break;
-            default: // 'all'
-                row.style.display = '';
-                break;
-        }
-    });
+/** * 过滤交易记录 */function filterTransactions(filterType) {    // 根据选择的类型过滤交易记录表    const table = document.querySelector('.table');    if (!table) return;        const rows = table.querySelectorAll('tbody tr');        rows.forEach(row => {        const typeCell = row.querySelector('td:nth-child(3)');        if (!typeCell) return;                const typeText = typeCell.textContent.trim().toLowerCase();                switch(filterType) {            case 'income':                // 同时匹配英文和中文关键词                row.style.display = (typeText.includes('income') || typeText.includes('refund') ||                                    typeText.includes('收入') || typeText.includes('退款') ||                                    typeText.includes('收款')) ? '' : 'none';                break;            case 'expense':                // 同时匹配英文和中文关键词                row.style.display = (typeText.includes('expense') || typeText.includes('payment') ||                                    typeText.includes('支出') || typeText.includes('消费') ||                                    typeText.includes('付款')) ? '' : 'none';                break;            default: // 'all'                row.style.display = '';                break;        }    });
 }
 
 /**
