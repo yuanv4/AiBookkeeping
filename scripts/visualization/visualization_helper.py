@@ -7,6 +7,8 @@ import numpy as np
 from pathlib import Path
 import logging
 import sys
+import io
+import base64
 
 # 添加项目根目录到PYTHONPATH以解决导入问题
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -709,4 +711,149 @@ class VisualizationHelper:
             'income': incomes,
             'expense': expenses,
             'net': nets
-        } 
+        }
+
+    def generate_weekday_chart(self, weekday_stats):
+        """根据按星期统计的数据生成图表，并返回base64编码的图像
+        
+        Args:
+            weekday_stats: 包含星期统计数据的DataFrame
+            
+        Returns:
+            str: base64编码的图像字符串
+        """
+        try:
+            if weekday_stats is None or weekday_stats.empty:
+                logger.warning("无法生成星期分析图表，数据为空")
+                return None
+            
+            # 确保按星期顺序排序
+            weekday_stats = weekday_stats.sort_values('weekday')
+            
+            weekdays = weekday_stats['weekday_name'].tolist()
+            amounts = weekday_stats['total'].tolist()
+            counts = weekday_stats['count'].tolist()
+            
+            # 创建柱状图
+            fig, ax1 = plt.subplots(figsize=(10, 6))
+            
+            # 金额柱状图
+            x = np.arange(len(weekdays))
+            bars = ax1.bar(x, amounts, alpha=0.7, width=0.6, color='#3F51B5')
+            
+            # 设置坐标轴
+            ax1.set_ylabel('日均交易金额 (元)', color='#333333')
+            ax1.set_title('星期消费分析')
+            ax1.set_xticks(x)
+            ax1.set_xticklabels(weekdays)
+            ax1.tick_params(axis='y', colors='#333333')
+            ax1.grid(axis='y', linestyle='--', alpha=0.7)
+            
+            # 创建第二个坐标轴，显示交易笔数
+            ax2 = ax1.twinx()
+            ax2.plot(x, counts, 'o-', color='#FF9800', linewidth=2, label='日均交易笔数')
+            ax2.set_ylabel('日均交易笔数', color='#FF9800')
+            ax2.tick_params(axis='y', colors='#FF9800')
+            
+            # 添加数值标签
+            for i, (v, c) in enumerate(zip(amounts, counts)):
+                ax1.text(i, v + max(amounts) * 0.03, f'{v:.0f}', ha='center', va='bottom', fontsize=9)
+                ax2.text(i, c + max(counts) * 0.03, f'{c:.1f}', ha='center', va='bottom', fontsize=9, color='#FF9800')
+            
+            # 添加图例
+            from matplotlib.lines import Line2D
+            custom_lines = [
+                Line2D([0], [0], color='#3F51B5', lw=0, marker='s', markersize=10, alpha=0.7),
+                Line2D([0], [0], color='#FF9800', lw=2, marker='o', markersize=5)
+            ]
+            ax1.legend(custom_lines, ['日均交易金额', '日均交易笔数'], loc='upper right')
+            
+            # 保存为内存中的图像并转为base64
+            buf = io.BytesIO()
+            plt.tight_layout()
+            plt.savefig(buf, format='png', dpi=100)
+            plt.close()
+            
+            # 将图像转换为base64字符串
+            buf.seek(0)
+            img_str = base64.b64encode(buf.read()).decode('utf-8')
+            
+            logger.info("星期分析图表生成成功")
+            return img_str
+            
+        except Exception as e:
+            logger.error(f"生成星期分析图表时出错: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+    
+    def generate_daily_spending_chart(self, daily_stats):
+        """根据日消费统计数据生成图表，并返回base64编码的图像
+        
+        Args:
+            daily_stats: 包含日统计数据的DataFrame
+            
+        Returns:
+            str: base64编码的图像字符串
+        """
+        try:
+            if daily_stats is None or daily_stats.empty:
+                logger.warning("无法生成日消费趋势图，数据为空")
+                return None
+            
+            # 确保按日期排序
+            daily_stats = daily_stats.sort_values('date')
+            
+            # 只取最近30天的数据
+            if len(daily_stats) > 30:
+                daily_stats = daily_stats.tail(30)
+            
+            dates = daily_stats['date'].tolist()
+            amounts = daily_stats['total'].tolist()
+            counts = daily_stats['count'].tolist()
+            
+            # 创建柱状图
+            fig, ax1 = plt.subplots(figsize=(12, 6))
+            
+            # 金额柱状图
+            bars = ax1.bar(dates, amounts, alpha=0.6, color='#4CAF50')
+            
+            # 设置坐标轴
+            ax1.set_ylabel('交易金额 (元)', color='#333333')
+            ax1.set_title('日消费趋势')
+            plt.xticks(rotation=45)
+            ax1.tick_params(axis='y', colors='#333333')
+            ax1.grid(axis='y', linestyle='--', alpha=0.7)
+            
+            # 创建第二个坐标轴，显示交易笔数
+            ax2 = ax1.twinx()
+            ax2.plot(dates, counts, 'o-', color='#2196F3', linewidth=2, label='交易笔数')
+            ax2.set_ylabel('交易笔数', color='#2196F3')
+            ax2.tick_params(axis='y', colors='#2196F3')
+            
+            # 添加图例
+            from matplotlib.lines import Line2D
+            custom_lines = [
+                Line2D([0], [0], color='#4CAF50', lw=0, marker='s', markersize=10, alpha=0.6),
+                Line2D([0], [0], color='#2196F3', lw=2, marker='o', markersize=5)
+            ]
+            ax1.legend(custom_lines, ['支出金额', '交易笔数'], loc='upper left')
+            
+            # 保存为内存中的图像并转为base64
+            buf = io.BytesIO()
+            plt.tight_layout()
+            plt.savefig(buf, format='png', dpi=100)
+            plt.close()
+            
+            # 将图像转换为base64字符串
+            buf.seek(0)
+            img_str = base64.b64encode(buf.read()).decode('utf-8')
+            
+            logger.info("日消费趋势图生成成功")
+            return img_str
+            
+        except Exception as e:
+            logger.error(f"生成日消费趋势图时出错: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None 

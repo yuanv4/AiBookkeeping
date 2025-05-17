@@ -39,6 +39,7 @@ from scripts.db.db_manager import DBManager
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # 用于flash消息
+app.config['TEMPLATES_AUTO_RELOAD'] = True  # 禁用模板缓存，强制每次刷新重新加载模板
 
 # 配置上传文件夹和数据文件夹
 UPLOAD_FOLDER = os.path.join(ROOT_DIR, 'uploads')
@@ -305,9 +306,12 @@ def dashboard():
         # 获取余额范围（最高和最低）
         balance_range = db_manager.get_balance_range()
         
+        # 获取月度余额历史数据
+        monthly_balance_history = db_manager.get_monthly_balance_history(months=12)
+        
         # 收支数据
         income = db_stats.get('total_income', 0)
-        expense = abs(db_stats.get('total_expense', 0))  # 转为正数以便于展示
+        expense = db_stats.get('total_expense', 0)  # 保留原值，不转为正数
         net_income = db_stats.get('net_amount', 0)  
         
         # 计算月份数量（如果有开始和结束日期）
@@ -338,10 +342,22 @@ def dashboard():
                 'net_amount': net_income,
                 'income_count': db_stats.get('income_count', 0),
                 'expense_count': db_stats.get('expense_count', 0),
-                'total_transactions': db_stats.get('total_transactions', 0)
+                'total_transactions': db_stats.get('total_transactions', 0),
+                'start_date': db_stats.get('min_date'),
+                'end_date': db_stats.get('max_date')
             },
             'transactions': recent_transactions,
-            'charts': {},  # 添加空的charts对象
+            'charts': {
+                'balance_history': monthly_balance_history,
+                'monthly_labels': [],
+                'monthly_income': [],
+                'monthly_expense': [],
+                'monthly_net': [],
+                'income_source_labels': [],
+                'income_source_values': [],
+                'expense_category_labels': [],
+                'expense_category_values': []
+            },
             'max_balance': balance_range.get('max_balance', 0),
             'min_balance': balance_range.get('min_balance', 0),
             'months_count': months_count,
@@ -353,10 +369,23 @@ def dashboard():
             logger.info(f"仪表盘显示 {len(recent_transactions)} 条近期交易")
         else:
             logger.warning("没有近期交易数据可显示")
+            
+        # 记录余额历史数据
+        if monthly_balance_history:
+            logger.info(f"仪表盘显示 {len(monthly_balance_history)} 个月的余额历史数据")
         
         # 日志记录总余额和余额范围
         logger.info(f"仪表盘总余额: {total_balance}")
         logger.info(f"余额范围: 最高 = {balance_range.get('max_balance', 0)}, 最低 = {balance_range.get('min_balance', 0)}")
+        
+        # 调试储蓄率计算
+        logger.info(f"储蓄率调试 - 总收入: {income}, 总支出: {expense}, 月数: {months_count}")
+        if income > 0:
+            monthly_income = income / months_count
+            monthly_expense_abs = abs(expense) / months_count
+            monthly_savings = monthly_income - monthly_expense_abs
+            savings_rate = (monthly_savings / monthly_income * 100) if monthly_income > 0 else 0
+            logger.info(f"储蓄率调试 - 月收入: {monthly_income}, 月支出(绝对值): {monthly_expense_abs}, 月储蓄: {monthly_savings}, 储蓄率: {savings_rate}%")
         
         return render_template('dashboard.html', data=data)
         
@@ -375,10 +404,22 @@ def dashboard():
                 'net_amount': 0,
                 'income_count': 0,
                 'expense_count': 0,
-                'total_transactions': 0
+                'total_transactions': 0,
+                'start_date': None,
+                'end_date': None
             },
             'transactions': [],
-            'charts': {},  # 添加空的charts对象
+            'charts': {
+                'balance_history': [],
+                'monthly_labels': [],
+                'monthly_income': [],
+                'monthly_expense': [],
+                'monthly_net': [],
+                'income_source_labels': [],
+                'income_source_values': [],
+                'expense_category_labels': [],
+                'expense_category_values': []
+            },
             'max_balance': 0,
             'min_balance': 0,
             'months_count': 1,

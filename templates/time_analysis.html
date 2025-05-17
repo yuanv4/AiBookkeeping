@@ -201,45 +201,14 @@
                                     {% set weekends = weekly_stats[5:] %}
                                     {% set weekday_total = weekdays|sum(attribute='总额') %}
                                     {% set weekend_total = weekends|sum(attribute='总额') %}
-                                    {% set weekday_count = weekdays|sum(attribute='笔数') %}
-                                    {% set weekend_count = weekends|sum(attribute='笔数') %}
-                                    
                                     <p>
                                         工作日（周一至周五）总支出 <strong>{{ "%.2f"|format(weekday_total) }}</strong> 元，
-                                        占总支出的 <strong>{{ "%.2f"|format(weekday_total / total_expense * 100) }}%</strong>，
-                                        共 {{ weekday_count }} 笔交易，平均每笔 {{ "%.2f"|format(weekday_total / weekday_count) }} 元。
-                                    </p>
-                                    <p>
+                                        占总支出的 <strong>{{ "%.2f"|format(weekday_total / total_expense * 100) }}%</strong>。
                                         周末（周六、周日）总支出 <strong>{{ "%.2f"|format(weekend_total) }}</strong> 元，
-                                        占总支出的 <strong>{{ "%.2f"|format(weekend_total / total_expense * 100) }}%</strong>，
-                                        共 {{ weekend_count }} 笔交易，平均每笔 {{ "%.2f"|format(weekend_total / weekend_count) }} 元。
+                                        占总支出的 <strong>{{ "%.2f"|format(weekend_total / total_expense * 100) }}%</strong>。
                                     </p>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- 优化建议 -->
-                        <div class="alert alert-secondary mt-3">
-                            <h5><i class="material-icons-round me-2" style="vertical-align: -4px;">tips_and_updates</i>消费习惯优化建议</h5>
-                            <ul>
-                                <li>
-                                    在消费高峰日 <strong>{{ max_day.星期名 }}</strong>，可以提前规划消费，减少冲动消费的可能性。
-                                </li>
-                                <li>
-                                    {% if weekend_total > weekday_total %}
-                                    您的周末消费明显高于工作日，可以考虑寻找更经济的周末娱乐方式或活动。
-                                    {% elif weekday_total > weekend_total %}
-                                    您的工作日消费高于周末，可能与日常通勤和工作餐有关，可以考虑自带午餐或寻找更经济的交通方式。
-                                    {% else %}
-                                    您的工作日和周末消费相对平衡，继续保持良好的消费习惯。
-                                    {% endif %}
-                                </li>
-                                <li>
-                                    {% if max_day_count.星期 == max_day.星期 %}
-                                    您在 {{ max_day.星期名 }} 既有最高的消费金额，也有最多的交易次数，说明这一天可能是您的购物或社交日，可以考虑将部分活动分散到其他天。
-                                    {% endif %}
-                                </li>
-                            </ul>
                         </div>
                     </div>
                     {% else %}
@@ -300,7 +269,7 @@
                                             支出
                                         </button>
                                         <button class="btn btn-sm btn-primary monthly-toggle-dataset" data-dataset="2">
-                                            <i class="material-icons-round" style="font-size: 16px; vertical-align: -4px;">show_chart</i> 
+                                            <i class="material-icons-round" style="font-size: 16px; vertical-align: -4px;">sync_alt</i> 
                                             净额
                                         </button>
                                     </div>
@@ -323,40 +292,21 @@
                                     <th>收入 (元)</th>
                                     <th>支出 (元)</th>
                                     <th>净收支 (元)</th>
-                                    <th>结余率</th>
-                                    <th>趋势</th>
+                                    <th>收入占比</th>
+                                    <th>支出占比</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for month in monthly_stats %}
+                                {% for month_data in monthly_stats %}
                                 <tr>
-                                    <td>{{ month.月份 }}</td>
-                                    <td class="text-success">{{ "%.2f"|format(month.收入) }}</td>
-                                    <td class="text-danger">{{ "%.2f"|format(month.支出) }}</td>
-                                    <td class="{% if month.净额 >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                        {{ "%.2f"|format(month.净额) }}
+                                    <td>{{ month_data.月份 }}</td>
+                                    <td class="text-success">{{ "%.2f"|format(month_data.收入) }}</td>
+                                    <td class="text-danger">{{ "%.2f"|format(month_data.支出) }}</td>
+                                    <td class="{% if month_data.净额 >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ "%.2f"|format(month_data.净额) }}
                                     </td>
-                                    <td>
-                                        {% if month.收入 > 0 %}
-                                        {{ "%.1f"|format((month.收入 - month.支出) / month.收入 * 100) }}%
-                                        {% else %}
-                                        -
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if loop.index > 1 and monthly_stats[loop.index-2].净额 != 0 %}
-                                        {% set change = (month.净额 - monthly_stats[loop.index-2].净额) / monthly_stats[loop.index-2].净额 * 100 if monthly_stats[loop.index-2].净额 != 0 else 0 %}
-                                        {% if change > 10 %}
-                                        <span class="text-success"><i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">trending_up</i> {{ "%.1f"|format(change) }}%</span>
-                                        {% elif change < -10 %}
-                                        <span class="text-danger"><i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">trending_down</i> {{ "%.1f"|format(change)|replace('-', '') }}%</span>
-                                        {% else %}
-                                        <span class="text-muted"><i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">trending_flat</i> {{ "%.1f"|format(change) }}%</span>
-                                        {% endif %}
-                                        {% else %}
-                                        -
-                                        {% endif %}
-                                    </td>
+                                    <td>{{ "%.2f"|format(month_data.收入占比) }}%</td>
+                                    <td>{{ "%.2f"|format(month_data.支出占比) }}%</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -368,16 +318,8 @@
                                     <th class="{% if monthly_stats|sum(attribute='净额') >= 0 %}text-success{% else %}text-danger{% endif %}">
                                         {{ "%.2f"|format(monthly_stats|sum(attribute='净额')) }}
                                     </th>
-                                    <th>
-                                        {% set total_income = monthly_stats|sum(attribute='收入') %}
-                                        {% set total_expense = monthly_stats|sum(attribute='支出') %}
-                                        {% if total_income > 0 %}
-                                        {{ "%.1f"|format((total_income - total_expense) / total_income * 100) }}%
-                                        {% else %}
-                                        -
-                                        {% endif %}
-                                    </th>
-                                    <th>-</th>
+                                    <th>100.00%</th>
+                                    <th>100.00%</th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -494,7 +436,7 @@
                                             支出
                                         </button>
                                         <button class="btn btn-sm btn-primary yearly-toggle-dataset" data-dataset="2">
-                                            <i class="material-icons-round" style="font-size: 16px; vertical-align: -4px;">show_chart</i> 
+                                            <i class="material-icons-round" style="font-size: 16px; vertical-align: -4px;">sync_alt</i> 
                                             净额
                                         </button>
                                     </div>
@@ -517,44 +459,30 @@
                                     <th>收入 (元)</th>
                                     <th>支出 (元)</th>
                                     <th>净收支 (元)</th>
-                                    <th>结余率</th>
-                                    <th>趋势</th>
+                                    <th>年增长率</th>
                                     <th>操作</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for year in yearly_stats %}
+                                {% for year_data in yearly_stats %}
                                 <tr>
-                                    <td>{{ year.年份 }}</td>
-                                    <td class="text-success">{{ "%.2f"|format(year.收入) }}</td>
-                                    <td class="text-danger">{{ "%.2f"|format(year.支出) }}</td>
-                                    <td class="{% if year.净额 >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                        {{ "%.2f"|format(year.净额) }}
+                                    <td>{{ year_data.年份 }}</td>
+                                    <td class="text-success">{{ "%.2f"|format(year_data.收入) }}</td>
+                                    <td class="text-danger">{{ "%.2f"|format(year_data.支出) }}</td>
+                                    <td class="{% if year_data.净额 >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ "%.2f"|format(year_data.净额) }}
                                     </td>
-                                    <td>
-                                        {% if year.收入 > 0 %}
-                                        {{ "%.1f"|format((year.收入 - year.支出) / year.收入 * 100) }}%
+                                    <td class="{% if year_data.增长率 >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {% if year_data.增长率 != None %}
+                                            {{ "%.2f"|format(year_data.增长率 * 100) }}%
                                         {% else %}
                                         -
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if loop.index > 1 and yearly_stats[loop.index-2].净额 != 0 %}
-                                        {% set change = (year.净额 - yearly_stats[loop.index-2].净额) / yearly_stats[loop.index-2].净额 * 100 if yearly_stats[loop.index-2].净额 != 0 else 0 %}
-                                        {% if change > 10 %}
-                                        <span class="text-success"><i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">trending_up</i> {{ "%.1f"|format(change) }}%</span>
-                                        {% elif change < -10 %}
-                                        <span class="text-danger"><i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">trending_down</i> {{ "%.1f"|format(change)|replace('-', '') }}%</span>
-                                        {% else %}
-                                        <span class="text-muted"><i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">trending_flat</i> {{ "%.1f"|format(change) }}%</span>
-                                        {% endif %}
-                                        {% else %}
-                                        -
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <button onclick="switchToMonthlyTab('{{ year.年份.split('.')[0] }}')" class="btn btn-sm btn-primary">
-                                            <i class="material-icons-round" style="font-size: 16px; vertical-align: -3px;">calendar_month</i> 查看月度
+                                        <button class="btn btn-sm btn-outline-primary" onclick="switchToMonthlyTab('{{ year_data.年份 }}')">
+                                            <i class="material-icons-round" style="font-size: 16px; vertical-align: -4px;">calendar_month</i>
+                                            查看月度
                                         </button>
                                     </td>
                                 </tr>
@@ -568,17 +496,8 @@
                                     <th class="{% if yearly_stats|sum(attribute='净额') >= 0 %}text-success{% else %}text-danger{% endif %}">
                                         {{ "%.2f"|format(yearly_stats|sum(attribute='净额')) }}
                                     </th>
-                                    <th>
-                                        {% set total_income = yearly_stats|sum(attribute='收入') %}
-                                        {% set total_expense = yearly_stats|sum(attribute='支出') %}
-                                        {% if total_income > 0 %}
-                                        {{ "%.1f"|format((total_income - total_expense) / total_income * 100) }}%
-                                        {% else %}
-                                        -
-                                        {% endif %}
-                                    </th>
                                     <th>-</th>
-                                    <th>-</th>
+                                    <th></th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -663,653 +582,11 @@
         </div>
     </div>
 </div>
+
+<!-- 图表数据 -->
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-<script>
-// 统一颜色配置
-const colorPalette = {
-    primary: '#4663ac',
-    success: '#47b881',
-    danger: '#ec4c47',
-    warning: '#ffab00',
-    info: '#1070ca',
-    neutral: ['#4663ac', '#6c84ca', '#8ea2d8', '#b0bfe5', '#d2dcf3']
-};
-
-// 统一图表配置
-const chartConfig = {
-    // 全局字体设置
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    fontSize: 12,
-    
-    // 统一图表外观
-    aspectRatio: 2.5,  // 宽高比
-    responsive: true,
-    maintainAspectRatio: false,
-    
-    // 全局动画设置
-    animation: {
-        duration: 1000,
-        easing: 'easeOutQuart'
-    },
-    
-    // 布局内边距
-    padding: {
-        top: 15,
-        right: 25,
-        bottom: 15,
-        left: 15
-    },
-    
-    // 图例设置
-    legend: {
-        position: 'top',
-        align: 'center',
-        labels: {
-            boxWidth: 12,
-            padding: 15,
-            font: {
-                family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                size: 12
-            }
-        }
-    },
-    
-    // 数据点样式
-    point: {
-        radius: 4,
-        hoverRadius: 6
-    },
-    
-    // 工具提示样式
-    tooltip: {
-        cornerRadius: 4,
-        caretSize: 6,
-        caretPadding: 8,
-        displayColors: true,
-        titleFont: {
-            size: 13,
-            weight: 'bold'
-        },
-        bodyFont: {
-            size: 12
-        },
-        callbacks: {
-            label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) {
-                    label += ': ';
-                }
-                if (context.parsed.y !== null) {
-                    label += new Intl.NumberFormat('zh-CN', { 
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    }).format(context.parsed.y);
-                }
-                return label;
-            }
-        }
-    }
-};
-
-// 通用图表创建函数
-function createChart(ctx, type, labels, datasets, customOptions = {}) {
-    // 默认选项
-    const defaultOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-            padding: {
-                top: chartConfig.padding.top,
-                right: chartConfig.padding.right,
-                bottom: chartConfig.padding.bottom,
-                left: chartConfig.padding.left
-            }
-        },
-        plugins: {
-            legend: {
-                position: chartConfig.legend.position,
-                align: chartConfig.legend.align,
-                labels: chartConfig.legend.labels
-            },
-            tooltip: {
-                mode: 'index',
-                intersect: false,
-                backgroundColor: 'rgba(0, 0, 0, 0.75)',
-                titleColor: '#fff',
-                bodyColor: '#fff',
-                cornerRadius: chartConfig.tooltip.cornerRadius,
-                callbacks: chartConfig.tooltip.callbacks
-            }
-        },
-        animation: chartConfig.animation,
-        interaction: {
-            mode: 'index',
-            intersect: false
-        }
-    };
-    
-    // 合并选项
-    const options = {...defaultOptions, ...customOptions};
-    
-    // 创建图表
-    return new Chart(ctx, {
-        type: type,
-        data: {
-            labels: labels,
-            datasets: datasets
-        },
-        options: options
-    });
-}
-
-// 切换到月度标签并设置年份筛选
-function switchToMonthlyTab(year) {
-    // 保存年份到localStorage
-    localStorage.setItem('selectedYearFilter', year);
-    
-    // 切换到月度标签
-    const monthlyTab = document.getElementById('monthly-tab');
-    if (monthlyTab) {
-        const bsTab = new bootstrap.Tab(monthlyTab);
-        bsTab.show();
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // 检查本地存储中是否有保存的选项卡
-    const activeTab = localStorage.getItem('activeTimeAnalysisTab');
-    if (activeTab) {
-        // 激活保存的选项卡
-        const tab = document.querySelector(activeTab);
-        if (tab) {
-            const bsTab = new bootstrap.Tab(tab);
-            bsTab.show();
-        }
-    }
-    
-    // 为选项卡添加事件监听器，保存选择的选项卡
-    const tabs = document.querySelectorAll('button[data-bs-toggle="tab"]');
-    tabs.forEach(tab => {
-        tab.addEventListener('shown.bs.tab', function(event) {
-            localStorage.setItem('activeTimeAnalysisTab', '#' + event.target.id);
-        });
-    });
-    
-    // 检查是否有年份筛选参数
-    if (localStorage.getItem('selectedYearFilter')) {
-        const year = localStorage.getItem('selectedYearFilter');
-        // 在月度标签内处理年份筛选
-        if (activeTab === '#monthly-tab') {
-            // 重定向到带有年份筛选的URL
-            window.location.href = `{{ url_for('time_analysis') }}?year=${year}`;
-        }
-        // 清除localStorage中的年份筛选
-        localStorage.removeItem('selectedYearFilter');
-    }
-    
-    // 处理进度条
-    document.querySelectorAll('.progress-bar[data-width]').forEach(progressBar => {
-        const width = progressBar.getAttribute('data-width');
-        progressBar.style.width = width + '%';
-    });
-    
-    // 周分析图表初始化
-    if (document.getElementById('weekdayChart')) {
-        {% if weekday_data %}
-        const weekdayCtx = document.getElementById('weekdayChart').getContext('2d');
-        
-        // 周分析数据集
-        const weekdayDatasets = [
-            {
-                label: '消费金额(元)',
-                data: {{ weekday_data.total|tojson }},
-                backgroundColor: colorPalette.primary + 'CC', // CC为透明度
-                borderColor: colorPalette.primary,
-                borderWidth: 1,
-                order: 1,
-                yAxisID: 'y'
-            },
-            {
-                label: '交易笔数',
-                data: {{ weekday_data.count|tojson }},
-                type: 'line',
-                backgroundColor: colorPalette.warning + '20', // 20为透明度
-                borderColor: colorPalette.warning,
-                borderWidth: 2,
-                pointBackgroundColor: colorPalette.warning,
-                pointBorderColor: '#fff',
-                pointRadius: chartConfig.point.radius,
-                pointHoverRadius: chartConfig.point.hoverRadius,
-                fill: true,
-                tension: 0.4, // 使线条平滑
-                order: 0,
-                yAxisID: 'y1'
-            },
-            {
-                label: '平均值(元/笔)',
-                data: {{ weekday_data.average|tojson }},
-                type: 'line',
-                backgroundColor: 'transparent',
-                borderColor: colorPalette.success,
-                borderWidth: 2,
-                borderDash: [5, 5], // 虚线样式
-                pointBackgroundColor: colorPalette.success,
-                pointBorderColor: '#fff',
-                pointRadius: chartConfig.point.radius,
-                pointHoverRadius: chartConfig.point.hoverRadius,
-                fill: false,
-                tension: 0.4,
-                order: 2,
-                yAxisID: 'y1',
-                hidden: true // 默认隐藏
-            }
-        ];
-        
-        // 周分析图表特定配置
-        const weekdayOptions = {
-            scales: {
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: '消费金额(元)',
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        }
-                    }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    grid: {
-                        drawOnChartArea: false
-                    },
-                    title: {
-                        display: true,
-                        text: '笔数/平均值',
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        }
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        }
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    onClick: function(e, legendItem, legend) {
-                        const index = legendItem.datasetIndex;
-                        const ci = legend.chart;
-                        const meta = ci.getDatasetMeta(index);
-                        
-                        // 更新数据集的可见性
-                        meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
-                        
-                        // 更新图表
-                        ci.update();
-                        
-                        // 更新按钮状态
-                        updateButtonStates(ci, '.toggle-dataset');
-                    }
-                }
-            }
-        };
-        
-        // 创建周分析图表
-        const weekdayChart = createChart(
-            weekdayCtx, 
-            'bar', 
-            {{ weekday_data.labels|tojson }}, 
-            weekdayDatasets, 
-            weekdayOptions
-        );
-        
-        // 处理图表切换按钮
-        document.querySelectorAll('.toggle-dataset').forEach(button => {
-            button.addEventListener('click', function() {
-                const datasetIndex = parseInt(this.getAttribute('data-dataset'));
-                const meta = weekdayChart.getDatasetMeta(datasetIndex);
-                // 切换数据集可见性
-                meta.hidden = !meta.hidden;
-                weekdayChart.update();
-                // 更新按钮状态
-                updateButtonStates(weekdayChart, '.toggle-dataset');
-            });
-        });
-        
-        // 初始化按钮状态
-        updateButtonStates(weekdayChart, '.toggle-dataset');
-        {% endif %}
-    }
-    
-    // 月度图表初始化
-    if (document.getElementById('monthlyChart')) {
-        {% if monthly_data %}
-        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-        
-        // 月度数据集
-        const monthlyDatasets = [
-            {
-                label: '收入',
-                data: {{ monthly_data.income|tojson }},
-                backgroundColor: colorPalette.success,
-                borderColor: colorPalette.success,
-                borderWidth: 1,
-                order: 1
-            },
-            {
-                label: '支出',
-                data: {{ monthly_data.expense|tojson }},
-                backgroundColor: colorPalette.danger,
-                borderColor: colorPalette.danger,
-                borderWidth: 1,
-                order: 2
-            },
-            {
-                label: '净额',
-                data: {{ monthly_data.net|tojson }},
-                type: 'line',
-                fill: false,
-                borderColor: colorPalette.primary,
-                backgroundColor: colorPalette.primary,
-                pointBorderColor: colorPalette.primary,
-                pointBackgroundColor: '#fff',
-                pointRadius: chartConfig.point.radius,
-                pointHoverRadius: chartConfig.point.hoverRadius,
-                borderWidth: 2,
-                order: 0
-            }
-        ];
-        
-        // 月度图表特定配置
-        const monthlyOptions = {
-            scales: {
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        }
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        },
-                        callback: function(value) {
-                            return new Intl.NumberFormat('zh-CN', { 
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 0
-                            }).format(value);
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: '金额 (元)',
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        }
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    onClick: function(e, legendItem, legend) {
-                        const index = legendItem.datasetIndex;
-                        const ci = legend.chart;
-                        const meta = ci.getDatasetMeta(index);
-                        
-                        // 更新数据集的可见性
-                        meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
-                        
-                        // 更新图表
-                        ci.update();
-                        
-                        // 更新按钮状态
-                        updateButtonStates(ci, '.monthly-toggle-dataset');
-                    }
-                }
-            }
-        };
-        
-        // 创建月度图表
-        const monthlyChart = createChart(
-            monthlyCtx, 
-            'bar', 
-            {{ monthly_data.labels|tojson }}, 
-            monthlyDatasets, 
-            monthlyOptions
-        );
-        
-        // 处理月度图表切换按钮
-        document.querySelectorAll('.monthly-toggle-dataset').forEach(button => {
-            button.addEventListener('click', function() {
-                const datasetIndex = parseInt(this.getAttribute('data-dataset'));
-                const meta = monthlyChart.getDatasetMeta(datasetIndex);
-                // 切换数据集可见性
-                meta.hidden = !meta.hidden;
-                monthlyChart.update();
-                // 更新按钮状态
-                updateButtonStates(monthlyChart, '.monthly-toggle-dataset');
-            });
-        });
-        
-        // 初始化月度图表按钮状态
-        updateButtonStates(monthlyChart, '.monthly-toggle-dataset');
-        {% endif %}
-    }
-    
-    // 年度图表初始化
-    if (document.getElementById('yearlyChart')) {
-        {% if yearly_data %}
-        const yearlyCtx = document.getElementById('yearlyChart').getContext('2d');
-        
-        // 年度数据集
-        const yearlyDatasets = [
-            {
-                label: '收入',
-                data: {{ yearly_data.income|tojson }},
-                backgroundColor: colorPalette.success,
-                borderColor: colorPalette.success,
-                borderWidth: 1,
-                order: 1
-            },
-            {
-                label: '支出',
-                data: {{ yearly_data.expense|tojson }},
-                backgroundColor: colorPalette.danger,
-                borderColor: colorPalette.danger,
-                borderWidth: 1,
-                order: 2
-            },
-            {
-                label: '净额',
-                data: {{ yearly_data.net|tojson }},
-                type: 'line',
-                fill: false,
-                borderColor: colorPalette.primary,
-                backgroundColor: colorPalette.primary,
-                pointBorderColor: colorPalette.primary,
-                pointBackgroundColor: '#fff',
-                pointRadius: chartConfig.point.radius,
-                pointHoverRadius: chartConfig.point.hoverRadius,
-                borderWidth: 2,
-                order: 0
-            }
-        ];
-        
-        // 年度图表特定配置
-        const yearlyOptions = {
-            scales: {
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        }
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        },
-                        callback: function(value) {
-                            return new Intl.NumberFormat('zh-CN', { 
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 0
-                            }).format(value);
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: '金额 (元)',
-                        font: {
-                            family: chartConfig.fontFamily,
-                            size: chartConfig.fontSize
-                        }
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    onClick: function(e, legendItem, legend) {
-                        const index = legendItem.datasetIndex;
-                        const ci = legend.chart;
-                        const meta = ci.getDatasetMeta(index);
-                        
-                        // 更新数据集的可见性
-                        meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
-                        
-                        // 更新图表
-                        ci.update();
-                        
-                        // 更新按钮状态
-                        updateButtonStates(ci, '.yearly-toggle-dataset');
-                    }
-                }
-            }
-        };
-        
-        // 创建年度图表
-        const yearlyChart = createChart(
-            yearlyCtx, 
-            'bar', 
-            {{ yearly_data.labels|tojson }}, 
-            yearlyDatasets, 
-            yearlyOptions
-        );
-        
-        // 处理年度图表切换按钮
-        document.querySelectorAll('.yearly-toggle-dataset').forEach(button => {
-            button.addEventListener('click', function() {
-                const datasetIndex = parseInt(this.getAttribute('data-dataset'));
-                const meta = yearlyChart.getDatasetMeta(datasetIndex);
-                // 切换数据集可见性
-                meta.hidden = !meta.hidden;
-                yearlyChart.update();
-                // 更新按钮状态
-                updateButtonStates(yearlyChart, '.yearly-toggle-dataset');
-            });
-        });
-        
-        // 初始化年度图表按钮状态
-        updateButtonStates(yearlyChart, '.yearly-toggle-dataset');
-        {% endif %}
-    }
-    
-    // 如果有些统计数据为空，但其他有数据，自动切换到有数据的选项卡
-    {% if not weekday_data and (yearly_data or monthly_data) %}
-        // 如果月度数据有但周分析没有，切换到月度选项卡
-        {% if monthly_data %}
-            document.getElementById('monthly-tab').click();
-        {% elif yearly_data %}
-            document.getElementById('yearly-tab').click();
-        {% endif %}
-    {% endif %}
-});
-
-// 通用按钮状态更新函数
-function updateButtonStates(chart, selector) {
-    document.querySelectorAll(selector).forEach(button => {
-        const datasetIndex = parseInt(button.getAttribute('data-dataset'));
-        const meta = chart.getDatasetMeta(datasetIndex);
-        
-        if (meta.hidden) {
-            if (selector === '.toggle-dataset') {
-                button.classList.remove('btn-primary', 'btn-warning', 'btn-success');
-                button.classList.add('btn-outline-' + (datasetIndex === 0 ? 'primary' : datasetIndex === 1 ? 'warning' : 'success'));
-            } else {
-                if (datasetIndex === 0) {
-                    button.classList.remove('btn-success');
-                    button.classList.add('btn-outline-success');
-                } else if (datasetIndex === 1) {
-                    button.classList.remove('btn-danger');
-                    button.classList.add('btn-outline-danger');
-                } else {
-                    button.classList.remove('btn-primary');
-                    button.classList.add('btn-outline-primary');
-                }
-            }
-        } else {
-            if (selector === '.toggle-dataset') {
-                button.classList.remove('btn-outline-primary', 'btn-outline-warning', 'btn-outline-success');
-                button.classList.add('btn-' + (datasetIndex === 0 ? 'primary' : datasetIndex === 1 ? 'warning' : 'success'));
-            } else {
-                if (datasetIndex === 0) {
-                    button.classList.remove('btn-outline-success');
-                    button.classList.add('btn-success');
-                } else if (datasetIndex === 1) {
-                    button.classList.remove('btn-outline-danger');
-                    button.classList.add('btn-danger');
-                } else {
-                    button.classList.remove('btn-outline-primary');
-                    button.classList.add('btn-primary');
-                }
-            }
-        }
-    });
-}
-</script>
+    data-count="{{ weekday_data.count|tojson }}"
 {% endblock %} 

@@ -218,30 +218,112 @@ class BankTransactionExtractor(ExtractorInterface):
         if 'transaction_date' in df.columns:
             df['transaction_date'] = pd.to_datetime(df['transaction_date'], errors='coerce')
             
+        # ======== 增强的去重处理 ========
+        # 1. 先进行DataFrame内部去重
+        self.logger.info("执行DataFrame内部去重处理")
+        original_count = len(df)
+        
         # 去除完全相同的记录
         df = df.drop_duplicates()
         
-        # 检测可能的重复交易（同一天、相同金额但对手方略有不同）
-        if 'amount' in df.columns:
-            potential_duplicates = df[df.duplicated(subset=['transaction_date', 'amount'], keep=False)]
-            if not potential_duplicates.empty:
-                self.logger.warning(f"检测到{len(potential_duplicates)}条潜在重复交易（相同日期和金额）")
-                for _, group in potential_duplicates.groupby(['transaction_date', 'amount']):
-                    self.logger.debug(f"潜在重复: {group[['transaction_date', 'amount', 'counterparty']].to_dict('records')}")
+        # 检测可能的重复交易（同一天、相同金额、相同交易类型和相同对手方）
+        # 创建一个唯一标识键，组合交易日期、金额、交易类型和对手方
+        df['txn_key'] = df.apply(
+            lambda x: f"{x['transaction_date'].strftime('%Y-%m-%d') if not pd.isna(x['transaction_date']) else 'unknown'}_"
+                     f"{x['amount']}_"
+                     f"{x['transaction_type'] if not pd.isna(x['transaction_type']) else 'unknown'}_"
+                     f"{x['counterparty'] if not pd.isna(x['counterparty']) else 'unknown'}",
+            axis=1
+        )
         
-        # 检测完全相同的交易（除了row_index外所有字段都相同）
-        columns_to_check = [col for col in df.columns if col != 'row_index']
-        if len(columns_to_check) > 0:
-            # 找出除row_index外其他所有字段都相同的记录
-            exact_duplicates = df[df.duplicated(subset=columns_to_check, keep=False)]
-            if not exact_duplicates.empty:
-                self.logger.warning(f"检测到{len(exact_duplicates)}条重复交易（除row_index外所有数据相同）")
-                for _, group in exact_duplicates.groupby(columns_to_check):
-                    self.logger.debug(f"完全重复: {group[['transaction_date', 'amount', 'counterparty', 'row_index']].to_dict('records')}")
-                    # 仅保留row_index值最小的一条记录（通常是原始Excel中最先出现的记录）
-                    duplicate_indices = group.index[1:]  # 保留第一条，删除其余记录
-                    df = df.drop(duplicate_indices)
-                    self.logger.info(f"移除了{len(duplicate_indices)}条重复交易记录")
+        # 检查是否有重复的交易标识键
+        duplicated_keys = df[df.duplicated('txn_key', keep=False)]
+        if not duplicated_keys.empty:
+            self.logger.warning(f"检测到{len(duplicated_keys)}条潜在重复交易（相同日期、金额、类型和对手方）")
+            # 只保留每组重复记录中的第一条
+            df = df.drop_duplicates(subset=['txn_key'], keep='first')
+        
+        # 移除临时列
+        df = df.drop('txn_key', axis=1)
+        
+        # 2. 然后检查数据库中是否已存在相同交易
+        self.logger.info("检查数据库中是否已存在相同交易")
+        
+        # 获取所有交易日期和金额的唯一组合
+        unique_dates_amounts = df[['transaction_date', 'amount', 'transaction_type', 'counterparty']].drop_duplicates()
+        
+        # 初始化一个列表，用于存储已存在于数据库中的记录索引
+        existing_indices = []
+        
+        # 获取数据库连接
+        conn = self.db_manager.get_connection()
+        cursor = conn.cursor()
+        
+        for _, row in unique_dates_amounts.iterrows():
+            date_str = row['transaction_date'].strftime('%Y-%m-%d') if not pd.isna(row['transaction_date']) else None
+            amount = row['amount']
+            transaction_type = row['transaction_type'] if not pd.isna(row['transaction_type']) else None
+            counterparty = row['counterparty'] if not pd.isna(row['counterparty']) else None
+            
+            if date_str is None or amount is None:
+                continue
+            
+            # 查询是否已存在相同交易
+            query = """
+            SELECT t.id 
+            FROM transactions t
+            JOIN accounts a ON t.account_id = a.id
+            LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
+            WHERE 
+                a.account_number = ? AND
+                t.transaction_date = ? AND
+                t.amount = ?
+            """
+            
+            parameters = [account_number, date_str, amount]
+            
+            # 添加条件：如果transaction_type不为空
+            if transaction_type is not None and transaction_type != 'unknown':
+                query += " AND tt.type_name = ?"
+                parameters.append(transaction_type)
+                
+            # 添加条件：如果counterparty不为空
+            if counterparty is not None and counterparty != 'unknown':
+                query += " AND t.counterparty = ?"
+                parameters.append(counterparty)
+            
+            cursor.execute(query, parameters)
+            existing_transaction = cursor.fetchone()
+            
+            if existing_transaction:
+                # 找出所有匹配该日期、金额、类型和对手方的记录
+                matching_indices = df[
+                    (df['transaction_date'] == row['transaction_date']) & 
+                    (df['amount'] == amount) & 
+                    ((df['transaction_type'] == transaction_type) if transaction_type else True) &
+                    ((df['counterparty'] == counterparty) if counterparty else True)
+                ].index.tolist()
+                
+                existing_indices.extend(matching_indices)
+        
+        conn.close()
+        
+        # 移除已存在于数据库中的记录
+        if existing_indices:
+            self.logger.warning(f"数据库中已存在 {len(existing_indices)} 条相同交易记录，这些记录将被跳过")
+            df = df.drop(existing_indices)
+        
+        # 如果去重后没有剩余记录，直接返回
+        if df.empty:
+            self.logger.info("去重后没有新的交易记录需要导入")
+            return 0
+        
+        # 记录去重结果
+        post_dedup_count = len(df)
+        removed_count = original_count - post_dedup_count
+        if removed_count > 0:
+            self.logger.info(f"去重处理共移除 {removed_count} 条重复记录，剩余 {post_dedup_count} 条记录")
+        # ======== 增强的去重处理结束 ========
         
         # 添加银行名称列
         if 'bank' not in df.columns:

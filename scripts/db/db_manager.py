@@ -775,6 +775,104 @@ class DBManager:
         finally:
             conn.close()
 
+    def get_monthly_balance_history(self, months=12):
+        """获取最近几个月的余额历史数据
+        
+        Args:
+            months: 获取多少个月的数据，默认12个月
+            
+        Returns:
+            列表，包含每个月的日期和余额
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # 获取当前日期
+            from datetime import datetime, timedelta
+            
+            # 计算过去N个月的数据
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=30 * months)
+            
+            # 简化查询逻辑，直接获取每个月最后一笔交易的余额
+            query = """
+            WITH monthly_data AS (
+                SELECT 
+                    strftime('%Y-%m', transaction_date) as month,
+                    MAX(transaction_date) as last_date
+                FROM transactions
+                WHERE balance IS NOT NULL
+                GROUP BY strftime('%Y-%m', transaction_date)
+            )
+            SELECT 
+                md.month,
+                (SELECT t.balance 
+                 FROM transactions t 
+                 WHERE strftime('%Y-%m-%d', t.transaction_date) = md.last_date
+                 ORDER BY t.row_index DESC, t.id DESC
+                 LIMIT 1) as balance
+            FROM monthly_data md
+            ORDER BY md.month
+            """
+            
+            cursor.execute(query)
+            results = cursor.fetchall()
+            
+            # 格式化结果
+            balance_history = []
+            for row in results:
+                balance_history.append({
+                    'month': row['month'],
+                    'balance': float(row['balance']) if row['balance'] is not None else 0
+                })
+            
+            self.logger.info(f"获取了 {len(balance_history)} 个月的余额历史数据")
+            
+            # 如果数据少于请求的月数，填充缺失的月份
+            if len(balance_history) < months:
+                existing_months = {item['month'] for item in balance_history}
+                
+                # 生成过去months个月的月份列表
+                all_months = []
+                temp_date = end_date
+                for i in range(months):
+                    month_str = temp_date.strftime('%Y-%m')
+                    all_months.append(month_str)
+                    # 上一个月
+                    temp_date = temp_date.replace(day=1) - timedelta(days=1)
+                
+                # 添加缺失的月份，使用前一个月的余额或0
+                all_months.reverse()  # 从早到晚排序
+                complete_history = []
+                prev_balance = 0
+                
+                for month in all_months:
+                    found = False
+                    for item in balance_history:
+                        if item['month'] == month:
+                            complete_history.append(item)
+                            prev_balance = item['balance']
+                            found = True
+                            break
+                    
+                    if not found:
+                        complete_history.append({
+                            'month': month,
+                            'balance': prev_balance
+                        })
+                
+                balance_history = complete_history
+            
+            return balance_history
+            
+        except Exception as e:
+            self.logger.error(f"获取月度余额历史时出错: {str(e)}")
+            self.logger.error(f"详细错误: {e}")
+            return []
+        finally:
+            conn.close()
+
     def get_transactions_count(self, account_id=None, start_date=None, end_date=None, 
                           min_amount=None, max_amount=None, transaction_type=None,
                           counterparty=None, distinct=False):
