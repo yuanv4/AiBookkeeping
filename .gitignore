@@ -62,4 +62,4 @@ Desktop.ini
 
 # 其他项目特定文件
 config.local.ini
-secrets.ini 
+secrets.ini processed_files/
