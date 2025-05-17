@@ -108,7 +108,7 @@
                         
                         <!-- 资金余额趋势图 -->
                         <div class="col-12 mt-4">
-                        {% call chart_container("可用资金趋势 (最近12个月)", "balanceHistoryChart", "220px") %}
+                        {% call chart_container("可用资金趋势 (最近12个月)", "balanceHistoryChart") %}
                                 {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
                             <div class="chart-legend mt-3 d-flex justify-content-center flex-wrap">
                                 <div class="d-flex align-items-center me-4 mb-2">
@@ -173,10 +173,10 @@
         </div>
 
         <!-- 收支统计卡片组 -->
-        <div class="col-xl-4 col-md-12 d-flex flex-column h-100">
-            <div class="row g-4 flex-grow-1">
+        <div class="col-xl-4 col-md-12">
+            <div class="row g-4 h-100">
                 <!-- 净现金流卡片 -->
-                <div class="col-md-12 h-100" style="flex: 1">
+                <div class="col-md-12">
                     <div class="card dashboard-card h-100 shadow-sm">
                         <div class="card-header bg-light p-2">
                             <h6 class="card-title mb-0 fw-bold">
@@ -193,7 +193,7 @@
                             {% set monthly_expense_abs = (total_expense*-1 if total_expense < 0 else total_expense) / months %}
                             {% set net_cash_flow = monthly_income - monthly_expense_abs %}
                             
-                            <div class="row h-100">
+                            <div class="row">
                                 <div class="col-md-5">
                                     <div class="d-flex align-items-center">
                                         <div class="stat-icon" style="background-color: {% if net_cash_flow >= 0 %}rgba(71, 184, 129, 0.1){% else %}rgba(236, 76, 71, 0.1){% endif %};">
@@ -256,7 +256,7 @@
                 </div>
                 
                 <!-- 储蓄率卡片 -->
-                <div class="col-md-12 h-100" style="flex: 1">
+                <div class="col-md-12">
                     <div class="card dashboard-card h-100 shadow-sm">
                         <div class="card-header bg-light p-2">
                             <h6 class="card-title mb-0 fw-bold">
@@ -290,7 +290,7 @@
                                 <div>储蓄率: {{ savings_rate }}</div>
                             </div>
                             
-                            <div class="row h-100">
+                            <div class="row">
                                 <div class="col-md-5">
                                     <div class="d-flex align-items-center">
                                         <div class="stat-icon" style="background-color: rgba(25, 118, 210, 0.1);">
@@ -365,7 +365,7 @@
                 </div>
                 
                 <!-- 应急资金覆盖率卡片 -->
-                <div class="col-12 h-100" style="flex: 1">
+                <div class="col-12">
                     <div class="card dashboard-card h-100 shadow-sm">
                         <div class="card-header bg-light p-2">
                             <h6 class="card-title mb-0 fw-bold">
@@ -379,7 +379,7 @@
                             {% set monthly_expense_abs = (total_expense*-1 if total_expense < 0 else total_expense) / months %}
                             {% set emergency_fund_ratio = data.summary.account_balance / monthly_expense_abs if monthly_expense_abs > 0 else 0 %}
                             
-                            <div class="row h-100">
+                            <div class="row">
                                 <div class="col-md-5">
                                     <div class="d-flex align-items-center">
                                         <div class="stat-icon" style="background-color: rgba(255, 171, 0, 0.1);">
