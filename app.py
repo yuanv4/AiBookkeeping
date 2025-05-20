@@ -94,21 +94,8 @@ def init_database():
                     # 创建交易分析器实例
                     logger.info("开始分析交易数据")
                     analyzer = TransactionAnalyzer(db_manager)
-                    
                     # 从数据库加载数据
-                    if analyzer.load_data():
-                        # 生成分析数据
-                        analysis_data = analyzer.analyze_transaction_data()
-                        if analysis_data:
-                            # 保存分析结果到JSON文件
-                            output_file = os.path.join(DATA_FOLDER, 'analysis_data.json')
-                            with open(output_file, 'w', encoding='utf-8') as f:
-                                json.dump(analysis_data, f, ensure_ascii=False, indent=2)
-                            logger.info(f"分析数据已保存到: {output_file}")
-                        else:
-                            logger.warning("未能生成分析数据")
-                    else:
-                        logger.warning("未能从数据库加载数据进行分析")
+                    analyzer.load_data()
                 else:
                     logger.warning("未能成功处理任何文件")
         
@@ -578,21 +565,7 @@ def api_data():
                 'data': data
             })
         else:
-            # 分析失败，尝试检查是否存在缓存的分析文件
-            analysis_file = os.path.join(DATA_FOLDER, 'analysis_data.json')
-            if os.path.exists(analysis_file):
-                with open(analysis_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    
-                if data and isinstance(data, dict) and 'summary' in data:
-                    logger.info("无法直接分析数据，使用缓存的分析文件")
-                    return jsonify({
-                        'success': True,
-                        'data': data,
-                        'cached': True
-                    })
-            
-            # 无法分析数据且无缓存文件
+            logger.warning("直接从数据库分析数据失败或未返回有效数据结构")
             return jsonify({
                 'success': False,
                 'error': '无法分析交易数据'

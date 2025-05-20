@@ -5,8 +5,8 @@
 AiBookkeeping/
 ├── app.py                 # Flask应用主文件
 ├── data/                  # 数据目录
-│   ├── transactions.db    # SQLite数据库文件
-│   └── analysis_data.json # 分析结果数据
+│   ├── transactions.db       # SQLite数据库文件
+├── processed_files/      # 已处理的原始Excel文件存档
 ├── scripts/               # 脚本目录
 │   ├── bank_transaction_extractor.py  # 银行交易提取器基类
 │   ├── ccb_transaction_extractor.py   # 建设银行交易提取器
