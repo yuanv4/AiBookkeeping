@@ -45,13 +45,13 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True  # 禁用模板缓存，强制每次�
 UPLOAD_FOLDER = os.path.join(ROOT_DIR, 'uploads')
 DATA_FOLDER = os.path.join(ROOT_DIR, 'data')
 SCRIPTS_FOLDER = os.path.join(ROOT_DIR, 'scripts')
-PROCESSED_FOLDER = os.path.join(ROOT_DIR, 'processed_files')  # 添加已处理文件存档目录
+# PROCESSED_FOLDER = os.path.join(ROOT_DIR, 'processed_files')  # 添加已处理文件存档目录
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
 # 确保上传文件夹和数据文件夹存在
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(DATA_FOLDER, exist_ok=True)
-os.makedirs(PROCESSED_FOLDER, exist_ok=True)  # 确保存档目录存在
+# os.makedirs(PROCESSED_FOLDER, exist_ok=True)  # 确保存档目录存在
 
 # 初始化数据库管理器
 db_manager = DBManager()
@@ -72,24 +72,22 @@ def init_database():
                 logger.info(f"发现 {len(excel_files)} 个Excel文件，开始自动处理")
                 
                 # 使用提取器工厂自动处理文件
-                processed_files = extractor_factory.auto_detect_and_process(upload_dir)
+                processed_files_init = extractor_factory.auto_detect_and_process(upload_dir)
                 
-                if processed_files:
-                    logger.info(f"成功处理 {len(processed_files)} 个文件")
-                    # 处理完成后移动已处理的文件到存档目录
-                    for file_info in processed_files:
+                if processed_files_init:
+                    logger.info(f"成功处理 {len(processed_files_init)} 个文件")
+                    # 处理完成后删除已处理的文件
+                    for file_info in processed_files_init:
                         try:
                             file_name = file_info['file']
-                            source_path = os.path.join(UPLOAD_FOLDER, file_name)
-                            # 添加时间戳前缀，避免文件名冲突
-                            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                            dest_path = os.path.join(PROCESSED_FOLDER, f"{timestamp}_{file_name}")
-                            
-                            # 移动文件
-                            shutil.move(source_path, dest_path)
-                            logger.info(f"已将处理过的文件移动到: {dest_path}")
+                            file_path_to_delete = os.path.join(UPLOAD_FOLDER, file_name)
+                            if os.path.exists(file_path_to_delete):
+                                os.remove(file_path_to_delete)
+                                logger.info(f"已删除处理过的文件: {file_path_to_delete}")
+                            else:
+                                logger.warning(f"尝试删除时未找到文件: {file_path_to_delete}")
                         except Exception as e:
-                            logger.error(f"移动文件 {file_name} 时出错: {e}")
+                            logger.error(f"删除文件 {file_name} 时出错: {e}")
                             
                     # 创建交易分析器实例
                     logger.info("开始分析交易数据")
@@ -152,49 +150,24 @@ def upload_file():
         
         # 保存所有合法文件并检查是否重复
         filenames = []
-        duplicate_files = []
+        # duplicate_files = []  # No longer tracking duplicate files in this manner
         
         for file in files:
             filename = secure_filename(file.filename)
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             
-            # 检查文件名是否已存在于已处理文件目录中
-            processed_files = os.listdir(PROCESSED_FOLDER)
-            is_processed = False
-            for processed_file in processed_files:
-                # 忽略时间戳前缀，检查文件名是否匹配
-                if processed_file.endswith(filename):
-                    duplicate_files.append(filename)
-                    is_processed = True
-                    break
-            
-            if is_processed:
-                continue
-                
-            # 检查文件名是否已存在于上传目录
-            if os.path.exists(file_path):
-                # 检查文件内容是否相同(通过文件大小快速判断)
-                file.seek(0, os.SEEK_END)
-                file_size = file.tell()
-                file.seek(0)
-                
-                existing_size = os.path.getsize(file_path)
-                if file_size == existing_size:
-                    duplicate_files.append(filename)
-                    continue
-            
-            # 保存新文件
+            # 保存新文件 (如果同名文件已存在，将被覆盖。这是期望的行为，因为后续会处理并删除)
             file.save(file_path)
             filenames.append(filename)
         
         # 如果所有文件都是重复的，则提示用户并返回
-        if not filenames and duplicate_files:
-            flash(f'所选文件已存在或已处理过，跳过上传: {", ".join(duplicate_files)}')
-            return redirect(url_for('dashboard'))
+        # if not filenames and duplicate_files:  # This check is no longer valid as duplicate_files is not populated
+        #     flash(f'所选文件已存在或已处理过，跳过上传: {", ".join(duplicate_files)}')
+        #     return redirect(url_for('dashboard'))
         
         # 如果有部分文件重复，提示用户
-        if duplicate_files:
-            flash(f'以下文件已存在或已处理过，跳过上传: {", ".join(duplicate_files)}')
+        # if duplicate_files:  # This check is no longer valid
+        #     flash(f'以下文件已存在或已处理过，跳过上传: {", ".join(duplicate_files)}')
         
         # 运行交易数据自动检测和提取过程
         try:
@@ -209,33 +182,36 @@ def upload_file():
             upload_dir = Path(UPLOAD_FOLDER)
             
             # 使用提取器工厂自动处理文件
-            processed_files = extractor_factory.auto_detect_and_process(upload_dir)
+            processed_files_result = extractor_factory.auto_detect_and_process(upload_dir)
             
-            if processed_files:
-                # 处理完成后移动已处理的文件到存档目录
-                for file_info in processed_files:
+            if processed_files_result:
+                # 处理完成后删除已处理的文件
+                for file_info in processed_files_result:
                     try:
-                        file_name = file_info['file']
-                        source_path = os.path.join(UPLOAD_FOLDER, file_name)
-                        # 添加时间戳前缀，避免文件名冲突
-                        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                        dest_path = os.path.join(PROCESSED_FOLDER, f"{timestamp}_{file_name}")
-                        
-                        # 移动文件
-                        shutil.move(source_path, dest_path)
-                        logger.info(f"已将处理过的文件移动到: {dest_path}")
+                        file_name_to_delete = file_info['file'] 
+                        # Ensure we only attempt to delete files that were part of the current upload batch (in filenames list)
+                        # and were successfully processed (present in file_info from extractor_factory)
+                        if file_name_to_delete in filenames:
+                            source_path = os.path.join(UPLOAD_FOLDER, file_name_to_delete)
+                            if os.path.exists(source_path):
+                                os.remove(source_path)
+                                logger.info(f"已删除处理过的文件: {source_path}")
+                            else:
+                                logger.warning(f"尝试删除时未找到文件: {source_path} (在filenames列表中但不存在于磁盘)")
+                        else:
+                            logger.warning(f"跳过删除文件 {file_name_to_delete}，因为它不在当前上传批次中或未成功保存。")
                     except Exception as e:
-                        logger.error(f"移动文件 {file_name} 时出错: {e}")
+                        logger.error(f"删除文件 {file_name_to_delete} 时出错: {e}")
                 
                 # 构建处理结果消息
                 result_message = "处理完成。\n"
-                result_message += f"成功处理 {len(processed_files)} 个文件，共提取 "
-                total_records = sum(file_info['record_count'] for file_info in processed_files)
+                result_message += f"成功处理 {len(processed_files_result)} 个文件，共提取 "
+                total_records = sum(file_info['record_count'] for file_info in processed_files_result)
                 result_message += f"{total_records} 条交易记录。\n"
                 
                 # 按银行分组统计
                 bank_summary = {}
-                for file_info in processed_files:
+                for file_info in processed_files_result:
                     bank = file_info['bank']
                     if bank not in bank_summary:
                         bank_summary[bank] = {'files': 0, 'records': 0}
