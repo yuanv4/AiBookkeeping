@@ -197,6 +197,21 @@
     
     <!-- 页面特定脚本 -->
     {% block page_scripts %}{% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const hiddenFileInput = document.getElementById('hiddenFileInput');
+    const hiddenUploadForm = document.getElementById('hiddenUploadForm');
+
+    if (hiddenFileInput && hiddenUploadForm) {
+        hiddenFileInput.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                hiddenUploadForm.submit();
+            }
+        });
+    }
+});
+</script>
     
     {% block scripts %}{% endblock %}
 </body>
