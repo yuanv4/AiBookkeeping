@@ -54,63 +54,77 @@ document.addEventListener('DOMContentLoaded', function() {
     bindEventHandlers();
     
     /**
-     * 填充银行/卡号组合选项
+     * 填充账户筛选选项 (基于 account_name 和 account_number)
      */
     function populateBankAccountOptions() {
-        // 从交易记录中提取银行和账号
-        const bankAccounts = new Map();
-        
-        // 获取URL参数中的已选银行和账号
+        const accountSelect = document.getElementById('account_number_filter'); // 改为针对 account_number_filter
+        if (!accountSelect) return;
+
+        // 从 transactions-data 获取传递过来的 accounts 列表 (由 app.py 提供)
+        const accountsDataElement = document.getElementById('accounts-data-for-filter'); 
+        let accounts = [];
+        if (accountsDataElement) {
+            try {
+                accounts = JSON.parse(accountsDataElement.getAttribute('data-accounts'));
+            } catch (e) {
+                console.error("Error parsing accounts data for filter: ", e);
+            }
+        }
+
+        // 获取URL参数中的已选账号
         const urlParams = new URLSearchParams(window.location.search);
-        const selectedBank = urlParams.get('bank') || '';
-        const selectedAccount = urlParams.get('account_number') || '';
-        
-        // 组合筛选的值（格式：bank:account）
-        let selectedValue = '';
-        if (selectedBank) {
-            selectedValue += selectedBank;
-        }
-        selectedValue += ':';
-        if (selectedAccount) {
-            selectedValue += selectedAccount;
-        }
-        
-        // 为每条交易记录创建银行:账号组合
-        transactions.forEach(transaction => {
-            const bank = transaction['bank_name'] || transaction['银行'] || '';
-            const accountNumber = transaction['account_number'] || transaction['账号'] || '';
-            
-            if (bank && accountNumber) {
-                // 只保留同时有银行和卡号的选项
-                const optionText = `${bank} - ${accountNumber}`;
-                const optionValue = `${bank}:${accountNumber}`;
-                
-                bankAccounts.set(optionValue, optionText);
+        const selectedAccountNumber = urlParams.get('account_number') || '';
+        const selectedAccountName = urlParams.get('account_name_filter') || '';
+
+        // 清空现有选项
+        accountSelect.innerHTML = '<option value="">全部账户</option>';
+
+        const uniqueAccounts = new Map();
+        transactions.forEach(t => {
+            if (t.account_number) { // 确保 account_number 存在
+                const key = `${t.account_name || 'N/A'}-${t.account_number}`;
+                if (!uniqueAccounts.has(t.account_number)) { // 使用 account_number 作为唯一键，避免重复账号
+                    uniqueAccounts.set(t.account_number, {
+                        text: `${t.account_name || '未命名账户'} (${t.account_number})`,
+                        account_number: t.account_number,
+                        account_name: t.account_name || ''
+                    });
+                }
             }
         });
         
-        // 构建下拉选项
-        const bankAccountSelect = document.getElementById('bankAccount');
-        if (bankAccountSelect) {
-            // 首先添加"全部"选项
-            const allOption = document.createElement('option');
-            allOption.value = '';
-            allOption.textContent = '全部银行/卡号';
-            bankAccountSelect.appendChild(allOption);
-            
-            // 添加实际选项
-            bankAccounts.forEach((text, value) => {
-                const option = document.createElement('option');
-                option.value = value;
-                option.textContent = text;
-                
-                // 如果与URL参数匹配，则选中
-                if (value === selectedValue) {
-                    option.selected = true;
+        // 如果 accounts (从后端获取的账户列表) 不为空，优先使用它来填充，因为它更全
+        if (accounts && accounts.length > 0) {
+            uniqueAccounts.clear(); // 清除从当前页交易记录中提取的账户
+            accounts.forEach(acc => {
+                if (acc.account_number) {
+                    if (!uniqueAccounts.has(acc.account_number)){
+                        uniqueAccounts.set(acc.account_number, {
+                            text: `${acc.account_name || '未命名账户'} (${acc.account_number})`,
+                            account_number: acc.account_number,
+                            account_name: acc.account_name || ''
+                        });
+                    }
                 }
-                
-                bankAccountSelect.appendChild(option);
             });
+        }
+
+        uniqueAccounts.forEach(acc_info => {
+            const option = document.createElement('option');
+            option.value = acc_info.account_number; // 值直接是 account_number
+            option.textContent = acc_info.text;
+            option.dataset.accountName = acc_info.account_name; // 存储 account_name 以便需要时使用
+            
+            if (acc_info.account_number === selectedAccountNumber) {
+                option.selected = true;
+            }
+            accountSelect.appendChild(option);
+        });
+
+        // 联动 account_name_filter (如果存在)
+        const accountNameInput = document.getElementById('account_name_filter');
+        if (accountNameInput && selectedAccountName) {
+            accountNameInput.value = selectedAccountName;
         }
     }
     
@@ -169,41 +183,46 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 日期列
             const dateCell = document.createElement('td');
-            dateCell.textContent = transaction['transaction_date'] || transaction['交易日期'] || '';
+            dateCell.textContent = transaction['transaction_date'] || ''; // 直接使用新字段名
             row.appendChild(dateCell);
             
             // 类型列
             const typeCell = document.createElement('td');
-            typeCell.textContent = transaction['transaction_type'] || transaction['交易类型'] || '';
+            typeCell.textContent = transaction['transaction_type'] || ''; // 直接使用新字段名
             row.appendChild(typeCell);
             
             // 交易对象列
             const merchantCell = document.createElement('td');
-            merchantCell.textContent = transaction['counterparty'] || transaction['交易对象'] || '';
+            merchantCell.textContent = transaction['counterparty'] || ''; // 直接使用新字段名
             row.appendChild(merchantCell);
             
             // 金额列
             const amountCell = document.createElement('td');
-            const amount = parseFloat(transaction['amount'] || transaction['交易金额'] || 0);
+            const amount = parseFloat(transaction['amount'] || 0);
             amountCell.textContent = amount.toFixed(2);
             amountCell.className = amount >= 0 ? 'positive' : 'negative';
             row.appendChild(amountCell);
             
             // 账户余额列
             const balanceCell = document.createElement('td');
-            const balance = parseFloat(transaction['balance'] || transaction['账户余额'] || 0);
+            const balance = parseFloat(transaction['balance'] || 0);
             balanceCell.textContent = balance.toFixed(2);
             row.appendChild(balanceCell);
+
+            // 币种列 (新)
+            const currencyCell = document.createElement('td');
+            currencyCell.textContent = transaction['currency'] || '';
+            row.appendChild(currencyCell);
             
             // 账号列
-            const accountCell = document.createElement('td');
-            accountCell.textContent = transaction['account_number'] || transaction['账号'] || '';
-            row.appendChild(accountCell);
+            const accountNoCell = document.createElement('td');
+            accountNoCell.textContent = transaction['account_number'] || ''; // 直接使用新字段名
+            row.appendChild(accountNoCell);
             
-            // 银行列
-            const bankCell = document.createElement('td');
-            bankCell.textContent = transaction['bank_name'] || transaction['银行'] || '';
-            row.appendChild(bankCell);
+            // 账户名称列 (新)
+            const accountNameCell = document.createElement('td');
+            accountNameCell.textContent = transaction['account_name'] || '';
+            row.appendChild(accountNameCell);
             
             tableBody.appendChild(row);
         });
@@ -348,15 +367,30 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function applyFilters() {
         // 获取筛选值
-        const category = document.getElementById('category').value;
-        const bankAccount = document.getElementById('bankAccount').value;
-        const search = document.getElementById('search').value;
+        const transactionType = document.getElementById('type').value; // Renamed from 'category' to 'type'
+        const accountNumber = document.getElementById('account_number_filter').value; // Changed ID and source
+        const accountName = document.getElementById('account_name_filter').value; // New filter
+        const currency = document.getElementById('currency_filter').value; // New filter
+        const counterparty = document.getElementById('counterparty_filter').value; // Changed ID
+        const startDate = document.getElementById('start_date_filter').value;
+        const endDate = document.getElementById('end_date_filter').value;
+        const minAmount = document.getElementById('min_amount_filter').value;
+        const maxAmount = document.getElementById('max_amount_filter').value;
+        const distinct = document.getElementById('distinct_filter').checked;
         
         // 构建URL参数
         const urlParams = new URLSearchParams();
-        if (category) urlParams.set('type', category);
-        if (bankAccount) urlParams.set('account_id', bankAccount);
-        if (search) urlParams.set('search', search);
+        if (transactionType) urlParams.set('type', transactionType);
+        if (accountNumber) urlParams.set('account_number', accountNumber);
+        if (accountName) urlParams.set('account_name_filter', accountName);
+        if (currency) urlParams.set('currency', currency);
+        if (counterparty) urlParams.set('counterparty', counterparty);
+        if (startDate) urlParams.set('start_date', startDate);
+        if (endDate) urlParams.set('end_date', endDate);
+        if (minAmount) urlParams.set('min_amount', minAmount);
+        if (maxAmount) urlParams.set('max_amount', maxAmount);
+        if (distinct) urlParams.set('distinct', 'true');
+
         urlParams.set('page', '1'); // 重置到第一页
         
         // 重定向到新URL
@@ -368,9 +402,16 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function resetFilters() {
         // 重置所有筛选器
-        document.getElementById('category').value = '';
-        document.getElementById('bankAccount').value = '';
-        document.getElementById('search').value = '';
+        document.getElementById('type').value = '';
+        document.getElementById('account_number_filter').value = '';
+        document.getElementById('account_name_filter').value = '';
+        document.getElementById('currency_filter').value = '';
+        document.getElementById('counterparty_filter').value = '';
+        document.getElementById('start_date_filter').value = '';
+        document.getElementById('end_date_filter').value = '';
+        document.getElementById('min_amount_filter').value = '';
+        document.getElementById('max_amount_filter').value = '';
+        document.getElementById('distinct_filter').checked = false;
         
         // 重定向到无筛选的URL
         window.location.href = window.location.pathname;
@@ -380,44 +421,18 @@ document.addEventListener('DOMContentLoaded', function() {
      * 下载CSV文件
      */
     function downloadCSV() {
-        if (transactions.length === 0) {
-            alert('没有可导出的交易记录');
-            return;
-        }
+        const currentParams = new URLSearchParams(window.location.search);
+        currentParams.delete('page'); // 导出所有符合筛选条件的，不分页
         
-        // 获取标题行
-        const headers = ['序号', '日期', '类型', '交易对象', '金额', '账户余额', '账号', '银行'];
+        // 构建导出URL
+        const exportUrl = `/api/export_transactions?${currentParams.toString()}`;
         
-        // 准备CSV内容
-        let csvContent = headers.join(',') + '\n';
-        
-        // 添加数据行
-        transactions.forEach((transaction, index) => {
-            const row = [
-                index + 1,
-                `"${transaction['transaction_date'] || ''}"`,
-                `"${transaction['transaction_type'] || ''}"`,
-                `"${transaction['counterparty'] || ''}"`,
-                transaction['amount'] || 0,
-                transaction['balance'] || 0,
-                `"${transaction['account_number'] || ''}"`,
-                `"${transaction['bank_name'] || ''}"`
-            ];
-            
-            csvContent += row.join(',') + '\n';
-        });
-        
-        // 创建下载链接
-        const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
+        // 通过创建链接并点击来触发下载
         const link = document.createElement('a');
-        link.setAttribute('href', encodedUri);
-        link.setAttribute('download', '交易记录.csv');
+        link.href = exportUrl;
+        link.setAttribute('download', 'transactions.csv'); //浏览器将尝试保存名为 transactions.csv 的文件
         document.body.appendChild(link);
-        
-        // 点击链接下载
         link.click();
-        
-        // 清理
         document.body.removeChild(link);
     }
     

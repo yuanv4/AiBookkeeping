@@ -125,7 +125,7 @@
         </div>
         <ul class="nav nav-sidebar flex-column">
             <li class="nav-item">
-                <a class="nav-link {% if request.path == url_for('dashboard') %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                <a class="nav-link {% if request.path == url_for('main.dashboard') %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
                     <div class="nav-icon-round">
                         <i class="material-icons-round">dashboard</i>
                     </div>
@@ -133,7 +133,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.path == url_for('transactions') %}active{% endif %}" href="{{ url_for('transactions') }}">
+                <a class="nav-link {% if request.path == url_for('transactions_bp.transactions_list_route') %}active{% endif %}" href="{{ url_for('transactions_bp.transactions_list_route') }}">
                     <div class="nav-icon-round">
                         <i class="material-icons-round">receipt_long</i>
                     </div>
@@ -151,7 +151,7 @@
             </button>
             <h4 class="header-title">{% block header_title %}银行账单分析系统{% endblock %}</h4>
             <div>
-                {% if request.path == url_for('dashboard') %}
+                {% if request.path == url_for('main.dashboard') %}
                 <a href="javascript:void(0);" class="btn btn-primary" onclick="document.getElementById('hiddenFileInput').click();">
                     <i class="material-icons-round icon-md icon-align-middle me-1">cloud_upload</i>
                     上传文件
@@ -191,7 +191,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
     
     <!-- 隐藏的文件上传表单 -->
-    <form id="hiddenUploadForm" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="d-none">
+    <form id="hiddenUploadForm" action="{{ url_for('upload_bp.upload_file_route') }}" method="post" enctype="multipart/form-data" class="d-none">
         <input type="file" id="hiddenFileInput" name="file" multiple accept=".xlsx,.xls">
     </form>
     

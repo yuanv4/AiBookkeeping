@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 import numpy as np
+import traceback
 
 # 配置日志
 logger = logging.getLogger('db_manager')
@@ -355,145 +356,148 @@ class DBManager:
         finally:
             conn.close()
     
-    def get_transactions(self, account_id=None, start_date=None, end_date=None, 
-                         min_amount=None, max_amount=None, transaction_type=None,
-                         counterparty=None, limit=1000, offset=0, distinct=False):
-        """按条件查询交易记录
-        
+    def get_transactions(self, account_number_filter=None, start_date=None, end_date=None,
+                         min_amount=None, max_amount=None, transaction_type_filter=None,
+                         counterparty_filter=None, currency_filter=None, account_name_filter=None,
+                         limit=1000, offset=0, distinct=False):
+        """按条件查询交易记录 (已重构以适应新的扁平化transactions表)
+
         Args:
-            account_id: 账户ID
+            account_number_filter: 账号 (用于筛选)
             start_date: 开始日期
             end_date: 结束日期
             min_amount: 最小金额
             max_amount: 最大金额
-            transaction_type: 交易类型
-            counterparty: 交易对方
+            transaction_type_filter: 交易类型名称 (用于筛选 tt.type_name)
+            counterparty_filter: 交易对方 (用于筛选 t.counterparty)
+            currency_filter: 币种 (当前版本数据库表不支持此筛选)
+            account_name_filter: 户名 (用于筛选 a.account_name)
             limit: 返回记录数限制
             offset: 分页偏移量
-            distinct: 是否去除重复交易（根据日期、金额、交易类型和交易对象判断）
-            
+            distinct: 是否去除重复交易 (根据核心字段判断)
+
         Returns:
             交易记录字典列表
         """
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
-            
-            # 构建查询条件
+
             conditions = []
             params = []
-            
-            if account_id:
-                conditions.append("t.account_id = ?")
-                params.append(account_id)
-                
+
+            # Base FROM and JOIN clauses
+            from_join_clause = """
+                FROM transactions t
+                LEFT JOIN accounts a ON t.account_id = a.id
+                LEFT JOIN banks b ON a.bank_id = b.id
+                LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
+            """
+
+            if account_number_filter:
+                conditions.append("a.account_number LIKE ?")
+                params.append(f"%{account_number_filter}%")
+            if account_name_filter:
+                conditions.append("a.account_name LIKE ?")
+                params.append(f"%{account_name_filter}%")
             if start_date:
                 conditions.append("t.transaction_date >= ?")
                 params.append(start_date)
-                
             if end_date:
                 conditions.append("t.transaction_date <= ?")
                 params.append(end_date)
-                
             if min_amount is not None:
                 conditions.append("t.amount >= ?")
                 params.append(min_amount)
-                
             if max_amount is not None:
                 conditions.append("t.amount <= ?")
                 params.append(max_amount)
-                
-            if transaction_type:
+            if transaction_type_filter:
                 conditions.append("tt.type_name LIKE ?")
-                params.append(f"%{transaction_type}%")
-                
-            if counterparty:
-                conditions.append("t.counterparty LIKE ?")
-                params.append(f"%{counterparty}%")
+                params.append(f"%{transaction_type_filter}%")
+            if counterparty_filter:
+                conditions.append("t.counterparty LIKE ?") # Assumes t.counterparty is the correct direct column
+                params.append(f"%{counterparty_filter}%")
             
-            # 构建WHERE子句
+            if currency_filter:
+                self.logger.warning("Currency filter is not currently supported by the database schema for transactions and will be ignored.")
+                # No condition is added for currency_filter
+
             where_clause = ""
             if conditions:
                 where_clause = "WHERE " + " AND ".join(conditions)
-            
-            # 查询交易记录
-            # 如果需要去重，使用GROUP BY子句
+
+            # Define fields to select, ensuring aliases are used where column names might clash or for clarity
+            # Explicitly list needed fields instead of a generic "core_fields" string here for better control
+            # Ensuring original 'transaction_type' key is populated by tt.type_name for compatibility
+            # Ensuring original 'account_number' key is populated by a.account_number
+            # Ensuring original 'account_name' key is populated by a.account_name (if it exists in select)
+            # Adding b.bank_name as bank_name
+            select_fields = """
+                t.id, t.transaction_date, t.amount, t.balance, t.counterparty, t.description, t.category AS transaction_category, t.notes,
+                a.account_number, a.account_name,
+                b.bank_name,
+                tt.type_name AS transaction_type
+            """
+            # Note: 'currency' is omitted from select_fields as its source is undefined.
+            # 'row_index' and 'import_batch' from t can be added if needed.
+            # 't.created_at' is typically added for distinct handling or general info.
+
             if distinct:
+                # For distinct, we group by a set of fields that define a unique transaction for the user's perspective.
+                # These fields must be from the joined tables.
+                # The MIN(t.id) and MIN(t.created_at) are for consistent row selection within a group.
+                # Ensure all fields in GROUP BY are also in SELECT (either directly or aggregated).
+                # The 'transaction_category' alias for t.category is used here for clarity.
+                # The 'transaction_type' alias for tt.type_name is used here.
+                distinct_group_by_fields = "t.transaction_date, t.amount, t.balance, tt.type_name, t.counterparty, a.account_number, a.account_name, b.bank_name, t.description, t.category"
+                
                 query = f'''
-                    SELECT 
-                        MIN(t.id) as id, 
-                        t.transaction_date, 
-                        t.amount, 
-                        t.balance, 
-                        t.counterparty, 
-                        t.description, 
-                        t.category, 
-                        MIN(t.created_at) as created_at, 
-                        t.row_index,
-                        a.account_number, 
-                        tt.type_name as transaction_type, 
-                        b.bank_name
+                    SELECT
+                        MIN(t.id) as id,
+                        t.transaction_date, t.amount, t.balance, t.counterparty, t.description, t.category AS transaction_category, t.notes,
+                        a.account_number, a.account_name,
+                        b.bank_name,
+                        tt.type_name AS transaction_type,
+                        MIN(t.created_at) as created_at 
                     FROM transactions t
-                    JOIN accounts a ON t.account_id = a.id
-                    JOIN banks b ON a.bank_id = b.id
+                    LEFT JOIN accounts a ON t.account_id = a.id
+                    LEFT JOIN banks b ON a.bank_id = b.id
                     LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
                     {where_clause}
-                    GROUP BY t.transaction_date, t.amount, t.counterparty, tt.type_name
-                    ORDER BY t.transaction_date DESC, t.row_index DESC
+                    GROUP BY {distinct_group_by_fields}
+                    ORDER BY t.transaction_date DESC, MIN(t.id) DESC
                     LIMIT ? OFFSET ?
                 '''
             else:
                 query = f'''
-                    SELECT 
-                        t.id, 
-                        t.transaction_date, 
-                        t.amount, 
-                        t.balance, 
-                        t.counterparty, 
-                        t.description, 
-                        t.category, 
-                        t.created_at, 
-                        t.row_index,
-                        a.account_number, 
-                        tt.type_name as transaction_type, 
-                        b.bank_name
-                    FROM transactions t
-                    JOIN accounts a ON t.account_id = a.id
-                    JOIN banks b ON a.bank_id = b.id
-                    LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
+                    SELECT
+                        {select_fields},
+                        t.created_at
+                    {from_join_clause}
                     {where_clause}
-                    ORDER BY t.transaction_date DESC, t.row_index DESC
+                    ORDER BY t.transaction_date DESC, t.id DESC
                     LIMIT ? OFFSET ?
                 '''
             
-            # 添加参数
             params.extend([limit, offset])
-            
-            # 记录查询信息
-            self.logger.info(f"执行交易查询: limit={limit}, offset={offset}, distinct={distinct}")
-            self.logger.info(f"SQL: {query}")
-            self.logger.info(f"参数: {params}")
-            
+
+            self.logger.info(f"Executing transaction query: limit={limit}, offset={offset}, distinct={distinct}")
+            self.logger.info(f"SQL: {query}") # Be cautious logging potentially large queries if they become very complex
+            self.logger.info(f"Params: {params}")
+
             cursor.execute(query, params)
-            
-            # 获取结果，不再添加中文字段名，只使用原始英文字段名
-            results = []
-            for row in cursor.fetchall():
-                # 转换为字典并直接添加到结果中
-                results.append(dict(row))
-            
-            # 记录查询结果数量
-            self.logger.info(f"查询到 {len(results)} 条交易记录")
-            
-            # 如果查询到了结果，记录第一条记录的信息
-            if results:
-                self.logger.info(f"第一条记录: {results[0]}")
+            results = [dict(row) for row in cursor.fetchall()]
+
+            self.logger.info(f"Found {len(results)} transaction records")
+            if results and len(results) > 0 : # Check if results is not empty before trying to access an element
+                 self.logger.info(f"First record example: {results[0]}") # Log first record if exists
             
             return results
-            
+
         except Exception as e:
-            self.logger.error(f"查询交易记录时出错: {str(e)}")
-            self.logger.error(f"详细错误: {e}")
+            self.logger.error(f"Error querying transactions: {str(e)}")
+            self.logger.error(f"Detailed error: {traceback.format_exc()}") # Log full traceback
             return []
         finally:
             conn.close()
@@ -873,105 +877,148 @@ class DBManager:
         finally:
             conn.close()
 
-    def get_transactions_count(self, account_id=None, start_date=None, end_date=None, 
-                          min_amount=None, max_amount=None, transaction_type=None,
-                          counterparty=None, distinct=False):
-        """获取符合条件的交易记录总数
-        
+    def get_transactions_count(self, account_number_filter=None, start_date=None, end_date=None,
+                               min_amount=None, max_amount=None, transaction_type_filter=None,
+                               counterparty_filter=None, currency_filter=None, account_name_filter=None,
+                               distinct=False):
+        """获取符合条件的交易记录总数 (已重构)
+
         Args:
-            account_id: 账户ID
+            account_number_filter: 账号
             start_date: 开始日期
             end_date: 结束日期
             min_amount: 最小金额
             max_amount: 最大金额
-            transaction_type: 交易类型
-            counterparty: 交易对方
+            transaction_type_filter: 交易类型名称
+            counterparty_filter: 交易对方
+            currency_filter: 币种 (当前版本数据库表不支持此筛选)
+            account_name_filter: 户名
             distinct: 是否去除重复交易
-            
+
         Returns:
             符合条件的交易记录总数
         """
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
-            
-            # 构建查询条件
+
             conditions = []
             params = []
             
-            if account_id:
-                conditions.append("t.account_id = ?")
-                params.append(account_id)
-                
+            # Determine if joins are needed based on filters or distinct requirements
+            joins_needed = False
+            from_join_clause_parts = ["FROM transactions t"]
+
+            if account_number_filter:
+                conditions.append("a.account_number LIKE ?")
+                params.append(f"%{account_number_filter}%")
+                joins_needed = True # Account join needed
+            if account_name_filter:
+                conditions.append("a.account_name LIKE ?")
+                params.append(f"%{account_name_filter}%")
+                joins_needed = True # Account join needed
             if start_date:
                 conditions.append("t.transaction_date >= ?")
                 params.append(start_date)
-                
             if end_date:
                 conditions.append("t.transaction_date <= ?")
                 params.append(end_date)
-                
             if min_amount is not None:
                 conditions.append("t.amount >= ?")
                 params.append(min_amount)
-                
             if max_amount is not None:
                 conditions.append("t.amount <= ?")
                 params.append(max_amount)
-                
-            if transaction_type:
+            if transaction_type_filter:
                 conditions.append("tt.type_name LIKE ?")
-                params.append(f"%{transaction_type}%")
-                
-            if counterparty:
+                params.append(f"%{transaction_type_filter}%")
+                joins_needed = True # Transaction type join needed
+            if counterparty_filter: # Assumes t.counterparty is a direct column in transactions table
                 conditions.append("t.counterparty LIKE ?")
-                params.append(f"%{counterparty}%")
+                params.append(f"%{counterparty_filter}%")
             
-            # 构建WHERE子句
+            if currency_filter:
+                self.logger.warning("Currency filter is not currently supported for transaction counts and will be ignored.")
+                # No condition for currency_filter
+
+            # Construct JOIN clauses if needed for filters or for distinct operation if it relies on joined fields
+            # For distinct count, we must always join if distinct_columns refer to joined table fields.
+            # The distinct_columns list below has been updated to reflect joined table fields.
+            if distinct or joins_needed:
+                # Base joins, always include them if any join is needed or for distinct count
+                from_join_clause_parts.append("LEFT JOIN accounts a ON t.account_id = a.id")
+                from_join_clause_parts.append("LEFT JOIN banks b ON a.bank_id = b.id") # bank_name might be part of distinct_columns
+                from_join_clause_parts.append("LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id")
+            
+            from_join_clause = "\n                ".join(from_join_clause_parts)
+
             where_clause = ""
             if conditions:
                 where_clause = "WHERE " + " AND ".join(conditions)
-            
-            # 查询记录总数
+
             if distinct:
+                # These columns define a unique transaction from the user's perspective and come from joined tables.
+                distinct_columns = "t.transaction_date, t.amount, t.balance, tt.type_name, t.counterparty, a.account_number, a.account_name, b.bank_name, t.description, t.category"
                 query = f'''
-                    SELECT COUNT(DISTINCT t.transaction_date || '_' || t.amount || '_' || IFNULL(t.counterparty, '')) as total_count
-                    FROM transactions t
-                    JOIN accounts a ON t.account_id = a.id
-                    JOIN banks b ON a.bank_id = b.id
-                    LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
-                    {where_clause}
+                    SELECT COUNT(*) as total_count
+                    FROM (
+                        SELECT DISTINCT {distinct_columns}
+                        {from_join_clause}
+                        {where_clause}
+                    )
                 '''
             else:
                 query = f'''
                     SELECT COUNT(*) as total_count
-                    FROM transactions t
-                    JOIN accounts a ON t.account_id = a.id
-                    JOIN banks b ON a.bank_id = b.id
-                    LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
+                    {from_join_clause}
                     {where_clause}
                 '''
-            
-            # 记录查询信息
-            self.logger.info(f"执行交易记录总数查询: distinct={distinct}")
+
+            self.logger.info(f"Executing transaction count query: distinct={distinct}")
             self.logger.info(f"SQL: {query}")
-            self.logger.info(f"参数: {params}")
-            
+            self.logger.info(f"Params: {params}")
+
             cursor.execute(query, params)
             result = cursor.fetchone()
             total_count = result['total_count'] if result else 0
-            
-            # 记录查询结果
-            self.logger.info(f"符合条件的交易记录总数: {total_count}")
-            
+
+            self.logger.info(f"Total matching transaction records: {total_count}")
             return total_count
-            
+
         except Exception as e:
-            self.logger.error(f"查询交易记录总数时出错: {str(e)}")
-            self.logger.error(f"详细错误: {e}")
+            self.logger.error(f"Error querying transaction count: {str(e)}")
+            self.logger.error(f"Detailed error: {traceback.format_exc()}") # Log full traceback
             return 0
         finally:
             conn.close()
+
+    def get_distinct_values(self, table_name: str, column_name: str) -> list:
+        """获取指定表和列的唯一非空值列表，按值排序。"""
+        conn = self.get_connection()
+        # 对表名和列名进行基本验证，防止SQL注入，尽管这里是内部使用
+        # 更安全的方式是使用白名单验证 table_name 和 column_name
+        safe_table_name = ''.join(c for c in table_name if c.isalnum() or c == '_')
+        safe_column_name = ''.join(c for c in column_name if c.isalnum() or c == '_')
+        if not safe_table_name or not safe_column_name or safe_table_name != table_name or safe_column_name != column_name:
+            self.logger.error(f"get_distinct_values: 无效的表名或列名: {table_name}, {column_name}")
+            return []
+        try:
+            cursor = conn.cursor()
+            # 使用 f-string 插入经过"清洁"的表名和列名
+            query = f"SELECT DISTINCT \"{safe_column_name}\" FROM \"{safe_table_name}\" WHERE \"{safe_column_name}\" IS NOT NULL ORDER BY \"{safe_column_name}\" ASC"
+            self.logger.debug(f"Executing query for distinct values: {query}")
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            return [row[0] for row in rows]
+        except sqlite3.Error as e: # 更具体地捕获SQLite错误
+            self.logger.error(f"获取 {safe_table_name}.{safe_column_name} 的唯一值时发生SQLite错误: {e} (Query: {query})")
+            return []
+        except Exception as e:
+            self.logger.error(f"获取 {safe_table_name}.{safe_column_name} 的唯一值时发生未知错误: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
 
 # 如果直接运行此脚本，创建数据库结构
 if __name__ == "__main__":

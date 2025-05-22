@@ -31,13 +31,13 @@
 
 <!-- 交易数据元素 -->
 <div id="transactions-data" 
-     data-transactions='{{ transactions_json|safe }}' 
+     data-transactions='{{ data.transactions | tojson | safe }}' 
      style="display: none;"></div>
 
 <!-- 银行账户数据元素 -->
-<div id="bank-accounts-data" 
+<!-- <div id="bank-accounts-data" 
      data-accounts='{{ bank_accounts_json|safe if bank_accounts_json else "[]" }}' 
-     style="display: none;"></div>
+     style="display: none;"></div> -->
 
 <!-- 调试信息（仅开发环境可见） -->
 <div id="debug-info" class="d-none">
@@ -68,8 +68,8 @@
 {{ data_table("transactions-table", 
               ["序号", "日期", "类型", "交易对象", "金额", "账户余额", "账号", "银行"],
               true, 
-              total_count, 
-              data.transactions|length) }}
+              total=total_count, 
+              filtered=data.transactions|length) }}
 {% endblock %}
 
 {% block scripts %}
@@ -87,7 +87,8 @@
     document.addEventListener('DOMContentLoaded', function() {
         console.log('交易记录页面DOM加载完成');
         
-        // 初始化银行账户选择器
+        // 初始化银行账户选择器 (这段逻辑现在由 filter_input 宏通过 data.accounts 处理)
+        /*
         const bankAccountsData = document.getElementById('bank-accounts-data');
         if (bankAccountsData) {
             const accounts = JSON.parse(bankAccountsData.dataset.accounts);
@@ -106,27 +107,10 @@
                 });
             }
         }
+        */
         
         // 检查关键元素
         setTimeout(function() {
-            const transactionsTable = document.getElementById('transactions-table');
-            const transactionsBody = document.getElementById('transactions-body');
-            
-            console.log('表格元素检查:');
-            console.log('- transactions-table:', transactionsTable ? '存在' : '不存在');
-            console.log('- transactions-body:', transactionsBody ? '存在' : '不存在');
-            console.log('- 表格行数:', transactionsBody ? transactionsBody.children.length : 0);
-            
-            if (transactionsBody && transactionsBody.children.length === 0) {
-                console.log('表格主体为空，检查数据加载');
-                
-                // 尝试手动添加一行测试数据
-                const testRow = document.createElement('tr');
-                testRow.innerHTML = '<td>测试行</td><td>测试日期</td><td>测试类型</td><td>测试对象</td><td class="positive">100.00</td><td>1000.00</td><td>测试账号</td><td>测试银行</td>';
-                transactionsBody.appendChild(testRow);
-                
-                console.log('已添加测试行，检查表格是否正常显示');
-            }
         }, 1000);
     });
 </script>

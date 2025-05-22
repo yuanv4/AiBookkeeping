@@ -141,43 +141,35 @@ class BankTransactionExtractor(ExtractorInterface):
         try:
             self.logger.info(f"创建标准格式的DataFrame，原始列: {df.columns.tolist()}")
             
-            # 创建一个空的标准格式DataFrame
-            result_df = pd.DataFrame(columns=[
+            # 定义核心字段
+            core_columns = [
                 'transaction_date',  # 交易日期
-                'transaction_id',    # 交易ID（可能为空）
                 'amount',            # 交易金额
                 'balance',           # 余额
                 'transaction_type',  # 交易类型
                 'counterparty',      # 交易对手方
                 'currency',          # 币种
-                'remarks',           # 备注
                 'account_number',    # 账号
                 'account_name',      # 户名
-                'bank_code',         # 银行代码
-                'bank_name',         # 银行名称
-                'original_data'      # 原始数据
-            ])
+            ]
             
-            # 添加原始数据
-            result_df['original_data'] = [df.to_dict(orient='records')] * len(df)
+            # 创建一个空的标准格式DataFrame，只包含核心字段
+            result_df = pd.DataFrame(columns=core_columns)
             
-            # 添加账户和银行信息
+            # 如果原始df非空，设置长度以匹配，否则为空DataFrame
+            if not df.empty:
+                # 为每一列预先分配None值，长度与原始df一致
+                for col in core_columns:
+                    result_df[col] = [None] * len(df)
+
+            # 添加账户信息
             result_df['account_number'] = account_number
             result_df['account_name'] = account_name
-            result_df['bank_code'] = self.get_bank_code()
-            result_df['bank_name'] = self.get_bank_name()
             
-            # 默认初始化其他字段
-            result_df['transaction_date'] = None
-            result_df['transaction_id'] = None
-            result_df['amount'] = None
-            result_df['balance'] = None
-            result_df['transaction_type'] = None
-            result_df['counterparty'] = None
-            result_df['currency'] = None
-            result_df['remarks'] = None
-            
-            # 返回待填充的标准格式DataFrame
+            # currency会由后续的set_default_values或者具体的映射逻辑填充
+            # 其他字段 (transaction_date, amount, balance, transaction_type, counterparty)
+            # 也会在后续的映射步骤中从原始df填充
+
             return result_df
             
         except Exception as e:
