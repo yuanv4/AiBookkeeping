@@ -146,9 +146,11 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('没有交易数据，显示空数据提示');
             const noDataElement = document.getElementById('no-data');
             const paginationContainer = document.getElementById('pagination-container');
+            const tableContainer = document.querySelector('.table-responsive');
             
-            if (noDataElement) noDataElement.style.display = 'flex';
+            if (noDataElement) noDataElement.style.setProperty('display', 'flex', 'important');
             if (paginationContainer) paginationContainer.style.display = 'none';
+            if (tableContainer) tableContainer.style.display = 'none';
             return;
         }
         
@@ -157,20 +159,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // 显示交易数据
         const noDataElement = document.getElementById('no-data');
         const paginationContainer = document.getElementById('pagination-container');
+        const tableContainer = document.querySelector('.table-responsive');
         
-        if (noDataElement) noDataElement.style.display = 'none';
+        if (noDataElement) noDataElement.style.setProperty('display', 'none', 'important');
         if (paginationContainer) paginationContainer.style.display = 'block';
+        if (tableContainer) tableContainer.style.display = 'block';
         
         // 显示记录计数
         const filteredCountElement = document.getElementById('filtered-count');
         if (filteredCountElement) filteredCountElement.textContent = transactions.length;
         
-        // 计算当前页的交易记录
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = Math.min(startIndex + itemsPerPage, transactions.length);
-        const pageTransactions = transactions.slice(startIndex, endIndex);
+        // 直接使用服务器返回的数据，不再进行客户端分页切片
+        // 服务器已经根据page参数返回了当前页的数据
+        const pageTransactions = transactions;
         
-        console.log(`当前页显示记录: ${startIndex+1} - ${endIndex} (共${transactions.length}条)`);
+        console.log(`当前页显示记录: ${transactions.length}条`);
         
         // 添加交易记录到表格
         pageTransactions.forEach((transaction, index) => {
@@ -178,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 序号列
             const indexCell = document.createElement('td');
-            indexCell.textContent = startIndex + index + 1;
+            indexCell.textContent = index + 1; // 直接使用索引+1作为序号，不再依赖startIndex
             row.appendChild(indexCell);
             
             // 日期列
@@ -235,13 +238,34 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function renderPagination() {
         const pagination = document.getElementById('pagination');
-        if (!pagination) return;
+        if (!pagination) {
+            console.error('找不到分页容器元素#pagination');
+            return;
+        }
         
         // 清空分页内容
         pagination.innerHTML = '';
         
+        console.log('渲染分页控件，总页数:', totalPages, '当前页:', currentPage);
+        
+        // 如果总页数为0或未定义，默认设为1
+        if (!totalPages || totalPages <= 0) {
+            console.warn('总页数异常:', totalPages, '已设置为默认值1');
+            totalPages = 1;
+        }
+        
         if (totalPages <= 1) {
+            console.log('只有一页，不显示分页控件');
             return; // 如果只有一页，不显示分页控件
+        }
+        
+        // 确保currentPage在有效范围内
+        if (currentPage < 1) {
+            currentPage = 1;
+            console.warn('当前页小于1，已重置为1');
+        } else if (currentPage > totalPages) {
+            currentPage = totalPages;
+            console.warn('当前页大于总页数，已重置为', totalPages);
         }
         
         // 添加上一页按钮
@@ -273,6 +297,8 @@ document.addEventListener('DOMContentLoaded', function() {
             endPage = totalPages;
             startPage = Math.max(1, endPage - maxVisiblePages + 1);
         }
+        
+        console.log('显示页码范围:', startPage, '至', endPage);
         
         // 添加页码按钮
         for (let i = startPage; i <= endPage; i++) {
@@ -312,25 +338,33 @@ document.addEventListener('DOMContentLoaded', function() {
         
         nextLi.appendChild(nextLink);
         pagination.appendChild(nextLi);
+        
+        // 确保分页容器可见
+        const paginationContainer = document.getElementById('pagination-container');
+        if (paginationContainer) {
+            if (totalPages > 1) {
+                paginationContainer.style.display = 'block';
+                console.log('显示分页容器，共', totalPages, '页');
+            } else {
+                paginationContainer.style.display = 'none';
+                console.log('隐藏分页容器，只有1页');
+            }
+        }
     }
     
     /**
      * 跳转到指定页
      */
     function goToPage(page) {
-        currentPage = page;
-        
         // 构建URL参数
         const urlParams = new URLSearchParams(window.location.search);
-        urlParams.set('page', currentPage);
+        urlParams.set('page', page);
         
-        // 更新URL，不刷新页面
-        const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
+        // 重定向到新URL，刷新页面以获取新数据
+        window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
         
-        // 重新渲染表格和分页
-        renderTransactionTable();
-        renderPagination();
+        // 注意：由于页面会刷新，下面的代码不会执行
+        // 保留这段注释是为了说明这一点
     }
     
     /**
@@ -366,17 +400,46 @@ document.addEventListener('DOMContentLoaded', function() {
      * 应用筛选条件
      */
     function applyFilters() {
-        // 获取筛选值
-        const transactionType = document.getElementById('type').value; // Renamed from 'category' to 'type'
-        const accountNumber = document.getElementById('account_number_filter').value; // Changed ID and source
-        const accountName = document.getElementById('account_name_filter').value; // New filter
-        const currency = document.getElementById('currency_filter').value; // New filter
-        const counterparty = document.getElementById('counterparty_filter').value; // Changed ID
-        const startDate = document.getElementById('start_date_filter').value;
-        const endDate = document.getElementById('end_date_filter').value;
-        const minAmount = document.getElementById('min_amount_filter').value;
-        const maxAmount = document.getElementById('max_amount_filter').value;
-        const distinct = document.getElementById('distinct_filter').checked;
+        console.log('开始应用筛选条件...');
+        
+        // 尝试获取筛选值（同时支持新旧ID）
+        const getFilterValue = (oldId, newId) => {
+            const oldElement = document.getElementById(oldId);
+            const newElement = document.getElementById(newId);
+            
+            if (oldElement) {
+                console.log(`使用旧ID "${oldId}" 获取筛选值:`, oldElement.value);
+                return oldElement.value;
+            } else if (newElement) {
+                console.log(`使用新ID "${newId}" 获取筛选值:`, newElement.value);
+                return newElement.value;
+            } else {
+                console.warn(`未找到筛选元素: ${oldId} 或 ${newId}`);
+                return '';
+            }
+        };
+        
+        // 获取筛选值（支持新旧ID）
+        const transactionType = getFilterValue('category', 'type');
+        const accountNumber = getFilterValue('bankAccount', 'account_number_filter');
+        const search = getFilterValue('search', 'counterparty_filter');
+        const startDate = getFilterValue('startDate', 'start_date_filter');
+        const endDate = getFilterValue('endDate', 'end_date_filter');
+        const minAmount = getFilterValue('minAmount', 'min_amount_filter');
+        const maxAmount = getFilterValue('maxAmount', 'max_amount_filter');
+        
+        // 可选字段
+        const accountName = document.getElementById('account_name_filter') ? 
+                            document.getElementById('account_name_filter').value : '';
+        const currency = document.getElementById('currency_filter') ? 
+                       document.getElementById('currency_filter').value : '';
+        const distinct = document.getElementById('distinct_filter') ? 
+                       document.getElementById('distinct_filter').checked : false;
+        
+        console.log('筛选条件汇总:', {
+            transactionType, accountNumber, search, startDate, endDate,
+            minAmount, maxAmount, accountName, currency, distinct
+        });
         
         // 构建URL参数
         const urlParams = new URLSearchParams();
@@ -384,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (accountNumber) urlParams.set('account_number', accountNumber);
         if (accountName) urlParams.set('account_name_filter', accountName);
         if (currency) urlParams.set('currency', currency);
-        if (counterparty) urlParams.set('counterparty', counterparty);
+        if (search) urlParams.set('search', search);
         if (startDate) urlParams.set('start_date', startDate);
         if (endDate) urlParams.set('end_date', endDate);
         if (minAmount) urlParams.set('min_amount', minAmount);
@@ -393,27 +456,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
         urlParams.set('page', '1'); // 重置到第一页
         
+        // 构建URL
+        const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+        console.log('重定向到新URL:', newUrl);
+        
         // 重定向到新URL
-        window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
+        window.location.href = newUrl;
     }
     
     /**
      * 重置筛选条件
      */
     function resetFilters() {
-        // 重置所有筛选器
-        document.getElementById('type').value = '';
-        document.getElementById('account_number_filter').value = '';
-        document.getElementById('account_name_filter').value = '';
-        document.getElementById('currency_filter').value = '';
-        document.getElementById('counterparty_filter').value = '';
-        document.getElementById('start_date_filter').value = '';
-        document.getElementById('end_date_filter').value = '';
-        document.getElementById('min_amount_filter').value = '';
-        document.getElementById('max_amount_filter').value = '';
-        document.getElementById('distinct_filter').checked = false;
+        console.log('重置所有筛选条件');
+        
+        // 重置函数，支持多种可能的ID
+        const resetField = (ids) => {
+            ids.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = false;
+                    } else {
+                        element.value = '';
+                    }
+                    console.log(`重置字段: ${id}`);
+                }
+            });
+        };
+        
+        // 重置所有可能的筛选器字段
+        resetField(['category', 'type']);
+        resetField(['bankAccount', 'account_number_filter']);
+        resetField(['search', 'counterparty_filter']);
+        resetField(['startDate', 'start_date_filter']);
+        resetField(['endDate', 'end_date_filter']);
+        resetField(['minAmount', 'min_amount_filter']);
+        resetField(['maxAmount', 'max_amount_filter']);
+        resetField(['account_name_filter']);
+        resetField(['currency_filter']);
+        resetField(['distinct_filter']);
         
         // 重定向到无筛选的URL
+        console.log('重定向到基础URL:', window.location.pathname);
         window.location.href = window.location.pathname;
     }
     

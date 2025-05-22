@@ -81,7 +81,7 @@
     </div>
     
     <!-- 无数据提示 -->
-    <div id="no-data" class="no-data-container d-flex flex-column align-items-center justify-content-center py-5" style="display: none;">
+    <div id="no-data" class="no-data-container d-flex flex-column align-items-center justify-content-center py-5" style="display: none !important; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 10;">
       {{ icon("search_off", "xxl", "text-muted mb-3") }}
       <p class="mb-3 text-muted">没有找到匹配的记录</p>
       <button id="reset-all" class="btn btn-sm btn-outline-primary">

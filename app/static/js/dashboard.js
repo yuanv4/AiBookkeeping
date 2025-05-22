@@ -67,18 +67,6 @@ function applyDynamicStyles() {
 function initializeCharts() {
     // 初始化资金余额趋势图
     initBalanceHistoryChart();
-    
-    // 初始化收支对比图
-    initIncomeExpenseChart();
-    
-    // 初始化收入来源图
-    initIncomeSourceChart();
-    
-    // 初始化支出类别图
-    initExpenseCategoryChart();
-    
-    // 初始化月度趋势图
-    initMonthlyTrendChart();
 }
 
 /**
@@ -108,13 +96,126 @@ function initializeInteractions() {
     // 交易记录的过滤下拉框
     const transactionTypeFilter = document.getElementById('transactionTypeFilter');
     if (transactionTypeFilter) {
+        // 初始化时应用当前选中的筛选条件
+        filterTransactions(transactionTypeFilter.value);
+        
         transactionTypeFilter.addEventListener('change', function() {
             filterTransactions(this.value);
         });
     }
+    
+    // 重置筛选条件按钮
+    const resetFilterBtn = document.getElementById('reset-filter');
+    if (resetFilterBtn) {
+        resetFilterBtn.addEventListener('click', function() {
+            const transactionTypeFilter = document.getElementById('transactionTypeFilter');
+            if (transactionTypeFilter) {
+                transactionTypeFilter.value = 'all';
+                filterTransactions('all');
+            }
+        });
+    }
 }
 
-/** * 过滤交易记录 */function filterTransactions(filterType) {    // 根据选择的类型过滤交易记录表    const table = document.querySelector('.table');    if (!table) return;        const rows = table.querySelectorAll('tbody tr');        rows.forEach(row => {        const typeCell = row.querySelector('td:nth-child(3)');        if (!typeCell) return;                const typeText = typeCell.textContent.trim().toLowerCase();                switch(filterType) {            case 'income':                // 同时匹配英文和中文关键词                row.style.display = (typeText.includes('income') || typeText.includes('refund') ||                                    typeText.includes('收入') || typeText.includes('退款') ||                                    typeText.includes('收款')) ? '' : 'none';                break;            case 'expense':                // 同时匹配英文和中文关键词                row.style.display = (typeText.includes('expense') || typeText.includes('payment') ||                                    typeText.includes('支出') || typeText.includes('消费') ||                                    typeText.includes('付款')) ? '' : 'none';                break;            default: // 'all'                row.style.display = '';                break;        }    });
+/** * 过滤交易记录 */
+function filterTransactions(filterType) {
+    console.log('开始过滤交易记录，类型:', filterType);
+    
+    // 根据选择的类型过滤交易记录表
+    const table = document.querySelector('.table');
+    if (!table) {
+        console.error('未找到表格元素');
+        return;
+    }
+    
+    const tableBody = table.querySelector('tbody');
+    const rows = table.querySelectorAll('tbody tr');
+    const noDataElement = document.getElementById('no-data');
+    
+    console.log('找到表格元素:', table);
+    console.log('找到表格主体:', tableBody ? '是' : '否');
+    console.log('找到行数:', rows.length);
+    console.log('找到无数据提示元素:', noDataElement ? '是' : '否');
+    
+    // 默认状态：隐藏无数据提示，显示表格
+    if (noDataElement) {
+        noDataElement.style.display = 'none';
+        // 确保不受其他CSS影响
+        noDataElement.style.setProperty('display', 'none', 'important');
+    }
+    
+    // 先显示表格主体
+    if (tableBody) {
+        tableBody.style.display = 'table-row-group';
+    }
+    
+    let visibleRows = 0;
+    
+    rows.forEach((row, index) => {
+        const typeCell = row.querySelector('td:nth-child(3)');
+        if (!typeCell) {
+            console.warn(`第${index+1}行没有找到类型单元格`);
+            return;
+        }
+        
+        const typeText = typeCell.textContent.trim().toLowerCase();
+        let isVisible = false;
+        
+        switch(filterType) {
+            case 'income':
+                // 同时匹配英文和中文关键词
+                isVisible = typeText.includes('income') || 
+                           typeText.includes('refund') ||
+                           typeText.includes('收入') || 
+                           typeText.includes('退款') ||
+                           typeText.includes('收款');
+                break;
+            case 'expense':
+                // 同时匹配英文和中文关键词
+                isVisible = typeText.includes('expense') || 
+                           typeText.includes('payment') ||
+                           typeText.includes('支出') || 
+                           typeText.includes('消费') ||
+                           typeText.includes('付款');
+                break;
+            default: // 'all'
+                isVisible = true;
+                break;
+        }
+        
+        // 设置行的可见性
+        row.style.display = isVisible ? 'table-row' : 'none';
+        
+        // 计算可见行数
+        if (isVisible) {
+            visibleRows++;
+        }
+    });
+    
+    console.log('过滤后可见行数:', visibleRows);
+    
+    // 根据可见行数决定是否显示"无数据"提示
+    if (noDataElement) {
+        if (visibleRows === 0) {
+            // 没有可见行，显示"无数据"提示，隐藏表格主体
+            console.log('没有匹配的行，显示无数据提示');
+            noDataElement.style.setProperty('display', 'flex', 'important');
+            if (tableBody) {
+                tableBody.style.display = 'none';
+            }
+        } else {
+            // 有可见行，隐藏"无数据"提示，显示表格主体
+            console.log('有匹配的行，隐藏无数据提示');
+            noDataElement.style.setProperty('display', 'none', 'important');
+            if (tableBody) {
+                tableBody.style.display = 'table-row-group';
+            }
+        }
+    }
+    
+    // 检查最终状态
+    console.log('过滤完成，表格主体显示状态:', tableBody ? tableBody.style.display : 'N/A');
+    console.log('过滤完成，无数据提示显示状态:', noDataElement ? noDataElement.style.display : 'N/A');
 }
 
 /**
