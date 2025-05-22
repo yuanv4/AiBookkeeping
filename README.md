@@ -21,9 +21,12 @@ AiBookkeeping/
 │       └── errors/        # 错误页面模板
 ├── data/                  # 数据目录
 │   └── transactions.db    # SQLite数据库文件
+├── config/                # 配置文件目录
+├── logs/                  # 日志文件目录
 ├── scripts/               # 脚本目录
 │   ├── __init__.py        # 脚本包初始化文件
 │   ├── analyzers/         # 交易分析器
+│   ├── common/            # 通用工具和函数
 │   ├── db/                # 数据库管理器
 │   ├── extractors/        # 交易数据提取器
 │   │   ├── banks/         # 银行特定提取器
@@ -33,15 +36,12 @@ AiBookkeeping/
 │   │   └── interfaces/    # 提取器接口
 │   └── visualization/     # 可视化助手
 ├── uploads/               # 上传文件目录
-├── tests/                 # 测试目录
-│   ├── unit/             # 单元测试
-│   └── integration/      # 集成测试
 ├── requirements.txt       # 依赖包列表
-└── README.md             # 项目说明文档
+└── README.md              # 项目说明文档
 ```
 
 ## 功能特点
-- 自动识别银行交易明细文件格式（支持建设银行、招商银行等）
+- 自动识别银行交易明细文件格式（目前支持建设银行、招商银行）
 - 支持多银行交易数据导入和合并分析
 - 自动分类交易数据（餐饮、交通、购物等15+类别）
 - 多维度分析（月度、年度、类别、周度、日度）
@@ -60,6 +60,33 @@ AiBookkeeping/
   - `transactions` - 交易记录表
 - 支持导出数据为CSV格式
 - 支持按账号、日期、金额、交易类型等多维度筛选
+
+## 标准DataFrame格式
+
+系统处理不同银行的交易数据时，会将所有数据统一转换为标准格式的DataFrame，包含以下核心字段：
+
+| 字段名 | 描述 | 类型 |
+|-------|------|------|
+| `transaction_date` | 交易日期 | 字符串(YYYY-MM-DD) |
+| `amount` | 交易金额 | 浮点数 |
+| `balance` | 账户余额 | 浮点数 |
+| `transaction_type` | 交易类型 | 字符串 |
+| `counterparty` | 交易对手方 | 字符串 |
+| `currency` | 币种 | 字符串 |
+| `account_number` | 账号 | 字符串 |
+| `account_name` | 户名 | 字符串 |
+
+系统流程：
+1. 各银行提取器读取原始Excel文件
+2. 识别账户信息和标题行
+3. 通过`create_standard_dataframe`方法创建标准格式DataFrame
+4. 将原始数据映射到标准字段
+5. 设置默认值、验证必要字段
+6. 在处理过程中添加辅助字段（如`row_index`记录原始数据行号）
+7. 进行数据清洗和类型转换
+8. 保存到数据库前进行最终验证
+
+通过标准化的DataFrame格式，系统能够统一处理来自不同银行的交易数据，便于后续的分析和展示。
 
 ## 使用说明
 1. 将银行交易明细文件（Excel格式）放入uploads目录或通过网页上传
@@ -103,7 +130,7 @@ pip install -r requirements.txt
 ## 使用方法
 
 ### 方法一：直接运行
-1. 双击`start_app.bat`文件（如果有）或创建一个包含`python run.py`命令的批处理文件
+1. 在命令行中运行`python run.py`命令
 2. 在浏览器中访问 http://localhost:5000
 
 ### 方法二：命令行启动
@@ -205,35 +232,6 @@ python run.py
   - 转账
   - 其他
 
-## 测试
-
-项目测试文件位于`tests`目录下，按照功能分为单元测试和集成测试：
-
-### 单元测试
-
-* `tests/unit/test_bank_detection.py` - 测试银行类型自动检测功能
-
-### 集成测试
-
-* `tests/integration/test_load_csv.py` - 测试CSV文件加载
-* `tests/integration/test_generate_analysis.py` - 测试数据分析功能
-
-### 运行测试
-
-可以通过运行根目录下的`run_tests.bat`批处理文件来执行所有测试：
-
-```
-run_tests.bat
-```
-
-或者单独运行某个测试：
-
-```
-python -m tests.unit.test_bank_detection
-python -m tests.integration.test_load_csv
-python -m tests.integration.test_generate_analysis
-```
-
 ## 最近代码优化
 
 为了提高代码质量和可维护性，我们对项目结构和代码进行了以下优化：
@@ -244,7 +242,7 @@ python -m tests.integration.test_generate_analysis
    - 将功能划分为独立蓝图，提高代码可维护性
 
 2. **脚本组织优化**：
-   - 重构scripts目录，分为analyzers、db、extractors和visualization子目录
+   - 重构scripts目录，分为analyzers、common、db、extractors和visualization子目录
    - 使用工厂模式和策略模式实现可扩展的提取器系统
    - 改进错误处理和日志系统
 
