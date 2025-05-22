@@ -2,6 +2,12 @@
  * 收入分析页面图表初始化脚本
  */
 function initIncomeAnalysisCharts() {
+    // 如果base.html中未注册插件，这里再次尝试注册
+    if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined' && 
+        !Chart.registry.plugins.get('datalabels')) {
+        Chart.register(ChartDataLabels);
+    }
+    
     // 设置图表全局配置
     Chart.defaults.font.family = "'Noto Sans SC', 'sans-serif'";
     Chart.defaults.color = '#505A66';
@@ -39,6 +45,12 @@ function initIncomeAnalysisCharts() {
     function initIncomeExpenseChart() {
         const ctx = document.getElementById('incomeExpenseChart');
         if (!ctx) return;
+        
+        // 确保数据存在
+        if (!incomeExpenseData || incomeExpenseData.length === 0) {
+            displayNoDataMessage(ctx, '暂无收入支出数据');
+            return;
+        }
         
         const labels = incomeExpenseData.map(item => item.month);
         const incomeData = incomeExpenseData.map(item => item.income);
@@ -152,6 +164,12 @@ function initIncomeAnalysisCharts() {
         const ctx = document.getElementById('incomeStabilityChart');
         if (!ctx) return;
         
+        // 确保数据存在
+        if (!incomeStabilityData || incomeStabilityData.length === 0) {
+            displayNoDataMessage(ctx, '暂无收入稳定性数据');
+            return;
+        }
+        
         const labels = incomeStabilityData.map(item => item.month);
         const incomeData = incomeStabilityData.map(item => item.income);
         
@@ -257,6 +275,12 @@ function initIncomeAnalysisCharts() {
         const ctx = document.getElementById('incomeSourcesPieChart');
         if (!ctx) return;
         
+        // 确保数据存在
+        if (!incomeSourcesData || incomeSourcesData.length === 0) {
+            displayNoDataMessage(ctx, '暂无收入来源数据');
+            return;
+        }
+        
         const labels = incomeSourcesData.map(item => item.source);
         const data = incomeSourcesData.map(item => item.amount);
         
@@ -326,6 +350,12 @@ function initIncomeAnalysisCharts() {
         const ctx = document.getElementById('monthlySourcesChart');
         if (!ctx) return;
         
+        // 确保数据存在
+        if (!monthlySourcesData || monthlySourcesData.length === 0) {
+            displayNoDataMessage(ctx, '暂无月度收入来源数据');
+            return;
+        }
+        
         const labels = monthlySourcesData.map(item => item.month);
         const data = monthlySourcesData.map(item => item.source_count);
         
@@ -377,6 +407,12 @@ function initIncomeAnalysisCharts() {
     function initCashFlowChart() {
         const ctx = document.getElementById('cashFlowChart');
         if (!ctx) return;
+        
+        // 确保数据存在
+        if (!cashFlowData || cashFlowData.length === 0) {
+            displayNoDataMessage(ctx, '暂无现金流数据');
+            return;
+        }
         
         const labels = cashFlowData.map(item => item.month);
         const netFlowData = cashFlowData.map(item => item.net_flow);
@@ -476,6 +512,12 @@ function initIncomeAnalysisCharts() {
     function initIncomeGrowthChart() {
         const ctx = document.getElementById('incomeGrowthChart');
         if (!ctx) return;
+        
+        // 确保数据存在
+        if (!incomeGrowthData || !incomeGrowthData.yearly || incomeGrowthData.yearly.length === 0) {
+            displayNoDataMessage(ctx, '暂无收入增长数据');
+            return;
+        }
         
         const labels = incomeGrowthData.yearly.map(item => item.year);
         const incomeData = incomeGrowthData.yearly.map(item => item.income);
@@ -580,7 +622,11 @@ function initIncomeAnalysisCharts() {
         const ctx = document.getElementById('incomeVsInflationChart');
         if (!ctx) return;
         
-        if (!incomeGrowthData.inflation || incomeGrowthData.inflation.length === 0) return;
+        // 确保数据存在
+        if (!incomeGrowthData || !incomeGrowthData.inflation || incomeGrowthData.inflation.length === 0) {
+            displayNoDataMessage(ctx, '暂无收入vs通胀数据');
+            return;
+        }
         
         const labels = incomeGrowthData.inflation.map(item => item.year);
         const incomeGrowthData2 = incomeGrowthData.inflation.map(item => item.income_growth * 100);
@@ -663,6 +709,13 @@ function initIncomeAnalysisCharts() {
         const ctx = document.getElementById('breakEvenAnalysisChart');
         if (!ctx) return;
         
+        // 确保数据存在
+        if (!breakEvenData || typeof breakEvenData.fixed_expense_ratio === 'undefined' || 
+            typeof breakEvenData.variable_expense_ratio === 'undefined') {
+            displayNoDataMessage(ctx, '暂无收支平衡数据');
+            return;
+        }
+        
         // 创建固定和变动支出的饼图
         new Chart(ctx, {
             type: 'doughnut',
@@ -742,5 +795,26 @@ function initIncomeAnalysisCharts() {
         }
         
         return result;
+    }
+
+    /**
+     * 显示无数据消息
+     */
+    function displayNoDataMessage(canvas, message) {
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // 清除画布
+        ctx.clearRect(0, 0, width, height);
+        
+        // 设置文本样式
+        ctx.font = '14px "Noto Sans SC", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#8492a6';
+        
+        // 绘制消息
+        ctx.fillText(message || '暂无数据', width / 2, height / 2);
     }
 } 
