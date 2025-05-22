@@ -389,11 +389,101 @@ document.addEventListener('DOMContentLoaded', function() {
             resetAllBtn.addEventListener('click', resetFilters);
         }
         
+        // 清除全部筛选条件按钮
+        const clearAllFiltersBtn = document.getElementById('clear-all-filters');
+        if (clearAllFiltersBtn) {
+            clearAllFiltersBtn.addEventListener('click', function() {
+                window.location.href = window.location.pathname;
+            });
+        }
+        
+        // 绑定快速筛选按钮
+        document.querySelectorAll('.quick-filter').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const filterType = this.getAttribute('data-filter-type');
+                handleQuickFilter(filterType);
+            });
+        });
+        
+        // 绑定筛选条件单项清除
+        document.querySelectorAll('.clear-input').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const inputGroup = this.closest('.filter-input-group');
+                const input = inputGroup.querySelector('input, select');
+                if (input) {
+                    input.value = '';
+                    input.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+        
+        // 绑定活跃筛选条件移除
+        document.querySelectorAll('.filter-badge .close-icon').forEach(icon => {
+            icon.addEventListener('click', function() {
+                const param = this.getAttribute('data-param');
+                removeFilterParam(param);
+            });
+        });
+        
         // 下载CSV按钮点击事件
         const downloadCsvBtn = document.getElementById('download-csv');
         if (downloadCsvBtn) {
             downloadCsvBtn.addEventListener('click', downloadCSV);
         }
+    }
+    
+    /**
+     * 处理快速筛选
+     */
+    function handleQuickFilter(filterType) {
+        const today = new Date();
+        
+        // 重置相关筛选字段
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        document.getElementById('minAmount').value = '';
+        document.getElementById('maxAmount').value = '';
+        
+        switch(filterType) {
+            case 'today':
+                const todayStr = today.toISOString().split('T')[0];
+                document.getElementById('startDate').value = todayStr;
+                document.getElementById('endDate').value = todayStr;
+                break;
+                
+            case 'last7days':
+                const last7days = new Date();
+                last7days.setDate(today.getDate() - 6);
+                document.getElementById('startDate').value = last7days.toISOString().split('T')[0];
+                document.getElementById('endDate').value = today.toISOString().split('T')[0];
+                break;
+                
+            case 'thisMonth':
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
+                document.getElementById('endDate').value = today.toISOString().split('T')[0];
+                break;
+                
+            case 'income':
+                document.getElementById('minAmount').value = '0.01';
+                break;
+                
+            case 'expense':
+                document.getElementById('maxAmount').value = '-0.01';
+                break;
+        }
+        
+        // 自动应用筛选
+        applyFilters();
+    }
+    
+    /**
+     * 移除指定参数的筛选条件
+     */
+    function removeFilterParam(param) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete(param);
+        window.location.href = url.toString();
     }
     
     /**
@@ -531,6 +621,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // 获取URL参数
         const urlParams = new URLSearchParams(window.location.search);
         
+        // 更新活跃筛选条件展示
+        updateActiveFilters(urlParams);
+        
         // 获取所有筛选输入
         const inputs = filterForm.querySelectorAll('input, select');
         
@@ -543,24 +636,75 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.value = paramValue;
             }
             
-            // 添加change事件监听器
-            input.addEventListener('change', function() {
-                // 更新URL参数
-                const url = new URL(window.location.href);
-                const paramName = this.name;
-                const paramValue = this.value;
-                
-                if (paramValue) {
-                    url.searchParams.set(paramName, paramValue);
-                } else {
-                    url.searchParams.delete(paramName);
+            // 激活清除按钮
+            if (paramValue && input.value) {
+                const inputGroup = input.closest('.filter-input-group');
+                if (inputGroup) {
+                    const clearBtn = inputGroup.querySelector('.clear-input');
+                    if (clearBtn) {
+                        clearBtn.style.display = 'block';
+                    }
                 }
+            }
+        });
+    }
+    
+    /**
+     * 更新活跃筛选条件展示
+     */
+    function updateActiveFilters(urlParams) {
+        if (!urlParams) urlParams = new URLSearchParams(window.location.search);
+        
+        const badgesContainer = document.getElementById('active-filters-badges');
+        const activeFiltersContainer = document.getElementById('active-filters-container');
+        
+        if (!badgesContainer || !activeFiltersContainer) return;
+        
+        badgesContainer.innerHTML = '';
+        
+        const filterLabels = {
+            'category': '交易类型',
+            'type': '交易类型',
+            'bankAccount': '银行/卡号',
+            'account_number': '银行/卡号',
+            'search': '关键词',
+            'startDate': '开始日期',
+            'start_date': '开始日期',
+            'endDate': '结束日期',
+            'end_date': '结束日期',
+            'minAmount': '最小金额',
+            'min_amount': '最小金额',
+            'maxAmount': '最大金额',
+            'max_amount': '最大金额'
+        };
+        
+        let hasActiveFilters = false;
+        
+        urlParams.forEach((value, key) => {
+            if (key !== 'page' && value) {
+                hasActiveFilters = true;
+                const label = filterLabels[key] || key;
                 
-                // 重置页码
-                url.searchParams.set('page', '1');
-                
-                // 跳转到新URL
-                window.location.href = url.toString();
+                const badge = document.createElement('div');
+                badge.className = 'filter-badge';
+                badge.innerHTML = `
+                    <span>${label}: ${value}</span>
+                    <span class="close-icon" data-param="${key}">
+                        <i class="material-icons-round icon-sm">close</i>
+                    </span>
+                `;
+                badgesContainer.appendChild(badge);
+            }
+        });
+        
+        // 显示或隐藏筛选条件区域
+        activeFiltersContainer.style.display = hasActiveFilters ? 'block' : 'none';
+        
+        // 绑定移除筛选条件事件
+        document.querySelectorAll('.filter-badge .close-icon').forEach(icon => {
+            icon.addEventListener('click', function() {
+                const param = this.getAttribute('data-param');
+                removeFilterParam(param);
             });
         });
     }
