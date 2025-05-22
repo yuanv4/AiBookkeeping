@@ -25,6 +25,12 @@ if scripts_dir not in sys.path:
 
 from scripts.db.db_manager import DBManager
 
+# 导入错误处理机制
+from scripts.common.exceptions import (
+    AnalyzerError, InvalidParameterError, NoDataError
+)
+from scripts.common.error_handler import error_handler, safe_operation, log_error
+
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -60,6 +66,7 @@ class TransactionAnalyzer:
         self.analyzer_factory = AnalyzerFactory(db_manager)
         self.logger = logger
     
+    @error_handler(fallback_value=pd.DataFrame(), expected_exceptions=InvalidParameterError)
     def get_transactions_direct(self, start_date=None, end_date=None, account_number=None, currency=None, account_name=None):
         """直接从数据库获取交易数据并转换为DataFrame
         
@@ -77,15 +84,29 @@ class TransactionAnalyzer:
             f"Fetching transactions direct: start_date={start_date}, end_date={end_date}, account_number={account_number}, currency={currency}, account_name={account_name}"
         )
         
+        # 验证日期参数
+        if start_date and end_date and start_date > end_date:
+            raise InvalidParameterError(
+                "开始日期不能晚于结束日期", 
+                details={"start_date": start_date, "end_date": end_date}
+            )
+        
         # 通过数据提取器获取数据
-        return self.analyzer_factory.data_extractor.get_transactions(
+        df = self.analyzer_factory.data_extractor.get_transactions(
             start_date=start_date,
             end_date=end_date,
             account_number=account_number,
             currency=currency,
             account_name=account_name
         )
+        
+        if df is None or df.empty:
+            self.logger.warning("未找到符合条件的交易数据")
+            return pd.DataFrame()
+            
+        return df
     
+    @error_handler(fallback_value={}, expected_exceptions=(InvalidParameterError, NoDataError))
     def get_summary_direct(self, start_date=None, end_date=None, account_number=None, currency=None, account_name=None):
         """获取交易摘要统计
         
@@ -99,15 +120,28 @@ class TransactionAnalyzer:
         Returns:
             dict: 摘要统计信息
         """
+        # 验证日期参数
+        if start_date and end_date and start_date > end_date:
+            raise InvalidParameterError(
+                "开始日期不能晚于结束日期", 
+                details={"start_date": start_date, "end_date": end_date}
+            )
+        
         # 通过摘要分析器获取结果
-        return self.analyzer_factory.summary_analyzer.analyze(
+        result = self.analyzer_factory.summary_analyzer.analyze(
             start_date=start_date,
             end_date=end_date,
             account_number=account_number,
             currency=currency,
             account_name=account_name
         )
+        
+        if not result:
+            raise NoDataError("未找到数据可生成摘要统计")
+            
+        return result
     
+    @error_handler(fallback_value=pd.DataFrame())
     def get_monthly_stats_direct(self, start_date=None, end_date=None, account_number=None, currency=None, account_name=None):
         """获取月度统计数据
         
@@ -268,8 +302,9 @@ class TransactionAnalyzer:
         # 通过异常分析器执行
         return self.analyzer_factory.anomaly_analyzer.detect_outlier_transactions(df, method, threshold)
     
+    @safe_operation("分析交易数据")
     def analyze_transaction_data_direct(self, start_date=None, end_date=None, account_number=None, currency=None, account_name=None):
-        """综合分析交易数据
+        """综合分析交易数据，返回各项分析结果
         
         Args:
             start_date: 开始日期
@@ -279,36 +314,56 @@ class TransactionAnalyzer:
             account_name: 户名 (用于过滤)
             
         Returns:
-            dict: 包含各种分析结果的字典
+            dict: 包含各项分析结果的字典
         """
-        self.logger.info(f"开始直接分析交易数据: start_date={start_date}, end_date={end_date}, account_number={account_number}, currency={currency}, account_name={account_name}")
-        
-        try:
-            # 通过分析器工厂执行所有分析
-            results = self.analyzer_factory.analyze_all(
-                start_date=start_date,
-                end_date=end_date,
-                account_number=account_number,
-                currency=currency,
-                account_name=account_name
+        # 验证日期参数
+        if start_date and end_date and start_date > end_date:
+            raise InvalidParameterError(
+                "开始日期不能晚于结束日期", 
+                details={"start_date": start_date, "end_date": end_date}
             )
+        
+        # 获取交易数据
+        df = self.get_transactions_direct(start_date, end_date, account_number, currency, account_name)
+        if df.empty:
+            raise NoDataError("未找到符合条件的交易数据")
+        
+        # 执行各种分析
+        try:
+            results = {}
             
-            # 兼容旧版API，重新组织结果结构
-            return {
-                'summary': results['summary'],
-                'monthly_stats': results['time_analysis']['monthly_stats'],
-                'yearly_stats': results['time_analysis']['yearly_stats'],
-                'category_stats': results['category_analysis']['category_stats'],
-                'weekly_stats': results['time_analysis']['weekly_stats'],
-                'daily_stats': results['time_analysis']['daily_stats'],
-                'top_merchants': results['merchant_analysis'],
-                'transactions': results['transactions']
+            # 1. 交易摘要
+            results['summary'] = self.analyzer_factory.summary_analyzer.analyze_df(df)
+            
+            # 2. 时间维度分析
+            results['time_analysis'] = {
+                'monthly': self.analyzer_factory.time_analyzer.get_monthly_stats(df).to_dict('records'),
+                'weekly': self.analyzer_factory.time_analyzer.get_weekly_stats(df).to_dict('records'),
+                'daily': self.analyzer_factory.time_analyzer.get_daily_stats(df).to_dict('records')
             }
+            
+            # 3. 类别分析
+            results['category_analysis'] = {
+                'transaction_types': self.analyzer_factory.category_analyzer.get_category_stats(df).to_dict('records'),
+                'expense_distribution': self.analyzer_factory.category_analyzer.get_expense_distribution(df).to_dict('records'),
+                'income_sources': self.analyzer_factory.category_analyzer.get_income_sources(df).to_dict('records')
+            }
+            
+            # 4. 商户分析
+            results['merchant_analysis'] = {
+                'top_merchants': self.analyzer_factory.merchant_analyzer.get_top_merchants(df).to_dict('records')
+            }
+            
+            # 5. 异常交易分析
+            results['anomaly_analysis'] = {
+                'core_transactions': self.analyzer_factory.anomaly_analyzer.get_core_transactions(df).to_dict('records'),
+                'outliers': self.analyzer_factory.anomaly_analyzer.get_outliers(df).to_dict('records')
+            }
+            
+            return results
+            
         except Exception as e:
-            self.logger.error(f"直接分析交易数据时出错: {e}")
-            import traceback
-            self.logger.error(traceback.format_exc())
-            return {}
+            raise AnalyzerError(f"分析交易数据失败: {str(e)}", details={"error": str(e)})
     
     def get_core_transaction_stats_direct(self, start_date=None, end_date=None, account_number=None, currency=None, account_name=None,
                                          percentile_threshold=95, strategy='percentile', 
@@ -440,9 +495,25 @@ class TransactionAnalyzer:
         
         return results
     
+    @error_handler(reraise=True)
     def clear_cache(self):
-        """清除所有缓存"""
-        self.analyzer_factory.clear_cache()
+        """清除缓存"""
+        self.logger.info("清除分析器缓存")
+        
+        # 通过工厂类访问各个分析器，清除它们的缓存
+        analyzers = [
+            self.analyzer_factory.summary_analyzer,
+            self.analyzer_factory.time_analyzer,
+            self.analyzer_factory.category_analyzer,
+            self.analyzer_factory.merchant_analyzer,
+            self.analyzer_factory.anomaly_analyzer
+        ]
+        
+        for analyzer in analyzers:
+            if hasattr(analyzer, 'clear_cache'):
+                analyzer.clear_cache()
+        
+        self.logger.info("缓存清除完成")
 
 # 使用示例
 if __name__ == "__main__":

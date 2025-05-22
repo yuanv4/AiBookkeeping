@@ -25,6 +25,13 @@ from scripts.extractors.interfaces.extractor_interface import ExtractorInterface
 from scripts.extractors.config.config_loader import get_config_loader
 from scripts.db.db_manager import DBManager
 
+# 导入异常处理机制
+from scripts.common.exceptions import (
+    ExtractorError, FileProcessingError, UnsupportedFileError, 
+    DataExtractionError, DatabaseError, ImportError
+)
+from scripts.common.error_handler import error_handler, safe_operation, log_error
+
 # 设置日志格式
 logging.basicConfig(
     level=logging.INFO,
@@ -176,6 +183,7 @@ class BankTransactionExtractor(ExtractorInterface):
             self.logger.error(f"创建标准格式DataFrame失败: {str(e)}")
             return None
     
+    @safe_operation("数据库保存")
     def save_to_database(self, df: pd.DataFrame, account_number: str, account_name: str) -> int:
         """将交易数据保存到SQLite数据库
         
@@ -198,181 +206,28 @@ class BankTransactionExtractor(ExtractorInterface):
         # 数据验证 - 严格校验所有字段
         validation_result = self.validate_transaction_data(df)
         if not validation_result['valid']:
-            self.logger.error(f"数据验证未通过: {validation_result['reason']}, 账号: {account_number}")
-            return 0
-        
-        # 检查是否有账号字段 (已在验证方法中检查，这里保留作为额外安全检查)
-        if 'account_number' not in df.columns or df['account_number'].isnull().all():
-            self.logger.warning(f"数据中不包含有效的账号字段，无法导入到数据库")
-            return 0
-        
-        # 转换日期格式
-        if 'transaction_date' in df.columns:
-            df['transaction_date'] = pd.to_datetime(df['transaction_date'], errors='coerce')
+            raise DataExtractionError(
+                f"数据验证失败: {validation_result['reason']}", 
+                details={"account_number": account_number, "reason": validation_result['reason']}
+            )
             
-        # ======== 增强的去重处理 ========
-        # 1. 先进行DataFrame内部去重
-        self.logger.info("执行DataFrame内部去重处理")
-        original_count = len(df)
+        # 获取银行ID
+        bank_id = self.db_manager.get_or_create_bank(self.get_bank_code(), self.get_bank_name())
         
-        # 去除完全相同的记录
-        df = df.drop_duplicates()
+        # 创建导入批次ID
+        import_batch = f"{self.get_bank_code()}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         
-        # 检测可能的重复交易（同一天、相同金额、相同交易类型和相同对手方）
-        # 创建一个唯一标识键，组合交易日期、金额、交易类型和对手方
-        df['txn_key'] = df.apply(
-            lambda x: f"{x['transaction_date'].strftime('%Y-%m-%d') if not pd.isna(x['transaction_date']) else 'unknown'}_"
-                     f"{x['amount']}_"
-                     f"{x['transaction_type'] if not pd.isna(x['transaction_type']) else 'unknown'}_"
-                     f"{x['counterparty'] if not pd.isna(x['counterparty']) else 'unknown'}",
-            axis=1
-        )
-        
-        # 检查是否有重复的交易标识键
-        duplicated_keys = df[df.duplicated('txn_key', keep=False)]
-        if not duplicated_keys.empty:
-            self.logger.warning(f"检测到{len(duplicated_keys)}条潜在重复交易（相同日期、金额、类型和对手方）")
-            # 只保留每组重复记录中的第一条
-            df = df.drop_duplicates(subset=['txn_key'], keep='first')
-        
-        # 移除临时列
-        df = df.drop('txn_key', axis=1)
-        
-        # 2. 然后检查数据库中是否已存在相同交易
-        self.logger.info("检查数据库中是否已存在相同交易")
-        
-        # 获取所有交易日期和金额的唯一组合
-        unique_dates_amounts = df[['transaction_date', 'amount', 'transaction_type', 'counterparty']].drop_duplicates()
-        
-        # 初始化一个列表，用于存储已存在于数据库中的记录索引
-        existing_indices = []
-        
-        # 获取数据库连接
-        conn = self.db_manager.get_connection()
-        cursor = conn.cursor()
-        
-        for _, row in unique_dates_amounts.iterrows():
-            date_str = row['transaction_date'].strftime('%Y-%m-%d') if not pd.isna(row['transaction_date']) else None
-            amount = row['amount']
-            transaction_type = row['transaction_type'] if not pd.isna(row['transaction_type']) else None
-            counterparty = row['counterparty'] if not pd.isna(row['counterparty']) else None
+        try:
+            # 导入数据
+            record_count = self.db_manager.import_transactions(df, bank_id, import_batch)
+            self.logger.info(f"成功导入 {record_count} 条交易记录")
+            return record_count
             
-            if date_str is None or amount is None:
-                continue
-            
-            # 查询是否已存在相同交易
-            query = """
-            SELECT t.id 
-            FROM transactions t
-            JOIN accounts a ON t.account_id = a.id
-            LEFT JOIN transaction_types tt ON t.transaction_type_id = tt.id
-            WHERE 
-                a.account_number = ? AND
-                t.transaction_date = ? AND
-                t.amount = ?
-            """
-            
-            parameters = [account_number, date_str, amount]
-            
-            # 添加条件：如果transaction_type不为空
-            if transaction_type is not None and transaction_type != 'unknown':
-                query += " AND tt.type_name = ?"
-                parameters.append(transaction_type)
-                
-            # 添加条件：如果counterparty不为空
-            if counterparty is not None and counterparty != 'unknown':
-                query += " AND t.counterparty = ?"
-                parameters.append(counterparty)
-            
-            cursor.execute(query, parameters)
-            existing_transaction = cursor.fetchone()
-            
-            if existing_transaction:
-                # 找出所有匹配该日期、金额、类型和对手方的记录
-                matching_indices = df[
-                    (df['transaction_date'] == row['transaction_date']) & 
-                    (df['amount'] == amount) & 
-                    ((df['transaction_type'] == transaction_type) if transaction_type else True) &
-                    ((df['counterparty'] == counterparty) if counterparty else True)
-                ].index.tolist()
-                
-                existing_indices.extend(matching_indices)
-        
-        conn.close()
-        
-        # 移除已存在于数据库中的记录
-        if existing_indices:
-            self.logger.warning(f"数据库中已存在 {len(existing_indices)} 条相同交易记录，这些记录将被跳过")
-            df = df.drop(existing_indices)
-        
-        # 如果去重后没有剩余记录，直接返回
-        if df.empty:
-            self.logger.info("去重后没有新的交易记录需要导入")
-            return 0
-        
-        # 记录去重结果
-        post_dedup_count = len(df)
-        removed_count = original_count - post_dedup_count
-        if removed_count > 0:
-            self.logger.info(f"去重处理共移除 {removed_count} 条重复记录，剩余 {post_dedup_count} 条记录")
-        # ======== 增强的去重处理结束 ========
-        
-        # 添加银行名称列
-        if 'bank' not in df.columns:
-            # 使用配置中的显示名称
-            if self.bank_config and "display_name" in self.bank_config:
-                display_bank_name = self.bank_config["display_name"]
-            else:
-                # 使用提取器的银行名称
-                bank_name_map = {
-                    'CCB': '建设银行',
-                    'ICBC': '工商银行',
-                    'BOC': '中国银行',
-                    'ABC': '农业银行',
-                    'BOCOM': '交通银行',
-                    'CMB': '招商银行'
-                }
-                display_bank_name = bank_name_map.get(self.bank_code.upper(), self.bank_code)
-            
-            df['bank'] = display_bank_name
-            self.logger.info(f"添加银行名称列: {display_bank_name}")
-        
-        # 根据账号分组导入到数据库
-        total_imported = 0
-        account_groups = df.groupby('account_number')
-        
-        for account_number, account_df in account_groups:
-            try:
-                # 获取银行代码
-                bank_code = self.bank_code.upper()
-                bank_name = self.get_bank_name()
-                
-                # 1. 先插入银行数据
-                try:
-                    self.db_manager.init_db()  # 确保表结构和基础数据存在
-                    # 确保银行记录存在
-                    bank_id = self.db_manager.get_or_create_bank(bank_code, bank_name)
-                    self.logger.info(f"获取银行ID成功: {bank_code} -> {bank_id}")
-                except Exception as e:
-                    self.logger.error(f"获取银行ID时出错: {str(e)}")
-                    # 如果无法获取银行ID，直接返回失败，不使用默认值
-                    return 0
-                
-                # 导入到数据库
-                batch_id = f"import_{datetime.now().strftime('%Y%m%d%H%M%S')}_{Path(account_number).stem}"
-                imported_count = self.db_manager.import_transactions(account_df, bank_id, batch_id)
-                
-                if imported_count > 0:
-                    self.logger.info(f"成功导入账号 {account_number} 的 {imported_count} 条交易记录到数据库")
-                    total_imported += imported_count
-                else:
-                    self.logger.warning(f"账号 {account_number} 的交易记录导入失败或无新数据")
-            except Exception as e:
-                self.logger.error(f"处理账号 {account_number} 时出错: {str(e)}")
-                continue
-        
-        self.logger.info(f"总共导入 {total_imported} 条交易记录到数据库")
-        return total_imported
+        except Exception as e:
+            raise ImportError(
+                f"导入交易数据失败: {str(e)}", 
+                details={"account_number": account_number, "bank_code": self.get_bank_code()}
+            )
     
     def find_excel_files(self, upload_dir: str) -> List[str]:
         """查找给定目录中的Excel文件"""
@@ -815,71 +670,174 @@ class BankTransactionExtractor(ExtractorInterface):
         # 默认实现返回False，子类应根据文件特征判断是否可以处理
         return False
     
+    @error_handler(fallback_value=None)
+    def read_excel_file(self, file_path: str) -> pd.DataFrame:
+        """读取Excel文件，返回DataFrame
+        
+        Args:
+            file_path: Excel文件路径
+            
+        Returns:
+            pandas.DataFrame: 读取的数据
+        """
+        self.logger.info(f"读取Excel文件: {file_path}")
+        
+        # 尝试不同的sheet和header配置
+        # 首先尝试自动检测
+        df = pd.read_excel(file_path)
+        
+        if df is not None and not df.empty:
+            return df
+            
+        # 如果自动检测失败，尝试不同的sheet和header配置
+        for sheet_name in [0, 'Sheet1', 'Sheet']:
+            for header_row in [0, 1, 2, 3]:
+                try:
+                    df = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row)
+                    if df is not None and not df.empty:
+                        self.logger.info(f"成功使用sheet={sheet_name}, header={header_row}读取文件")
+                        return df
+                except Exception:
+                    continue
+                    
+        # 如果所有尝试都失败，抛出异常
+        self.logger.warning(f"无法读取Excel文件: {file_path}")
+        raise FileProcessingError(f"无法读取Excel文件: {file_path}", 
+                               error_code="ERR_READ_EXCEL", 
+                               details={"file_path": file_path})
+    
+    def ensure_hashable_values(self, df: pd.DataFrame) -> pd.DataFrame:
+        """确保DataFrame中所有值都是可哈希类型
+        
+        Args:
+            df: 要处理的DataFrame
+            
+        Returns:
+            pandas.DataFrame: 处理后的DataFrame
+        """
+        # 创建一个新的DataFrame以避免修改原始数据
+        new_df = df.copy()
+        
+        for col in new_df.columns:
+            # 检查列中是否有列表、字典等不可哈希类型
+            if new_df[col].apply(lambda x: isinstance(x, (list, dict, set))).any():
+                self.logger.info(f"转换列 {col} 中的不可哈希类型为字符串")
+                # 将不可哈希类型转换为其字符串表示
+                new_df[col] = new_df[col].apply(lambda x: str(x) if isinstance(x, (list, dict, set)) else x)
+        
+        # 特别处理original_data列，这通常是包含原始数据的列表或字典
+        if 'original_data' in new_df.columns:
+            new_df['original_data'] = new_df['original_data'].apply(lambda x: str(x))
+        
+        return new_df 
+
+    @safe_operation("文件处理")
+    def process_file(self, file_path: str) -> Dict[str, Any]:
+        """处理单个文件，提取交易数据并保存到数据库
+        
+        Args:
+            file_path: 文件路径
+            
+        Returns:
+            dict: 处理结果，包含如下字段:
+                - success: 是否成功
+                - message: 处理消息
+                - record_count: 提取的记录数量
+                - account_number: 账户号码
+                - bank_name: 银行名称
+        """
+        self.logger.info(f"处理文件: {file_path}")
+        
+        # 检查文件是否可以处理
+        if not self.can_process_file(file_path):
+            raise UnsupportedFileError(
+                f"该文件不适用于 {self.get_bank_name()} 提取器", 
+                details={"file_path": file_path, "bank_name": self.get_bank_name()}
+            )
+            
+        # 读取Excel文件
+        df = self.read_excel_file(file_path)
+        if df is None or df.empty:
+            raise FileProcessingError("读取文件失败或文件为空", 
+                                   details={"file_path": file_path})
+            
+        # 提取账户信息
+        try:
+            account_name, account_number = self.extract_account_info(df)
+        except Exception as e:
+            log_error(e, {"file_path": file_path})
+            account_name = "unknown"
+            account_number = "unknown"
+            
+        # 提取交易数据
+        transactions_df = self.extract_transactions(df)
+        if transactions_df is None or transactions_df.empty:
+            raise DataExtractionError(
+                "未提取到任何交易数据", 
+                details={"file_path": file_path, "account_number": account_number}
+            )
+            
+        # 保存到数据库
+        record_count = self.save_to_database(transactions_df, account_number, account_name)
+        self.logger.info(f"成功保存 {record_count} 条交易记录到数据库")
+        
+        return {
+            'success': True,
+            'message': "处理成功",
+            'record_count': record_count,
+            'account_number': account_number,
+            'bank_name': self.get_bank_name()
+        }
+    
+    @error_handler(fallback_value=[], reraise=True)
     def process_files(self, upload_dir: str) -> List[Dict[str, Any]]:
-        """处理上传目录中的所有Excel文件
+        """处理指定目录中的所有文件
         
         Args:
             upload_dir: 上传文件目录
             
         Returns:
-            处理结果信息列表
+            list: 处理结果信息
         """
+        self.logger.info(f"处理目录中的文件: {upload_dir}")
+        
         # 查找所有Excel文件
         excel_files = self.find_excel_files(upload_dir)
+        
         if not excel_files:
             self.logger.warning(f"在目录 {upload_dir} 中未找到Excel文件")
             return []
         
         # 处理结果
-        processed_files = []
+        results = []
         
         # 遍历处理每个文件
         for file_path in excel_files:
             try:
-                # 检查是否能处理此文件
+                # 尝试处理文件
                 if not self.can_process_file(file_path):
-                    self.logger.info(f"跳过不支持的文件: {file_path}")
+                    self.logger.info(f"跳过不适用的文件: {file_path}")
                     continue
-                
-                # 提取交易明细
-                self.logger.info(f"开始处理文件: {file_path}")
-                transactions_df = self.extract_transactions(file_path)
-                
-                if transactions_df is None or transactions_df.empty:
-                    self.logger.warning(f"未能提取任何交易明细: {file_path}")
-                    continue
-                
-                # 记录原始行数
-                original_row_count = len(transactions_df)
-                
-                # 提取账户信息
-                account_name, account_number = self.extract_account_info(transactions_df)
-                
-                # 保存到数据库
-                try:
-                    record_count = self.save_to_database(transactions_df, account_number, account_name)
-                    self.logger.info(f"成功保存 {record_count} 条交易记录到数据库")
                     
-                    processed_files.append({
-                        'file': os.path.basename(file_path),
-                        'bank': self.get_bank_name(),
-                        'record_count': record_count,
-                        'original_row_count': original_row_count
-                    })
-                except Exception as e:
-                    self.logger.error(f"保存数据到数据库时出错: {str(e)}")
-                    processed_files.append({
-                        'file': os.path.basename(file_path),
-                        'bank': self.get_bank_name(),
-                        'record_count': 0,
-                        'original_row_count': original_row_count
-                    })
-            
+                # 处理文件
+                result = self.process_file(file_path)
+                results.append(result)
+                
+            except UnsupportedFileError:
+                # 不是支持的文件类型，跳过即可
+                continue
+                
             except Exception as e:
-                self.logger.error(f"处理文件 {file_path} 时出错: {str(e)}")
-                self.logger.error(f"错误详情: {traceback.format_exc()}")
+                # 记录错误但继续处理其他文件
+                log_error(e, {"file_path": file_path})
+                results.append({
+                    'success': False,
+                    'message': str(e),
+                    'file': os.path.basename(file_path),
+                    'bank': self.get_bank_name()
+                })
         
-        return processed_files
+        return results
     
     def validate_transaction_data(self, df: pd.DataFrame) -> Dict[str, Any]:
         """对交易数据进行严格校验
@@ -959,177 +917,4 @@ class BankTransactionExtractor(ExtractorInterface):
             return result
             
         # 所有检查都通过
-        return result
-    
-    def process_file(self, file_path: str) -> Dict[str, Any]:
-        """处理单个文件，提取交易数据并保存到数据库
-        
-        Args:
-            file_path: 文件路径
-            
-        Returns:
-            dict: 处理结果，包含如下字段:
-                - success: 是否成功
-                - message: 处理消息
-                - record_count: 提取的记录数量
-                - account_number: 账户号码
-                - bank_name: 银行名称
-        """
-        self.logger.info(f"处理文件: {file_path}")
-        
-        try:
-            # 检查文件是否可以处理
-            if not self.can_process_file(file_path):
-                self.logger.warning(f"该文件不适用于 {self.get_bank_name()} 提取器: {file_path}")
-                return {
-                    'success': False,
-                    'message': f"该文件不适用于 {self.get_bank_name()} 提取器",
-                    'record_count': 0
-                }
-                
-            # 读取Excel文件
-            try:
-                df = self.read_excel_file(file_path)
-                if df is None or df.empty:
-                    self.logger.warning(f"读取文件失败或文件为空: {file_path}")
-                    return {
-                        'success': False,
-                        'message': "读取文件失败或文件为空",
-                        'record_count': 0
-                    }
-            except Exception as e:
-                self.logger.error(f"读取Excel文件时出错: {str(e)}")
-                return {
-                    'success': False,
-                    'message': f"读取Excel文件时出错: {str(e)}",
-                    'record_count': 0
-                }
-                
-            # 提取账户信息
-            try:
-                account_name, account_number = self.extract_account_info(df)
-            except Exception as e:
-                self.logger.error(f"提取账户信息时出错: {str(e)}")
-                account_name = "unknown"
-                account_number = "unknown"
-                
-            # 提取交易数据
-            try:
-                transactions_df = self.extract_transactions(df)
-                if transactions_df is None or transactions_df.empty:
-                    self.logger.warning(f"未提取到任何交易数据: {file_path}")
-                    return {
-                        'success': False,
-                        'message': "未提取到任何交易数据",
-                        'record_count': 0,
-                        'account_number': account_number,
-                        'bank_name': self.get_bank_name()
-                    }
-            except Exception as e:
-                self.logger.error(f"提取交易数据时出错: {str(e)}")
-                return {
-                    'success': False,
-                    'message': f"提取交易数据时出错: {str(e)}",
-                    'record_count': 0,
-                    'account_number': account_number,
-                    'bank_name': self.get_bank_name()
-                }
-                
-            # 保存到数据库
-            try:
-                record_count = self.save_to_database(transactions_df, account_number, account_name)
-                self.logger.info(f"成功保存 {record_count} 条交易记录到数据库")
-                
-                return {
-                    'success': True,
-                    'message': "处理成功",
-                    'record_count': record_count,
-                    'account_number': account_number,
-                    'bank_name': self.get_bank_name()
-                }
-            except Exception as e:
-                self.logger.error(f"保存数据到数据库时出错: {str(e)}")
-                return {
-                    'success': False,
-                    'message': f"保存数据到数据库时出错: {str(e)}",
-                    'record_count': 0,
-                    'account_number': account_number,
-                    'bank_name': self.get_bank_name()
-                }
-                
-        except Exception as e:
-            self.logger.error(f"处理文件时出错: {str(e)}")
-            self.logger.error(traceback.format_exc())
-            return {
-                'success': False,
-                'message': f"处理文件时出错: {str(e)}",
-                'record_count': 0,
-                'bank_name': self.get_bank_name()
-            }
-    
-    def read_excel_file(self, file_path: str) -> pd.DataFrame:
-        """读取Excel文件，返回DataFrame
-        
-        Args:
-            file_path: Excel文件路径
-            
-        Returns:
-            pandas.DataFrame: 读取的数据
-        """
-        try:
-            self.logger.info(f"读取Excel文件: {file_path}")
-            
-            # 尝试不同的sheet和header配置
-            try:
-                # 首先尝试自动检测
-                df = pd.read_excel(file_path)
-                
-                if df is not None and not df.empty:
-                    return df
-                    
-                # 如果自动检测失败，尝试不同的sheet和header配置
-                for sheet_name in [0, 'Sheet1', 'Sheet']:
-                    for header_row in [0, 1, 2, 3]:
-                        try:
-                            df = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row)
-                            if df is not None and not df.empty:
-                                self.logger.info(f"成功使用sheet={sheet_name}, header={header_row}读取文件")
-                                return df
-                        except Exception:
-                            continue
-            except Exception as e:
-                self.logger.error(f"读取Excel文件时出错: {str(e)}")
-                
-            # 如果所有尝试都失败，返回None
-            self.logger.warning(f"无法读取Excel文件: {file_path}")
-            return None
-            
-        except Exception as e:
-            self.logger.error(f"读取Excel文件时出错: {str(e)}")
-            self.logger.error(traceback.format_exc())
-            return None
-    
-    def ensure_hashable_values(self, df: pd.DataFrame) -> pd.DataFrame:
-        """确保DataFrame中所有值都是可哈希类型
-        
-        Args:
-            df: 要处理的DataFrame
-            
-        Returns:
-            pandas.DataFrame: 处理后的DataFrame
-        """
-        # 创建一个新的DataFrame以避免修改原始数据
-        new_df = df.copy()
-        
-        for col in new_df.columns:
-            # 检查列中是否有列表、字典等不可哈希类型
-            if new_df[col].apply(lambda x: isinstance(x, (list, dict, set))).any():
-                self.logger.info(f"转换列 {col} 中的不可哈希类型为字符串")
-                # 将不可哈希类型转换为其字符串表示
-                new_df[col] = new_df[col].apply(lambda x: str(x) if isinstance(x, (list, dict, set)) else x)
-        
-        # 特别处理original_data列，这通常是包含原始数据的列表或字典
-        if 'original_data' in new_df.columns:
-            new_df['original_data'] = new_df['original_data'].apply(lambda x: str(x))
-        
-        return new_df 
+        return result 

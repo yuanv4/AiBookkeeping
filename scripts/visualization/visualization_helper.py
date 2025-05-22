@@ -9,6 +9,7 @@ import logging
 import sys
 import io
 import base64
+from typing import Dict, List, Optional, Any, Union, Tuple
 
 # 添加项目根目录到PYTHONPATH以解决导入问题
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -19,6 +20,15 @@ if root_dir not in sys.path:
 if scripts_dir not in sys.path:
     sys.path.append(scripts_dir)
 
+# 导入错误处理机制
+from scripts.common.exceptions import (
+    VisualizationError, ChartGenerationError, ConfigError
+)
+from scripts.common.error_handler import error_handler, safe_operation, log_error
+
+# 导入配置管理器
+from scripts.common.config import get_config_manager
+
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('visualization_helper')
@@ -26,7 +36,7 @@ logger = logging.getLogger('visualization_helper')
 class VisualizationHelper:
     """用于生成交易数据可视化的工具类"""
     
-    def __init__(self, json_file=None, data=None):
+    def __init__(self, json_file: Optional[Union[str, Path]] = None, data: Optional[Dict[str, Any]] = None):
         """
         初始化可视化助手
         
@@ -34,254 +44,273 @@ class VisualizationHelper:
             json_file: 包含分析数据的JSON文件路径
             data: 直接提供的分析数据字典
         """
+        # 获取配置管理器
+        self.config_manager = get_config_manager()
+        
         self.data = None
         if data is not None:
             self.data = data
         elif json_file is not None and isinstance(json_file, (str, Path)):
             self._load_data(json_file)
         
-        # 设置图表风格
-        plt.style.use('seaborn-v0_8-pastel')
+        # 从配置中获取图表风格
+        theme = self.config_manager.get('visualization.theme', 'default')
+        if theme == 'default':
+            plt.style.use('seaborn-v0_8-pastel')
+        else:
+            try:
+                plt.style.use(theme)
+            except Exception:
+                logger.warning(f"无法使用主题 {theme}，使用默认主题")
+                plt.style.use('seaborn-v0_8-pastel')
         
         # 设置中文字体支持
         self._setup_chinese_font()
         
-        # 图表保存目录
-        self.charts_dir = os.path.join(root_dir, 'static', 'charts')
+        # 从配置中获取图表保存目录
+        charts_dir = self.config_manager.get('visualization.charts_dir', 'static/charts')
+        
+        # 确保路径是绝对路径
+        if not os.path.isabs(charts_dir):
+            self.charts_dir = os.path.join(root_dir, charts_dir)
+        else:
+            self.charts_dir = charts_dir
+            
         os.makedirs(self.charts_dir, exist_ok=True)
+        
+        # 获取颜色配置
+        self.colors = self.config_manager.get('visualization.colors', {
+            'income': '#4CAF50',
+            'expense': '#F44336',
+            'net': '#2196F3',
+            'transfer': '#FF9800'
+        })
     
-    def _setup_chinese_font(self):
+    @error_handler(fallback_value=None)
+    def _setup_chinese_font(self) -> None:
         """设置中文字体支持"""
-        try:
-            # 尝试使用系统字体
-            font_list = ['Microsoft YaHei', 'SimHei', 'SimSun', 'STSong', 'WenQuanYi Micro Hei']
-            font_found = False
-            
-            for font in font_list:
-                try:
-                    matplotlib.rcParams['font.family'] = [font]
-                    matplotlib.rcParams['axes.unicode_minus'] = False  # 正确显示负号
-                    logger.info(f"Successfully set Chinese font: {font}")
-                    font_found = True
-                    break
-                except:
-                    continue
-            
-            if not font_found:
-                logger.warning("Chinese font not found, chart Chinese characters may appear as blocks")
-        except Exception as e:
-            logger.error(f"Error setting Chinese font: {e}")
+        # 从配置中获取字体信息
+        default_font = self.config_manager.get('visualization.fonts.default', 'SimHei')
+        fallback_fonts = self.config_manager.get('visualization.fonts.fallback', 
+                                               ['Microsoft YaHei', 'SimSun', 'STSong', 'WenQuanYi Micro Hei'])
+        
+        # 所有可能的字体
+        all_fonts = [default_font] + fallback_fonts
+        font_found = False
+        
+        for font in all_fonts:
+            try:
+                matplotlib.rcParams['font.family'] = [font]
+                matplotlib.rcParams['axes.unicode_minus'] = False  # 正确显示负号
+                logger.info(f"Successfully set Chinese font: {font}")
+                font_found = True
+                break
+            except Exception:
+                continue
+        
+        if not font_found:
+            logger.warning("Chinese font not found, chart Chinese characters may appear as blocks")
     
-    def _load_data(self, json_file):
-        """从JSON文件加载数据"""
+    @error_handler(fallback_value={}, expected_exceptions=ConfigError)
+    def _load_data(self, json_file: Union[str, Path]) -> Dict[str, Any]:
+        """从JSON文件加载数据
+        
+        Args:
+            json_file: JSON文件路径
+            
+        Returns:
+            dict: 加载的数据
+        """
         try:
             with open(json_file, 'r', encoding='utf-8') as f:
                 self.data = json.load(f)
             logger.info(f"Successfully loaded analysis data: {json_file}")
+            return self.data
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            raise ConfigError(f"JSON解析错误: {str(e)}", details={"file": str(json_file)})
+        except FileNotFoundError:
+            raise ConfigError(f"文件不存在: {json_file}", details={"file": str(json_file)})
         except Exception as e:
-            logger.error(f"Failed to load data: {e}")
-            self.data = {}
+            raise ConfigError(f"加载数据失败: {str(e)}", details={"file": str(json_file)})
     
-    def generate_all_charts(self):
-        """生成所有图表并返回它们的路径"""
+    @safe_operation("生成图表")
+    def generate_all_charts(self) -> Dict[str, str]:
+        """生成所有图表并返回它们的路径
+        
+        Returns:
+            dict: 图表名称和路径的字典
+        """
         if not self.data:
-            logger.error("No data available for visualization")
-            return {}
+            raise VisualizationError("没有可用于可视化的数据")
         
         charts = {}
         
-        try:
-            # 收支趋势图
-            income_expense_chart = self.generate_income_expense_chart()
-            if income_expense_chart:
-                charts['income_expense'] = income_expense_chart
+        # 收支趋势图
+        income_expense_chart = self.generate_income_expense_chart()
+        if income_expense_chart:
+            charts['income_expense'] = income_expense_chart
+        
+        # 类别饼图
+        category_chart = self.generate_category_pie_chart()
+        if category_chart:
+            charts['category'] = category_chart
+        
+        # 最近交易柱状图
+        recent_transactions_chart = self.generate_recent_transactions_chart()
+        if recent_transactions_chart:
+            charts['recent'] = recent_transactions_chart
             
-            # 类别饼图
-            category_chart = self.generate_category_pie_chart()
-            if category_chart:
-                charts['category'] = category_chart
+        # 星期分析图
+        weekday_chart = self.generate_weekday_chart()
+        if weekday_chart:
+            charts['weekday'] = weekday_chart
             
-            # 最近交易柱状图
-            recent_transactions_chart = self.generate_recent_transactions_chart()
-            if recent_transactions_chart:
-                charts['recent'] = recent_transactions_chart
-                
-            # 星期分析图
-            weekday_chart = self.generate_weekday_chart()
-            if weekday_chart:
-                charts['weekday'] = weekday_chart
-                
-            # 商户分析图
-            merchant_chart = self.generate_merchant_chart()
-            if merchant_chart:
-                charts['merchant'] = merchant_chart
-                
-            logger.info(f"Successfully generated {len(charts)} charts")
-            return charts
+        # 商户分析图
+        merchant_chart = self.generate_merchant_chart()
+        if merchant_chart:
+            charts['merchant'] = merchant_chart
             
-        except Exception as e:
-            logger.error(f"Error generating charts: {e}")
-            return {}
+        logger.info(f"Successfully generated {len(charts)} charts")
+        return charts
     
-    def generate_income_expense_chart(self):
-        """生成收入和支出趋势图"""
+    @error_handler(fallback_value=None, expected_exceptions=ChartGenerationError)
+    def generate_income_expense_chart(self) -> Optional[str]:
+        """生成收入和支出趋势图
+        
+        Returns:
+            str: 图表文件名，如果生成失败则返回None
+        """
+        if 'monthly_stats' not in self.data or not self.data['monthly_stats']:
+            logger.warning("No monthly data available for plotting")
+            return None
+        
+        monthly_stats = sorted(self.data['monthly_stats'], key=lambda x: x['month_label'])
+        
+        # 限制只显示最近12个月
+        if len(monthly_stats) > 12:
+            monthly_stats = monthly_stats[-12:]
+        
+        months = [m['month_label'] for m in monthly_stats]
+        incomes = [m['income'] for m in monthly_stats]
+        expenses = [m['expense'] for m in monthly_stats]
+        nets = [m['net'] for m in monthly_stats]
+        
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # 绘制条形图
+        x = np.arange(len(months))
+        width = 0.35
+        ax.bar(x - width/2, incomes, width, label='income', color=self.colors.get('income', '#4CAF50'), alpha=0.7)
+        ax.bar(x + width/2, [-e for e in expenses], width, label='expense', color=self.colors.get('expense', '#F44336'), alpha=0.7)
+        
+        # 绘制净额线
+        ax.plot(x, nets, 'o-', label='net', color=self.colors.get('net', '#2196F3'), linewidth=2)
+        
+        # 设置坐标轴
+        ax.set_ylabel('amount (yuan)')
+        ax.set_title('monthly income and expense trend')
+        ax.set_xticks(x)
+        ax.set_xticklabels(months, rotation=45)
+        ax.legend()
+        ax.grid(axis='y', linestyle='--', alpha=0.7)
+        
+        # 添加数值标签
+        for i, v in enumerate(incomes):
+            ax.text(i - width/2, v + max(incomes)*0.02, f'{v:.0f}', ha='center', va='bottom', fontsize=8)
+        for i, v in enumerate(expenses):
+            ax.text(i + width/2, -v - max(expenses)*0.02, f'{v:.0f}', ha='center', va='top', fontsize=8)
+        
+        # 保存图表
+        plt.tight_layout()
+        chart_path = os.path.join(self.charts_dir, 'income_expense.png')
+        
         try:
-            if 'monthly_stats' not in self.data or not self.data['monthly_stats']:
-                logger.warning("No monthly data available for plotting")
-                return None
-            
-            monthly_stats = sorted(self.data['monthly_stats'], key=lambda x: x['month_label'])
-            
-            # 限制只显示最近12个月
-            if len(monthly_stats) > 12:
-                monthly_stats = monthly_stats[-12:]
-            
-            months = [m['month_label'] for m in monthly_stats]
-            incomes = [m['income'] for m in monthly_stats]
-            expenses = [m['expense'] for m in monthly_stats]
-            nets = [m['net'] for m in monthly_stats]
-            
-            fig, ax = plt.subplots(figsize=(10, 6))
-            
-            # 绘制条形图
-            x = np.arange(len(months))
-            width = 0.35
-            ax.bar(x - width/2, incomes, width, label='income', color='#4CAF50', alpha=0.7)
-            ax.bar(x + width/2, [-e for e in expenses], width, label='expense', color='#F44336', alpha=0.7)
-            
-            # 绘制净额线
-            ax.plot(x, nets, 'o-', label='net', color='#2196F3', linewidth=2)
-            
-            # 设置坐标轴
-            ax.set_ylabel('amount (yuan)')
-            ax.set_title('monthly income and expense trend')
-            ax.set_xticks(x)
-            ax.set_xticklabels(months, rotation=45)
-            ax.legend()
-            ax.grid(axis='y', linestyle='--', alpha=0.7)
-            
-            # 添加数值标签
-            for i, v in enumerate(incomes):
-                ax.text(i - width/2, v + max(incomes)*0.02, f'{v:.0f}', ha='center', va='bottom', fontsize=8)
-            for i, v in enumerate(expenses):
-                ax.text(i + width/2, -v - max(expenses)*0.02, f'{v:.0f}', ha='center', va='top', fontsize=8)
-            
-            # 保存图表
-            plt.tight_layout()
-            chart_path = os.path.join(self.charts_dir, 'income_expense.png')
             plt.savefig(chart_path, dpi=100)
             plt.close()
             
             logger.info(f"income and expense trend chart saved to: {chart_path}")
             return os.path.basename(chart_path)
-        
         except Exception as e:
-            logger.error(f"Error generating income and expense trend chart: {e}")
-            return None
+            plt.close()
+            raise ChartGenerationError(
+                f"生成收入支出趋势图失败: {str(e)}", 
+                details={"chart_type": "income_expense"}
+            )
     
-    def generate_category_pie_chart(self):
-        """生成交易类别饼图"""
-        try:
-            # 检查category_stats或原始字段是否存在
-            if 'category_stats' in self.data and self.data['category_stats']:
-                category_stats = self.data['category_stats']
-                # 检查键名是否为'category'
-                if 'category' in category_stats[0]:
-                    key_name = 'category'
-                elif '分类' in category_stats[0]:
-                    key_name = '分类'
-                elif '类别' in category_stats[0]:
-                    key_name = '类别'
-                else:
-                    logger.warning(f"类别数据中找不到'category'、'分类'或'类别'字段，尝试其他字段: {category_stats[0].keys()}")
-                    # 尝试找到类似类别的字段
-                    possible_keys = [k for k in category_stats[0].keys() if '类' in k or '分' in k]
-                    if possible_keys:
-                        key_name = possible_keys[0]
-                        logger.info(f"Using alternative field name: {key_name}")
-                    else:
-                        logger.warning("No suitable category field found")
-                        return None
-                
-                # 检查金额字段
-                if 'total' in category_stats[0]:
-                    amount_key = 'total'
-                elif 'amount' in category_stats[0]:
-                    amount_key = 'amount'
-                elif '总额' in category_stats[0]:
-                    amount_key = '总额'
-                elif '金额' in category_stats[0]:
-                    amount_key = '金额'
-                else:
-                    logger.warning(f"类别数据中找不到'total'、'amount'、'总额'或'金额'字段，尝试其他字段: {category_stats[0].keys()}")
-                    # 尝试找到类似金额的字段
-                    possible_keys = [k for k in category_stats[0].keys() if '额' in k or '金' in k]
-                    if possible_keys:
-                        amount_key = possible_keys[0]
-                        logger.info(f"Using alternative amount field name: {amount_key}")
-                    else:
-                        logger.warning("No suitable amount field found")
-                        return None
-                
-                # 排序并限制类别数量，避免过多
-                category_stats = sorted(category_stats, key=lambda x: abs(x[amount_key]), reverse=True)
-                
-                if len(category_stats) > 8:
-                    # 保留前7个类别，其余归为"其他"
-                    top_categories = category_stats[:7]
-                    other_amount = sum(c[amount_key] for c in category_stats[7:])
-                    other_count = sum(c.get('count', c.get('笔数', 0)) for c in category_stats[7:])
-                    
-                    top_categories.append({
-                        key_name: 'Others',
-                        amount_key: other_amount,
-                        'count': other_count
-                    })
-                    category_stats = top_categories
-                
-                labels = [c[key_name] for c in category_stats]
-                amounts = [abs(c[amount_key]) for c in category_stats]  # 使用绝对值以便显示
-                
-                # 创建饼图
-                fig, ax = plt.subplots(figsize=(8, 8))
-                wedges, texts, autotexts = ax.pie(
-                    amounts, 
-                    labels=None,  # 不在饼图上直接显示标签
-                    autopct='%1.1f%%',
-                    startangle=90,
-                    shadow=False,
-                    colors=plt.cm.tab10.colors
-                )
-                
-                # 让饼图中心空心
-                circle = plt.Circle((0, 0), 0.4, fc='white')
-                fig.gca().add_artist(circle)
-                
-                # 设置标题和图例
-                ax.set_title('transaction category distribution')
-                ax.legend(wedges, [f'{l} ({a:.0f}yuan)' for l, a in zip(labels, amounts)], 
-                        loc='center left', bbox_to_anchor=(1, 0.5))
-                
-                # 设置自动文本的样式
-                for autotext in autotexts:
-                    autotext.set_fontsize(10)
-                    autotext.set_weight('bold')
-                
-                # 保存图表
-                plt.tight_layout()
-                chart_path = os.path.join(self.charts_dir, 'category_pie.png')
-                plt.savefig(chart_path, dpi=100, bbox_inches='tight')
-                plt.close()
-                
-                logger.info(f"Category pie chart saved to: {chart_path}")
-                return os.path.basename(chart_path)
-            else:
-                logger.warning("No category data available for plotting")
-                return None
-            
-        except Exception as e:
-            logger.error(f"Error generating category pie chart: {e}")
+    @error_handler(fallback_value=None, expected_exceptions=ChartGenerationError)
+    def generate_category_pie_chart(self) -> Optional[str]:
+        """生成交易类别饼图
+        
+        Returns:
+            str: 图表文件名，如果生成失败则返回None
+        """
+        # 获取分类数据
+        category_data = self.get_category_data()
+        if not category_data:
             return None
+            
+        categories = category_data['categories']
+        values = category_data['values']
+        
+        # 从配置中获取饼图最大类别数
+        max_categories = self.config_manager.get('visualization.max_categories_in_pie', 8)
+        
+        # 如果类别数量超过最大值，将多余的类别合并为"其他"
+        if len(categories) > max_categories:
+            # 保留前 max_categories-1 个类别，其余合并为"其他"
+            other_value = sum(values[max_categories-1:])
+            categories = categories[:max_categories-1] + ['其他']
+            values = values[:max_categories-1] + [other_value]
+        
+        # 创建饼图
+        fig, ax = plt.subplots(figsize=(10, 8))
+        
+        # 设置颜色和绘图参数
+        colors = plt.cm.Spectral(np.linspace(0, 1, len(categories)))
+        wedges, texts, autotexts = ax.pie(
+            values, 
+            labels=categories,
+            autopct='%1.1f%%',
+            startangle=90,
+            colors=colors,
+            wedgeprops={'edgecolor': 'w', 'linewidth': 1, 'antialiased': True}
+        )
+        
+        # 设置标签样式
+        for text in texts:
+            text.set_fontsize(10)
+        for autotext in autotexts:
+            autotext.set_fontsize(8)
+            autotext.set_color('white')
+        
+        # 添加图例
+        ax.legend(
+            wedges, 
+            [f"{c} ({v:.0f})" for c, v in zip(categories, values)],
+            title="Categories",
+            loc="center left",
+            bbox_to_anchor=(1, 0, 0.5, 1)
+        )
+        
+        # 设置标题
+        ax.set_title('Transaction Categories')
+        
+        # 保存图表
+        plt.tight_layout()
+        chart_path = os.path.join(self.charts_dir, 'category_pie.png')
+        
+        try:
+            plt.savefig(chart_path, dpi=100)
+            plt.close()
+            
+            logger.info(f"Category pie chart saved to: {chart_path}")
+            return os.path.basename(chart_path)
+        except Exception as e:
+            plt.close()
+            raise ChartGenerationError(
+                f"生成类别饼图失败: {str(e)}", 
+                details={"chart_type": "category_pie"}
+            )
     
     def generate_recent_transactions_chart(self):
         """生成最近交易的柱状图"""

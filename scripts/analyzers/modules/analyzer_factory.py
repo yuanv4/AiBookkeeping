@@ -1,167 +1,154 @@
+"""分析器工厂模块，负责创建和管理各种分析器"""
 import logging
-from .data_extractor import DataExtractor
-from .time_analyzer import TimeAnalyzer
-from .category_analyzer import CategoryAnalyzer
-from .merchant_analyzer import MerchantAnalyzer
-from .anomaly_analyzer import AnomalyAnalyzer
-from .summary_analyzer import SummaryAnalyzer
+from typing import Dict, Any, List, Optional, Union, Type
+
+# 导入分析器
+from scripts.analyzers.modules.data_extractor import DataExtractor
+from scripts.analyzers.modules.base_analyzer import BaseAnalyzer
+from scripts.analyzers.modules.time_analyzer import TimeAnalyzer
+from scripts.analyzers.modules.category_analyzer import CategoryAnalyzer
+from scripts.analyzers.modules.merchant_analyzer import MerchantAnalyzer
+from scripts.analyzers.modules.anomaly_analyzer import AnomalyAnalyzer
+from scripts.analyzers.modules.summary_analyzer import SummaryAnalyzer
+
+# 导入错误处理机制
+from scripts.common.exceptions import AnalyzerError, InvalidParameterError
+from scripts.common.error_handler import error_handler, safe_operation
+
+# 导入配置管理器
+from scripts.common.config import get_config_manager
+
+# 配置日志
+logger = logging.getLogger('analyzer_factory')
 
 class AnalyzerFactory:
-    """分析器工厂，负责创建和组织各种分析器"""
+    """分析器工厂类，负责创建和管理各种分析器"""
     
     def __init__(self, db_manager):
         """初始化分析器工厂
         
         Args:
-            db_manager: DBManager实例，用于数据库操作
+            db_manager: 数据库管理器实例
         """
-        if db_manager is None:
-            raise ValueError("DBManager instance must be provided to AnalyzerFactory")
+        self.db_manager = db_manager
+        self.logger = logger
         
-        self.logger = logging.getLogger(self.__class__.__name__)
+        # 获取配置管理器
+        self.config_manager = get_config_manager()
         
         # 创建数据提取器
         self.data_extractor = DataExtractor(db_manager)
         
         # 创建各种分析器
-        self.time_analyzer = TimeAnalyzer(self.data_extractor)
-        self.category_analyzer = CategoryAnalyzer(self.data_extractor)
-        self.merchant_analyzer = MerchantAnalyzer(self.data_extractor)
-        self.anomaly_analyzer = AnomalyAnalyzer(self.data_extractor)
-        self.summary_analyzer = SummaryAnalyzer(self.data_extractor)
+        self._create_analyzers()
         
-        # 分析器字典，用于快速访问
-        self.analyzers = {
-            'time': self.time_analyzer,
-            'category': self.category_analyzer,
-            'merchant': self.merchant_analyzer,
-            'anomaly': self.anomaly_analyzer,
-            'summary': self.summary_analyzer
-        }
+        # 分析器字典，保存分析器名称到实例的映射
+        self.analyzers = {}
+        self._register_analyzers()
     
-    def get_analyzer(self, analyzer_type):
+    def _create_analyzers(self):
+        """创建各种分析器实例"""
+        # 检查配置中是否启用各种分析模块
+        time_enabled = self.config_manager.get('analysis.time_analysis_enabled', True)
+        category_enabled = self.config_manager.get('analysis.category_analysis_enabled', True)
+        merchant_enabled = self.config_manager.get('analysis.merchant_analysis_enabled', True)
+        anomaly_enabled = self.config_manager.get('analysis.anomaly_detection_enabled', True)
+        summary_enabled = self.config_manager.get('analysis.summary_enabled', True)
+        
+        # 创建分析器实例，如果配置中启用了相应模块
+        if time_enabled:
+            self.time_analyzer = TimeAnalyzer(self.data_extractor)
+        
+        if category_enabled:
+            self.category_analyzer = CategoryAnalyzer(self.data_extractor)
+        
+        if merchant_enabled:
+            self.merchant_analyzer = MerchantAnalyzer(self.data_extractor)
+        
+        if anomaly_enabled:
+            self.anomaly_analyzer = AnomalyAnalyzer(self.data_extractor)
+        
+        if summary_enabled:
+            self.summary_analyzer = SummaryAnalyzer(self.data_extractor)
+    
+    def _register_analyzers(self):
+        """注册各种分析器到分析器字典"""
+        # 注册分析器实例
+        self.analyzers = {
+            'time': getattr(self, 'time_analyzer', None),
+            'category': getattr(self, 'category_analyzer', None),
+            'merchant': getattr(self, 'merchant_analyzer', None),
+            'anomaly': getattr(self, 'anomaly_analyzer', None),
+            'summary': getattr(self, 'summary_analyzer', None)
+        }
+        
+        # 过滤掉未启用的分析器
+        self.analyzers = {k: v for k, v in self.analyzers.items() if v is not None}
+        
+        self.logger.info(f"已注册 {len(self.analyzers)} 个分析器: {', '.join(self.analyzers.keys())}")
+    
+    def get_analyzer(self, analyzer_type: str) -> Optional[BaseAnalyzer]:
         """获取指定类型的分析器
         
         Args:
-            analyzer_type: 分析器类型，可选值：'time', 'category', 'merchant', 'anomaly', 'summary'
+            analyzer_type: 分析器类型，如'time', 'category'等
             
         Returns:
-            BaseAnalyzer: 分析器实例
+            BaseAnalyzer: 分析器实例，如果不存在返回None
         """
-        if analyzer_type not in self.analyzers:
-            self.logger.error(f"Unsupported analyzer type: {analyzer_type}")
-            raise ValueError(f"Unsupported analyzer type: {analyzer_type}")
-        
-        return self.analyzers[analyzer_type]
+        analyzer = self.analyzers.get(analyzer_type)
+        if not analyzer:
+            self.logger.warning(f"未找到指定类型的分析器: {analyzer_type}")
+        return analyzer
     
-    def analyze_all(self, start_date=None, end_date=None, account_number=None, 
-                   currency=None, account_name=None, **kwargs):
-        """执行所有分析
+    @error_handler(fallback_value={}, expected_exceptions=InvalidParameterError)
+    def analyze_all(self, **kwargs) -> Dict[str, Any]:
+        """执行所有分析器的分析
         
         Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            account_number: 账号 (用于过滤)
-            currency: 币种 (用于过滤)
-            account_name: 户名 (用于过滤)
-            **kwargs: 其他参数
+            **kwargs: 传递给分析器的参数
             
         Returns:
             dict: 包含所有分析结果的字典
         """
-        self.logger.info(
-            f"Analyzing all data: start_date={start_date}, end_date={end_date}, "
-            f"account_number={account_number}, currency={currency}, account_name={account_name}"
-        )
+        # 验证参数
+        if 'start_date' in kwargs and 'end_date' in kwargs:
+            if kwargs['start_date'] and kwargs['end_date'] and kwargs['start_date'] > kwargs['end_date']:
+                raise InvalidParameterError("开始日期不能晚于结束日期")
         
-        try:
-            # 获取交易数据（共享同一份数据，避免重复查询）
-            df = self.data_extractor.get_transactions(
-                start_date, end_date, account_number, currency, account_name
-            )
+        # 从配置中获取默认日期范围
+        if 'start_date' not in kwargs and 'end_date' not in kwargs:
+            default_days = self.config_manager.get('analysis.default_date_range_days', 90)
+            self.logger.info(f"使用默认日期范围: 最近 {default_days} 天")
             
-            if df is None or df.empty:
-                self.logger.warning("No transactions found for analysis.")
-                return {
-                    'summary': self.summary_analyzer._get_empty_summary(start_date, end_date),
-                    'time_analysis': {
-                        'monthly_stats': [],
-                        'yearly_stats': [],
-                        'weekly_stats': [],
-                        'daily_stats': []
-                    },
-                    'category_analysis': {
-                        'category_stats': [],
-                        'expense_distribution': [],
-                        'income_sources': []
-                    },
-                    'merchant_analysis': {
-                        'by_count': [],
-                        'by_amount': []
-                    },
-                    'anomaly_analysis': {
-                        'core_transactions': {},
-                        'outlier_stats': {}
-                    },
-                    'transactions': []
-                }
-            
-            # 执行各种分析
-            summary = self.summary_analyzer.analyze(
-                start_date, end_date, account_number, currency, account_name, **kwargs
-            )
-            
-            time_analysis = self.time_analyzer.analyze(
-                start_date, end_date, account_number, currency, account_name, **kwargs
-            )
-            
-            category_analysis = self.category_analyzer.analyze(
-                start_date, end_date, account_number, currency, account_name, **kwargs
-            )
-            
-            merchant_analysis = self.merchant_analyzer.analyze(
-                start_date, end_date, account_number, currency, account_name, **kwargs
-            )
-            
-            anomaly_analysis = self.anomaly_analyzer.analyze(
-                start_date, end_date, account_number, currency, account_name, **kwargs
-            )
-            
-            # 格式化交易记录
-            transactions = []
-            if not df.empty:
-                df_copy = df.copy()
-                if 'transaction_date' in df_copy.columns:
-                    df_copy['transaction_date'] = df_copy['transaction_date'].dt.strftime('%Y-%m-%d')
-                
-                # 处理numpy数据类型
-                for record in df_copy.to_dict('records'):
-                    for key, value in record.items():
-                        if isinstance(value, (float, int)):
-                            record[key] = round(value, 2) if isinstance(value, float) else value
-                    transactions.append(record)
-            
-            # 返回综合结果
-            return {
-                'summary': summary,
-                'time_analysis': time_analysis,
-                'category_analysis': category_analysis,
-                'merchant_analysis': merchant_analysis,
-                'anomaly_analysis': anomaly_analysis,
-                'transactions': transactions
-            }
-        except Exception as e:
-            self.logger.error(f"Error analyzing all data: {e}", exc_info=True)
-            return {
-                'error': str(e),
-                'summary': self.summary_analyzer._get_empty_summary(start_date, end_date),
-                'time_analysis': {},
-                'category_analysis': {},
-                'merchant_analysis': {},
-                'anomaly_analysis': {},
-                'transactions': []
-            }
+            # 让db_manager根据默认天数计算日期范围
+            date_range = self.db_manager.get_default_date_range(default_days)
+            kwargs.update(date_range)
+        
+        # 首先获取交易数据
+        transactions_df = self.data_extractor.get_transactions(**kwargs)
+        
+        results = {
+            'transactions': transactions_df.to_dict('records') if not transactions_df.empty else []
+        }
+        
+        # 对每个分析器执行分析
+        for analyzer_type, analyzer in self.analyzers.items():
+            try:
+                result = analyzer.analyze(**kwargs)
+                results[analyzer_type] = result
+            except Exception as e:
+                self.logger.error(f"执行 {analyzer_type} 分析器时出错: {str(e)}")
+                results[analyzer_type] = {'error': str(e)}
+        
+        return results
     
+    @safe_operation("清除分析器缓存")
     def clear_cache(self):
-        """清除所有缓存"""
-        self.data_extractor.clear_cache() 
+        """清除所有分析器的缓存"""
+        for analyzer_type, analyzer in self.analyzers.items():
+            if hasattr(analyzer, 'clear_cache'):
+                analyzer.clear_cache()
+                self.logger.info(f"已清除 {analyzer_type} 分析器缓存")
+        
+        self.logger.info("所有分析器缓存已清除") 
