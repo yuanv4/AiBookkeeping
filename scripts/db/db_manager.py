@@ -1069,6 +1069,916 @@ class DBManager:
             if conn:
                 conn.close()
 
+    @error_handler(fallback_value={})
+    def get_income_expense_balance(self):
+        """获取收入与支出平衡分析数据
+        
+        返回：
+        - 月度/季度/年度收支差额比率
+        - 收入覆盖必要支出的能力（必要支出覆盖率）
+        - 储蓄率（每月收入中的储蓄比例）
+        """
+        self.logger.info("分析收入与支出平衡数据")
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # 获取月度收支数据
+            monthly_query = """
+            SELECT 
+                strftime('%Y-%m', transaction_date) as month,
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
+                SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expense
+            FROM transactions t
+            JOIN accounts a ON t.account_id = a.id
+            GROUP BY month
+            ORDER BY month
+            """
+            cursor.execute(monthly_query)
+            monthly_data = []
+            for row in cursor.fetchall():
+                month = row['month']
+                income = float(row['income']) if row['income'] else 0
+                expense = float(row['expense']) if row['expense'] else 0
+                
+                # 计算收支比率
+                if expense > 0:
+                    ratio = income / expense
+                else:
+                    ratio = 1.0 if income > 0 else 0.0
+                
+                # 计算储蓄率
+                if income > 0:
+                    saving_rate = (income - expense) / income
+                else:
+                    saving_rate = 0.0
+                
+                monthly_data.append({
+                    'month': month,
+                    'income': income,
+                    'expense': expense,
+                    'ratio': ratio,
+                    'saving_rate': saving_rate
+                })
+            
+            # 获取季度收支数据
+            quarterly_query = """
+            SELECT 
+                strftime('%Y', transaction_date) || '-Q' || ((CAST(strftime('%m', transaction_date) AS INTEGER) + 2) / 3) as quarter,
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
+                SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expense
+            FROM transactions t
+            JOIN accounts a ON t.account_id = a.id
+            GROUP BY quarter
+            ORDER BY quarter
+            """
+            cursor.execute(quarterly_query)
+            quarterly_data = []
+            for row in cursor.fetchall():
+                quarter = row['quarter']
+                income = float(row['income']) if row['income'] else 0
+                expense = float(row['expense']) if row['expense'] else 0
+                
+                # 计算收支比率
+                if expense > 0:
+                    ratio = income / expense
+                else:
+                    ratio = 1.0 if income > 0 else 0.0
+                
+                # 计算储蓄率
+                if income > 0:
+                    saving_rate = (income - expense) / income
+                else:
+                    saving_rate = 0.0
+                
+                quarterly_data.append({
+                    'quarter': quarter,
+                    'income': income,
+                    'expense': expense,
+                    'ratio': ratio,
+                    'saving_rate': saving_rate
+                })
+            
+            # 获取年度收支数据
+            yearly_query = """
+            SELECT 
+                strftime('%Y', transaction_date) as year,
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
+                SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expense
+            FROM transactions t
+            JOIN accounts a ON t.account_id = a.id
+            GROUP BY year
+            ORDER BY year
+            """
+            cursor.execute(yearly_query)
+            yearly_data = []
+            for row in cursor.fetchall():
+                year = row['year']
+                income = float(row['income']) if row['income'] else 0
+                expense = float(row['expense']) if row['expense'] else 0
+                
+                # 计算收支比率
+                if expense > 0:
+                    ratio = income / expense
+                else:
+                    ratio = 1.0 if income > 0 else 0.0
+                
+                # 计算储蓄率
+                if income > 0:
+                    saving_rate = (income - expense) / income
+                else:
+                    saving_rate = 0.0
+                
+                yearly_data.append({
+                    'year': year,
+                    'income': income,
+                    'expense': expense,
+                    'ratio': ratio,
+                    'saving_rate': saving_rate
+                })
+            
+            # 计算必要支出覆盖率（假设餐饮、交通、住房、医疗、通讯为必要支出）
+            necessary_expense_query = """
+            SELECT 
+                strftime('%Y-%m', transaction_date) as month,
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
+                SUM(CASE WHEN amount < 0 AND (
+                    category IN ('餐饮', '交通', '住房', '医疗', '通讯')
+                    ) THEN ABS(amount) ELSE 0 END) as necessary_expense
+            FROM transactions t
+            JOIN accounts a ON t.account_id = a.id
+            GROUP BY month
+            ORDER BY month
+            """
+            cursor.execute(necessary_expense_query)
+            necessary_expense_coverage = []
+            for row in cursor.fetchall():
+                month = row['month']
+                income = float(row['income']) if row['income'] else 0
+                necessary_expense = float(row['necessary_expense']) if row['necessary_expense'] else 0
+                
+                # 计算必要支出覆盖率
+                if necessary_expense > 0:
+                    coverage_ratio = income / necessary_expense
+                else:
+                    coverage_ratio = 1.0 if income > 0 else 0.0
+                
+                necessary_expense_coverage.append({
+                    'month': month,
+                    'income': income,
+                    'necessary_expense': necessary_expense,
+                    'coverage_ratio': coverage_ratio
+                })
+            
+            # 计算总体指标
+            overall_stats = {}
+            
+            # 计算平均储蓄率
+            if monthly_data:
+                overall_stats['avg_monthly_saving_rate'] = sum(m['saving_rate'] for m in monthly_data) / len(monthly_data)
+            else:
+                overall_stats['avg_monthly_saving_rate'] = 0.0
+            
+            # 计算平均收支比率
+            if monthly_data:
+                overall_stats['avg_monthly_ratio'] = sum(m['ratio'] for m in monthly_data) / len(monthly_data)
+            else:
+                overall_stats['avg_monthly_ratio'] = 0.0
+            
+            # 计算平均必要支出覆盖率
+            if necessary_expense_coverage:
+                overall_stats['avg_necessary_expense_coverage'] = sum(n['coverage_ratio'] for n in necessary_expense_coverage) / len(necessary_expense_coverage)
+            else:
+                overall_stats['avg_necessary_expense_coverage'] = 0.0
+            
+            return {
+                'monthly_data': monthly_data,
+                'quarterly_data': quarterly_data,
+                'yearly_data': yearly_data,
+                'necessary_expense_coverage': necessary_expense_coverage,
+                'overall_stats': overall_stats
+            }
+        except Exception as e:
+            self.logger.error(f"获取收入与支出平衡分析数据时出错: {e}")
+            raise
+        finally:
+            conn.close()
+
+    @error_handler(fallback_value={})
+    def get_income_stability(self):
+        """获取收入稳定性分析数据
+        
+        返回：
+        - 固定收入占比（如工资占总收入比例）
+        - 收入波动系数（标准差/平均值）
+        - 最长无收入周期识别
+        """
+        self.logger.info("分析收入稳定性数据")
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # 获取月度收入数据
+            monthly_income_query = """
+            SELECT 
+                strftime('%Y-%m', transaction_date) as month,
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income
+            FROM transactions t
+            JOIN accounts a ON t.account_id = a.id
+            GROUP BY month
+            ORDER BY month
+            """
+            cursor.execute(monthly_income_query)
+            monthly_income = []
+            for row in cursor.fetchall():
+                month = row['month']
+                income = float(row['income']) if row['income'] else 0
+                
+                monthly_income.append({
+                    'month': month,
+                    'income': income
+                })
+            
+            # 计算收入波动系数
+            if monthly_income:
+                income_values = [m['income'] for m in monthly_income]
+                mean_income = sum(income_values) / len(income_values)
+                variance = sum((x - mean_income) ** 2 for x in income_values) / len(income_values)
+                std_dev = variance ** 0.5
+                if mean_income > 0:
+                    coefficient_of_variation = std_dev / mean_income
+                else:
+                    coefficient_of_variation = 0.0
+            else:
+                mean_income = 0.0
+                std_dev = 0.0
+                coefficient_of_variation = 0.0
+            
+            # 获取工资类收入占比
+            income_types_query = """
+            SELECT 
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as total_income,
+                SUM(CASE WHEN amount > 0 AND (
+                    description LIKE '%工资%' OR 
+                    description LIKE '%薪%' OR
+                    category = '工资'
+                ) THEN amount ELSE 0 END) as salary_income
+            FROM transactions t
+            JOIN accounts a ON t.account_id = a.id
+            """
+            cursor.execute(income_types_query)
+            row = cursor.fetchone()
+            
+            total_income = float(row['total_income']) if row['total_income'] else 0
+            salary_income = float(row['salary_income']) if row['salary_income'] else 0
+            
+            if total_income > 0:
+                salary_income_ratio = salary_income / total_income
+            else:
+                salary_income_ratio = 0.0
+            
+            # 分析收入间隔和最长无收入周期
+            no_income_periods = []
+            max_no_income_days = 0
+            max_no_income_period = {'start': None, 'end': None, 'days': 0}
+            
+            if len(monthly_income) > 1:
+                # 计算每月是否有收入
+                has_income = {}
+                for m in monthly_income:
+                    has_income[m['month']] = m['income'] > 0
+                
+                # 获取所有月份（包括没有交易的月份）
+                all_months_query = """
+                WITH RECURSIVE months(date) AS (
+                    SELECT date(MIN(transaction_date), 'start of month')
+                    FROM transactions
+                    UNION ALL
+                    SELECT date(date, '+1 month')
+                    FROM months
+                    WHERE date < date((SELECT MAX(transaction_date) FROM transactions), 'start of month')
+                )
+                SELECT strftime('%Y-%m', date) as month FROM months
+                """
+                cursor.execute(all_months_query)
+                all_months = [row['month'] for row in cursor.fetchall()]
+                
+                current_period = None
+                for month in all_months:
+                    if month in has_income and has_income[month]:
+                        if current_period:
+                            # 结束一个无收入周期
+                            days = (datetime.strptime(month, '%Y-%m') - 
+                                   datetime.strptime(current_period['start'], '%Y-%m')).days
+                            current_period['end'] = month
+                            current_period['days'] = days
+                            no_income_periods.append(current_period)
+                            
+                            if days > max_no_income_days:
+                                max_no_income_days = days
+                                max_no_income_period = current_period.copy()
+                            
+                            current_period = None
+                    elif month not in has_income or not has_income[month]:
+                        if not current_period:
+                            # 开始一个新的无收入周期
+                            current_period = {'start': month, 'end': None, 'days': 0}
+            
+            return {
+                'monthly_income': monthly_income,
+                'income_stats': {
+                    'mean_income': mean_income,
+                    'std_dev': std_dev,
+                    'coefficient_of_variation': coefficient_of_variation
+                },
+                'salary_income_ratio': salary_income_ratio,
+                'no_income_periods': no_income_periods,
+                'max_no_income_period': max_no_income_period
+            }
+        except Exception as e:
+            self.logger.error(f"获取收入稳定性分析数据时出错: {e}")
+            raise
+        finally:
+            conn.close()
+
+    @error_handler(fallback_value={})
+    def get_income_diversity(self):
+        """获取收入多样性评估数据
+        
+        返回：
+        - 收入来源数量及分布
+        - 主要收入来源集中度（最大收入来源占比）
+        - 被动收入占比（利息、投资收益等）
+        """
+        self.logger.info("分析收入多样性数据")
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # 获取收入来源分布
+            income_sources_query = """
+            SELECT 
+                CASE 
+                    WHEN description LIKE '%工资%' OR description LIKE '%薪%' THEN '工资收入'
+                    WHEN description LIKE '%利息%' OR description LIKE '%股息%' THEN '利息收入'
+                    WHEN description LIKE '%退款%' OR description LIKE '%返还%' THEN '退款'
+                    WHEN description LIKE '%投资%' OR description LIKE '%基金%' OR description LIKE '%股票%' THEN '投资收益'
+                    WHEN category = '工资' THEN '工资收入'
+                    WHEN category = '利息' THEN '利息收入'
+                    WHEN category = '退款' THEN '退款'
+                    WHEN category = '投资' THEN '投资收益'
+                    WHEN counterparty IS NOT NULL AND counterparty != '' THEN counterparty
+                    ELSE '其他收入'
+                END as income_source,
+                SUM(amount) as total_amount,
+                COUNT(*) as transaction_count
+            FROM transactions
+            WHERE amount > 0
+            GROUP BY income_source
+            ORDER BY total_amount DESC
+            """
+            cursor.execute(income_sources_query)
+            income_sources = []
+            total_income = 0
+            for row in cursor.fetchall():
+                source = row['income_source']
+                amount = float(row['total_amount']) if row['total_amount'] else 0
+                count = int(row['transaction_count'])
+                
+                total_income += amount
+                
+                income_sources.append({
+                    'source': source,
+                    'amount': amount,
+                    'count': count
+                })
+            
+            # 计算各收入来源占比
+            for source in income_sources:
+                if total_income > 0:
+                    source['percentage'] = source['amount'] / total_income * 100
+                else:
+                    source['percentage'] = 0.0
+            
+            # 计算收入来源集中度
+            concentration = 0
+            if income_sources and total_income > 0:
+                # 计算最大收入来源占比
+                max_source_percentage = max(source['percentage'] for source in income_sources)
+                concentration = max_source_percentage / 100  # 转换为0-1的比例
+            
+            # 计算被动收入占比（利息、投资收益等）
+            passive_income_query = """
+            SELECT 
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as total_income,
+                SUM(CASE WHEN amount > 0 AND (
+                    description LIKE '%利息%' OR 
+                    description LIKE '%股息%' OR
+                    description LIKE '%投资%' OR
+                    description LIKE '%基金%' OR
+                    description LIKE '%股票%' OR
+                    category IN ('利息', '投资')
+                ) THEN amount ELSE 0 END) as passive_income
+            FROM transactions
+            """
+            cursor.execute(passive_income_query)
+            row = cursor.fetchone()
+            
+            total_income_all = float(row['total_income']) if row['total_income'] else 0
+            passive_income = float(row['passive_income']) if row['passive_income'] else 0
+            
+            if total_income_all > 0:
+                passive_income_ratio = passive_income / total_income_all
+            else:
+                passive_income_ratio = 0.0
+            
+            # 计算月度收入来源数量
+            monthly_sources_query = """
+            SELECT 
+                strftime('%Y-%m', transaction_date) as month,
+                COUNT(DISTINCT CASE 
+                    WHEN description LIKE '%工资%' OR description LIKE '%薪%' THEN '工资收入'
+                    WHEN description LIKE '%利息%' OR description LIKE '%股息%' THEN '利息收入'
+                    WHEN description LIKE '%退款%' OR description LIKE '%返还%' THEN '退款'
+                    WHEN description LIKE '%投资%' OR description LIKE '%基金%' OR description LIKE '%股票%' THEN '投资收益'
+                    WHEN category = '工资' THEN '工资收入'
+                    WHEN category = '利息' THEN '利息收入'
+                    WHEN category = '退款' THEN '退款'
+                    WHEN category = '投资' THEN '投资收益'
+                    WHEN counterparty IS NOT NULL AND counterparty != '' THEN counterparty
+                    ELSE '其他收入'
+                END) as source_count
+            FROM transactions
+            WHERE amount > 0
+            GROUP BY month
+            ORDER BY month
+            """
+            cursor.execute(monthly_sources_query)
+            monthly_sources = []
+            for row in cursor.fetchall():
+                month = row['month']
+                source_count = int(row['source_count'])
+                
+                monthly_sources.append({
+                    'month': month,
+                    'source_count': source_count
+                })
+            
+            return {
+                'income_sources': income_sources,
+                'source_count': len(income_sources),
+                'concentration': concentration,
+                'passive_income_ratio': passive_income_ratio,
+                'monthly_sources': monthly_sources
+            }
+        except Exception as e:
+            self.logger.error(f"获取收入多样性评估数据时出错: {e}")
+            raise
+        finally:
+            conn.close()
+
+    @error_handler(fallback_value={})
+    def get_cash_flow_health(self):
+        """获取现金流健康度数据
+        
+        返回：
+        - 月度现金流净值趋势
+        - 紧急备用金覆盖月数（账户余额/月均支出）
+        - 月度资金缺口频率及规模
+        """
+        self.logger.info("分析现金流健康度数据")
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # 获取月度现金流净值
+            monthly_cash_flow_query = """
+            SELECT 
+                strftime('%Y-%m', transaction_date) as month,
+                SUM(amount) as net_flow,
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
+                SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as expense
+            FROM transactions
+            GROUP BY month
+            ORDER BY month
+            """
+            cursor.execute(monthly_cash_flow_query)
+            monthly_cash_flow = []
+            total_months = 0
+            total_expense = 0
+            negative_months = 0
+            total_gap = 0
+            
+            for row in cursor.fetchall():
+                month = row['month']
+                net_flow = float(row['net_flow']) if row['net_flow'] else 0
+                income = float(row['income']) if row['income'] else 0
+                expense = float(row['expense']) if row['expense'] else 0
+                
+                # 计算资金缺口
+                gap = 0
+                if net_flow < 0:
+                    negative_months += 1
+                    gap = abs(net_flow)
+                    total_gap += gap
+                
+                monthly_cash_flow.append({
+                    'month': month,
+                    'net_flow': net_flow,
+                    'income': income,
+                    'expense': expense,
+                    'gap': gap
+                })
+                
+                total_months += 1
+                total_expense += abs(expense)
+            
+            # 计算月均支出
+            avg_monthly_expense = total_expense / total_months if total_months > 0 else 0
+            
+            # 获取最新余额
+            latest_balance_query = """
+            SELECT 
+                SUM(latest_balance) as total_balance
+            FROM (
+                SELECT 
+                    a.account_number,
+                    MAX(t.transaction_date) as latest_date,
+                    t.balance as latest_balance
+                FROM transactions t
+                JOIN accounts a ON t.account_id = a.id
+                WHERE t.balance IS NOT NULL
+                GROUP BY a.account_number
+            )
+            """
+            cursor.execute(latest_balance_query)
+            row = cursor.fetchone()
+            total_balance = float(row['total_balance']) if row and row['total_balance'] else 0
+            
+            # 计算紧急备用金覆盖月数
+            emergency_fund_months = total_balance / abs(avg_monthly_expense) if avg_monthly_expense != 0 else 0
+            
+            # 计算资金缺口频率
+            gap_frequency = negative_months / total_months if total_months > 0 else 0
+            
+            # 计算平均资金缺口
+            avg_gap = total_gap / negative_months if negative_months > 0 else 0
+            
+            return {
+                'monthly_cash_flow': monthly_cash_flow,
+                'emergency_fund_months': emergency_fund_months,
+                'gap_frequency': gap_frequency,
+                'avg_gap': avg_gap,
+                'total_balance': total_balance,
+                'avg_monthly_expense': avg_monthly_expense
+            }
+        except Exception as e:
+            self.logger.error(f"获取现金流健康度数据时出错: {e}")
+            raise
+        finally:
+            conn.close()
+
+    @error_handler(fallback_value={})
+    def get_income_growth(self):
+        """获取收入增长评估数据
+        
+        返回：
+        - 年度/季度收入增长率
+        - 收入增长与通胀对比
+        - 职业收入发展轨迹
+        """
+        self.logger.info("分析收入增长数据")
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # 获取季度收入数据
+            quarterly_income_query = """
+            SELECT 
+                strftime('%Y', transaction_date) || '-Q' || ((CAST(strftime('%m', transaction_date) AS INTEGER) + 2) / 3) as quarter,
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income
+            FROM transactions
+            GROUP BY quarter
+            ORDER BY quarter
+            """
+            cursor.execute(quarterly_income_query)
+            quarterly_income = []
+            quarterly_growth = []
+            
+            prev_income = None
+            for row in cursor.fetchall():
+                quarter = row['quarter']
+                income = float(row['income']) if row['income'] else 0
+                
+                quarterly_income.append({
+                    'quarter': quarter,
+                    'income': income
+                })
+                
+                # 计算环比增长率
+                if prev_income is not None and prev_income > 0:
+                    growth_rate = (income - prev_income) / prev_income
+                    quarterly_growth.append({
+                        'quarter': quarter,
+                        'growth_rate': growth_rate
+                    })
+                
+                prev_income = income
+            
+            # 获取年度收入数据
+            yearly_income_query = """
+            SELECT 
+                strftime('%Y', transaction_date) as year,
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income
+            FROM transactions
+            GROUP BY year
+            ORDER BY year
+            """
+            cursor.execute(yearly_income_query)
+            yearly_income = []
+            yearly_growth = []
+            
+            prev_income = None
+            for row in cursor.fetchall():
+                year = row['year']
+                income = float(row['income']) if row['income'] else 0
+                
+                yearly_income.append({
+                    'year': year,
+                    'income': income
+                })
+                
+                # 计算同比增长率
+                if prev_income is not None and prev_income > 0:
+                    growth_rate = (income - prev_income) / prev_income
+                    yearly_growth.append({
+                        'year': year,
+                        'growth_rate': growth_rate
+                    })
+                
+                prev_income = income
+            
+            # 获取工资收入趋势
+            salary_trend_query = """
+            SELECT 
+                strftime('%Y-%m', transaction_date) as month,
+                SUM(CASE WHEN amount > 0 AND (
+                    description LIKE '%工资%' OR 
+                    description LIKE '%薪%' OR
+                    category = '工资'
+                ) THEN amount ELSE 0 END) as salary_income
+            FROM transactions
+            GROUP BY month
+            ORDER BY month
+            """
+            cursor.execute(salary_trend_query)
+            salary_trend = []
+            
+            for row in cursor.fetchall():
+                month = row['month']
+                salary = float(row['salary_income']) if row['salary_income'] else 0
+                
+                salary_trend.append({
+                    'month': month,
+                    'salary': salary
+                })
+            
+            # 计算收入增长统计
+            avg_quarterly_growth = sum(q['growth_rate'] for q in quarterly_growth) / len(quarterly_growth) if quarterly_growth else 0
+            avg_yearly_growth = sum(y['growth_rate'] for y in yearly_growth) / len(yearly_growth) if yearly_growth else 0
+            
+            # 假设通胀率数据（实际应用中可以从外部数据源获取）
+            inflation_data = [
+                {'year': '2020', 'rate': 0.02},
+                {'year': '2021', 'rate': 0.015},
+                {'year': '2022', 'rate': 0.02},
+                {'year': '2023', 'rate': 0.022},
+                {'year': '2024', 'rate': 0.025}
+            ]
+            
+            # 比较收入增长与通胀
+            income_vs_inflation = []
+            for yearly in yearly_growth:
+                year = yearly['year']
+                growth = yearly['growth_rate']
+                
+                # 查找对应年份的通胀率
+                inflation = next((item['rate'] for item in inflation_data if item['year'] == year), 0.02)
+                
+                real_growth = growth - inflation
+                
+                income_vs_inflation.append({
+                    'year': year,
+                    'income_growth': growth,
+                    'inflation': inflation,
+                    'real_growth': real_growth
+                })
+            
+            return {
+                'quarterly_income': quarterly_income,
+                'quarterly_growth': quarterly_growth,
+                'yearly_income': yearly_income,
+                'yearly_growth': yearly_growth,
+                'salary_trend': salary_trend,
+                'income_vs_inflation': income_vs_inflation,
+                'stats': {
+                    'avg_quarterly_growth': avg_quarterly_growth,
+                    'avg_yearly_growth': avg_yearly_growth
+                }
+            }
+        except Exception as e:
+            self.logger.error(f"获取收入增长评估数据时出错: {e}")
+            raise
+        finally:
+            conn.close()
+
+    @error_handler(fallback_value={})
+    def get_financial_resilience(self):
+        """获取财务韧性指标数据
+        
+        返回：
+        - 突发大额支出后的恢复周期
+        - 收入中断抵抗力（基于历史数据模拟）
+        - 收支平衡点分析
+        """
+        self.logger.info("分析财务韧性指标数据")
+        
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # 获取月度收支数据用于分析
+            monthly_data_query = """
+            SELECT 
+                strftime('%Y-%m', transaction_date) as month,
+                SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
+                SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as expense,
+                SUM(amount) as net_flow
+            FROM transactions
+            GROUP BY month
+            ORDER BY month
+            """
+            cursor.execute(monthly_data_query)
+            monthly_data = []
+            for row in cursor.fetchall():
+                month = row['month']
+                income = float(row['income']) if row['income'] else 0
+                expense = float(row['expense']) if row['expense'] else 0
+                net_flow = float(row['net_flow']) if row['net_flow'] else 0
+                
+                monthly_data.append({
+                    'month': month,
+                    'income': income,
+                    'expense': abs(expense),  # 转为正数便于计算
+                    'net_flow': net_flow
+                })
+            
+            # 查找大额支出及恢复周期
+            large_expense_query = """
+            SELECT 
+                t1.transaction_date,
+                t1.amount,
+                t1.description,
+                t1.category
+            FROM transactions t1
+            WHERE t1.amount < 0
+            AND ABS(t1.amount) > (
+                SELECT AVG(ABS(t2.amount)) * 3  -- 大于平均支出的3倍
+                FROM transactions t2
+                WHERE t2.amount < 0
+            )
+            ORDER BY ABS(t1.amount) DESC
+            LIMIT 10
+            """
+            cursor.execute(large_expense_query)
+            large_expenses = []
+            for row in cursor.fetchall():
+                date = row['transaction_date']
+                amount = float(row['amount'])
+                description = row['description']
+                category = row['category']
+                
+                # 获取该月数据
+                month = datetime.strptime(date, '%Y-%m-%d').strftime('%Y-%m')
+                
+                # 查找月度数据中的索引
+                try:
+                    index = next(i for i, m in enumerate(monthly_data) if m['month'] == month)
+                    
+                    # 计算恢复周期
+                    recovery_months = 0
+                    cumulative_net_flow = 0
+                    expense_amount = abs(amount)
+                    
+                    for i in range(index, len(monthly_data)):
+                        cumulative_net_flow += monthly_data[i]['net_flow']
+                        recovery_months += 1
+                        if cumulative_net_flow >= expense_amount:
+                            break
+                    
+                    large_expenses.append({
+                        'date': date,
+                        'amount': amount,
+                        'description': description,
+                        'category': category,
+                        'recovery_months': recovery_months,
+                        'recovered': cumulative_net_flow >= expense_amount
+                    })
+                except (StopIteration, IndexError):
+                    # 如果找不到对应月份，跳过
+                    continue
+            
+            # 计算收入中断抵抗力
+            # 1. 计算平均月支出
+            if monthly_data:
+                avg_monthly_expense = sum(m['expense'] for m in monthly_data) / len(monthly_data)
+            else:
+                avg_monthly_expense = 0
+            
+            # 2. 获取最新余额
+            latest_balance_query = """
+            SELECT 
+                SUM(latest_balance) as total_balance
+            FROM (
+                SELECT 
+                    a.account_number,
+                    MAX(t.transaction_date) as latest_date,
+                    t.balance as latest_balance
+                FROM transactions t
+                JOIN accounts a ON t.account_id = a.id
+                WHERE t.balance IS NOT NULL
+                GROUP BY a.account_number
+            )
+            """
+            cursor.execute(latest_balance_query)
+            row = cursor.fetchone()
+            total_balance = float(row['total_balance']) if row and row['total_balance'] else 0
+            
+            # 3. 计算收入中断抵抗力（月数）
+            income_interruption_resistance = total_balance / avg_monthly_expense if avg_monthly_expense > 0 else 0
+            
+            # 计算收支平衡点
+            if monthly_data:
+                # 计算平均收入和支出
+                avg_monthly_income = sum(m['income'] for m in monthly_data) / len(monthly_data)
+                
+                # 计算固定支出占比和变动支出占比
+                fixed_expense_query = """
+                SELECT 
+                    SUM(CASE WHEN amount < 0 AND (
+                        category IN ('住房', '通讯', '保险')
+                    ) THEN ABS(amount) ELSE 0 END) as fixed_expense,
+                    SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as total_expense
+                FROM transactions
+                """
+                cursor.execute(fixed_expense_query)
+                row = cursor.fetchone()
+                fixed_expense = float(row['fixed_expense']) if row['fixed_expense'] else 0
+                total_expense = float(row['total_expense']) if row['total_expense'] else 0
+                
+                fixed_expense_ratio = fixed_expense / total_expense if total_expense > 0 else 0
+                variable_expense_ratio = 1 - fixed_expense_ratio
+                
+                # 计算收支平衡点
+                # 平衡点 = 固定支出 / (1 - 变动支出率)
+                # 变动支出率 = 变动支出 / 收入
+                if avg_monthly_income > 0:
+                    variable_expense_rate = (total_expense * variable_expense_ratio) / (total_expense / avg_monthly_expense * avg_monthly_income)
+                    break_even_point = (total_expense * fixed_expense_ratio) / (1 - variable_expense_rate) if variable_expense_rate < 1 else float('inf')
+                else:
+                    variable_expense_rate = 0
+                    break_even_point = 0
+            else:
+                avg_monthly_income = 0
+                fixed_expense_ratio = 0
+                variable_expense_ratio = 0
+                variable_expense_rate = 0
+                break_even_point = 0
+            
+            return {
+                'large_expenses': large_expenses,
+                'income_interruption_resistance': income_interruption_resistance,
+                'break_even_analysis': {
+                    'avg_monthly_income': avg_monthly_income,
+                    'avg_monthly_expense': avg_monthly_expense,
+                    'fixed_expense_ratio': fixed_expense_ratio,
+                    'variable_expense_ratio': variable_expense_ratio,
+                    'break_even_point': break_even_point
+                },
+                'monthly_data': monthly_data,
+                'total_balance': total_balance
+            }
+        except Exception as e:
+            self.logger.error(f"获取财务韧性指标数据时出错: {e}")
+            raise
+        finally:
+            conn.close()
+
 # 如果直接运行此脚本，创建数据库结构
 if __name__ == "__main__":
     db_manager = DBManager()

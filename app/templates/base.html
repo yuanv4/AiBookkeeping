@@ -140,6 +140,14 @@
                     交易记录
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == url_for('income_analysis_bp.income_analysis') %}active{% endif %}" href="{{ url_for('income_analysis_bp.income_analysis') }}">
+                    <div class="nav-icon-round">
+                        <i class="material-icons-round">trending_up</i>
+                    </div>
+                    收入分析
+                </a>
+            </li>
         </ul>
     </div>
 

@@ -6,6 +6,7 @@ from flask import Flask, request, render_template, jsonify
 # 从同一目录的 config 模块导入配置字典
 # 假设 config.py 已经被移动到了 app/config.py
 from .config import config
+from .template_filters import register_template_filters
 
 def create_app(config_name='default'):
     app = Flask(__name__) # 使用 __name__ (即 'app') 作为蓝图的模板/静态文件查找起点
@@ -59,6 +60,9 @@ def create_app(config_name='default'):
     )
     app.logger.info("DBManager, ExtractorFactory, FileProcessorService 已初始化并附加到 app 对象。")
 
+    # 注册自定义模板过滤器
+    register_template_filters(app)
+
     # 注册蓝图
     from .main.routes import main as main_blueprint # 蓝图实例通常在 routes.py 中定义或在其 __init__ 中
     app.register_blueprint(main_blueprint)
@@ -76,6 +80,10 @@ def create_app(config_name='default'):
     app.register_blueprint(api_bp, url_prefix=app.config.get('API_URL_PREFIX', '/api'))
     app.logger.info(f"已注册 api_bp, 前缀 {app.config.get('API_URL_PREFIX', '/api')}")
     
+    from .income_analysis_bp.routes import income_analysis_bp
+    app.register_blueprint(income_analysis_bp, url_prefix='/income-analysis')
+    app.logger.info("已注册 income_analysis_bp, 前缀 /income-analysis")
+
     # 注册全局错误处理函数
     @app.errorhandler(404)
     def page_not_found_error(e): 
@@ -84,7 +92,7 @@ def create_app(config_name='default'):
         if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
             return jsonify(error='Not Found', message=str(e)), 404
         return render_template('errors/404.html', error=e), 404
-
+        
     @app.errorhandler(500)
     def internal_server_error_handler(e): 
         app.logger.error(f"服务器内部错误 (500): {e}", exc_info=True)

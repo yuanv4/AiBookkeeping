@@ -190,7 +190,7 @@
                             {% set months = data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1 %}
                             
                             {% set monthly_income = total_income / months %}
-                            {% set monthly_expense_abs = (total_expense*-1 if total_expense < 0 else total_expense) / months %}
+                            {% set monthly_expense_abs = total_expense|abs / months %}
                             {% set net_cash_flow = monthly_income - monthly_expense_abs %}
                             
                             <div class="row">
@@ -275,7 +275,7 @@
                             {% set months = data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1 %}
                             
                             {% set monthly_income = total_income / months %}
-                            {% set monthly_expense_abs = (total_expense*-1 if total_expense < 0 else total_expense) / months %}
+                            {% set monthly_expense_abs = total_expense|abs / months %}
                             {% set monthly_savings = monthly_income - monthly_expense_abs %}
                             {% set savings_rate = (monthly_savings / monthly_income * 100) if monthly_income > 0 else 0 %}
                             
@@ -376,7 +376,7 @@
                         <div class="card-body">
                             {% set total_expense = data.summary.total_expense or 0 %}
                             {% set months = data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1 %}
-                            {% set monthly_expense_abs = (total_expense*-1 if total_expense < 0 else total_expense) / months %}
+                            {% set monthly_expense_abs = total_expense|abs / months %}
                             {% set emergency_fund_ratio = data.summary.account_balance / monthly_expense_abs if monthly_expense_abs > 0 else 0 %}
                             
                             <div class="row">
