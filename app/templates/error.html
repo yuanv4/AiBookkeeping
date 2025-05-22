@@ -3,75 +3,209 @@
 
 {% block title %}错误 - 银行账单分析系统{% endblock %}
 
+{% block page_css %}
+<style>
+    .error-container {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 2rem 0;
+    }
+    
+    .error-card {
+        border: none;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+    
+    .error-header {
+        background-color: var(--danger-light);
+        color: var(--danger);
+        padding: 1.25rem;
+        font-weight: 600;
+    }
+    
+    .error-icon-container {
+        width: 120px;
+        height: 120px;
+        background-color: var(--danger-light);
+        color: var(--danger);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+    
+    .error-icon {
+        font-size: 64px;
+    }
+    
+    .error-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--gray-800);
+    }
+    
+    .error-message {
+        background-color: var(--danger-light);
+        border-left: 4px solid var(--danger);
+        padding: 1rem;
+        border-radius: var(--border-radius-sm);
+        margin-bottom: 2rem;
+        color: var(--gray-800);
+    }
+    
+    .help-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: var(--border-radius-sm);
+        background-color: var(--gray-100);
+        transition: all var(--transition-speed) ease;
+    }
+    
+    .help-item:hover {
+        background-color: var(--primary-light);
+        transform: translateY(-2px);
+    }
+    
+    .help-icon {
+        width: 36px;
+        height: 36px;
+        background-color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+    
+    .help-text {
+        font-size: 0.95rem;
+    }
+    
+    .error-footer {
+        display: flex;
+        justify-content: space-between;
+        padding: 1.25rem;
+        background-color: var(--gray-100);
+    }
+    
+    .error-details {
+        margin-top: 2rem;
+    }
+    
+    .details-content {
+        background-color: var(--gray-100);
+        padding: 1rem;
+        border-radius: var(--border-radius-sm);
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: var(--danger);
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header d-flex align-items-center" style="background-color: var(--md-error); color: white;">
-                    {{ icon("error_outline", "md", "", "me-2") }}系统错误
+<div class="error-container">
+    <div class="error-card">
+        <div class="error-header d-flex align-items-center">
+            {{ icon("error_outline", "md", "", "me-2") }}
+            <span>系统错误</span>
+        </div>
+        
+        <div class="card-body p-4">
+            <div class="text-center">
+                <div class="error-icon-container">
+                    {{ icon("error", "xxl", "", "error-icon") }}
                 </div>
-                <div class="card-body p-4">
-                    <div class="text-center mb-4">
-                        {{ icon("error", "xxl", "text-danger") }}
-                        <h2 class="mt-3">系统遇到了一个错误</h2>
-                        <div class="alert alert-danger mt-3">
-                            {{ error }}
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <h6 class="subheading mb-3">您可以尝试以下操作：</h6>
-                        <div class="ps-3">
-                            <div class="d-flex align-items-center mb-3">
-                                {{ icon("refresh", "md", "icon-primary", "me-2") }}
-                                <span>刷新页面，重试操作</span>
-                            </div>
-                            <div class="d-flex align-items-center mb-3">
-                                {{ icon("dashboard", "md", "icon-primary", "me-2") }}
-                                <span>返回<a href="{{ url_for('dashboard') }}" class="ms-1 me-1">仪表盘</a>或<a href="{{ url_for('upload_file') }}" class="ms-1">上传新数据</a></span>
-                            </div>
-                            <div class="d-flex align-items-center mb-3">
-                                {{ icon("check_circle", "md", "icon-primary", "me-2") }}
-                                <span>检查数据格式是否正确</span>
-                            </div>
-                            <div class="d-flex align-items-center mb-3">
-                                {{ icon("contact_support", "md", "icon-primary", "me-2") }}
-                                <span>联系系统管理员寻求帮助</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {% if traceback %}
-                    <div class="mt-4">
-                        <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#errorDetails">
-                            {{ icon("code", "md", "", "icon-align-middle") }}
-                            显示详细错误信息
-                        </button>
-                        <div class="collapse mt-3" id="errorDetails">
-                            <div class="card">
-                                <div class="card-header bg-light">
-                                    {{ icon("bug_report", "md", "", "me-2") }}错误详情
-                                </div>
-                                <div class="card-body p-0">
-                                    <pre class="m-0 p-3" style="background-color: #f5f5f5; color: var(--md-error); overflow-x: auto; font-size: 12px;"><code>{{ traceback }}</code></pre>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="card-footer d-flex justify-content-between align-items-center">
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
-                        {{ icon("dashboard", "md", "", "icon-align-middle") }}
-                        返回仪表盘
-                    </a>
-                    <a href="{{ url_for('index') }}" class="btn btn-primary">
-                        {{ icon("home", "md", "", "icon-align-middle") }}
-                        返回首页
-                    </a>
+                <h2 class="error-title">很抱歉，系统遇到了一个错误</h2>
+                
+                <div class="error-message">
+                    {{ error }}
                 </div>
             </div>
+            
+            <div class="help-section">
+                <h5 class="fw-bold mb-3">您可以尝试以下操作：</h5>
+                
+                <div class="help-item">
+                    <div class="help-icon">
+                        {{ icon("refresh", "md", "text-primary") }}
+                    </div>
+                    <div class="help-text">
+                        <div class="fw-medium mb-1">刷新页面</div>
+                        <span class="text-muted">重新加载页面可能会解决临时性问题</span>
+                    </div>
+                </div>
+                
+                <div class="help-item">
+                    <div class="help-icon">
+                        {{ icon("dashboard", "md", "text-primary") }}
+                    </div>
+                    <div class="help-text">
+                        <div class="fw-medium mb-1">返回主页</div>
+                        <span class="text-muted">返回<a href="{{ url_for('main.dashboard') }}" class="ms-1 me-1">仪表盘</a>或<a href="{{ url_for('upload_bp.upload_file_route') }}" class="ms-1">上传新数据</a></span>
+                    </div>
+                </div>
+                
+                <div class="help-item">
+                    <div class="help-icon">
+                        {{ icon("check_circle", "md", "text-primary") }}
+                    </div>
+                    <div class="help-text">
+                        <div class="fw-medium mb-1">检查数据格式</div>
+                        <span class="text-muted">确保您上传的Excel文件格式正确，包含必要的字段和数据</span>
+                    </div>
+                </div>
+                
+                <div class="help-item">
+                    <div class="help-icon">
+                        {{ icon("contact_support", "md", "text-primary") }}
+                    </div>
+                    <div class="help-text">
+                        <div class="fw-medium mb-1">联系支持</div>
+                        <span class="text-muted">如果问题持续存在，请联系系统管理员寻求帮助</span>
+                    </div>
+                </div>
+            </div>
+            
+            {% if traceback %}
+            <div class="error-details">
+                <button class="btn btn-outline-secondary d-flex align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#errorDetails">
+                    {{ icon("code", "md", "", "me-2") }}
+                    <span>显示详细错误信息</span>
+                </button>
+                <div class="collapse mt-3" id="errorDetails">
+                    <div class="card">
+                        <div class="card-header bg-light d-flex align-items-center">
+                            {{ icon("bug_report", "md", "", "me-2") }}错误详情
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="details-content">{{ traceback }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="error-footer">
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary d-flex align-items-center">
+                {{ icon("dashboard", "md", "", "me-2") }}
+                <span>返回仪表盘</span>
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-primary d-flex align-items-center">
+                {{ icon("home", "md", "", "me-2") }}
+                <span>返回首页</span>
+            </a>
         </div>
     </div>
 </div>

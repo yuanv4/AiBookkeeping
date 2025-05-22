@@ -7,6 +7,50 @@
 
 {% block page_css %}
 <link href="{{ url_for('static', filename='css/transactions.css') }}" rel="stylesheet">
+<style>
+    .transactions-header {
+        background: linear-gradient(to right, var(--primary-light), #f8f9fa);
+        border-radius: var(--border-radius-lg);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .filter-form-container {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        transition: all var(--transition-speed) ease;
+        border: none;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .filter-form-container:hover {
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .table-container {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        transition: all var(--transition-speed) ease;
+    }
+    
+    .transaction-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 50rem;
+    }
+    
+    .transaction-amount {
+        font-weight: 600;
+    }
+    
+    .transaction-amount.positive {
+        color: var(--success);
+    }
+    
+    .transaction-amount.negative {
+        color: var(--danger);
+    }
+</style>
 {% endblock %}
 
 {% block page_scripts %}
@@ -15,10 +59,27 @@
 {% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h1 class="mb-2">交易记录</h1>
-        <p class="subheading">查看和搜索您的所有交易记录，共 <span class="badge bg-primary rounded-pill" id="total-count">{{ total_count }}</span> 条</p>
+<!-- 交易记录页头 -->
+<div class="transactions-header">
+    <div class="row align-items-center">
+        <div class="col-md-7">
+            <h1 class="fw-bold mb-1">交易记录</h1>
+            <p class="text-muted mb-0">
+                查看和搜索您的所有交易记录，共 <span class="badge rounded-pill bg-primary" id="total-count">{{ total_count }}</span> 条
+            </p>
+        </div>
+        <div class="col-md-5">
+            <div class="d-flex justify-content-md-end mt-3 mt-md-0">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary btn-sm me-2">
+                    {{ icon("dashboard", "sm", "", "me-1") }}
+                    返回仪表盘
+                </a>
+                <a href="{{ url_for('upload_bp.upload_file_route') }}" class="btn btn-primary btn-sm">
+                    {{ icon("cloud_upload", "sm", "", "me-1") }}
+                    上传新数据
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -49,69 +110,117 @@
 
 <!-- 筛选表单 -->
 <div class="card mb-4 filter-form-container">
-    <div class="card-header">
+    <div class="card-header bg-white border-0">
         <div class="d-flex align-items-center">
-            {{ icon("filter_list", "md", "icon-primary", "me-2") }}
-            <span>筛选条件</span>
+            <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
+                {{ icon("filter_list", "sm", "text-primary") }}
+            </div>
+            <h6 class="card-title fw-bold mb-0">筛选条件</h6>
         </div>
     </div>
     <div class="card-body">
         {% call filter_form() %}
-            {{ filter_input("交易类型", "category", "category", "select", data.categories) }}
-            {{ filter_input("银行/卡号", "account_balance", "bankAccount", "select", data.accounts) }}
-            {{ filter_input("关键词搜索", "search", "search", "text", placeholder="输入关键词...") }}
+            <div class="row g-3">
+                {{ filter_input("交易类型", "category", "category", "select", data.categories) }}
+                {{ filter_input("银行/卡号", "account_balance", "bankAccount", "select", data.accounts) }}
+                {{ filter_input("关键词搜索", "search", "search", "text", placeholder="输入交易对象、备注等...") }}
+                
+                <div class="col-lg-8 col-md-12">
+                    <label class="form-label small fw-medium">交易日期范围</label>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-end-0">
+                                    {{ icon("event", "sm", "text-muted") }}
+                                </span>
+                                <input type="date" class="form-control border-start-0 shadow-none" id="startDate" name="startDate" placeholder="开始日期">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-end-0">
+                                    {{ icon("event", "sm", "text-muted") }}
+                                </span>
+                                <input type="date" class="form-control border-start-0 shadow-none" id="endDate" name="endDate" placeholder="结束日期">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-12">
+                    <label class="form-label small fw-medium">金额范围</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-end-0">
+                                    {{ icon("paid", "sm", "text-muted") }}
+                                </span>
+                                <input type="number" class="form-control border-start-0 shadow-none" id="minAmount" name="minAmount" placeholder="最小金额">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-end-0">
+                                    {{ icon("paid", "sm", "text-muted") }}
+                                </span>
+                                <input type="number" class="form-control border-start-0 shadow-none" id="maxAmount" name="maxAmount" placeholder="最大金额">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         {% endcall %}
     </div>
 </div>
 
 <!-- 交易记录表格 -->
-{{ data_table("transactions-table", 
-              ["序号", "日期", "类型", "交易对象", "金额", "账户余额", "账号", "银行"],
-              true, 
-              total=total_count, 
-              filtered=data.transactions|length) }}
+<div class="table-container">
+    {{ data_table("transactions-table", 
+                  ["序号", "日期", "类型", "交易对象", "金额", "账户余额", "账号", "银行"],
+                  true, 
+                  total=total_count, 
+                  filtered=data.transactions|length) }}
+</div>
 {% endblock %}
 
 {% block scripts %}
-<style>
-    .positive {
-        color: #28a745;
-        font-weight: bold;
-    }
-    .negative {
-        color: #dc3545;
-        font-weight: bold;
-    }
-</style>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         console.log('交易记录页面DOM加载完成');
         
-        // 初始化银行账户选择器 (这段逻辑现在由 filter_input 宏通过 data.accounts 处理)
-        /*
-        const bankAccountsData = document.getElementById('bank-accounts-data');
-        if (bankAccountsData) {
-            const accounts = JSON.parse(bankAccountsData.dataset.accounts);
-            const bankAccountSelect = document.getElementById('bankAccount');
-            
-            if (bankAccountSelect && accounts.length > 0) {
-                // 清空现有选项
-                bankAccountSelect.innerHTML = '<option value="">全部</option>';
-                
-                // 添加银行账户选项
-                accounts.forEach(account => {
-                    const option = document.createElement('option');
-                    option.value = account.id;
-                    option.textContent = `${account.bank_name} (${account.account_number})`;
-                    bankAccountSelect.appendChild(option);
+        // 美化交易金额显示
+        function formatTransactionRows() {
+            const tbody = document.querySelector('#transactions-body');
+            if (tbody) {
+                const rows = tbody.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const amountCell = row.querySelector('td:nth-child(5)');
+                    if (amountCell) {
+                        const amount = parseFloat(amountCell.textContent.replace(/[^\d.-]/g, ''));
+                        if (amount > 0) {
+                            amountCell.classList.add('transaction-amount', 'positive');
+                        } else if (amount < 0) {
+                            amountCell.classList.add('transaction-amount', 'negative');
+                        }
+                    }
+                    
+                    const typeCell = row.querySelector('td:nth-child(3) .badge');
+                    if (typeCell) {
+                        typeCell.classList.add('transaction-badge');
+                    }
                 });
             }
         }
-        */
         
-        // 检查关键元素
-        setTimeout(function() {
-        }, 1000);
+        // 监听表格变化
+        const observer = new MutationObserver(formatTransactionRows);
+        const target = document.querySelector('#transactions-body');
+        if (target) {
+            observer.observe(target, { childList: true, subtree: true });
+        }
+        
+        // 初始化时也执行一次
+        setTimeout(formatTransactionRows, 500);
     });
 </script>
 {% endblock %}

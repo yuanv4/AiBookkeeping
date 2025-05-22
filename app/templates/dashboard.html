@@ -7,6 +7,59 @@
 
 {% block page_css %}
 <link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+<style>
+    .dashboard-overview {
+        background: linear-gradient(to right, var(--primary-light), #f8f9fa);
+        border-radius: var(--border-radius-lg);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .trend-analysis {
+        background-color: var(--gray-100);
+        border-radius: var(--border-radius);
+    }
+    
+    .dashboard-card {
+        transition: all var(--transition-speed) ease;
+    }
+    
+    .dashboard-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .metric-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
+    
+    .chart-legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+    
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: var(--primary-light);
+        cursor: pointer;
+    }
+</style>
 {% endblock %}
 
 {% block page_scripts %}
@@ -47,471 +100,364 @@
     </div>
 </div>
 
-<div class="dashboard-section">
-    {% set subtitle %}
-                    {% if data.summary.start_date and data.summary.end_date %}
-            {{ icon("date_range", "sm", "", "me-1 icon-align-middle") }} {{ data.summary.start_date }} 至 {{ data.summary.end_date }} 的账单数据分析
-                    {% else %}
-            {{ icon("assessment", "sm", "", "me-1 icon-align-middle") }} 账单数据分析
-                    {% endif %}
-    {% endset %}
-    
-    {{ section_header("财务总览", subtitle, extra_content) }}
-
-    <div class="row g-4 mb-5">
-        <!-- 资金状况卡片 -->
-        <div class="col-xl-8 col-md-12">
-            {% call card("当前资金状况", "account_balance_wallet", "bg-primary text-white", "") %}
-                    <div class="row gy-4">
-                        <!-- 当前余额和总净收支 -->
-                        <div class="col-md-6">
-                        {{ stat_card("savings", "%.2f"|format(data.summary.account_balance or 0), "当前可用资金", "success") }}
-                            
-                            {% if data.summary.account_balance_list and data.summary.account_balance_list|length > 0 %}
-                            <div class="mt-2">
-                                <div class="accordion" id="accountBalanceAccordion">
-                                    <div class="accordion-item border-0">
-                                        <h2 class="accordion-header" id="headingAccounts">
-                                            <button class="accordion-button collapsed p-1 ps-1 small bg-transparent" type="button" 
-                                                    data-bs-toggle="collapse" data-bs-target="#collapseAccounts" 
-                                                    aria-expanded="false" aria-controls="collapseAccounts">
-                                                查看所有账户余额 ({{ data.summary.account_balance_list|length }}个账户)
-                                            </button>
-                                        </h2>
-                                        <div id="collapseAccounts" class="accordion-collapse collapse" 
-                                             aria-labelledby="headingAccounts" data-bs-parent="#accountBalanceAccordion">
-                                            <div class="accordion-body p-1 ps-3">
-                                                <ul class="list-unstyled small mb-0">
-                                                    {% for account in data.summary.account_balance_list %}
-                                                    <li class="mb-1">
-                                                        <div class="d-flex justify-content-between">
-                                                            <span class="text-muted">{{ account.bank }} ({{ (account.account|string)[-4:] if (account.account|string)|length >= 4 else account.account|string }})</span>
-                                                            <span class="fw-bold">{{ "%.2f"|format(account.balance) }}</span>
-                                                        </div>
-                                                    </li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-6">
-                        {{ stat_card("account_balance", 
-                                   "%.2f"|format(data.summary.net_amount or 0), 
-                                   "总净收支", 
-                                   "primary",
-                                   "success" if data.summary.net_amount >= 0 else "danger") }}
-                        </div>
-                        
-                        <!-- 资金余额趋势图 -->
-                        <div class="col-12 mt-4">
-                        {% call chart_container("可用资金趋势 (最近12个月)", "balanceHistoryChart") %}
-                                {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
-                            <div class="chart-legend mt-3 d-flex justify-content-center flex-wrap">
-                                <div class="d-flex align-items-center me-4 mb-2">
-                                    <div style="width: 12px; height: 12px; background-color: rgba(70, 99, 172, 1); border-radius: 50%;"></div>
-                                    <span class="ms-2 small">账户余额</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2">
-                                    <div style="width: 12px; height: 12px; background-color: rgba(70, 99, 172, 0.1); border-radius: 0;"></div>
-                                    <span class="ms-2 small">趋势区域</span>
-                            </div>
-                        </div>
-
-                            <!-- 余额趋势分析 -->
-                            {% if data.charts.balance_history|length > 1 %}
-                            <div class="trend-analysis mt-3 p-2 border-top">
-                                <div class="row align-items-center">
-                                <div class="col-md-6">
-                                        {% set first_balance = data.charts.balance_history[0].balance %}
-                                        {% set last_balance = data.charts.balance_history[-1].balance %}
-                                        {% set change = last_balance - first_balance %}
-                                        {% set change_percent = (change / first_balance * 100) if first_balance != 0 else 0 %}
-                                        
-                                        <div class="d-flex align-items-center">
-                                            <div class="trend-icon rounded-circle d-flex align-items-center justify-content-center me-2"
-                                                 style="width: 30px; height: 30px; background-color: {% if change >= 0 %}rgba(71, 184, 129, 0.1){% else %}rgba(236, 76, 71, 0.1){% endif %}">
-                                                {{ icon("trending_" + ("up" if change >= 0 else "down"), "sm", "text-" + ("success" if change >= 0 else "danger")) }}
-                                            </div>
-                                            <div>
-                                                <div class="fw-bold {% if change >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                                    {{ "%.2f"|format(change) }} ({{ "%.1f"|format(change_percent) }}%)
-                                            </div>
-                                                <div class="small text-muted">从 {{ data.charts.balance_history[0].month }} 到 {{ data.charts.balance_history[-1].month }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                    <div class="col-md-6 mt-3 mt-md-0">
-                                        <div class="d-flex flex-wrap">
-                                            <div class="me-4">
-                                                <div class="small text-muted">最高余额</div>
-                                                <div class="fw-bold">
-                                                    {% set max_balance = data.charts.balance_history|map(attribute='balance')|max %}
-                                                    {{ "%.2f"|format(max_balance) }}
-                                            </div>
-                                            </div>
-                                            <div class="me-4">
-                                                <div class="small text-muted">最低余额</div>
-                                                <div class="fw-bold">
-                                                    {% set min_balance = data.charts.balance_history|map(attribute='balance')|min %}
-                                                    {{ "%.2f"|format(min_balance) }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                                    {% endif %}
-                                {% endif %}
-                        {% endcall %}
-                            </div>
-                        </div>
-            {% endcall %}
-        </div>
-
-        <!-- 收支统计卡片组 -->
-        <div class="col-xl-4 col-md-12">
-            <div class="row g-4 h-100">
-                <!-- 净现金流卡片 -->
-                <div class="col-md-12">
-                    <div class="card dashboard-card h-100 shadow-sm">
-                        <div class="card-header bg-light p-2">
-                            <h6 class="card-title mb-0 fw-bold">
-                                {{ icon("trending_up", "sm", "", "me-1 icon-align-middle") }}
-                                月净现金流
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            {% set total_income = data.summary.total_income or 0 %}
-                            {% set total_expense = data.summary.total_expense or 0 %}
-                            {% set months = data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1 %}
-                            
-                            {% set monthly_income = total_income / months %}
-                            {% set monthly_expense_abs = total_expense|abs / months %}
-                            {% set net_cash_flow = monthly_income - monthly_expense_abs %}
-                            
-                            <div class="row">
-                                <div class="col-md-5">
-                                    <div class="d-flex align-items-center">
-                                        <div class="stat-icon" style="background-color: {% if net_cash_flow >= 0 %}rgba(71, 184, 129, 0.1){% else %}rgba(236, 76, 71, 0.1){% endif %};">
-                                            {{ icon("account_balance_wallet", "md", "text-" + ("success" if net_cash_flow >= 0 else "danger")) }}
-                                        </div>
-                                        <div class="ms-3">
-                                            <div class="stat-label mb-1">月净现金流</div>
-                                            <div class="stat-value fs-2 {% if net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %}" id="cashFlowValue">{{ "%.2f"|format(net_cash_flow) }}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-3">
-                                        <small class="text-muted d-block">
-                                            {% if net_cash_flow >= 0 %}
-                                                <span class="text-success fw-bold">储蓄能力良好</span>
-                                            {% else %}
-                                                <span class="text-danger fw-bold">存在透支风险</span>
-                                            {% endif %}
-                                        </small>
-                                        <div class="d-flex flex-column mt-1">
-                                            <div class="small text-muted">月收入: <span class="fw-bold">{{ "%.2f"|format(monthly_income) }}</span></div>
-                                            <div class="small text-muted">月支出: <span class="fw-bold">{{ "%.2f"|format(monthly_expense_abs) }}</span></div>
-                                            <div class="small text-muted">月度差额: <span class="fw-bold {% if net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %}">{{ "%.2f"|format(net_cash_flow) }}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-7">
-                                    <div class="h-100 d-flex flex-column justify-content-center ps-md-4 mt-4 mt-md-0">
-                                        <div class="p-3 rounded bg-light">
-                                            <h6 class="fw-bold mb-3">现金流建议</h6>
-                                            <ul class="list-unstyled mb-0">
-                                                <li class="mb-2">
-                                                    <div class="d-flex">
-                                                        <div>{{ icon("info", "sm", "text-primary") }}</div>
-                                                        <div class="ms-2 small">健康的现金流应该保持收入大于支出，能够积累财富</div>
-                                                    </div>
-                                                </li>
-                                                <li>
-                                                    <div class="d-flex">
-                                                        <div>{{ icon("check_circle", "sm", "text-success") }}</div>
-                                                        <div class="ms-2 small">
-                                                            {% if net_cash_flow >= monthly_income * 0.2 %}
-                                                                您的现金流非常健康，每月有显著盈余
-                                                            {% elif net_cash_flow > 0 %}
-                                                                您的现金流状况良好，可以考虑进一步提高收入或优化支出
-                                                            {% else %}
-                                                                建议您控制支出或增加收入，避免长期入不敷出
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 储蓄率卡片 -->
-                <div class="col-md-12">
-                    <div class="card dashboard-card h-100 shadow-sm">
-                        <div class="card-header bg-light p-2">
-                            <h6 class="card-title mb-0 fw-bold">
-                                {{ icon("savings", "sm", "", "me-1 icon-align-middle") }}
-                                月储蓄率
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <!-- 调试数据 -->
-                            <span style="display:none" id="debug_income">{{ data.summary.total_income }}</span>
-                            <span style="display:none" id="debug_expense">{{ data.summary.total_expense }}</span>
-                            <span style="display:none" id="debug_months">{{ data.get('months_count', 1) }}</span>
-                            
-                            {% set total_income = data.summary.total_income or 0 %}
-                            {% set total_expense = data.summary.total_expense or 0 %}
-                            {% set months = data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1 %}
-                            
-                            {% set monthly_income = total_income / months %}
-                            {% set monthly_expense_abs = total_expense|abs / months %}
-                            {% set monthly_savings = monthly_income - monthly_expense_abs %}
-                            {% set savings_rate = (monthly_savings / monthly_income * 100) if monthly_income > 0 else 0 %}
-                            
-                            <!-- 调试计算过程 -->
-                            <div style="display:none" id="debug_calc">
-                                <div>总收入: {{ total_income }}</div>
-                                <div>总支出: {{ total_expense }}</div>
-                                <div>月数: {{ months }}</div>
-                                <div>月收入: {{ monthly_income }}</div>
-                                <div>月支出(绝对值): {{ monthly_expense_abs }}</div>
-                                <div>月储蓄: {{ monthly_savings }}</div>
-                                <div>储蓄率: {{ savings_rate }}</div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-5">
-                                    <div class="d-flex align-items-center">
-                                        <div class="stat-icon" style="background-color: rgba(25, 118, 210, 0.1);">
-                                            {{ icon("savings", "md", "text-primary") }}
-                                        </div>
-                                        <div class="ms-3">
-                                            <div class="stat-label mb-1">月储蓄率</div>
-                                            <div class="stat-value fs-2 {% if savings_rate >= 10 %}text-success{% elif savings_rate > 0 %}text-warning{% else %}text-danger{% endif %}" id="savingsRate">{{ "%.1f"|format(savings_rate) }}%</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-3">
-                                        <!-- 储蓄率可视化 -->
-                                        <div class="progress" style="height: 8px; border-radius: 4px; background-color: rgba(0,0,0,0.05);">
-                                            <div class="progress-bar" id="savingsRateBar"
-                                                 role="progressbar" 
-                                                 aria-valuenow="{{ savings_rate }}" 
-                                                 aria-valuemin="0" 
-                                                 aria-valuemax="100"></div>
-                                        </div>
-                                    
-                                        <small class="text-muted d-block mt-2">
-                                            {% if savings_rate >= 20 %}
-                                                <span class="text-success fw-bold">储蓄习惯良好</span>
-                                            {% elif savings_rate >= 10 %}
-                                                <span class="text-primary fw-bold">符合建议标准</span>
-                                            {% elif savings_rate > 0 %}
-                                                <span class="text-warning fw-bold">可适当提高</span>
-                                            {% else %}
-                                                <span class="text-danger fw-bold">需增加收入或减少支出</span>
-                                            {% endif %}
-                                        </small>
-                                        <div class="d-flex flex-column mt-1">
-                                            <div class="small text-muted">月收入: <span class="fw-bold">{{ "%.2f"|format(monthly_income) }}</span></div>
-                                            <div class="small text-muted">月支出: <span class="fw-bold">{{ "%.2f"|format(monthly_expense_abs) }}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-7">
-                                    <div class="h-100 d-flex flex-column justify-content-center ps-md-4 mt-4 mt-md-0">
-                                        <div class="p-3 rounded bg-light">
-                                            <h6 class="fw-bold mb-3">储蓄率建议</h6>
-                                            <ul class="list-unstyled mb-0">
-                                                <li class="mb-2">
-                                                    <div class="d-flex">
-                                                        <div>{{ icon("info", "sm", "text-primary") }}</div>
-                                                        <div class="ms-2 small">财务专家建议储蓄率应该保持在10%-20%之间</div>
-                                                    </div>
-                                                </li>
-                                                <li>
-                                                    <div class="d-flex">
-                                                        <div>{{ icon("check_circle", "sm", "text-success") }}</div>
-                                                        <div class="ms-2 small">
-                                                            {% if savings_rate >= 20 %}
-                                                                您的储蓄率很高，可以考虑适当增加投资或改善生活质量
-                                                            {% elif savings_rate >= 10 %}
-                                                                您的储蓄率达到了建议标准，保持这个好习惯
-                                                            {% else %}
-                                                                建议您增加收入或减少支出，提高储蓄率到10%以上
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 应急资金覆盖率卡片 -->
-                <div class="col-12">
-                    <div class="card dashboard-card h-100 shadow-sm">
-                        <div class="card-header bg-light p-2">
-                            <h6 class="card-title mb-0 fw-bold">
-                                {{ icon("shield", "sm", "", "me-1 icon-align-middle") }}
-                                应急资金覆盖
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            {% set total_expense = data.summary.total_expense or 0 %}
-                            {% set months = data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1 %}
-                            {% set monthly_expense_abs = total_expense|abs / months %}
-                            {% set emergency_fund_ratio = data.summary.account_balance / monthly_expense_abs if monthly_expense_abs > 0 else 0 %}
-                            
-                            <div class="row">
-                                <div class="col-md-5">
-                                    <div class="d-flex align-items-center">
-                                        <div class="stat-icon" style="background-color: rgba(255, 171, 0, 0.1);">
-                                            {{ icon("shield", "md", "text-warning") }}
-                                        </div>
-                                        <div class="ms-3">
-                                            <div class="stat-label mb-1">应急资金覆盖月数</div>
-                                            <div class="stat-value fs-2 {% if emergency_fund_ratio >= 6 %}text-success{% elif emergency_fund_ratio >= 3 %}text-primary{% elif emergency_fund_ratio > 0 %}text-warning{% else %}text-danger{% endif %}">{{ "%.1f"|format(emergency_fund_ratio) }}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-3">
-                                        <small class="text-muted d-block">
-                                            {% if emergency_fund_ratio >= 6 %}
-                                                <span class="text-success fw-bold">抗风险能力强</span>
-                                            {% elif emergency_fund_ratio >= 3 %}
-                                                <span class="text-primary fw-bold">符合基础标准</span>
-                                            {% elif emergency_fund_ratio > 0 %}
-                                                <span class="text-warning fw-bold">建议增加应急资金</span>
-                                            {% else %}
-                                                <span class="text-danger fw-bold">需尽快建立应急资金</span>
-                                            {% endif %}
-                                        </small>
-                                        <div class="d-flex flex-column mt-1">
-                                            <div class="small text-muted">当前余额: <span class="fw-bold">{{ "%.2f"|format(data.summary.account_balance) }}</span></div>
-                                            <div class="small text-muted">月均支出: <span class="fw-bold">{{ "%.2f"|format(monthly_expense_abs) }}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-7">
-                                    <div class="h-100 d-flex flex-column justify-content-center ps-md-4 mt-4 mt-md-0">
-                                        <div class="p-3 rounded bg-light">
-                                            <h6 class="fw-bold mb-3">应急资金建议</h6>
-                                            <ul class="list-unstyled mb-0">
-                                                <li class="mb-2">
-                                                    <div class="d-flex">
-                                                        <div>{{ icon("info", "sm", "text-primary") }}</div>
-                                                        <div class="ms-2 small">财务专家建议应急资金应该覆盖3-6个月的基本生活支出</div>
-                                                    </div>
-                                                </li>
-                                                <li>
-                                                    <div class="d-flex">
-                                                        <div>{{ icon("check_circle", "sm", "text-success") }}</div>
-                                                        <div class="ms-2 small">
-                                                            {% if emergency_fund_ratio >= 6 %}
-                                                                您的应急资金充足，可以考虑将部分资金投资以获取更高回报
-                                                            {% elif emergency_fund_ratio >= 3 %}
-                                                                您的应急资金达到基本标准，可以继续积累或考虑分散投资
-                                                            {% else %}
-                                                                建议您增加应急资金储备，目标是达到月支出的3-6倍
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 最近交易记录 -->
-    <div class="dashboard-section">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="m-0">最近交易</h2>
-            <div class="d-flex align-items-center gap-3">
-                <select class="form-select form-select-sm" id="transactionTypeFilter" style="width: auto;">
-                    <option value="all">全部交易</option>
-                    <option value="income">仅收入</option>
-                    <option value="expense">仅支出</option>
-                </select>
-                <a href="{{ url_for('transactions_bp.transactions_list_route') }}" class="btn btn-outline-primary">查看全部</a>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-body p-0">
-                {% if data.transactions|length > 0 %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>序号</th>
-                                <th>日期</th>
-                                <th>类型</th>
-                                <th>交易对象</th>
-                                <th>金额</th>
-                                <th>账户余额</th>
-                                <th>账号</th>
-                                <th>银行</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for transaction in data.transactions %}
-                            <tr>
-                                <td>{{ loop.index }}</td>
-                                <td>{{ transaction.transaction_date if transaction.transaction_date else '' }}</td>
-                                <td>
-                                    <span class="badge {% if '退款' in transaction.transaction_type %}bg-success{% elif '转账' in transaction.transaction_type %}bg-info{% elif 'income' in transaction.transaction_type or '收款' in transaction.transaction_type %}bg-success{% else %}bg-primary{% endif %}">
-                                        {{ transaction.transaction_type }}
-                                    </span>
-                                </td>
-                                <td>{{ transaction.counterparty }}</td>
-                                <td class="{% if transaction.amount > 0 %}text-success{% elif transaction.amount < 0 %}text-danger{% endif %}">
-                                    {% if transaction.amount > 0 %}+{% endif %}{{ "%.2f"|format(transaction.amount or 0) }}
-                                </td>
-                                <td>{{ "%.2f"|format(transaction.balance or 0) }}</td>
-                                <td><span class="badge bg-light text-dark">{{ transaction.account_number }}</span></td>
-                                <td><span class="badge bg-secondary">{{ transaction.bank_name }}</span></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+<!-- 财务概览区 -->
+<div class="dashboard-overview mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-7">
+            <h1 class="fw-bold mb-1">财务总览</h1>
+            <p class="text-muted mb-3">
+                {% if data.summary.start_date and data.summary.end_date %}
+                {{ icon("date_range", "sm", "", "me-1 icon-align-middle") }} {{ data.summary.start_date }} 至 {{ data.summary.end_date }} 的账单数据分析
                 {% else %}
-                <div class="text-center py-5">
-                    <i class="material-icons-round" style="font-size: 48px; color: rgba(0,0,0,0.15);">receipt_long</i>
-                    <p class="mt-3 text-muted">暂无交易记录</p>
-                </div>
+                {{ icon("assessment", "sm", "", "me-1 icon-align-middle") }} 账单数据分析
                 {% endif %}
+            </p>
+        </div>
+        <div class="col-md-5">
+            <div class="d-flex justify-content-md-end mt-3 mt-md-0">
+                <div class="bg-white rounded px-3 py-2 shadow-sm me-2">
+                    <div class="small text-muted">总收入</div>
+                    <div class="fw-bold text-success">¥{{ "%.2f"|format(data.summary.total_income or 0) }}</div>
+                </div>
+                <div class="bg-white rounded px-3 py-2 shadow-sm">
+                    <div class="small text-muted">总支出</div>
+                    <div class="fw-bold text-danger">¥{{ "%.2f"|format(data.summary.total_expense|abs or 0) }}</div>
+                </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-<!-- 任何额外的非核心图表脚本可以放在这里 -->
+<div class="row g-4 mb-5">
+    <!-- 资金状况卡片 -->
+    <div class="col-xl-8 col-md-12">
+        {% call card("当前资金状况", "account_balance_wallet", "bg-white border-0", "") %}
+                <div class="row gy-4">
+                    <!-- 当前余额和总净收支 -->
+                    <div class="col-md-6">
+                        <div class="p-3 rounded bg-light mb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="text-muted small">当前可用资金</div>
+                                <div class="d-flex align-items-center">
+                                    {{ icon("savings", "sm", "text-success me-1") }}
+                                </div>
+                            </div>
+                            <div class="metric-value text-success">¥{{ "%.2f"|format(data.summary.account_balance or 0) }}</div>
+                        </div>
+                        
+                        {% if data.summary.account_balance_list and data.summary.account_balance_list|length > 0 %}
+                        <div class="mt-2">
+                            <div class="accordion" id="accountBalanceAccordion">
+                                <div class="accordion-item border-0 bg-transparent">
+                                    <h2 class="accordion-header" id="headingAccounts">
+                                        <button class="accordion-button collapsed p-2 ps-1 small bg-transparent shadow-none" type="button" 
+                                                data-bs-toggle="collapse" data-bs-target="#collapseAccounts" 
+                                                aria-expanded="false" aria-controls="collapseAccounts">
+                                            查看所有账户余额 ({{ data.summary.account_balance_list|length }}个账户)
+                                        </button>
+                                    </h2>
+                                    <div id="collapseAccounts" class="accordion-collapse collapse" 
+                                         aria-labelledby="headingAccounts" data-bs-parent="#accountBalanceAccordion">
+                                        <div class="accordion-body p-1 ps-3">
+                                            <ul class="list-unstyled small mb-0">
+                                                {% for account in data.summary.account_balance_list %}
+                                                <li class="mb-2 p-2 rounded" style="background-color: rgba(0,0,0,0.02);">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span class="text-muted">{{ account.bank }} ({{ (account.account|string)[-4:] if (account.account|string)|length >= 4 else account.account|string }})</span>
+                                                        <span class="fw-bold">{{ "%.2f"|format(account.balance) }}</span>
+                                                    </div>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded bg-light">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="text-muted small">总净收支</div>
+                                <div class="d-flex align-items-center">
+                                    {{ icon("account_balance", "sm", "{% if data.summary.net_amount >= 0 %}text-success{% else %}text-danger{% endif %} me-1") }}
+                                </div>
+                            </div>
+                            <div class="metric-value {% if data.summary.net_amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                ¥{{ "%.2f"|format(data.summary.net_amount or 0) }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 资金余额趋势图 -->
+                    <div class="col-12 mt-4">
+                    {% call chart_container("可用资金趋势 (最近12个月)", "balanceHistoryChart") %}
+                            {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: rgba(70, 99, 172, 1);"></div>
+                                <span>账户余额</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: rgba(70, 99, 172, 0.1); border-radius: 0;"></div>
+                                <span>趋势区域</span>
+                            </div>
+                        </div>
+
+                        <!-- 余额趋势分析 -->
+                        {% if data.charts.balance_history|length > 1 %}
+                        <div class="trend-analysis mt-3 p-3">
+                            <div class="row align-items-center">
+                            <div class="col-md-6">
+                                    {% set first_balance = data.charts.balance_history[0].balance %}
+                                    {% set last_balance = data.charts.balance_history[-1].balance %}
+                                    {% set change = last_balance - first_balance %}
+                                    {% set change_percent = (change / first_balance * 100) if first_balance != 0 else 0 %}
+                                    
+                                    <div class="d-flex align-items-center">
+                                        <div class="trend-icon rounded-circle d-flex align-items-center justify-content-center me-2"
+                                             style="width: 36px; height: 36px; background-color: {% if change >= 0 %}var(--success-light){% else %}var(--danger-light){% endif %}">
+                                            {{ icon("trending_" + ("up" if change >= 0 else "down"), "sm", "text-" + ("success" if change >= 0 else "danger")) }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold {% if change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                {{ "%.2f"|format(change) }} ({{ "%.1f"|format(change_percent) }}%)
+                                            </div>
+                                            <div class="small text-muted">从 {{ data.charts.balance_history[0].month }} 到 {{ data.charts.balance_history[-1].month }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mt-3 mt-md-0">
+                                    <div class="d-flex flex-wrap justify-content-md-end">
+                                        <div class="me-4 text-center">
+                                            <div class="small text-muted">最高余额</div>
+                                            <div class="fw-bold">
+                                                {% set max_balance = 0 %}
+                                                {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
+                                                    {% for item in data.charts.balance_history %}
+                                                        {% if loop.first or item.balance > max_balance %}
+                                                            {% set max_balance = item.balance %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endif %}
+                                                {{ "%.2f"|format(max_balance) }}
+                                            </div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="small text-muted">最低余额</div>
+                                            <div class="fw-bold">
+                                                {% set min_balance = None %}
+                                                {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
+                                                    {% for item in data.charts.balance_history %}
+                                                        {% if min_balance is none or item.balance < min_balance %}
+                                                            {% set min_balance = item.balance %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% else %}
+                                                    {% set min_balance = 0 %}
+                                                {% endif %}
+                                                {{ "%.2f"|format(min_balance or 0) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    {% endcall %}
+                    </div>
+                </div>
+        {% endcall %}
+    </div>
+
+    <!-- 收支统计卡片组 -->
+    <div class="col-xl-4 col-md-12">
+        <div class="row g-4 h-100">
+            <!-- 净现金流卡片 -->
+            <div class="col-md-12">
+                <div class="card dashboard-card h-100">
+                    <div class="card-header bg-white d-flex align-items-center">
+                        <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
+                            {{ icon("trending_up", "sm", "text-primary") }}
+                        </div>
+                        <h6 class="card-title mb-0 fw-bold">月净现金流</h6>
+                    </div>
+                    <div class="card-body">
+                        {% set total_income = data.summary.total_income or 0 %}
+                        {% set total_expense = data.summary.total_expense or 0 %}
+                        {% set months = data.get('months_count', 1) if data.get('months_count', 1) > 0 else 1 %}
+                        
+                        {% set monthly_income = total_income / months %}
+                        {% set monthly_expense_abs = total_expense|abs / months %}
+                        {% set net_cash_flow = monthly_income - monthly_expense_abs %}
+                        
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="stat-icon rounded-circle d-flex align-items-center justify-content-center me-2"
+                                         style="width: 48px; height: 48px; background-color: {% if net_cash_flow >= 0 %}var(--success-light){% else %}var(--danger-light){% endif %};">
+                                        {{ icon("account_balance_wallet", "md", "text-" + ("success" if net_cash_flow >= 0 else "danger")) }}
+                                    </div>
+                                    <div>
+                                        <div class="small text-muted">月净现金流</div>
+                                        <div class="fs-4 fw-bold {% if net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %}" id="cashFlowValue">
+                                            {{ "%.2f"|format(net_cash_flow) }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex flex-column">
+                                    <div class="small py-1 px-2 rounded mb-1" style="background-color: var(--gray-100);">
+                                        月收入: <span class="float-end fw-bold">{{ "%.2f"|format(monthly_income) }}</span>
+                                    </div>
+                                    <div class="small py-1 px-2 rounded mb-1" style="background-color: var(--gray-100);">
+                                        月支出: <span class="float-end fw-bold">{{ "%.2f"|format(monthly_expense_abs) }}</span>
+                                    </div>
+                                    <div class="small py-1 px-2 rounded fw-medium" style="background-color: {% if net_cash_flow >= 0 %}var(--success-light){% else %}var(--danger-light){% endif %};">
+                                        月度差额: <span class="float-end fw-bold {% if net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            {{ "%.2f"|format(net_cash_flow) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-7">
+                                <div class="h-100 d-flex flex-column justify-content-center ps-md-4 mt-4 mt-md-0">
+                                    <div class="p-3 rounded" style="background-color: var(--gray-100);">
+                                        <h6 class="fw-bold mb-3 small">现金流建议</h6>
+                                        <ul class="list-unstyled mb-0">
+                                            <li class="mb-2">
+                                                <div class="d-flex">
+                                                    <div>{{ icon("info", "sm", "text-primary") }}</div>
+                                                    <div class="ms-2 small">健康的现金流应该保持收入大于支出，能够积累财富</div>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <div class="d-flex">
+                                                    <div>{{ icon("check_circle", "sm", "text-success") }}</div>
+                                                    <div class="ms-2 small">
+                                                        {% if net_cash_flow >= monthly_income * 0.2 %}
+                                                            您的现金流非常健康，每月有显著盈余
+                                                        {% elif net_cash_flow > 0 %}
+                                                            您的现金流状况良好，可以考虑进一步提高收入或优化支出
+                                                        {% else %}
+                                                            建议您控制支出或增加收入，避免长期入不敷出
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 图表分析区域 -->
+<div class="row g-4 mb-5">
+    <div class="col-lg-8">
+        {% call chart_container("月度收支对比", "incomeExpenseChart", "300px") %}
+        <div class="chart-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: var(--success);"></div>
+                <span>收入</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: var(--danger);"></div>
+                <span>支出</span>
+            </div>
+        </div>
+        {% endcall %}
+    </div>
+    <div class="col-lg-4">
+        {% call chart_container("收入来源占比", "incomeSourceChart", "300px") %}
+        <div class="chart-legend">
+            {% for i in range((data.charts.income_source_labels|length if data.charts.income_source_labels else 0)|min(5)) %}
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: var(--chart-{{ ['blue', 'green', 'orange', 'purple', 'teal']|random }});"></div>
+                <span>{{ data.charts.income_source_labels[i] if data.charts.income_source_labels else 'Unknown' }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endcall %}
+    </div>
+</div>
+
+<!-- 最近交易记录 -->
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
+                {{ icon("receipt_long", "sm", "text-primary") }}
+            </div>
+            <h6 class="card-title mb-0 fw-bold">最近交易</h6>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <select class="form-select form-select-sm" id="transactionTypeFilter" style="width: auto;">
+                <option value="all">全部交易</option>
+                <option value="income">仅收入</option>
+                <option value="expense">仅支出</option>
+            </select>
+            <a href="{{ url_for('transactions_bp.transactions_list_route') }}" class="btn btn-sm btn-outline-primary">查看全部</a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if data.transactions|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>序号</th>
+                        <th>日期</th>
+                        <th>类型</th>
+                        <th>交易对象</th>
+                        <th>金额</th>
+                        <th>账户余额</th>
+                        <th>账号</th>
+                        <th>银行</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in data.transactions %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ transaction.transaction_date if transaction.transaction_date else '' }}</td>
+                        <td>
+                            <span class="badge {% if '退款' in transaction.transaction_type %}bg-success{% elif '转账' in transaction.transaction_type %}bg-info{% elif 'income' in transaction.transaction_type or '收款' in transaction.transaction_type %}bg-success{% else %}bg-primary{% endif %} rounded-pill">
+                                {{ transaction.transaction_type }}
+                            </span>
+                        </td>
+                        <td>{{ transaction.counterparty }}</td>
+                        <td class="{% if transaction.amount > 0 %}text-success{% elif transaction.amount < 0 %}text-danger{% endif %} fw-medium">
+                            {% if transaction.amount > 0 %}+{% endif %}{{ "%.2f"|format(transaction.amount or 0) }}
+                        </td>
+                        <td>{{ "%.2f"|format(transaction.balance or 0) }}</td>
+                        <td><span class="badge bg-light text-dark">{{ transaction.account_number }}</span></td>
+                        <td><span class="badge rounded-pill text-bg-secondary">{{ transaction.bank_name }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="icon-circle mx-auto mb-3 bg-light d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                {{ icon("receipt_long", "lg", "text-muted") }}
+            </div>
+            <p class="text-muted">暂无交易记录</p>
+            <a href="{{ url_for('upload_bp.upload_file_route') }}" class="btn btn-sm btn-primary">
+                {{ icon("cloud_upload", "sm", "", "me-1") }}
+                上传交易数据
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %} 

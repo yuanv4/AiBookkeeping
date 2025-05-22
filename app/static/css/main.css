@@ -107,40 +107,51 @@ body {
     margin: var(--spacing-xs) var(--spacing-md);
 }
 
-.nav-sidebar .nav-link {
-    color: #495057;
-    border-radius: var(--border-radius-sm);
-    padding: var(--spacing-md);
+.nav-sidebar .nav-item .nav-link {
+    color: var(--gray-700);
+    padding: var(--spacing-sm) var(--spacing-md);
+    transition: all var(--transition-speed) ease;
+}
+
+.nav-sidebar .nav-item .nav-link:hover {
+    color: var(--primary);
+    background-color: var(--primary-light);
+}
+
+.nav-sidebar .nav-item .nav-link.active {
+    color: var(--primary);
+    background-color: var(--primary-light);
     font-weight: 500;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
 }
 
-.nav-sidebar .nav-link:hover {
-    background-color: var(--primary-light);
-    color: var(--primary);
-}
-
-.nav-sidebar .nav-link.active {
-    background-color: var(--primary-light);
-    color: var(--primary);
+.nav-sidebar .material-icons-round {
+    font-size: 20px;
+    vertical-align: middle;
 }
 
 .nav-icon-round {
-    width: 36px;
-    height: 36px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    background-color: var(--primary-light);
-    margin-right: 10px;
+    flex-direction: row;
+    width: 100%;
 }
 
-.nav-icon-round i {
-    font-size: 18px;
-    color: var(--primary);
+.nav-icon-round span:not(.icon-text) {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* 隐藏辅助文本，但保持屏幕阅读器可访问 */
+.icon-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* 头部样式 */

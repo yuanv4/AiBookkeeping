@@ -2,17 +2,26 @@
 <i class="material-icons-round 
   {%- if size == "sm" %} icon-sm{% elif size == "md" %} icon-md{% elif size == "lg" %} icon-lg{% elif size == "xl" %} icon-xl{% elif size == "xxl" %} icon-xxl{% endif %} 
   {%- if color_class %} {{ color_class }}{% endif %} 
-  {%- if extra_classes %} {{ extra_classes }}{% endif %}">{{ name }}</i>
+  {%- if extra_classes %} {{ extra_classes }}{% endif %}">{{ name }}</i><span class="icon-text position-absolute" style="clip: rect(0,0,0,0); width: 1px; height: 1px; overflow: hidden;">{{ name }}</span>
 {% endmacro %}
 
 {% macro card(title="", icon_name="", header_class="", body_class="p-0") %}
-<div class="card">
+<div class="card h-100 dashboard-card">
   {% if title %}
-  <div class="card-header {% if header_class %}{{ header_class }}{% endif %}">
+  <div class="card-header d-flex align-items-center justify-content-between {% if header_class %}{{ header_class }}{% endif %}">
     <div class="d-flex align-items-center">
-      {% if icon_name %}{{ icon(icon_name, "md", "icon-primary", "me-2") }}{% endif %}
-      <span>{{ title }}</span>
+      {% if icon_name %}
+      <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
+        {{ icon(icon_name, "sm", "text-primary") }}
+      </div>
+      {% endif %}
+      <h6 class="card-title fw-bold mb-0">{{ title }}</h6>
     </div>
+    {% if caller().actions is defined %}
+      <div class="card-actions">
+        {{ caller().actions }}
+      </div>
+    {% endif %}
   </div>
   {% endif %}
   <div class="card-body {{ body_class }}">
@@ -22,30 +31,36 @@
 {% endmacro %}
 
 {% macro data_table(id, headers, show_export=false, total=0, filtered=0) %}
-<div class="card">
-  <div class="card-header d-flex justify-content-between align-items-center">
+<div class="card border-0 h-100">
+  <div class="card-header d-flex justify-content-between align-items-center bg-white py-3">
     <div class="d-flex align-items-center">
-      {{ icon("receipt_long", "md", "icon-primary", "me-2") }}
-      <span>数据明细</span>
+      <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
+        {{ icon("receipt_long", "sm", "text-primary") }}
+      </div>
+      <h6 class="card-title fw-bold mb-0">数据明细</h6>
     </div>
     {% if show_export or total > 0 %}
-    <div>
+    <div class="d-flex align-items-center">
       {% if show_export %}
-      <button id="download-csv" class="btn btn-sm btn-outline-primary me-2 export-btn">
-        {{ icon("download", "sm", "", "icon-align-middle") }}
-        导出CSV
+      <button id="download-csv" class="btn btn-sm btn-outline-primary me-2 export-btn d-flex align-items-center">
+        {{ icon("download", "sm", "", "me-1") }}
+        <span>导出CSV</span>
       </button>
       {% endif %}
       {% if total > 0 %}
-      <span class="badge rounded-pill bg-primary" id="filtered-count">{{ filtered }}</span> / <span class="badge rounded-pill bg-secondary">{{ total }}</span>
+      <div class="table-stats d-flex align-items-center">
+        <span class="badge rounded-pill bg-primary" id="filtered-count">{{ filtered }}</span>
+        <span class="mx-1">/</span>
+        <span class="badge rounded-pill bg-light text-dark">{{ total }}</span>
+      </div>
       {% endif %}
     </div>
     {% endif %}
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover mb-0 transactions-table" id="{{ id }}">
-        <thead>
+      <table class="table table-hover mb-0 table-striped transactions-table" id="{{ id }}">
+        <thead class="table-light">
           <tr>
             {% for header in headers %}
             <th>{{ header }}</th>
@@ -59,19 +74,19 @@
     </div>
     
     <!-- 分页控件 -->
-    <div id="pagination-container" class="pagination-container">
-      <ul class="pagination justify-content-center" id="pagination">
+    <div id="pagination-container" class="pagination-container p-3 border-top">
+      <ul class="pagination pagination-sm justify-content-center mb-0" id="pagination">
         <!-- 分页按钮将通过JavaScript动态填充 -->
       </ul>
     </div>
     
     <!-- 无数据提示 -->
-    <div id="no-data" class="no-data-container" style="display: none;">
-      {{ icon("search_off", "xxl", "icon-light") }}
-      <p class="mt-3 text-muted">没有找到匹配的记录</p>
-      <button id="reset-all" class="btn btn-outline-primary mt-2">
-        {{ icon("refresh", "sm", "", "icon-align-middle") }}
-        重置筛选条件
+    <div id="no-data" class="no-data-container d-flex flex-column align-items-center justify-content-center py-5" style="display: none;">
+      {{ icon("search_off", "xxl", "text-muted mb-3") }}
+      <p class="mb-3 text-muted">没有找到匹配的记录</p>
+      <button id="reset-all" class="btn btn-sm btn-outline-primary">
+        {{ icon("refresh", "sm", "", "me-1") }}
+        <span>重置筛选条件</span>
       </button>
     </div>
   </div>
@@ -82,13 +97,13 @@
 <form id="filter-form" class="row g-3 filter-form">
   {{ caller() }}
   <div class="col-12 text-end mt-4 filter-actions">
-    <button type="button" id="reset-filters" class="btn btn-outline-secondary me-2">
-      {{ icon("refresh", "md", "", "icon-align-middle") }}
-      重置
+    <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm me-2 d-inline-flex align-items-center">
+      {{ icon("refresh", "sm", "", "me-1") }}
+      <span>重置</span>
     </button>
-    <button type="button" id="apply-filters" class="btn btn-primary">
-      {{ icon("search", "md", "", "icon-align-middle") }}
-      搜索
+    <button type="button" id="apply-filters" class="btn btn-primary btn-sm d-inline-flex align-items-center">
+      {{ icon("search", "sm", "", "me-1") }}
+      <span>搜索</span>
     </button>
   </div>
 </form>
@@ -96,13 +111,13 @@
 
 {% macro filter_input(label, icon_name, input_id, input_type="text", options=None, placeholder="") %}
 <div class="col-lg-4 col-md-6">
-  <label for="{{ input_id }}" class="form-label">{{ label }}</label>
-  <div class="input-group">
-    <span class="input-group-text" style="min-width: 40px; justify-content: center;">
+  <label for="{{ input_id }}" class="form-label small fw-medium">{{ label }}</label>
+  <div class="input-group input-group-sm">
+    <span class="input-group-text bg-light border-end-0" style="min-width: 40px; justify-content: center;">
       {{ icon(icon_name, "sm", "text-muted") }}
     </span>
     {% if input_type == "select" and options %}
-    <select class="form-select" id="{{ input_id }}" name="{{ input_id }}" style="flex: 1;">
+    <select class="form-select border-start-0 shadow-none" id="{{ input_id }}" name="{{ input_id }}" style="flex: 1;">
       <option value="">全部{{ label }}</option>
       {% for option in options %}
         {% if option is mapping %}
@@ -113,35 +128,37 @@
       {% endfor %}
     </select>
     {% else %}
-    <input type="{{ input_type }}" class="form-control" id="{{ input_id }}" name="{{ input_id }}" placeholder="{{ placeholder }}" style="flex: 1;">
+    <input type="{{ input_type }}" class="form-control border-start-0 shadow-none" id="{{ input_id }}" name="{{ input_id }}" placeholder="{{ placeholder }}" style="flex: 1;">
     {% endif %}
   </div>
 </div>
 {% endmacro %}
 
 {% macro stat_card(icon_name, value, label, icon_color="primary", value_color="") %}
-<div class="d-flex align-items-center mb-3">
-  <div class="stat-icon bg-{{ icon_color }}-light">
-    {{ icon(icon_name, "md", "text-" + icon_color) }}
-  </div>
-  <div class="ms-3">
-    <h3 class="mb-0 fw-bold {% if value_color %}text-{{ value_color }}{% endif %}">{{ value }}</h3>
-    <p class="text-muted mb-0">{{ label }}</p>
+<div class="stat-card p-3 rounded bg-white shadow-sm mb-3">
+  <div class="d-flex align-items-center">
+    <div class="stat-icon bg-{{ icon_color }}-light rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; flex-shrink: 0;">
+      {{ icon(icon_name, "md", "text-" + icon_color) }}
+    </div>
+    <div class="ms-3">
+      <h3 class="mb-0 fw-bold {% if value_color %}text-{{ value_color }}{% endif %}" style="font-size: 1.5rem;">{{ value }}</h3>
+      <p class="text-muted mb-0 small">{{ label }}</p>
+    </div>
   </div>
 </div>
 {% endmacro %}
 
 {% macro section_header(title, subtitle="", extra_content="") %}
-<div class="dashboard-section-header bg-light p-4 rounded shadow-sm mb-4">
-  <div class="d-flex justify-content-between align-items-center">
-    <div>
-      <h1 class="mb-2 fw-bold text-primary-dark">{{ title }}</h1>
+<div class="dashboard-section-header bg-white p-4 rounded shadow-sm mb-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap">
+    <div class="mb-3 mb-md-0">
+      <h1 class="mb-2 fw-bold" style="color: var(--primary-dark);">{{ title }}</h1>
       {% if subtitle %}
       <p class="subheading m-0 text-muted">{{ subtitle }}</p>
       {% endif %}
     </div>
     {% if extra_content %}
-    <div class="text-end">
+    <div class="text-md-end">
       {{ extra_content|safe }}
     </div>
     {% endif %}
@@ -150,13 +167,16 @@
 {% endmacro %}
 
 {% macro chart_container(title, chart_id, height="250px") %}
-<div class="card border-0 shadow-sm rounded">
-  <div class="card-header bg-primary bg-opacity-10 p-3 border-0">
-    <div class="d-flex justify-content-between align-items-center">
-      <h6 class="mb-0 fw-bold">
-        {{ icon("trending_up", "sm", "", "me-1") }}
-        {{ title }}
-      </h6>
+<div class="card border-0 shadow-sm rounded h-100">
+  <div class="card-header bg-white p-3 border-0 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+      <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
+        {{ icon("trending_up", "sm", "text-primary") }}
+      </div>
+      <h6 class="mb-0 fw-bold">{{ title }}</h6>
+    </div>
+    <div class="chart-actions">
+      <!-- 可选的图表操作按钮 -->
     </div>
   </div>
   <div class="card-body p-3">

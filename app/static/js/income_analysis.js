@@ -818,3 +818,9 @@ function initIncomeAnalysisCharts() {
         ctx.fillText(message || '暂无数据', width / 2, height / 2);
     }
 } 
+
+// 页面加载完成后初始化图表
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('初始化收入分析图表...');
+    initIncomeAnalysisCharts();
+}); 

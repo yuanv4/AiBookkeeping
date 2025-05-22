@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}银行账单分析系统{% endblock %}</title>
     
+    {% from "macros.html" import icon %}
+    
     <!-- 预加载关键资源 -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" as="style">
     <link rel="preload" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" as="style">
@@ -14,93 +16,350 @@
     <!-- 关键CSS内联 - 用于最基本的布局和初始渲染 -->
     <style>
         :root {
-            --primary: #4663ac;
-            --primary-light: #ebeffa;
-            --primary-dark: #3a5190;
+            /* 主色调 */
+            --primary: #4361ee;
+            --primary-light: #eef1fe;
+            --primary-dark: #3a56d4;
             --secondary: #6c757d;
-            --success: #47b881;
-            --danger: #ec4c47;
-            --warning: #ffab00;
-            --info: #1070ca;
+            
+            /* 扩展色彩系统 */
+            --success: #4cc9a6;
+            --success-light: #e6f8f3;
+            --danger: #f25767;
+            --danger-light: #feecee;
+            --warning: #ffaa46;
+            --warning-light: #fff6eb;
+            --info: #3db0ef;
+            --info-light: #e8f5fd;
             --light: #f8f9fa;
-            --dark: #343a40;
-            --sidebar-width: 250px;
+            --dark: #2c3e50;
+            
+            /* 中性色 */
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-400: #ced4da;
+            --gray-500: #adb5bd;
+            --gray-600: #6c757d;
+            --gray-700: #495057;
+            --gray-800: #343a40;
+            --gray-900: #212529;
+            
+            /* 数据可视化色彩 */
+            --chart-blue: #4361ee;
+            --chart-green: #4cc9a6;
+            --chart-orange: #ffaa46;
+            --chart-red: #f25767;
+            --chart-purple: #9b5de5;
+            --chart-teal: #20c997;
+            --chart-pink: #d63384;
+            
+            /* 布局尺寸 */
+            --sidebar-width: 240px;
+            --sidebar-collapsed-width: 70px;
             --header-height: 64px;
+            --border-radius-sm: 4px;
+            --border-radius: 8px;
+            --border-radius-lg: 12px;
+            --card-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.05);
+            --card-shadow-hover: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.09);
+            --transition-speed: 0.25s;
+            
+            /* 间距系统 */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
         }
         
         body {
             font-family: 'Noto Sans SC', sans-serif;
-            background-color: #f8fafd;
-            color: #334152;
+            background-color: #f9fafc;
+            color: var(--gray-800);
             min-height: 100vh;
             display: flex;
             margin: 0;
+            transition: background-color var(--transition-speed) ease;
         }
         
+        /* 侧边栏样式 */
         .sidebar {
             width: var(--sidebar-width);
             background-color: white;
             height: 100vh;
             position: fixed;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            box-shadow: 0 0 15px rgba(0,0,0,0.03);
             z-index: 1030;
-            transition: all 0.3s ease;
+            transition: all var(--transition-speed) ease;
             overflow-y: auto;
+            border-right: 1px solid rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
         }
         
+        .sidebar-header {
+            padding: var(--spacing-xs) 0;
+        }
+        
+        .sidebar-brand-icon {
+            font-size: 24px;
+            color: var(--primary);
+            background-color: var(--primary-light);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .sidebar-brand-text {
+            font-weight: 600;
+            color: var(--gray-800);
+            font-size: 1rem;
+        }
+        
+        .sidebar-divider {
+            height: 1px;
+            background-color: var(--gray-200);
+            margin: 0 var(--spacing-md);
+        }
+        
+        .sidebar-footer {
+            margin-top: auto;
+            border-top: 1px solid var(--gray-200);
+        }
+        
+        /* 导航项样式 */
+        .nav-sidebar .nav-item .nav-link {
+            color: var(--gray-700);
+            padding: var(--spacing-sm) var(--spacing-md);
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .nav-sidebar .nav-item .nav-link:hover {
+            color: var(--primary);
+            background-color: var(--primary-light);
+        }
+        
+        .nav-sidebar .nav-item .nav-link.active {
+            color: var(--primary);
+            background-color: var(--primary-light);
+            font-weight: 500;
+        }
+        
+        .nav-sidebar .material-icons-round {
+            font-size: 20px;
+        }
+        
+        /* 主内容区样式 */
         .main-content {
             flex: 1;
             margin-left: var(--sidebar-width);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: margin-left var(--transition-speed) ease;
         }
         
+        /* 头部样式 */
         .header {
             height: var(--header-height);
             background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            padding: 0 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            padding: 0 var(--spacing-xl);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: box-shadow var(--transition-speed) ease;
+        }
+        
+        .header-title {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+        
+        .mobile-nav-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--gray-700);
         }
         
         .content {
             flex: 1;
-            padding: 28px;
+            padding: var(--spacing-xl);
         }
         
-        @media (max-width: 768px) {
+        /* 卡片样式 */
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            transition: box-shadow var(--transition-speed) ease, transform var(--transition-speed) ease;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            box-shadow: var(--card-shadow-hover);
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: var(--spacing-md) var(--spacing-lg);
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            border-radius: var(--border-radius);
+            padding: 0.5rem 1rem;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        /* 提示样式 */
+        .alert {
+            border: none;
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-md) var(--spacing-lg);
+        }
+        
+        .alert .material-icons-round {
+            margin-right: var(--spacing-sm);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 992px) {
             .sidebar {
                 transform: translateX(-100%);
+                z-index: 1040;
             }
+            
             .main-content {
                 margin-left: 0;
             }
+            
             .sidebar.show {
                 transform: translateX(0);
             }
+            
+            .mobile-nav-toggle {
+                display: flex;
+            }
+        }
+        
+        /* 添加侧边栏折叠功能的样式 */
+        .sidebar-collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+        
+        .sidebar-collapsed .sidebar-brand-text,
+        .sidebar-collapsed .nav-sidebar .nav-link span {
+            display: none;
+        }
+        
+        .sidebar-collapsed .sidebar-brand-icon {
+            margin: 0 auto;
+        }
+        
+        .sidebar-collapsed .nav-sidebar .nav-link {
+            text-align: center;
+            padding: var(--spacing-sm);
+        }
+        
+        .sidebar-collapsed .nav-sidebar .material-icons-round {
+            margin: 0 auto;
+        }
+        
+        .sidebar-collapsed ~ .main-content {
+            margin-left: var(--sidebar-collapsed-width);
         }
     </style>
     
     <!-- 字体加载优化 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" 
-          rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" 
-          rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript>
-        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    </noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- 主要图标加载 -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <!-- 添加CDN备选方案 -->
+    <link href="https://fonts.gstatic.com/s/materialiconsround/v107/LDItaoyNOAY6Uewc665JcIzCKsKc_M9flwmP.woff2" rel="stylesheet" media="none" onload="if(media!='all')media='all'">
     
     <!-- 非关键CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
-          rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="{{ url_for('static', filename='css/main.css') }}" 
-          rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="{{ url_for('static', filename='css/utilities.css') }}" 
-          rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/utilities.css') }}" rel="stylesheet">
+    
+    <!-- 添加图标备用方案 -->
+    <style>
+        /* 确保Material Icons正确显示 */
+        .material-icons-round {
+            font-family: 'Material Icons Round', sans-serif;
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* 降级使用文本图标 */
+        .icon-text {
+            display: none;
+        }
+        
+        /* 如果图标字体加载失败，显示文本图标 */
+        .material-icons-round:empty ~ .icon-text {
+            display: inline;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        /* 图标字体失败时的备用样式 */
+        .icons-fallback .material-icons-round {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-color: currentColor;
+            -webkit-mask-size: cover;
+            mask-size: cover;
+            vertical-align: middle;
+        }
+        
+        /* 一些常用图标的备用样式 */
+        .icons-fallback .material-icons-round:contains('dashboard') {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z'/%3E%3C/svg%3E");
+        }
+        
+        .icons-fallback .material-icons-round:contains('receipt_long') {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.5 3.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2v14H3v3c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3V2l-1.5 1.5zM19 19c0 .55-.45 1-1 1s-1-.45-1-1v-3H8V5h11v14z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.5 3.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2v14H3v3c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3V2l-1.5 1.5zM19 19c0 .55-.45 1-1 1s-1-.45-1-1v-3H8V5h11v14z'/%3E%3C/svg%3E");
+        }
+        
+        .icons-fallback .material-icons-round:contains('trending_up') {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z'/%3E%3C/svg%3E");
+        }
+    </style>
     
     <!-- Chart.js和插件 - 集中管理，避免重复加载 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -126,49 +385,65 @@
     <!-- 侧边导航 -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <i class="material-icons-round sidebar-brand-icon">account_balance</i>
-            <h5>账单分析系统</h5>
+            <div class="d-flex align-items-center p-3">
+                <div class="sidebar-logo-container me-2">
+                    {{ icon("account_balance", "md", "", "sidebar-brand-icon") }}
+                </div>
+                <h5 class="mb-0 sidebar-brand-text">账单分析系统</h5>
+            </div>
         </div>
-        <ul class="nav nav-sidebar flex-column">
-            <li class="nav-item">
-                <a class="nav-link {% if request.path == url_for('main.dashboard') %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
-                    <div class="nav-icon-round">
-                        <i class="material-icons-round">dashboard</i>
+        <div class="sidebar-divider my-1"></div>
+        <ul class="nav nav-sidebar flex-column p-2">
+            <li class="nav-item mb-1">
+                <a class="nav-link rounded {% if request.path == url_for('main.dashboard') %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
+                    <div class="nav-icon-round d-flex align-items-center">
+                        {{ icon("dashboard", "sm", "", "me-3") }}
+                        <span>仪表盘</span>
                     </div>
-                    仪表盘
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path == url_for('transactions_bp.transactions_list_route') %}active{% endif %}" href="{{ url_for('transactions_bp.transactions_list_route') }}">
-                    <div class="nav-icon-round">
-                        <i class="material-icons-round">receipt_long</i>
+            <li class="nav-item mb-1">
+                <a class="nav-link rounded {% if request.path == url_for('transactions_bp.transactions_list_route') %}active{% endif %}" href="{{ url_for('transactions_bp.transactions_list_route') }}">
+                    <div class="nav-icon-round d-flex align-items-center">
+                        {{ icon("receipt_long", "sm", "", "me-3") }}
+                        <span>交易记录</span>
                     </div>
-                    交易记录
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path == url_for('income_analysis_bp.income_analysis') %}active{% endif %}" href="{{ url_for('income_analysis_bp.income_analysis') }}">
-                    <div class="nav-icon-round">
-                        <i class="material-icons-round">trending_up</i>
+            <li class="nav-item mb-1">
+                <a class="nav-link rounded {% if request.path == url_for('income_analysis_bp.income_analysis') %}active{% endif %}" href="{{ url_for('income_analysis_bp.income_analysis') }}">
+                    <div class="nav-icon-round d-flex align-items-center">
+                        {{ icon("trending_up", "sm", "", "me-3") }}
+                        <span>收入分析</span>
                     </div>
-                    收入分析
                 </a>
             </li>
         </ul>
+        
+        <div class="sidebar-divider my-2"></div>
+        
+        <div class="sidebar-footer p-3">
+            <div class="d-flex align-items-center small text-muted">
+                {{ icon("info", "sm", "", "me-2") }}
+                <span>银行账单分析系统</span>
+            </div>
+        </div>
     </div>
 
     <!-- 主内容区 -->
     <div class="main-content">
         <div class="header">
-            <button class="mobile-nav-toggle" id="sidebarToggle">
-                <i class="material-icons-round">menu</i>
-            </button>
-            <h4 class="header-title">{% block header_title %}银行账单分析系统{% endblock %}</h4>
+            <div class="d-flex align-items-center">
+                <button class="mobile-nav-toggle btn btn-sm btn-light me-2" id="sidebarToggle" aria-label="切换菜单">
+                    {{ icon("menu", "sm", "") }}
+                </button>
+                <h4 class="header-title m-0">{% block header_title %}银行账单分析系统{% endblock %}</h4>
+            </div>
             <div>
                 {% if request.path == url_for('main.dashboard') %}
-                <a href="javascript:void(0);" class="btn btn-primary" onclick="document.getElementById('hiddenFileInput').click();">
-                    <i class="material-icons-round icon-md icon-align-middle me-1">cloud_upload</i>
-                    上传文件
+                <a href="javascript:void(0);" class="btn btn-primary btn-sm d-flex align-items-center" onclick="document.getElementById('hiddenFileInput').click();">
+                    {{ icon("cloud_upload", "sm", "", "me-1") }}
+                    <span>上传文件</span>
                 </a>
                 {% endif %}
             </div>
@@ -181,13 +456,13 @@
                     {% for category, message in messages %}
                         <div class="alert alert-{{ category if category != '_' else 'info' }} alert-dismissible fade show">
                             {% if category == 'success' %}
-                                <i class="material-icons-round">check_circle</i>
+                                {{ icon("check_circle", "sm", "") }}
                             {% elif category == 'danger' %}
-                                <i class="material-icons-round">error</i>
+                                {{ icon("error", "sm", "") }}
                             {% elif category == 'warning' %}
-                                <i class="material-icons-round">warning</i>
+                                {{ icon("warning", "sm", "") }}
                             {% else %}
-                                <i class="material-icons-round">info</i>
+                                {{ icon("info", "sm", "") }}
                             {% endif %}
                             {{ message }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
@@ -216,7 +491,11 @@
 document.addEventListener('DOMContentLoaded', function() {
     const hiddenFileInput = document.getElementById('hiddenFileInput');
     const hiddenUploadForm = document.getElementById('hiddenUploadForm');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
 
+    // 文件上传处理
     if (hiddenFileInput && hiddenUploadForm) {
         hiddenFileInput.addEventListener('change', function() {
             if (this.files && this.files.length > 0) {
@@ -224,9 +503,108 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // 侧边栏切换
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('show');
+        });
+    }
+    
+    // 卡片悬停效果
+    document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
 });
 </script>
     
     {% block scripts %}{% endblock %}
+    
+    <!-- 图标加载检测 -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 检测Material Icons是否正常加载
+        function checkIconsLoaded() {
+            try {
+                const testIcon = document.createElement('span');
+                testIcon.className = 'material-icons-round';
+                testIcon.textContent = 'check';
+                testIcon.style.position = 'absolute';
+                testIcon.style.opacity = '0';
+                document.body.appendChild(testIcon);
+                
+                // 使用计算样式检查字体是否加载
+                const computedStyle = window.getComputedStyle(testIcon);
+                const fontFamily = computedStyle.getPropertyValue('font-family');
+                const iconWidth = testIcon.offsetWidth > 0;
+                
+                document.body.removeChild(testIcon);
+                
+                const iconLoaded = iconWidth && fontFamily.includes('Material Icons');
+                
+                console.log('图标字体加载状态:', iconLoaded ? '成功' : '失败');
+                
+                if (!iconLoaded) {
+                    console.warn('Material Icons无法加载，使用备用图标');
+                    // 添加备用图标策略
+                    document.body.classList.add('icons-fallback');
+                    
+                    // 尝试多个备用图标源
+                    const iconSources = [
+                        'https://cdn.jsdelivr.net/npm/@material-icons/font@1.0.29/material-icons-round.min.css',
+                        'https://fonts.googleapis.com/icon?family=Material+Icons+Round&display=swap',
+                        'https://fonts.loli.net/icon?family=Material+Icons+Round'
+                    ];
+                    
+                    // 尝试加载备用图标源
+                    loadBackupIcons(iconSources, 0);
+                    
+                    // 为所有图标添加文本备用方案
+                    document.querySelectorAll('.material-icons-round').forEach(icon => {
+                        if (!icon.nextElementSibling || !icon.nextElementSibling.classList.contains('icon-text')) {
+                            const textSpan = document.createElement('span');
+                            textSpan.className = 'icon-text';
+                            textSpan.textContent = icon.textContent;
+                            icon.parentNode.insertBefore(textSpan, icon.nextSibling);
+                        }
+                    });
+                }
+            } catch(err) {
+                console.error('图标加载检测失败:', err);
+                // 出错时也应用备用方案
+                document.body.classList.add('icons-fallback');
+            }
+        }
+        
+        // 加载备用图标源
+        function loadBackupIcons(sources, index) {
+            if (index >= sources.length) return;
+            
+            const iconLink = document.createElement('link');
+            iconLink.rel = 'stylesheet';
+            iconLink.href = sources[index];
+            
+            iconLink.onload = function() {
+                console.log('成功加载备用图标源:', sources[index]);
+            };
+            
+            iconLink.onerror = function() {
+                console.warn('备用图标源加载失败:', sources[index]);
+                // 尝试下一个源
+                loadBackupIcons(sources, index + 1);
+            };
+            
+            document.head.appendChild(iconLink);
+        }
+        
+        // 延迟执行检测，给图标字体加载留出时间
+        setTimeout(checkIconsLoaded, 500);
+    });
+    </script>
 </body>
 </html> 

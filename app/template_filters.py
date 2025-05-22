@@ -28,6 +28,16 @@ def register_template_filters(app: Flask):
         """向下取整"""
         return math.floor(n)
     
+    @app.template_filter('min')
+    def min_filter(*args):
+        """取最小值"""
+        return min(args)
+    
+    @app.template_filter('max')
+    def max_filter(*args):
+        """取最大值"""
+        return max(args)
+    
     # 格式化过滤器
     @app.template_filter('currency')
     def currency_filter(n):
