@@ -29,6 +29,26 @@ function initIncomeAnalysisCharts() {
         info: '#1070ca'
     };
     
+    /**
+     * 通用货币格式化函数
+     * @param {number} value - 需要格式化的数值
+     * @returns {string} 格式化后的字符串
+     */
+    function formatCurrencyForChart(value) {
+        if (value === null || typeof value === 'undefined') {
+            return '¥0.00'; // 或 'N/A'
+        }
+        const absValue = Math.abs(value);
+        let sign = value < 0 ? '-' : ''; // 保留符号，以防支出为负（理论上不会，但防御性处理）
+        
+        if (absValue >= 100000000) {
+            return sign + '¥' + (absValue / 100000000).toFixed(2) + '亿';
+        } else if (absValue >= 10000) {
+            return sign + '¥' + (absValue / 10000).toFixed(2) + '万';
+        }
+        return sign + '¥' + absValue.toFixed(2);
+    }
+    
     // 为图表准备数据
     initIncomeExpenseChart();
     initIncomeStabilityChart();
@@ -90,10 +110,15 @@ function initIncomeAnalysisCharts() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 10
+                    }
+                },
                 plugins: {
                     title: {
                         display: true,
-                        text: '月度收支与储蓄率趋势'
+                        text: labels.length > 24 ? '月度收支与储蓄率趋势 (可缩放平移查看更多)' : '月度收支与储蓄率趋势'
                     },
                     tooltip: {
                         mode: 'index',
@@ -107,7 +132,7 @@ function initIncomeAnalysisCharts() {
                                 if (context.dataset.yAxisID === 'y1') {
                                     label += context.parsed.y.toFixed(1) + '%';
                                 } else {
-                                    label += '¥' + context.parsed.y.toFixed(2);
+                                    label += formatCurrencyForChart(context.parsed.y);
                                 }
                                 return label;
                             }
@@ -127,6 +152,49 @@ function initIncomeAnalysisCharts() {
                             enabled: true,
                             mode: 'xy'
                         }
+                    },
+                    datalabels: {
+                        display: function(context) {
+                            return context.dataset.label === '储蓄率(%)';
+                        },
+                        formatter: function(value, context) {
+                            if (context.dataset.label === '储蓄率(%)') {
+                                if (value === null || typeof value === 'undefined') return '';
+                                return value.toFixed(1) + '%';
+                            }
+                            return null;
+                        },
+                        color: colors.savings,
+                        align: function(context) {
+                            if (context.dataset.label === '储蓄率(%)') {
+                                const y1Scale = context.chart.scales['y1'];
+                                const value = context.dataset.data[context.dataIndex];
+                                if (y1Scale && value !== null && typeof value !== 'undefined') {
+                                    if (value > (y1Scale.max * 0.85)) {
+                                        return 'bottom';
+                                    }
+                                }
+                            }
+                            return 'top';
+                        },
+                        anchor: 'end',
+                        offset: function(context) {
+                            if (context.dataset.label === '储蓄率(%)') {
+                                const y1Scale = context.chart.scales['y1'];
+                                const value = context.dataset.data[context.dataIndex];
+                                if (y1Scale && value !== null && typeof value !== 'undefined') {
+                                    if (value > (y1Scale.max * 0.85)) {
+                                        return 8;
+                                    }
+                                }
+                            }
+                            return 6;
+                        },
+                        font: {
+                            size: 10,
+                            weight: '500'
+                        },
+                        clamp: true
                     }
                 },
                 scales: {
@@ -134,6 +202,12 @@ function initIncomeAnalysisCharts() {
                         stacked: false,
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 0,
+                            padding: 10
                         }
                     },
                     y: {
@@ -141,12 +215,17 @@ function initIncomeAnalysisCharts() {
                         title: {
                             display: true,
                             text: '金额 (¥)'
+                        },
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return formatCurrencyForChart(value);
+                            }
                         }
                     },
                     y1: {
                         position: 'right',
                         beginAtZero: true,
-                        max: 100,
+                        grace: '8%',
                         title: {
                             display: true,
                             text: '储蓄率 (%)'
@@ -218,7 +297,7 @@ function initIncomeAnalysisCharts() {
                 plugins: {
                     title: {
                         display: true,
-                        text: '月度收入波动分析'
+                        text: labels.length > 24 ? '月度收入波动分析 (可缩放平移查看更多)' : '月度收入波动分析'
                     },
                     tooltip: {
                         mode: 'index',
@@ -229,7 +308,7 @@ function initIncomeAnalysisCharts() {
                                 if (label) {
                                     label += ': ';
                                 }
-                                label += '¥' + context.parsed.y.toFixed(2);
+                                label += formatCurrencyForChart(context.parsed.y);
                                 return label;
                             }
                         }
@@ -248,19 +327,76 @@ function initIncomeAnalysisCharts() {
                             enabled: true,
                             mode: 'xy'
                         }
+                    },
+                    datalabels: {
+                        display: function(context) {
+                            // 只为"3个月移动平均"折线显示数据标签
+                            return context.dataset.label === '3个月移动平均';
+                        },
+                        formatter: function(value, context) {
+                            if (context.dataset.label === '3个月移动平均') {
+                                if (value === null || typeof value === 'undefined') return ''; // 空值不显示标签
+                                return formatCurrencyForChart(value);
+                            }
+                            return null;
+                        },
+                        color: colors.warning, // 与线条颜色一致，或选择如 '#555' 的深色以保证对比度
+                        align: function(context) {
+                            if (context.dataset.label === '3个月移动平均') {
+                                const yScale = context.chart.scales['y']; 
+                                const value = context.dataset.data[context.dataIndex];
+                                if (yScale && value !== null && typeof value !== 'undefined') {
+                                    // 如果图表只有y轴，或者能确保yScale.max是正确的比较对象
+                                    // 检查yScale.max是否已定义且大于0，避免除以0或NaN
+                                    if (yScale.max && yScale.max > 0 && value > (yScale.max * 0.85)) { 
+                                        return 'bottom';
+                                    }
+                                }
+                            }
+                            return 'top'; 
+                        },
+                        offset: function(context) {
+                            if (context.dataset.label === '3个月移动平均') {
+                                const yScale = context.chart.scales['y'];
+                                const value = context.dataset.data[context.dataIndex];
+                                if (yScale && value !== null && typeof value !== 'undefined') {
+                                    if (yScale.max && yScale.max > 0 && value > (yScale.max * 0.85)) {
+                                        return 8; // 向下的偏移量
+                                    }
+                                }
+                            }
+                            return 6; // 默认向上的偏移量
+                        },
+                        font: {
+                            size: 10,
+                            weight: '500'
+                        },
+                        clamp: true // 尝试将标签限制在图表区域内
                     }
                 },
                 scales: {
                     x: {
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 0,
+                            padding: 10
                         }
                     },
                     y: {
                         beginAtZero: true,
+                        grace: '8%', // 为Y轴添加呼吸空间
                         title: {
                             display: true,
                             text: '收入金额 (¥)'
+                        },
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return formatCurrencyForChart(value);
+                            }
                         }
                     }
                 }
@@ -312,7 +448,7 @@ function initIncomeAnalysisCharts() {
                                 const value = context.raw;
                                 const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
                                 const percentage = ((value / total) * 100).toFixed(1);
-                                return `¥${value.toFixed(2)} (${percentage}%)`;
+                                return `${formatCurrencyForChart(value)} (${percentage}%)`;
                             }
                         }
                     },
@@ -322,7 +458,7 @@ function initIncomeAnalysisCharts() {
                             const percentage = ((value / total) * 100).toFixed(1);
                             return percentage + '%';
                         },
-                        color: '#fff',
+                        color: '#444',
                         font: {
                             weight: 'bold'
                         },
@@ -330,6 +466,13 @@ function initIncomeAnalysisCharts() {
                             const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
                             const value = context.dataset.data[context.dataIndex];
                             return (value / total) * 100 >= 5; // 只显示占比5%以上的标签
+                        }
+                    },
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 15
                         }
                     }
                 },
@@ -366,8 +509,8 @@ function initIncomeAnalysisCharts() {
                 datasets: [{
                     label: '收入来源数量',
                     data: data,
-                    backgroundColor: colors.info,
-                    borderColor: colors.info,
+                    backgroundColor: colors.income,
+                    borderColor: colors.income,
                     borderWidth: 1
                 }]
             },
@@ -377,17 +520,63 @@ function initIncomeAnalysisCharts() {
                 plugins: {
                     title: {
                         display: true,
-                        text: '月度收入来源数量'
+                        text: labels.length > 24 ? '月度收入来源数量 (可缩放平移查看更多)' : '月度收入来源数量'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.parsed.y; // 数量是整数，直接显示
+                                return label;
+                            }
+                        }
+                    },
+                    zoom: {
+                        zoom: {
+                            wheel: { enabled: true },
+                            pinch: { enabled: true },
+                            mode: 'xy'
+                        },
+                        pan: {
+                            enabled: true,
+                            mode: 'xy'
+                        }
+                    },
+                    datalabels: {
+                        display: function(context) {
+                            return context.dataset.data[context.dataIndex] > 0; // 只为大于0的值显示标签
+                        },
+                        formatter: function(value, context) {
+                            return value; // 直接显示数量值
+                        },
+                        anchor: 'start',  // 修改为start
+                        align: 'top',     // 保持 top
+                        offset: 8,        // 增加offset以提供更好的间距
+                        rotation: 0,      // 保持 rotation
+                        padding: 0,       // 保持 padding: 0
+                        color: '#555',
+                        font: { size: 10 },
+                        clamp: true       // 添加clamp属性确保标签在图表区域内
                     }
                 },
                 scales: {
                     x: {
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 0,
+                            padding: 10
                         }
                     },
                     y: {
                         beginAtZero: true,
+                        grace: '20%', // Y轴呼吸空间
                         title: {
                             display: true,
                             text: '来源数量'
@@ -431,7 +620,10 @@ function initIncomeAnalysisCharts() {
                         backgroundColor: 'rgba(71, 184, 129, 0.1)',
                         borderWidth: 2,
                         fill: true,
-                        tension: 0.4
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        yAxisID: 'y1'  // 使用右侧Y轴
                     },
                     {
                         label: '收入',
@@ -439,7 +631,9 @@ function initIncomeAnalysisCharts() {
                         borderColor: colors.income,
                         borderWidth: 2,
                         pointRadius: 3,
-                        fill: false
+                        pointHoverRadius: 5,
+                        fill: false,
+                        yAxisID: 'y'   // 使用左侧Y轴
                     },
                     {
                         label: '支出',
@@ -447,7 +641,9 @@ function initIncomeAnalysisCharts() {
                         borderColor: colors.expense,
                         borderWidth: 2,
                         pointRadius: 3,
-                        fill: false
+                        pointHoverRadius: 5,
+                        fill: false,
+                        yAxisID: 'y'   // 使用左侧Y轴
                     }
                 ]
             },
@@ -457,7 +653,7 @@ function initIncomeAnalysisCharts() {
                 plugins: {
                     title: {
                         display: true,
-                        text: '月度现金流趋势'
+                        text: labels.length > 24 ? '月度现金流趋势 (可缩放平移查看更多)' : '月度现金流趋势'
                     },
                     tooltip: {
                         mode: 'index',
@@ -468,7 +664,8 @@ function initIncomeAnalysisCharts() {
                                 if (label) {
                                     label += ': ';
                                 }
-                                label += '¥' + context.parsed.y.toFixed(2);
+                                // 统一使用formatCurrencyForChart格式化
+                                label += formatCurrencyForChart(context.parsed.y);
                                 return label;
                             }
                         }
@@ -487,18 +684,72 @@ function initIncomeAnalysisCharts() {
                             enabled: true,
                             mode: 'xy'
                         }
+                    },
+                    datalabels: {
+                        display: function(context) {
+                            // 只在净现金流线上显示数据标签，避免图表过于拥挤
+                            return context.dataset.label === '净现金流' && 
+                                   // 根据数据点索引控制显示密度，避免标签重叠
+                                   context.dataIndex % (context.dataset.data.length > 12 ? 3 : 2) === 0;
+                        },
+                        formatter: function(value, context) {
+                            return formatCurrencyForChart(value);
+                        },
+                        color: colors.success,
+                        align: function(context) {
+                            const value = context.dataset.data[context.dataIndex];
+                            // 正值在上方显示，负值在下方显示
+                            return value >= 0 ? 'top' : 'bottom';
+                        },
+                        anchor: 'center',
+                        offset: 8,
+                        font: {
+                            size: 10,
+                            weight: '500'
+                        },
+                        clamp: true
                     }
                 },
                 scales: {
                     x: {
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 0,
+                            padding: 10
                         }
                     },
                     y: {
+                        beginAtZero: true,
+                        grace: '5%', // 为Y轴添加呼吸空间
                         title: {
                             display: true,
-                            text: '金额 (¥)'
+                            text: '收入/支出金额 (¥)'
+                        },
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return formatCurrencyForChart(value);
+                            }
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        beginAtZero: true,
+                        grace: '10%', // 为右侧Y轴添加更多呼吸空间
+                        title: {
+                            display: true,
+                            text: '净现金流金额 (¥)'
+                        },
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return formatCurrencyForChart(value);
+                            }
+                        },
+                        grid: {
+                            drawOnChartArea: false // 不显示右侧Y轴的网格线，避免图表过于复杂
                         }
                     }
                 }
@@ -544,6 +795,8 @@ function initIncomeAnalysisCharts() {
                         label: '年收入',
                         data: incomeData,
                         backgroundColor: colors.income,
+                        borderColor: colors.income,
+                        borderWidth: 1,
                         order: 2
                     },
                     {
@@ -554,6 +807,8 @@ function initIncomeAnalysisCharts() {
                         backgroundColor: 'transparent',
                         borderWidth: 2,
                         pointBackgroundColor: colors.success,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
                         yAxisID: 'y1',
                         order: 1
                     }
@@ -565,7 +820,7 @@ function initIncomeAnalysisCharts() {
                 plugins: {
                     title: {
                         display: true,
-                        text: '年度收入增长趋势'
+                        text: labels.length > 12 ? '年度收入增长趋势 (可缩放平移查看更多)' : '年度收入增长趋势'
                     },
                     tooltip: {
                         mode: 'index',
@@ -583,31 +838,83 @@ function initIncomeAnalysisCharts() {
                                         label += '无数据';
                                     }
                                 } else {
-                                    label += '¥' + context.parsed.y.toFixed(2);
+                                    label += formatCurrencyForChart(context.parsed.y);
                                 }
                                 return label;
                             }
                         }
+                    },
+                    zoom: {
+                        zoom: {
+                            wheel: {
+                                enabled: true
+                            },
+                            pinch: {
+                                enabled: true
+                            },
+                            mode: 'xy'
+                        },
+                        pan: {
+                            enabled: true,
+                            mode: 'xy'
+                        }
+                    },
+                    datalabels: {
+                        // 简化数据标签配置，只在年收入上显示
+                        display: function(context) {
+                            // 只在年收入柱上显示标签，且根据数据量控制密度
+                            return context.dataset.label === '年收入' && 
+                                  (context.dataset.data.length <= 6 || context.dataIndex % 2 === 0);
+                        },
+                        formatter: function(value) {
+                            return formatCurrencyForChart(value);
+                        },
+                        color: '#505A66',
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 6,
+                        font: {
+                            size: 10,
+                            weight: '500'
+                        },
+                        clamp: true
                     }
                 },
                 scales: {
                     x: {
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 0,
+                            padding: 10
                         }
                     },
                     y: {
                         beginAtZero: true,
+                        grace: '5%', // 为Y轴添加呼吸空间
                         title: {
                             display: true,
                             text: '收入金额 (¥)'
+                        },
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return formatCurrencyForChart(value);
+                            }
                         }
                     },
                     y1: {
                         position: 'right',
+                        beginAtZero: true,
+                        grace: '10%', // 为增长率Y轴添加更多呼吸空间
                         title: {
                             display: true,
                             text: '增长率 (%)'
+                        },
+                        grid: {
+                            drawOnChartArea: false // 不显示右侧Y轴的网格线，避免图表过于复杂
                         }
                     }
                 }
@@ -754,6 +1061,11 @@ function initIncomeAnalysisCharts() {
                         color: '#fff',
                         font: {
                             weight: 'bold'
+                        },
+                        display: function(context) {
+                            const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                            const value = context.dataset.data[context.dataIndex];
+                            return (value / total) * 100 >= 5; // 只显示占比5%以上的标签
                         }
                     },
                     subtitle: {
