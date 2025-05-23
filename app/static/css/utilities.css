@@ -72,23 +72,23 @@
 
 /* 背景颜色透明度工具类 */
 .bg-primary-light {
-    background-color: rgba(70, 99, 172, 0.1) !important;
+    background-color: var(--primary-light) !important;
 }
 
 .bg-success-light {
-    background-color: rgba(71, 184, 129, 0.1) !important;
+    background-color: var(--success-light) !important;
 }
 
 .bg-danger-light {
-    background-color: rgba(236, 76, 71, 0.1) !important;
+    background-color: var(--danger-light) !important;
 }
 
 .bg-warning-light {
-    background-color: rgba(255, 171, 0, 0.1) !important;
+    background-color: var(--warning-light) !important;
 }
 
 .bg-info-light {
-    background-color: rgba(16, 112, 202, 0.1) !important;
+    background-color: var(--info-light) !important;
 }
 
 /* 间距工具类 */

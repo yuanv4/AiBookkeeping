@@ -4,29 +4,48 @@
  */
 
 :root {
-    /* 颜色变量 */
-    --primary: #4663ac;
-    --primary-light: #ebeffa;
-    --primary-dark: #3a5190;
-    --secondary: #6c757d;
-    --success: #47b881;
-    --danger: #ec4c47;
-    --warning: #ffab00;
-    --info: #1070ca;
-    --light: #f8f9fa;
-    --dark: #343a40;
+    /* 颜色变量 - 财务专业版主题 */
+    --primary: #1A3A5F;          /* 深海军蓝 */
+    --primary-light: #E9EEF4;    /* 主色淡色版 */
+    --primary-dark: #112945;     /* 主色深色版 */
+    --secondary: #2C3E50;        /* 深蓝灰 */
+    --success: #2D5F5D;          /* 专业墨绿色 */
+    --danger: #8B2635;           /* 深酒红色 */
+    --warning: #BFA46F;          /* 优雅金褐色 */
+    --info: #4A6FA5;             /* 淡蓝色 */
+    --light: #F9F9F7;            /* 象牙白 */
+    --dark: #2C3E50;             /* 深蓝灰 */
+    
+    /* 辅助颜色 */
+    --success-light: rgba(45, 95, 93, 0.1);
+    --danger-light: rgba(139, 38, 53, 0.1);
+    --warning-light: rgba(191, 164, 111, 0.1);
+    --info-light: rgba(74, 111, 165, 0.1);
+    
+    /* 灰度变量 */
+    --gray-100: #f8fafd;
+    --gray-200: #E5E8ED;
+    --gray-300: #C5CDD7;
+    --gray-400: #9AA5B5;
+    --gray-500: #7B8794;
+    --gray-600: #5A6472;
+    --gray-700: #3E4650;
+    --gray-800: #2C3E50;
     
     /* 尺寸变量 */
     --sidebar-width: 250px;
     --header-height: 64px;
     
     /* 阴影变量 */
-    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-    --shadow: 0 4px 6px rgba(0,0,0,0.07);
-    --shadow-lg: 0 10px 15px rgba(0,0,0,0.08);
+    --shadow-sm: 0 2px 4px rgba(26, 58, 95, 0.05);
+    --shadow: 0 4px 6px rgba(26, 58, 95, 0.07);
+    --shadow-lg: 0 10px 15px rgba(26, 58, 95, 0.08);
+    --card-shadow: 0 4px 10px rgba(26, 58, 95, 0.05);
+    --card-shadow-hover: 0 8px 16px rgba(26, 58, 95, 0.08);
     
     /* 动画变量 */
     --transition: all 0.3s ease;
+    --transition-speed: 0.3s;
     
     /* 间距变量 */
     --spacing-xs: 4px;

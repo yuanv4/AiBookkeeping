@@ -8,16 +8,46 @@ function initIncomeAnalysisCharts() {
         Chart.register(ChartDataLabels);
     }
     
-    // 设置图表全局配置
-    Chart.defaults.font.family = "'Noto Sans SC', 'sans-serif'";
-    Chart.defaults.color = '#505A66';
-    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(25, 30, 56, 0.9)';
-    Chart.defaults.plugins.tooltip.padding = 10;
-    Chart.defaults.plugins.tooltip.cornerRadius = 3;
-    Chart.defaults.plugins.legend.position = 'top';
+    // 检查并使用全局财务主题颜色
+    const useFinanceTheme = typeof window.defaultColors !== 'undefined';
     
-    // 定义常用颜色
-    const colors = {
+    // 定义常用颜色，优先使用全局财务主题颜色
+    const colors = useFinanceTheme ? {
+        // 使用财务专业版主题颜色
+        income: window.defaultColors.success,
+        expense: window.defaultColors.danger,
+        savings: window.defaultColors.warning,
+        ratio: window.defaultColors.info,
+        primary: window.defaultColors.primary,
+        secondary: window.defaultColors.secondary,
+        success: window.defaultColors.success,
+        danger: window.defaultColors.danger,
+        warning: window.defaultColors.warning,
+        info: window.defaultColors.info,
+        // 图表分类颜色
+        category: window.defaultColors.category,
+        neutral: window.defaultColors.neutral,
+        // 将颜色转换为半透明版本的辅助函数
+        getAlpha: function(color, alpha = 0.8) {
+            // 处理十六进制颜色
+            if (color.startsWith('#')) {
+                const r = parseInt(color.slice(1, 3), 16);
+                const g = parseInt(color.slice(3, 5), 16);
+                const b = parseInt(color.slice(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            // 处理rgba颜色
+            if (color.startsWith('rgba')) {
+                return color.replace(/rgba\((.+?), .+?\)/, `rgba($1, ${alpha})`);
+            }
+            // 处理rgb颜色
+            if (color.startsWith('rgb')) {
+                return color.replace(/rgb\((.+?)\)/, `rgba($1, ${alpha})`);
+            }
+            return color;
+        }
+    } : {
+        // 保留原有颜色作为后备方案
         income: 'rgba(70, 99, 172, 0.8)',
         expense: 'rgba(236, 76, 71, 0.8)',
         savings: 'rgba(71, 184, 129, 0.8)',

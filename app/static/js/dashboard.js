@@ -233,6 +233,11 @@ function initBalanceHistoryChart() {
         const chartData = JSON.parse(chartDataElement.getAttribute('data-chart'));
         if (!chartData || !chartData.labels || !chartData.values) return;
         
+        // 创建半透明的背景色版本
+        const balanceFill = window.defaultColors.balance.startsWith('#') 
+            ? `rgba(${parseInt(window.defaultColors.balance.slice(1, 3), 16)}, ${parseInt(window.defaultColors.balance.slice(3, 5), 16)}, ${parseInt(window.defaultColors.balance.slice(5, 7), 16)}, 0.1)` 
+            : 'rgba(26, 58, 95, 0.1)';
+        
         new Chart(balanceHistoryCanvas, {
             type: 'line',
             data: {
@@ -240,11 +245,11 @@ function initBalanceHistoryChart() {
                 datasets: [{
                     label: '账户余额',
                     data: chartData.values,
-                    borderColor: '#4663ac',
-                    backgroundColor: 'rgba(70, 99, 172, 0.1)',
+                    borderColor: window.defaultColors.balance,
+                    backgroundColor: balanceFill,
                     borderWidth: 2,
                     pointRadius: 3,
-                    pointBackgroundColor: '#4663ac',
+                    pointBackgroundColor: window.defaultColors.balance,
                     tension: 0.4,
                     fill: true
                 }]
@@ -307,6 +312,15 @@ function initIncomeExpenseChart() {
         const chartData = JSON.parse(chartDataElement.getAttribute('data-chart'));
         if (!chartData || !chartData.labels || !chartData.income || !chartData.expense) return;
         
+        // 创建半透明版本
+        const incomeColor = window.defaultColors.income.startsWith('#') 
+            ? `rgba(${parseInt(window.defaultColors.income.slice(1, 3), 16)}, ${parseInt(window.defaultColors.income.slice(3, 5), 16)}, ${parseInt(window.defaultColors.income.slice(5, 7), 16)}, 0.7)` 
+            : 'rgba(45, 95, 93, 0.7)';
+        
+        const expenseColor = window.defaultColors.expense.startsWith('#') 
+            ? `rgba(${parseInt(window.defaultColors.expense.slice(1, 3), 16)}, ${parseInt(window.defaultColors.expense.slice(3, 5), 16)}, ${parseInt(window.defaultColors.expense.slice(5, 7), 16)}, 0.7)` 
+            : 'rgba(139, 38, 53, 0.7)';
+        
         new Chart(incomeExpenseCanvas, {
             type: 'bar',
             data: {
@@ -315,15 +329,15 @@ function initIncomeExpenseChart() {
                     {
                         label: '收入',
                         data: chartData.income,
-                        backgroundColor: 'rgba(71, 184, 129, 0.7)',
-                        borderColor: 'rgba(71, 184, 129, 1)',
+                        backgroundColor: incomeColor,
+                        borderColor: window.defaultColors.income,
                         borderWidth: 1
                     },
                     {
                         label: '支出',
                         data: chartData.expense.map(val => Math.abs(val)), // 取绝对值，使支出显示为正数
-                        backgroundColor: 'rgba(236, 76, 71, 0.7)',
-                        borderColor: 'rgba(236, 76, 71, 1)',
+                        backgroundColor: expenseColor,
+                        borderColor: window.defaultColors.expense,
                         borderWidth: 1
                     }
                 ]
@@ -389,13 +403,10 @@ function initIncomeSourceChart() {
         const chartData = JSON.parse(chartDataElement.getAttribute('data-chart'));
         if (!chartData || !chartData.labels || !chartData.values) return;
         
-        // 生成随机颜色数组，但收入相关的颜色应该是绿色系
-        const backgroundColors = chartData.labels.map(() => {
-            // 绿色系随机颜色
-            const r = Math.floor(Math.random() * 100) + 50;
-            const g = Math.floor(Math.random() * 100) + 150;
-            const b = Math.floor(Math.random() * 100) + 50;
-            return `rgba(${r}, ${g}, ${b}, 0.7)`;
+        // 根据数据数量选择适当数量的颜色
+        const backgroundColors = chartData.labels.map((_, index) => {
+            // 循环使用category中的颜色
+            return window.defaultColors.category[index % window.defaultColors.category.length];
         });
         
         new Chart(incomeSourceCanvas, {
