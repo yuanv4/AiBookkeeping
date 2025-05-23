@@ -462,7 +462,13 @@
 {% endblock %}
 
 {% block page_scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" defer></script>
+<!-- 加载基础图表库 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<!-- 加载图表主题和交互模块 -->
+<script src="{{ url_for('static', filename='js/chart-themes.js') }}"></script>
+<!-- 加载通用模块 -->
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+
 <script>
 // 将后端数据转换为JavaScript变量，添加默认值和存在性检查
 // 收入支出平衡数据
@@ -526,5 +532,5 @@ console.log('现金流数据:', cashFlowData);
 console.log('收入增长数据:', incomeGrowthData);
 console.log('收入VS通胀数据:', incomeVsInflationData);
 </script>
-<script src="{{ url_for('static', filename='js/income_analysis.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/income_analysis.js') }}"></script>
 {% endblock %} 

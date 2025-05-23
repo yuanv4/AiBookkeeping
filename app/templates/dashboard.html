@@ -52,16 +52,34 @@
         background-color: var(--gray-100);
         border-radius: var(--border-radius);
     }
+    
+    .trend-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+    }
+    
+    .trend-icon-success {
+        background-color: var(--success-light);
+    }
+    
+    .trend-icon-danger {
+        background-color: var(--danger-light);
+    }
 </style>
 {% endblock %}
 
 {% block page_scripts %}
 <!-- 仅在仪表盘页面加载Chart.js及其插件 -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
-<!-- 延迟加载仪表盘特定脚本 -->
-<script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<!-- 加载图表主题和交互模块 -->
+<script src="{{ url_for('static', filename='js/chart-themes.js') }}"></script>
+<!-- 加载通用模块 -->
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+<!-- 加载仪表盘特定脚本 -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -166,8 +184,7 @@
                             {% set change_percent = (change / first_balance * 100) if first_balance != 0 else 0 %}
                             
                             <div class="d-flex align-items-center">
-                                <div class="trend-icon rounded-circle d-flex align-items-center justify-content-center me-2"
-                                     style="width: 36px; height: 36px; background-color: {% if change >= 0 %}var(--success-light){% else %}var(--danger-light){% endif %}">
+                                <div class="trend-icon d-flex align-items-center justify-content-center me-2 {% if change >= 0 %}trend-icon-success{% else %}trend-icon-danger{% endif %}">
                                     {{ icon("trending_" + ("up" if change >= 0 else "down"), "sm", "text-" + ("success" if change >= 0 else "danger")) }}
                                 </div>
                                 <div>

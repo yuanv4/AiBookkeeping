@@ -5,8 +5,69 @@
 
 // 图表主题配置
 const ChartThemes = {
-    // 默认主题 - 亮色
+    // 默认主题 - 财务专业版
     default: {
+        colors: {
+            primary: '#1A3A5F',          // 深海军蓝
+            secondary: '#2C3E50',        // 深蓝灰
+            success: '#2D5F5D',          // 专业墨绿色
+            danger: '#8B2635',           // 深酒红色
+            warning: '#BFA46F',          // 优雅金褐色
+            info: '#4A6FA5',             // 淡蓝色
+            neutral: ['#1A3A5F', '#2F5377', '#446B8F', '#5984A7', '#6E9CBF', '#83B5D7'], // 蓝色系渐变
+            category: ['#1A3A5F', '#2D5F5D', '#8B2635', '#BFA46F', '#4A6FA5', '#5D4A6F', '#5F4B2D', '#63455E'], // 低饱和度配色
+            monochrome: ['#1A3A5F', '#234567', '#2C5170', '#355D7A', '#3E6985', '#47758F', '#508199'] // 单色系列
+        },
+        fonts: {
+            family: "'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+            size: 12,
+            color: '#2C3E50'  // 深蓝灰色文字
+        },
+        elements: {
+            line: {
+                tension: 0.2,  // 降低曲线张力，更加直观
+                borderWidth: 2,
+                fill: true,
+                borderJoinStyle: 'round'
+            },
+            point: {
+                radius: 3,  // 更小的点，专业感更强
+                hoverRadius: 5,
+                borderWidth: 2,
+                hoverBorderWidth: 2,
+                hitRadius: 8
+            },
+            bar: {
+                borderRadius: 2,  // 更方正的柱状图
+                borderWidth: 0,
+                borderSkipped: false,
+                maxBarThickness: 45
+            },
+            arc: {
+                borderWidth: 1,
+                borderColor: '#F9F9F7'  // 象牙白边框
+            }
+        },
+        grid: {
+            color: '#E5E8ED',  // 更明显但不突兀的网格线
+            borderColor: '#E5E8ED',
+            tickColor: '#C5CDD7'
+        },
+        tooltip: {
+            backgroundColor: 'rgba(44, 62, 80, 0.85)',  // 深蓝灰背景
+            titleColor: '#fff',
+            bodyColor: '#F9F9F7',  // 象牙白
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1
+        },
+        animation: {
+            duration: 800,  // 更快的动画速度，增强专业感
+            easing: 'easeOutQuad'
+        }
+    },
+    
+    // 经典亮色主题
+    classic: {
         colors: {
             primary: '#4361ee',
             success: '#4cc9a6',

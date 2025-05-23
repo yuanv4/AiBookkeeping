@@ -20,17 +20,6 @@ function setupChartDefaults() {
     }
 }
 
-// 颜色配置
-const colorPalette = {
-    primary: '#4663ac',
-    success: '#47b881',
-    danger: '#ec4c47',
-    warning: '#ffab00',
-    info: '#1070ca',
-    neutral: ['#4663ac', '#6c84ca', '#8ea2d8', '#b0bfe5', '#d2dcf3'],
-    category: ['#4663ac', '#47b881', '#ec4c47', '#f7d154', '#1070ca', '#9c36b5', '#00bcd4', '#ff9800']
-};
-
 // 统一图表配置
 const chartConfig = {
     // 全局字体设置
@@ -290,8 +279,94 @@ function initTooltips() {
     });
 }
 
-// 文档加载完成后初始化
+/**
+ * 在全局应用财务专业版主题到所有图表
+ */
+function applyFinanceThemeToAllCharts() {
+    // 确保Chart.js和主题文件已加载
+    if (typeof Chart === 'undefined' || typeof ChartThemes === 'undefined') {
+        console.warn('Chart.js或图表主题未加载，无法应用财务专业主题');
+        return;
+    }
+    
+    try {
+        const theme = ChartThemes.default;
+        
+        // 应用颜色
+        Chart.defaults.color = theme.fonts.color;
+        
+        // 应用字体
+        Chart.defaults.font.family = theme.fonts.family;
+        Chart.defaults.font.size = theme.fonts.size;
+        
+        // 应用元素样式
+        Object.assign(Chart.defaults.elements.line, theme.elements.line);
+        Object.assign(Chart.defaults.elements.point, theme.elements.point);
+        Object.assign(Chart.defaults.elements.bar, theme.elements.bar);
+        Object.assign(Chart.defaults.elements.arc, theme.elements.arc);
+        
+        // 应用网格样式
+        Chart.defaults.scale.grid.color = theme.grid.color;
+        Chart.defaults.scale.grid.borderColor = theme.grid.borderColor;
+        Chart.defaults.scale.ticks.color = theme.fonts.color;
+        
+        // 应用工具提示样式
+        Object.assign(Chart.defaults.plugins.tooltip, {
+            backgroundColor: theme.tooltip.backgroundColor,
+            titleColor: theme.tooltip.titleColor,
+            bodyColor: theme.tooltip.bodyColor,
+            borderColor: theme.tooltip.borderColor,
+            borderWidth: theme.tooltip.borderWidth
+        });
+        
+        // 应用动画设置
+        Chart.defaults.animation = theme.animation;
+        
+        // 为内容的图表应用新主题样式
+        console.log('已成功应用财务专业版主题到所有图表');
+        
+        // 定义新的财务专业版颜色变量，供各个图表使用
+        window.defaultColors = {
+            primary: theme.colors.primary,
+            secondary: theme.colors.secondary,
+            success: theme.colors.success,
+            danger: theme.colors.danger,
+            warning: theme.colors.warning,
+            info: theme.colors.info,
+            neutral: theme.colors.neutral,
+            category: theme.colors.category,
+            monochrome: theme.colors.monochrome,
+            income: theme.colors.success,
+            expense: theme.colors.danger,
+            savings: theme.colors.warning,
+            balance: theme.colors.primary
+        };
+        
+        return true;
+    } catch (error) {
+        console.error('应用财务专业版主题失败:', error);
+        return false;
+    }
+}
+
+// 在文档加载完成后自动应用财务专业版主题
 document.addEventListener('DOMContentLoaded', function() {
+    // 立即应用财务专业版主题
+    applyFinanceThemeToAllCharts();
+    
+    // 更新所有Chart实例以应用新主题
+    setTimeout(function() {
+        if (typeof Chart !== 'undefined') {
+            const allCharts = Object.values(Chart.instances);
+            allCharts.forEach(chart => {
+                if (chart && typeof chart.update === 'function') {
+                    chart.update();
+                }
+            });
+            console.log(`已更新${allCharts.length}个图表实例以应用新主题`);
+        }
+    }, 100);
+    
     // 设置图表默认配置
     setupChartDefaults();
     
@@ -351,7 +426,7 @@ window.app = {
     getQueryParam,
     addQueryParam,
     showNotification,
-    colors: colorPalette,
+    colors: window.defaultColors,
     chartConfig,
     createChart,
     updateButtonStates
