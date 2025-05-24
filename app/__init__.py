@@ -6,10 +6,16 @@ from flask import Flask, request, render_template, jsonify
 # 从同一目录的 config 模块导入配置字典
 # 假设 config.py 已经被移动到了 app/config.py
 from .config import config
-from .template_filters import register_template_filters
+from .frontend.template_filters import register_template_filters
 
 def create_app(config_name='default'):
-    app = Flask(__name__) # 使用 __name__ (即 'app') 作为蓝图的模板/静态文件查找起点
+    # 设置模板和静态文件路径
+    template_folder = os.path.join(os.path.dirname(__file__), 'frontend', 'templates')
+    static_folder = os.path.join(os.path.dirname(__file__), 'frontend', 'static')
+    
+    app = Flask(__name__, 
+                template_folder=template_folder,
+                static_folder=static_folder)
     app.config.from_object(config[config_name])
 
     # 配置日志
