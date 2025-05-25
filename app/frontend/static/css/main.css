@@ -32,15 +32,11 @@
     --chart-green: #47b881;
     --chart-orange: #ffab00;
     --chart-indigo: #1070ca;
-    --chart-cyan: #00b8d9;
-    --chart-pink: #ff5630;
     
     /* 图表颜色带透明度 */
     --chart-blue-alpha: rgba(70, 99, 172, 0.8);
     --chart-red-alpha: rgba(236, 76, 71, 0.8);
     --chart-green-alpha: rgba(71, 184, 129, 0.8);
-    --chart-orange-alpha: rgba(255, 171, 0, 0.8);
-    --chart-indigo-alpha: rgba(16, 112, 202, 0.8);
     
     /* 文字颜色 */
     --text-primary: #334152;
@@ -57,7 +53,6 @@
     --bg-gray-light: #c1c9d6;
     --bg-gray-lighter: #a8b1c1;
     --bg-overlay: rgba(0, 0, 0, 0.7);
-    --bg-overlay-light: rgba(0, 0, 0, 0.02);
     
     /* 边框颜色 */
     --border-light: rgba(0, 0, 0, 0.05);
@@ -101,10 +96,6 @@
     --border-radius-sm: 8px;
     --border-radius: 12px;
     --border-radius-lg: 16px;
-    
-    /* 补充新的颜色变量 */
-    --modal-overlay: rgba(0, 0, 0, 0.75);
-    --modal-border: rgba(255, 255, 255, 0.1);
 }
 
 /* ==================== 基础样式 ==================== */
@@ -412,8 +403,6 @@ body {
 
 /* 图标对齐 */
 .icon-align-middle { vertical-align: -4px !important; }
-.icon-align-top { vertical-align: -6px !important; }
-.icon-align-bottom { vertical-align: -2px !important; }
 
 /* 图标尺寸 */
 .icon-xs { font-size: 14px !important; }
@@ -430,7 +419,6 @@ body {
 .icon-danger { color: var(--danger) !important; }
 .icon-warning { color: var(--warning) !important; }
 .icon-info { color: var(--info) !important; }
-.icon-light { color: rgba(0,0,0,0.15) !important; }
 
 /* 背景颜色透明度工具类 */
 .bg-primary-light { background-color: var(--primary-light) !important; }
@@ -450,7 +438,6 @@ body {
 .text-primary-dark { color: var(--primary-dark) !important; }
 .text-small { font-size: 0.875rem !important; }
 .text-medium { font-size: 1rem !important; }
-.text-large { font-size: 1.25rem !important; }
 .text-muted { color: var(--text-muted) !important; }
 
 /* 金额样式 */
