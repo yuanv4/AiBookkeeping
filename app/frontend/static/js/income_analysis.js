@@ -8,64 +8,6 @@ function initIncomeAnalysisCharts() {
         Chart.register(ChartDataLabels);
     }
     
-    // 检查并使用全局财务主题颜色
-    const useFinanceTheme = typeof window.defaultColors !== 'undefined';
-    
-    // 定义常用颜色，优先使用全局财务主题颜色
-    const colors = useFinanceTheme ? {
-        // 使用财务专业版主题颜色
-        income: 'var(--chart-blue-alpha)',
-        expense: 'var(--chart-red-alpha)',
-        savings: 'var(--chart-green-alpha)',
-        ratio: 'var(--chart-orange-alpha)',
-        primary: 'var(--primary)',
-        secondary: 'var(--secondary)',
-        success: 'var(--success)',
-        danger: 'var(--danger)',
-        warning: 'var(--warning)',
-        info: 'var(--info)',
-        // 图表分类颜色
-        category: 'var(--chart-blue)',
-        neutral: 'var(--gray-600)',
-        // 将颜色转换为半透明版本的辅助函数
-        getAlpha: function(color, alpha = 0.8) {
-            // 处理CSS变量
-            if (color.startsWith('var(--')) {
-                const computedColor = getComputedStyle(document.documentElement)
-                    .getPropertyValue(color.slice(4, -1))
-                    .trim();
-                return this.getAlpha(computedColor, alpha);
-            }
-            // 处理十六进制颜色
-            if (color.startsWith('#')) {
-                const r = parseInt(color.slice(1, 3), 16);
-                const g = parseInt(color.slice(3, 5), 16);
-                const b = parseInt(color.slice(5, 7), 16);
-                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-            }
-            // 处理rgba颜色
-            if (color.startsWith('rgba')) {
-                return color.replace(/rgba\((.+?), .+?\)/, `rgba($1, ${alpha})`);
-            }
-            // 处理rgb颜色
-            if (color.startsWith('rgb')) {
-                return color.replace(/rgb\((.+?)\)/, `rgba($1, ${alpha})`);
-            }
-            return color;
-        }
-    } : {
-        // 默认颜色
-        income: 'var(--chart-blue-alpha)',
-        expense: 'var(--chart-red-alpha)',
-        savings: 'var(--chart-green-alpha)',
-        ratio: 'var(--chart-orange-alpha)',
-        primary: 'var(--primary)',
-        danger: 'var(--danger)',
-        success: 'var(--success)',
-        warning: 'var(--warning)',
-        info: 'var(--info)'
-    };
-    
     /**
      * 通用货币格式化函数
      * @param {number} value - 需要格式化的数值
@@ -122,22 +64,22 @@ function initIncomeAnalysisCharts() {
                     {
                         label: '收入',
                         data: incomeData,
-                        backgroundColor: colors.income,
+                        backgroundColor: getChartColor('income'),
                         order: 2
                     },
                     {
                         label: '支出',
                         data: expenseData,
-                        backgroundColor: colors.expense,
+                        backgroundColor: getChartColor('expense'),
                         order: 3
                     },
                     {
                         label: '储蓄率(%)',
                         data: savingRateData,
                         type: 'line',
-                        borderColor: colors.savings,
+                        borderColor: getChartColor('savings'),
                         borderWidth: 2,
-                        pointBackgroundColor: colors.savings,
+                        pointBackgroundColor: getChartColor('savings'),
                         fill: false,
                         yAxisID: 'y1',
                         order: 1
@@ -201,7 +143,7 @@ function initIncomeAnalysisCharts() {
                             }
                             return null;
                         },
-                        color: colors.savings,
+                        color: getChartColor('savings'),
                         align: function(context) {
                             if (context.dataset.label === '储蓄率(%)') {
                                 const y1Scale = context.chart.scales['y1'];
@@ -313,16 +255,16 @@ function initIncomeAnalysisCharts() {
                     {
                         label: '月收入',
                         data: incomeData,
-                        backgroundColor: colors.income,
+                        backgroundColor: getChartColor('income'),
                         order: 2
                     },
                     {
                         label: '3个月移动平均',
                         data: movingAverage,
                         type: 'line',
-                        borderColor: colors.warning,
+                        borderColor: getChartColor('warning'),
                         borderWidth: 2,
-                        pointBackgroundColor: colors.warning,
+                        pointBackgroundColor: getChartColor('warning'),
                         fill: false,
                         order: 1
                     }
@@ -377,7 +319,7 @@ function initIncomeAnalysisCharts() {
                             }
                             return null;
                         },
-                        color: colors.warning, // 与线条颜色一致，或选择如 '#555' 的深色以保证对比度
+                        color: getChartColor('warning'), // 与线条颜色一致，或选择如 '#555' 的深色以保证对比度
                         align: function(context) {
                             if (context.dataset.label === '3个月移动平均') {
                                 const yScale = context.chart.scales['y']; 
@@ -546,8 +488,8 @@ function initIncomeAnalysisCharts() {
                 datasets: [{
                     label: '收入来源数量',
                     data: data,
-                    backgroundColor: colors.income,
-                    borderColor: colors.income,
+                    backgroundColor: getChartColor('income'),
+                    borderColor: getChartColor('income'),
                     borderWidth: 1
                 }]
             },
@@ -653,7 +595,7 @@ function initIncomeAnalysisCharts() {
                     {
                         label: '净现金流',
                         data: netFlowData,
-                        borderColor: colors.success,
+                        borderColor: getChartColor('success'),
                         backgroundColor: 'rgba(71, 184, 129, 0.1)',
                         borderWidth: 2,
                         fill: true,
@@ -665,7 +607,7 @@ function initIncomeAnalysisCharts() {
                     {
                         label: '收入',
                         data: incomeData,
-                        borderColor: colors.income,
+                        borderColor: getChartColor('income'),
                         borderWidth: 2,
                         pointRadius: 3,
                         pointHoverRadius: 5,
@@ -675,7 +617,7 @@ function initIncomeAnalysisCharts() {
                     {
                         label: '支出',
                         data: expenseData.map(v => Math.abs(v)), // 取绝对值显示
-                        borderColor: colors.expense,
+                        borderColor: getChartColor('expense'),
                         borderWidth: 2,
                         pointRadius: 3,
                         pointHoverRadius: 5,
@@ -732,7 +674,7 @@ function initIncomeAnalysisCharts() {
                         formatter: function(value, context) {
                             return formatCurrencyForChart(value);
                         },
-                        color: colors.success,
+                        color: getChartColor('success'),
                         align: function(context) {
                             const value = context.dataset.data[context.dataIndex];
                             // 正值在上方显示，负值在下方显示
@@ -831,8 +773,8 @@ function initIncomeAnalysisCharts() {
                     {
                         label: '年收入',
                         data: incomeData,
-                        backgroundColor: colors.income,
-                        borderColor: colors.income,
+                        backgroundColor: getChartColor('income'),
+                        borderColor: getChartColor('income'),
                         borderWidth: 1,
                         order: 2
                     },
@@ -840,10 +782,10 @@ function initIncomeAnalysisCharts() {
                         label: '同比增长率(%)',
                         data: growthRateData,
                         type: 'line',
-                        borderColor: colors.success,
+                        borderColor: getChartColor('success'),
                         backgroundColor: 'transparent',
                         borderWidth: 2,
-                        pointBackgroundColor: colors.success,
+                        pointBackgroundColor: getChartColor('success'),
                         pointRadius: 4,
                         pointHoverRadius: 6,
                         yAxisID: 'y1',
@@ -985,23 +927,23 @@ function initIncomeAnalysisCharts() {
                     {
                         label: '名义收入增长率',
                         data: incomeGrowthData2,
-                        backgroundColor: colors.income,
+                        backgroundColor: getChartColor('income'),
                         order: 2
                     },
                     {
                         label: '通货膨胀率',
                         data: inflationData,
-                        backgroundColor: colors.expense,
+                        backgroundColor: getChartColor('expense'),
                         order: 3
                     },
                     {
                         label: '实际收入增长率',
                         data: realGrowthData,
                         type: 'line',
-                        borderColor: colors.success,
+                        borderColor: getChartColor('success'),
                         backgroundColor: 'transparent',
                         borderWidth: 2,
-                        pointBackgroundColor: colors.success,
+                        pointBackgroundColor: getChartColor('success'),
                         order: 1
                     }
                 ]
@@ -1070,7 +1012,7 @@ function initIncomeAnalysisCharts() {
                         breakEvenData.fixed_expense_ratio * 100,
                         breakEvenData.variable_expense_ratio * 100
                     ],
-                    backgroundColor: [colors.warning, colors.expense],
+                    backgroundColor: [getChartColor('warning'), getChartColor('expense')],
                     borderColor: 'white',
                     borderWidth: 1
                 }]
@@ -1123,8 +1065,16 @@ function initIncomeAnalysisCharts() {
      */
     function generateColors(count) {
         const baseColors = [
-            '#4663ac', '#ec4c47', '#47b881', '#ffab00', '#1070ca',
-            '#735dd0', '#00b8d9', '#ff5630', '#36b37e', '#00a3bf'
+            getCssVar('--chart-blue'),
+            getCssVar('--chart-red'),
+            getCssVar('--chart-green'),
+            getCssVar('--chart-orange'),
+            getCssVar('--chart-indigo'),
+            getCssVar('--chart-purple'),
+            getCssVar('--chart-teal'),
+            getCssVar('--chart-pink'),
+            getCssVar('--chart-yellow'),
+            getCssVar('--chart-cyan')
         ];
         
         // 如果数量小于基础颜色数量，直接返回部分基础颜色

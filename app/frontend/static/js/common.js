@@ -325,23 +325,6 @@ function applyFinanceThemeToAllCharts() {
         // 为内容的图表应用新主题样式
         console.log('已成功应用财务专业版主题到所有图表');
         
-        // 定义新的财务专业版颜色变量，供各个图表使用
-        window.defaultColors = {
-            primary: theme.colors.primary,
-            secondary: theme.colors.secondary,
-            success: theme.colors.success,
-            danger: theme.colors.danger,
-            warning: theme.colors.warning,
-            info: theme.colors.info,
-            neutral: theme.colors.neutral,
-            category: theme.colors.category,
-            monochrome: theme.colors.monochrome,
-            income: theme.colors.success,
-            expense: theme.colors.danger,
-            savings: theme.colors.warning,
-            balance: theme.colors.primary
-        };
-        
         return true;
     } catch (error) {
         console.error('应用财务专业版主题失败:', error);
@@ -426,7 +409,6 @@ window.app = {
     getQueryParam,
     addQueryParam,
     showNotification,
-    colors: window.defaultColors,
     chartConfig,
     createChart,
     updateButtonStates
