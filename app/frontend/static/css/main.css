@@ -1,28 +1,70 @@
 /* 
  * AiBookkeeping - 主样式文件
- * 包含全局变量和基础样式
+ * 包含全局变量、基础样式和工具类
  */
 
 :root {
-    /* 颜色变量 - 财务专业版主题 */
+    /* 主色调 */
     --primary: #1A3A5F;          /* 深海军蓝 */
     --primary-light: #E9EEF4;    /* 主色淡色版 */
     --primary-dark: #112945;     /* 主色深色版 */
     --secondary: #2C3E50;        /* 深蓝灰 */
+    
+    /* 功能色 */
     --success: #2D5F5D;          /* 专业墨绿色 */
     --danger: #8B2635;           /* 深酒红色 */
     --warning: #BFA46F;          /* 优雅金褐色 */
     --info: #4A6FA5;             /* 淡蓝色 */
+    
+    /* 中性色 */
     --light: #F9F9F7;            /* 象牙白 */
     --dark: #2C3E50;             /* 深蓝灰 */
     
-    /* 辅助颜色 */
+    /* 功能色淡色版 */
     --success-light: rgba(45, 95, 93, 0.1);
     --danger-light: rgba(139, 38, 53, 0.1);
     --warning-light: rgba(191, 164, 111, 0.1);
     --info-light: rgba(74, 111, 165, 0.1);
     
-    /* 灰度变量 */
+    /* 图表颜色 */
+    --chart-blue: #4663ac;
+    --chart-red: #ec4c47;
+    --chart-green: #47b881;
+    --chart-orange: #ffab00;
+    --chart-indigo: #1070ca;
+    --chart-cyan: #00b8d9;
+    --chart-pink: #ff5630;
+    
+    /* 图表颜色带透明度 */
+    --chart-blue-alpha: rgba(70, 99, 172, 0.8);
+    --chart-red-alpha: rgba(236, 76, 71, 0.8);
+    --chart-green-alpha: rgba(71, 184, 129, 0.8);
+    --chart-orange-alpha: rgba(255, 171, 0, 0.8);
+    --chart-indigo-alpha: rgba(16, 112, 202, 0.8);
+    
+    /* 文字颜色 */
+    --text-primary: #334152;
+    --text-secondary: #495057;
+    --text-muted: #6c757d;
+    --text-light: #8492a6;
+    --text-dark: #505A66;
+    --text-white: #ffffff;
+    
+    /* 背景色 */
+    --bg-light: #f8fafd;
+    --bg-lighter: #eff3f9;
+    --bg-gray: #f1f1f1;
+    --bg-gray-light: #c1c9d6;
+    --bg-gray-lighter: #a8b1c1;
+    --bg-overlay: rgba(0, 0, 0, 0.7);
+    --bg-overlay-light: rgba(0, 0, 0, 0.02);
+    
+    /* 边框颜色 */
+    --border-light: rgba(0, 0, 0, 0.05);
+    --border-white: rgba(255, 255, 255, 0.1);
+    --border-white-light: rgba(255, 255, 255, 0.8);
+    
+    /* 灰度色阶 */
     --gray-100: #f8fafd;
     --gray-200: #E5E8ED;
     --gray-300: #C5CDD7;
@@ -32,16 +74,17 @@
     --gray-700: #3E4650;
     --gray-800: #2C3E50;
     
-    /* 尺寸变量 */
-    --sidebar-width: 250px;
-    --header-height: 64px;
-    
-    /* 阴影变量 */
+    /* 阴影 */
     --shadow-sm: 0 2px 4px rgba(26, 58, 95, 0.05);
     --shadow: 0 4px 6px rgba(26, 58, 95, 0.07);
     --shadow-lg: 0 10px 15px rgba(26, 58, 95, 0.08);
     --card-shadow: 0 4px 10px rgba(26, 58, 95, 0.05);
     --card-shadow-hover: 0 8px 16px rgba(26, 58, 95, 0.08);
+    
+    /* 尺寸变量 */
+    --sidebar-width: 250px;
+    --sidebar-collapsed-width: 64px;
+    --header-height: 64px;
     
     /* 动画变量 */
     --transition: all 0.3s ease;
@@ -58,24 +101,33 @@
     --border-radius-sm: 8px;
     --border-radius: 12px;
     --border-radius-lg: 16px;
+    
+    /* 补充新的颜色变量 */
+    --modal-overlay: rgba(0, 0, 0, 0.75);
+    --modal-border: rgba(255, 255, 255, 0.1);
 }
 
-/* 基础元素样式 */
+/* ==================== 基础样式 ==================== */
+
+/* 基础布局样式 */
 body {
     font-family: 'Noto Sans SC', sans-serif;
-    background-color: #f8fafd;
-    color: #334152;
+    background-color: var(--gray-100);
+    color: var(--gray-800);
     min-height: 100vh;
     display: flex;
+    margin: 0;
+    transition: background-color var(--transition-speed) ease;
 }
 
-/* 布局组件 */
+/* 主内容区样式 */
 .main-content {
     flex: 1;
     margin-left: var(--sidebar-width);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    transition: margin-left var(--transition-speed) ease;
 }
 
 .content {
@@ -83,7 +135,8 @@ body {
     padding: var(--spacing-xl);
 }
 
-/* 侧边栏样式 */
+/* ==================== 侧边栏样式 ==================== */
+
 .sidebar {
     width: var(--sidebar-width);
     background-color: white;
@@ -91,33 +144,47 @@ body {
     position: fixed;
     box-shadow: var(--shadow);
     z-index: 1030;
-    transition: var(--transition);
+    transition: all var(--transition-speed) ease;
     overflow-y: auto;
+    border-right: 1px solid var(--gray-200);
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar-header {
-    height: var(--header-height);
-    display: flex;
-    align-items: center;
-    padding: 0 var(--spacing-lg);
-    background-color: var(--primary);
-    color: white;
-}
-
-.sidebar-header h5 {
-    font-weight: 600;
-    margin: 0;
-    font-size: 1.1rem;
-    color: white;
+    padding: var(--spacing-xs) 0;
 }
 
 .sidebar-brand-icon {
     font-size: 24px;
-    color: white;
-    margin-right: var(--spacing-md);
+    color: var(--primary);
+    background-color: var(--primary-light);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* 导航样式 */
+.sidebar-brand-text {
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 1rem;
+}
+
+.sidebar-divider {
+    height: 1px;
+    background-color: var(--gray-200);
+    margin: 0 var(--spacing-md);
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    border-top: 1px solid var(--gray-200);
+}
+
+/* 导航项样式 */
 .nav-sidebar {
     padding: var(--spacing-lg) 0;
 }
@@ -155,54 +222,36 @@ body {
     width: 100%;
 }
 
-.nav-icon-round span:not(.icon-text) {
-    display: inline-block;
-    vertical-align: middle;
-}
+/* ==================== 头部样式 ==================== */
 
-/* 隐藏辅助文本，但保持屏幕阅读器可访问 */
-.icon-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* 头部样式 */
 .header {
     height: var(--header-height);
     background-color: white;
     box-shadow: var(--shadow-sm);
-    padding: 0 var(--spacing-lg);
+    padding: 0 var(--spacing-xl);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    transition: box-shadow var(--transition-speed) ease;
 }
 
 .header-title {
     font-weight: 600;
+    color: var(--gray-800);
     margin: 0;
     font-size: 1.25rem;
-    color: var(--primary);
 }
 
 .mobile-nav-toggle {
     display: none;
-    background: none;
+    background: transparent;
     border: none;
-    font-size: 24px;
-    color: #334152;
     cursor: pointer;
-    padding: 0;
-    margin-right: var(--spacing-md);
+    color: var(--gray-700);
 }
 
-/* 卡片样式 */
+/* ==================== 卡片样式 ==================== */
+
 .card {
     border: none;
     border-radius: var(--border-radius-lg);
@@ -219,10 +268,10 @@ body {
 
 .card-header {
     background-color: white;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    padding: 18px 20px;
+    border-bottom: 1px solid var(--border-light);
+    padding: var(--spacing-lg) var(--spacing-xl);
     font-weight: 600;
-    color: #334152;
+    color: var(--text-primary);
     font-size: 1rem;
 }
 
@@ -230,7 +279,8 @@ body {
     padding: var(--spacing-lg);
 }
 
-/* 按钮样式 */
+/* ==================== 按钮样式 ==================== */
+
 .btn {
     font-weight: 500;
     border-radius: var(--border-radius-sm);
@@ -266,105 +316,180 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
-/* 表格样式 */
+/* ==================== 表格样式 ==================== */
+
 .table {
     margin-bottom: 0;
 }
 
 .table th {
     font-weight: 600;
-    color: #495057;
+    color: var(--text-secondary);
     border-bottom-width: 1px;
+    background-color: var(--bg-light);
+    padding: var(--spacing-md);
 }
 
 .table td {
     vertical-align: middle;
-    color: #334152;
+    color: var(--text-primary);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .table-hover tbody tr:hover {
-    background-color: rgba(70, 99, 172, 0.03);
+    background-color: var(--primary-light);
+    cursor: pointer;
 }
 
-/* 进度条样式 */
-.progress {
-    height: 8px;
-    background-color: #eff3f9;
-    border-radius: 4px;
+/* 交易表格特定样式 */
+.table-container {
+    border-radius: var(--border-radius);
     overflow: hidden;
+    transition: all var(--transition-speed) ease;
+    box-shadow: var(--card-shadow);
 }
 
-.progress-bar {
-    background-color: var(--primary);
+.table-container:hover {
+    box-shadow: var(--card-shadow-hover);
 }
 
-/* 徽章样式 */
-.badge {
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    padding: 0.35em 0.65em;
-}
-
-/* 提示和警告 */
-.alert {
-    border: none;
-    border-radius: 10px;
-    padding: 16px 20px;
-}
-
-/* 分页 */
-.pagination .page-item .page-link {
-    color: var(--primary);
-    border-radius: 6px;
-    margin: 0 2px;
-}
-
-.pagination .page-item.active .page-link {
-    background-color: var(--primary);
-    border-color: var(--primary);
-}
-
-/* 标题样式 */
-h1, h2, h3, h4, h5, h6 {
+/* 交易金额样式 */
+.transaction-amount {
     font-weight: 600;
-    color: #334152;
-    margin-bottom: 1rem;
 }
 
-h1 {
-    font-size: 1.8rem;
+.transaction-amount.positive {
+    color: var(--success);
 }
 
-h2 {
-    font-size: 1.5rem;
-    margin-bottom: 1.25rem;
+.transaction-amount.negative {
+    color: var(--danger);
 }
 
-.subheading {
-    color: #6c757d;
-    margin-bottom: 1.5rem;
+/* 交易类型徽章 */
+.transaction-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50rem;
+    font-weight: 500;
 }
 
-/* 自定义滚动条 */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+.transaction-badge.income {
+    background-color: var(--success-light);
+    color: var(--success);
 }
 
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
+.transaction-badge.expense {
+    background-color: var(--danger-light);
+    color: var(--danger);
 }
 
-::-webkit-scrollbar-thumb {
-    background: #c1c9d6;
-    border-radius: 4px;
+.transaction-badge.transfer {
+    background-color: var(--info-light);
+    color: var(--info);
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #a8b1c1;
+/* 账号徽章 */
+.account-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50rem;
+    background-color: var(--gray-200);
+    color: var(--gray-700);
 }
 
-/* 响应式调整 */
+/* 银行徽章 */
+.bank-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50rem;
+    background-color: var(--primary-light);
+    color: var(--primary);
+}
+
+/* ==================== 工具类样式 ==================== */
+
+/* 图标对齐 */
+.icon-align-middle { vertical-align: -4px !important; }
+.icon-align-top { vertical-align: -6px !important; }
+.icon-align-bottom { vertical-align: -2px !important; }
+
+/* 图标尺寸 */
+.icon-xs { font-size: 14px !important; }
+.icon-sm { font-size: 16px !important; }
+.icon-md { font-size: 18px !important; }
+.icon-lg { font-size: 24px !important; }
+.icon-xl { font-size: 32px !important; }
+.icon-xxl { font-size: 48px !important; }
+
+/* 图标颜色 */
+.icon-primary { color: var(--primary) !important; }
+.icon-secondary { color: var(--secondary) !important; }
+.icon-success { color: var(--success) !important; }
+.icon-danger { color: var(--danger) !important; }
+.icon-warning { color: var(--warning) !important; }
+.icon-info { color: var(--info) !important; }
+.icon-light { color: rgba(0,0,0,0.15) !important; }
+
+/* 背景颜色透明度工具类 */
+.bg-primary-light { background-color: var(--primary-light) !important; }
+.bg-success-light { background-color: var(--success-light) !important; }
+.bg-danger-light { background-color: var(--danger-light) !important; }
+.bg-warning-light { background-color: var(--warning-light) !important; }
+.bg-info-light { background-color: var(--info-light) !important; }
+
+/* 间距工具类 */
+.spacer-xs { margin-bottom: 0.5rem !important; }
+.spacer-sm { margin-bottom: 1rem !important; }
+.spacer-md { margin-bottom: 1.5rem !important; }
+.spacer-lg { margin-bottom: 2.5rem !important; }
+.spacer-xl { margin-bottom: 4rem !important; }
+
+/* 文本工具类 */
+.text-primary-dark { color: var(--primary-dark) !important; }
+.text-small { font-size: 0.875rem !important; }
+.text-medium { font-size: 1rem !important; }
+.text-large { font-size: 1.25rem !important; }
+.text-muted { color: var(--text-muted) !important; }
+
+/* 金额样式 */
+.positive { color: var(--success) !important; font-weight: 500 !important; }
+.negative { color: var(--danger) !important; font-weight: 500 !important; }
+
+/* 边框工具类 */
+.rounded-sm { border-radius: 4px !important; }
+.rounded-md { border-radius: 8px !important; }
+.rounded-lg { border-radius: 12px !important; }
+
+/* 显示工具类 */
+.flex-center {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.flex-between {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+/* 常见内联样式替代 */
+.primary-hover:hover { color: var(--primary) !important; }
+.no-border { border: none !important; }
+.hover-shadow { transition: var(--transition); }
+.hover-shadow:hover { box-shadow: var(--shadow) !important; }
+.hover-lift { transition: var(--transition); }
+.hover-lift:hover { transform: translateY(-2px) !important; }
+
+/* 高度工具类 */
+.h-200 { height: 200px !important; }
+.h-300 { height: 300px !important; }
+.h-400 { height: 400px !important; }
+
+/* ==================== 响应式样式 ==================== */
+
 @media (max-width: 992px) {
     .main-content {
         margin-left: 0;
@@ -372,6 +497,7 @@ h2 {
     
     .sidebar {
         transform: translateX(-100%);
+        z-index: 1040;
     }
     
     .sidebar.show {
@@ -379,7 +505,7 @@ h2 {
     }
     
     .mobile-nav-toggle {
-        display: block;
+        display: flex;
     }
     
     .content {
@@ -401,32 +527,149 @@ h2 {
     }
 }
 
-/* 统计卡片样式 */
-.stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
+/* ==================== 侧边栏折叠样式 ==================== */
+
+.sidebar-collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+.sidebar-collapsed .sidebar-brand-text,
+.sidebar-collapsed .nav-sidebar .nav-link span {
+    display: none;
+}
+
+.sidebar-collapsed .sidebar-brand-icon {
+    margin: 0 auto;
+}
+
+.sidebar-collapsed .nav-sidebar .nav-link {
+    text-align: center;
+    padding: var(--spacing-sm);
+}
+
+.sidebar-collapsed .nav-sidebar .material-icons-round {
+    margin: 0 auto;
+}
+
+.sidebar-collapsed ~ .main-content {
+    margin-left: var(--sidebar-collapsed-width);
+}
+
+/* ==================== 筛选器样式 ==================== */
+
+/* 筛选器工具栏 */
+.filter-toolbar {
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* 活跃筛选条件 */
+.active-filters {
     display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+
+.active-filters .badge {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-weight: 500;
+    background-color: var(--primary-light);
+    color: var(--primary);
+    border-radius: var(--border-radius-sm);
 }
 
-.bg-primary-light {
-    background-color: rgba(70, 99, 172, 0.1);
+/* 高级筛选模态框 */
+.modal-content {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
 }
 
-.bg-success-light {
-    background-color: rgba(71, 184, 129, 0.1);
+.modal-header {
+    border-bottom: 1px solid var(--border-light);
+    padding: var(--spacing-lg);
 }
 
-.bg-danger-light {
-    background-color: rgba(236, 76, 71, 0.1);
+.modal-body {
+    padding: var(--spacing-lg);
 }
 
-.bg-warning-light {
-    background-color: rgba(255, 171, 0, 0.1);
+.modal-footer {
+    border-top: 1px solid var(--border-light);
+    padding: var(--spacing-lg);
 }
 
-.bg-info-light {
-    background-color: rgba(16, 112, 202, 0.1);
+/* 交易类型和银行账户选择 */
+.transaction-types,
+.bank-accounts {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    background-color: var(--bg-light);
+}
+
+.transaction-types .form-check,
+.bank-accounts .form-check {
+    margin-bottom: var(--spacing-sm);
+}
+
+.transaction-types .form-check:last-child,
+.bank-accounts .form-check:last-child {
+    margin-bottom: 0;
+}
+
+/* 多选下拉框 */
+select[multiple] {
+    height: 200px;
+    padding: var(--spacing-sm);
+}
+
+/* 快捷筛选下拉菜单 */
+.dropdown-menu {
+    border: none;
+    box-shadow: var(--shadow);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-sm);
+}
+
+.dropdown-item {
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.dropdown-item:hover {
+    background-color: var(--primary-light);
+    color: var(--primary);
+}
+
+/* 筛选按钮组 */
+.btn-group .btn {
+    border-radius: var(--border-radius-sm);
+}
+
+.btn-group .btn:not(:first-child) {
+    margin-left: -1px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .filter-toolbar {
+        padding: var(--spacing-sm);
+    }
+    
+    .modal-body {
+        padding: var(--spacing-md);
+    }
+    
+    .transaction-types,
+    .bank-accounts {
+        max-height: 150px;
+    }
 } 

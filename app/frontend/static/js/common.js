@@ -430,4 +430,9 @@ window.app = {
     chartConfig,
     createChart,
     updateButtonStates
+};
+
+const modalConfig = {
+    backgroundColor: getCssVar('--bg-overlay'),
+    borderColor: getCssVar('--border-white')
 }; 

@@ -1,4 +1,4 @@
-/*  * AiBookkeeping - 图表组件样式 * 包含图表容器和数据可视化相关的增强样式 *//* ===== 图表容器样式 ===== *//* 基础图表容器 */.chart-wrapper {    background: white;    border-radius: var(--border-radius);    padding: var(--spacing-md);    box-shadow: var(--shadow);    transition: var(--transition);    position: relative;    overflow: hidden;    border: 1px solid rgba(0, 0, 0, 0.05);    backdrop-filter: blur(10px);}.chart-wrapper:hover {    box-shadow: var(--shadow-md);    transform: translateY(-2px);    border-color: rgba(0, 0, 0, 0.08);}
+/*  * AiBookkeeping - 图表组件样式 * 包含图表容器和数据可视化相关的增强样式 *//* ===== 图表容器样式 ===== *//* 基础图表容器 */.chart-wrapper {    background-color: var(--light);    border: 1px solid var(--gray-200);    border-radius: var(--border-radius);    padding: 1rem;    transition: all var(--transition-speed) ease;    box-shadow: var(--card-shadow);    position: relative;    overflow: hidden;}.chart-wrapper:hover {    box-shadow: var(--card-shadow-hover);    transform: translateY(-2px);    border-color: rgba(0, 0, 0, 0.08);}
 
 /* 图表容器尺寸变体 */
 .chart-wrapper-sm {
@@ -16,6 +16,9 @@
 /* 图表容器内部布局 */
 .chart-container {
     position: relative;
+    background-color: var(--light);
+    border-radius: var(--border-radius);
+    padding: 1rem;
     width: 100%;
     height: 100%;
     min-height: 200px;
@@ -80,6 +83,9 @@
 
 /* 图表标题区域 */
 .chart-header {
+    background-color: var(--gray-100);
+    padding: 1rem;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -87,9 +93,9 @@
 }
 
 .chart-title {
-    font-size: 1rem;
+    color: var(--primary);
     font-weight: 600;
-    color: var(--gray-800);
+    text-shadow: 0 1px 2px var(--shadow-sm);
     margin: 0;
 }
 
@@ -103,14 +109,18 @@
 .chart-legend {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--spacing-sm);
+    gap: 1rem;
+    padding: 0.5rem;
+    background-color: var(--gray-100);
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
     margin-top: var(--spacing-sm);
 }
 
 .chart-legend-item {
     display: flex;
     align-items: center;
-    font-size: 0.75rem;
+    gap: 0.5rem;
+    font-size: 0.875rem;
     color: var(--gray-700);
     cursor: pointer;
     padding: var(--spacing-xs) var(--spacing-sm);
@@ -123,9 +133,9 @@
 }
 
 .chart-legend-color {
-    width: 12px;
-    height: 12px;
-    border-radius: 2px;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
     margin-right: var(--spacing-xs);
 }
 
@@ -230,13 +240,13 @@
 /* ===== 图表工具提示增强 ===== */
 
 .chart-tooltip {
-    background-color: rgba(0, 0, 0, 0.75) !important;
-    backdrop-filter: blur(4px);
-    border-radius: var(--border-radius-sm) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    padding: var(--spacing-sm) !important;
-    color: white !important;
-    border: none !important;
+    background-color: var(--dark);
+    color: var(--light);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    box-shadow: var(--shadow-lg);
+    pointer-events: none;
     z-index: 1000;
 }
 
@@ -244,7 +254,7 @@
     font-weight: 600;
     margin-bottom: var(--spacing-xs);
     padding-bottom: var(--spacing-xs);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid var(--gray-600);
 }
 
 .chart-tooltip-value {
@@ -267,7 +277,8 @@
     }
     
     .chart-legend {
-        justify-content: center;
+        flex-direction: column;
+        gap: 0.5rem;
     }
 }
 
@@ -568,4 +579,29 @@
 .chart-high-contrast .chartjs-tooltip-body-item {
     color: white !important;
     font-weight: 600 !important;
+}
+
+/* 图表动画 */
+@keyframes chartFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chart-wrapper {
+    animation: chartFadeIn 0.3s ease-out;
+}
+
+/* 图表网格线 */
+.chart-grid line {
+    stroke: var(--gray-200);
+}
+
+.chart-axis text {
+    fill: var(--gray-600);
 } 

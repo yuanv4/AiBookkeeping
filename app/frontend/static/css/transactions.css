@@ -83,4 +83,8 @@
     .filter-actions {
         margin-top: 1rem;
     }
+}
+
+.transaction-divider {
+    color: var(--border-light);
 } 

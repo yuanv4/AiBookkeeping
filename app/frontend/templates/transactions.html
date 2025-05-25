@@ -9,7 +9,7 @@
 <link href="{{ url_for('static', filename='css/transactions.css') }}" rel="stylesheet">
 <style>
     .transactions-header {
-        background: linear-gradient(to right, var(--primary-light), #f8f9fa);
+        background: linear-gradient(to right, var(--primary-light), var(--bg-light));
         border-radius: var(--border-radius-lg);
         padding: var(--spacing-lg);
         margin-bottom: var(--spacing-xl);
@@ -107,13 +107,14 @@
     
     .transaction-amount {
         font-weight: 600;
+        color: var(--primary);
     }
     
-    .transaction-amount.positive {
+    .transaction-amount.income {
         color: var(--success);
     }
     
-    .transaction-amount.negative {
+    .transaction-amount.expense {
         color: var(--danger);
     }
 
@@ -150,6 +151,26 @@
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
     }
+
+    .transactions-container {
+        background: linear-gradient(to right, var(--primary-light), var(--bg-light));
+        padding: 2rem;
+        border-radius: var(--border-radius);
+    }
+    
+    .transaction-card {
+        background-color: var(--light);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all var(--transition-speed) ease;
+    }
+    
+    .transaction-card:hover {
+        box-shadow: var(--card-shadow-hover);
+        transform: translateY(-2px);
+    }
 </style>
 {% endblock %}
 
@@ -183,375 +204,400 @@
     </div>
 </div>
 
-<!-- 分页数据元素 -->
-<div id="current-page-data" 
-     data-page="{{ data.pagination.page }}" 
-     data-limit="{{ data.pagination.limit }}" 
-     data-pages="{{ data.pagination.totalPages }}"
-     style="display: none;"></div>
-
-<!-- 交易数据元素 -->
-<div id="transactions-data" 
-     data-transactions='{{ data.transactions | tojson | safe }}' 
-     style="display: none;"></div>
-
-<!-- 调试信息（仅开发环境可见） -->
-<div id="debug-info" class="d-none">
-    <p>页数: {{ data.pagination.page }}/{{ data.pagination.pages }}</p>
-    <p>每页显示: {{ data.pagination.limit }}</p>
-    <p>当前筛选: {{ data.filters }}</p>
-    <p>记录数: {{ data.transactions|length }}</p>
+<!-- 筛选器工具栏 -->
+<div class="filter-toolbar mb-4">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <!-- 快捷筛选按钮组 -->
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                {{ icon("filter_list", "sm", "", "me-1") }}
+                快捷筛选
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" data-filter="today">今天</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="yesterday">昨天</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="thisWeek">本周</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="lastWeek">上周</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="thisMonth">本月</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="lastMonth">上月</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" data-filter="income">收入</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="expense">支出</a></li>
+                <li><a class="dropdown-item" href="#" data-filter="transfer">转账</a></li>
+            </ul>
+        </div>
+        
+        <!-- 排序按钮组 -->
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                {{ icon("sort", "sm", "", "me-1") }}
+                排序
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" data-sort="date-desc">日期（新到旧）</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="date-asc">日期（旧到新）</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="amount-desc">金额（大到小）</a></li>
+                <li><a class="dropdown-item" href="#" data-sort="amount-asc">金额（小到大）</a></li>
+            </ul>
+        </div>
+        
+        <!-- 高级筛选按钮 -->
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#advancedFilterModal">
+            {{ icon("tune", "sm", "", "me-1") }}
+            高级筛选
+        </button>
+        
+        <!-- 清除筛选按钮 -->
+        <button type="button" class="btn btn-outline-danger btn-sm" id="clearFilters">
+            {{ icon("clear_all", "sm", "", "me-1") }}
+            清除筛选
+        </button>
 </div>
 
 <!-- 活跃筛选条件展示区 -->
-<div class="active-filters mb-3" id="active-filters-container" style="display: none;">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0 fw-bold">当前筛选条件</h6>
-        <button type="button" id="clear-all-filters" class="btn btn-sm btn-link text-danger p-0">清除全部</button>
+    <div class="active-filters mt-3" id="activeFilters">
+        <!-- 筛选条件标签将在这里动态添加 -->
     </div>
-    <div id="active-filters-badges" class="d-flex flex-wrap"></div>
 </div>
 
-<!-- 筛选表单 -->
-<div class="card mb-4 filter-form-container">
-    <div class="card-header bg-white border-0 collapse-toggle" data-bs-toggle="collapse" data-bs-target="#filterFormCollapse" aria-expanded="true" aria-controls="filterFormCollapse">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-                <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
-                    {{ icon("filter_list", "sm", "text-primary") }}
-                </div>
-                <h6 class="card-title fw-bold mb-0">筛选条件</h6>
+<!-- 高级筛选模态框 -->
+<div class="modal fade" id="advancedFilterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">高级筛选</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="icon-circle bg-light d-flex align-items-center justify-content-center">
-                {{ icon("expand_more", "sm", "text-muted expand-icon") }}
-            </div>
-        </div>
-    </div>
-    <div class="collapse show" id="filterFormCollapse">
-        <div class="card-body">
-            <!-- 快速筛选按钮 -->
-            <div class="filter-quick-actions">
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="today">
-                    {{ icon("today", "sm", "", "me-1") }}今天
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="last7days">
-                    {{ icon("date_range", "sm", "", "me-1") }}最近7天
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="thisMonth">
-                    {{ icon("calendar_month", "sm", "", "me-1") }}本月
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="income">
-                    {{ icon("trending_up", "sm", "", "me-1") }}收入
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="expense">
-                    {{ icon("trending_down", "sm", "", "me-1") }}支出
-                </button>
-            </div>
-
-            <form id="filter-form" class="row g-3 filter-form">
-                <!-- 第一行：交易类型、银行/卡号、关键词 -->
-                <div class="col-lg-4 col-md-6">
-                    <label for="category" class="form-label small fw-medium">交易类型</label>
-                    <div class="filter-input-group">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0">
-                                {{ icon("category", "sm", "text-muted") }}
-                            </span>
-                            <select class="form-select border-start-0 shadow-none" id="category" name="category">
-                                <option value="">全部交易类型</option>
+            <div class="modal-body">
+                <form id="advancedFilterForm">
+                    <div class="row g-3">
+                        <!-- 交易类型多选 -->
+                        <div class="col-md-6">
+                            <label class="form-label">交易类型</label>
+                            <div class="transaction-types">
                                 {% for category in data.categories %}
-                                <option value="{{ category }}">{{ category }}</option>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="transactionTypes" value="{{ category }}" id="type{{ loop.index }}">
+                                    <label class="form-check-label" for="type{{ loop.index }}">{{ category }}</label>
+                                </div>
                                 {% endfor %}
-                            </select>
-                        </div>
-                        <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
                     </div>
                 </div>
 
-                <div class="col-lg-4 col-md-6">
-                    <label for="bankAccount" class="form-label small fw-medium">银行/卡号</label>
-                    <div class="filter-input-group">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0">
-                                {{ icon("account_balance", "sm", "text-muted") }}
-                            </span>
-                            <select class="form-select border-start-0 shadow-none" id="bankAccount" name="bankAccount">
-                                <option value="">全部银行/卡号</option>
+                        <!-- 银行/卡号多选 -->
+                        <div class="col-md-6">
+                            <label class="form-label">银行/卡号</label>
+                            <div class="bank-accounts">
                                 {% for account in data.accounts %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="bankAccounts" value="{{ account.id if account is mapping else account }}" id="account{{ loop.index }}">
+                                    <label class="form-check-label" for="account{{ loop.index }}">
                                 {% if account is mapping %}
-                                <option value="{{ account.id }}">{{ account.bank_name }} ({{ account.account_number }})</option>
+                                            {{ account.bank_name }} ({{ account.account_number }})
                                 {% else %}
-                                <option value="{{ account }}">{{ account }}</option>
+                                            {{ account }}
                                 {% endif %}
+                                    </label>
+                                </div>
                                 {% endfor %}
+                    </div>
+                </div>
+
+                        <!-- 日期范围 -->
+                        <div class="col-md-6">
+                            <label class="form-label">日期范围</label>
+                            <div class="input-group">
+                                <input type="date" class="form-control" name="startDate" placeholder="开始日期">
+                                <span class="input-group-text">至</span>
+                                <input type="date" class="form-control" name="endDate" placeholder="结束日期">
+                            </div>
+                        </div>
+                        
+                        <!-- 金额范围 -->
+                        <div class="col-md-6">
+                            <label class="form-label">金额范围</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="minAmount" placeholder="最小金额">
+                                <span class="input-group-text">至</span>
+                                <input type="number" class="form-control" name="maxAmount" placeholder="最大金额">
+                            </div>
+                        </div>
+                        
+                        <!-- 关键词搜索 -->
+                        <div class="col-12">
+                            <label class="form-label">关键词搜索</label>
+                            <div class="input-group">
+                                <span class="input-group-text">{{ icon("search", "sm", "text-muted") }}</span>
+                                <input type="text" class="form-control" name="search" placeholder="输入交易对象、备注等...">
+                    </div>
+                </div>
+                
+                        <!-- 交易状态 -->
+                        <div class="col-md-6">
+                            <label class="form-label">交易状态</label>
+                            <div class="transaction-status">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="status" value="success" id="statusSuccess" checked>
+                                    <label class="form-check-label" for="statusSuccess">成功</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="status" value="pending" id="statusPending">
+                                    <label class="form-check-label" for="statusPending">处理中</label>
+                            </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="status" value="failed" id="statusFailed">
+                                    <label class="form-check-label" for="statusFailed">失败</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 交易分类 -->
+                        <div class="col-md-6">
+                            <label class="form-label">交易分类</label>
+                            <select class="form-select" name="category" multiple>
+                                <option value="salary">工资收入</option>
+                                <option value="investment">投资收益</option>
+                                <option value="transfer">转账</option>
+                                <option value="shopping">购物消费</option>
+                                <option value="food">餐饮消费</option>
+                                <option value="transport">交通出行</option>
+                                <option value="entertainment">娱乐休闲</option>
+                                <option value="other">其他</option>
                             </select>
                         </div>
-                        <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
                     </div>
+                </form>
                 </div>
-
-                <div class="col-lg-4 col-md-12">
-                    <label for="search" class="form-label small fw-medium">关键词搜索</label>
-                    <div class="filter-input-group">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0">
-                                {{ icon("search", "sm", "text-muted") }}
-                            </span>
-                            <input type="text" class="form-control border-start-0 shadow-none" id="search" name="search" placeholder="输入交易对象、备注等...">
-                        </div>
-                        <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
-                    </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="applyAdvancedFilter">应用筛选</button>
                 </div>
-
-                <!-- 第二行：日期范围 -->
-                <div class="col-md-8">
-                    <label class="form-label small fw-medium">交易日期范围</label>
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <div class="filter-input-group">
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-light border-end-0">
-                                        {{ icon("event", "sm", "text-muted") }}
-                                    </span>
-                                    <input type="date" class="form-control border-start-0 shadow-none" id="startDate" name="startDate" placeholder="开始日期">
-                                </div>
-                                <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="filter-input-group">
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-light border-end-0">
-                                        {{ icon("event", "sm", "text-muted") }}
-                                    </span>
-                                    <input type="date" class="form-control border-start-0 shadow-none" id="endDate" name="endDate" placeholder="结束日期">
-                                </div>
-                                <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 第二行：金额范围 -->
-                <div class="col-md-4">
-                    <label class="form-label small fw-medium">金额范围</label>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <div class="filter-input-group">
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-light border-end-0">
-                                        {{ icon("paid", "sm", "text-muted") }}
-                                    </span>
-                                    <input type="number" class="form-control border-start-0 shadow-none" id="minAmount" name="minAmount" placeholder="最小金额">
-                                </div>
-                                <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="filter-input-group">
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-light border-end-0">
-                                        {{ icon("paid", "sm", "text-muted") }}
-                                    </span>
-                                    <input type="number" class="form-control border-start-0 shadow-none" id="maxAmount" name="maxAmount" placeholder="最大金额">
-                                </div>
-                                <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-12 text-end mt-4 filter-actions">
-                    <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm me-2 d-inline-flex align-items-center">
-                        {{ icon("refresh", "sm", "", "me-1") }}
-                        <span>重置</span>
-                    </button>
-                    <button type="button" id="apply-filters" class="btn btn-primary btn-sm d-inline-flex align-items-center">
-                        {{ icon("search", "sm", "", "me-1") }}
-                        <span>搜索</span>
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
 
 <!-- 交易记录表格 -->
 <div class="table-container">
-    {{ data_table("transactions-table", 
-                  ["序号", "日期", "类型", "交易对象", "金额", "账户余额", "账号", "银行"],
-                  true, 
-                  total=total_count, 
-                  filtered=data.transactions|length) }}
+    <div class="table-responsive">
+        <table class="table table-hover mb-0" id="transactions-table">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>日期</th>
+                    <th>类型</th>
+                    <th>交易对象</th>
+                    <th>金额</th>
+                    <th>账户余额</th>
+                    <th>账号</th>
+                    <th>银行</th>
+                </tr>
+            </thead>
+            <tbody id="transactions-body">
+                {% for transaction in data.transactions %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ transaction.transaction_date if transaction.transaction_date else '' }}</td>
+                    <td>
+                        <span class="transaction-badge {% if '退款' in transaction.transaction_type or 'income' in transaction.transaction_type or '收款' in transaction.transaction_type %}income{% elif '转账' in transaction.transaction_type %}transfer{% else %}expense{% endif %}">
+                            {{ transaction.transaction_type }}
+                        </span>
+                    </td>
+                    <td>{{ transaction.counterparty }}</td>
+                    <td class="transaction-amount {% if transaction.amount > 0 %}positive{% else %}negative{% endif %}">
+                        {% if transaction.amount > 0 %}+{% endif %}{{ "%.2f"|format(transaction.amount or 0) }}
+                    </td>
+                    <td>{{ "%.2f"|format(transaction.balance or 0) }}</td>
+                    <td><span class="account-badge">{{ transaction.account_number }}</span></td>
+                    <td><span class="bank-badge">{{ transaction.bank_name }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('交易记录页面DOM加载完成');
+    // 初始化高级筛选模态框
+    const advancedFilterModal = new bootstrap.Modal(document.getElementById('advancedFilterModal'));
+    
+    // 快捷筛选处理
+    document.querySelectorAll('[data-filter]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const filterType = this.dataset.filter;
+            applyQuickFilter(filterType);
+        });
+    });
+    
+    // 排序处理
+    document.querySelectorAll('[data-sort]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const sortType = this.dataset.sort;
+            applySort(sortType);
+        });
+    });
+    
+    // 应用高级筛选
+    document.getElementById('applyAdvancedFilter').addEventListener('click', function() {
+        const formData = new FormData(document.getElementById('advancedFilterForm'));
+        applyAdvancedFilter(formData);
+        advancedFilterModal.hide();
+    });
+    
+    // 清除所有筛选
+    document.getElementById('clearFilters').addEventListener('click', function() {
+        clearAllFilters();
+    });
+    
+    // 快捷筛选函数
+    function applyQuickFilter(filterType) {
+        const today = new Date();
+        let startDate = new Date();
+        let endDate = new Date();
         
-        // 美化交易金额显示
-        function formatTransactionRows() {
-            const tbody = document.querySelector('#transactions-body');
-            if (tbody) {
-                const rows = tbody.querySelectorAll('tr');
-                rows.forEach(row => {
-                    const amountCell = row.querySelector('td:nth-child(5)');
-                    if (amountCell) {
-                        const amount = parseFloat(amountCell.textContent.replace(/[^\d.-]/g, ''));
-                        if (amount > 0) {
-                            amountCell.classList.add('transaction-amount', 'positive');
-                        } else if (amount < 0) {
-                            amountCell.classList.add('transaction-amount', 'negative');
-                        }
-                    }
-                    
-                    const typeCell = row.querySelector('td:nth-child(3) .badge');
-                    if (typeCell) {
-                        typeCell.classList.add('transaction-badge');
-                    }
+        switch(filterType) {
+            case 'today':
+                // 今天
+                break;
+            case 'yesterday':
+                startDate.setDate(today.getDate() - 1);
+                endDate.setDate(today.getDate() - 1);
+                break;
+            case 'thisWeek':
+                // 本周
+                startDate.setDate(today.getDate() - today.getDay());
+                break;
+            case 'lastWeek':
+                // 上周
+                startDate.setDate(today.getDate() - today.getDay() - 7);
+                endDate.setDate(today.getDate() - today.getDay() - 1);
+                break;
+            case 'thisMonth':
+                // 本月
+                startDate.setDate(1);
+                break;
+            case 'lastMonth':
+                // 上月
+                startDate.setMonth(today.getMonth() - 1);
+                startDate.setDate(1);
+                endDate.setDate(0);
+                break;
+            case 'income':
+                // 收入
+                document.querySelector('input[name="minAmount"]').value = '0.01';
+                break;
+            case 'expense':
+                // 支出
+                document.querySelector('input[name="maxAmount"]').value = '-0.01';
+                break;
+            case 'transfer':
+                // 转账
+                document.querySelectorAll('input[name="transactionTypes"]').forEach(input => {
+                    input.checked = input.value.includes('转账');
                 });
-            }
+                break;
         }
         
-        // 设置清除单个筛选条件的功能
-        const setupClearInputButtons = () => {
-            document.querySelectorAll('.clear-input').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const inputGroup = this.closest('.filter-input-group');
-                    const input = inputGroup.querySelector('input, select');
-                    if (input) {
-                        input.value = '';
-                        // 触发change事件以更新活跃筛选条件
-                        input.dispatchEvent(new Event('change'));
-                    }
-                });
-            });
-        };
+        // 更新日期输入
+        if (filterType !== 'income' && filterType !== 'expense' && filterType !== 'transfer') {
+            document.querySelector('input[name="startDate"]').value = startDate.toISOString().split('T')[0];
+            document.querySelector('input[name="endDate"]').value = endDate.toISOString().split('T')[0];
+        }
         
-        // 更新活跃筛选条件展示
-        const updateActiveFilters = () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const badgesContainer = document.getElementById('active-filters-badges');
-            const activeFiltersContainer = document.getElementById('active-filters-container');
+        // 应用筛选
+        applyAdvancedFilter(new FormData(document.getElementById('advancedFilterForm')));
+    }
+    
+    // 排序函数
+    function applySort(sortType) {
+        const [field, order] = sortType.split('-');
+        const tbody = document.getElementById('transactions-body');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        rows.sort((a, b) => {
+            let aValue, bValue;
             
-            if (!badgesContainer || !activeFiltersContainer) return;
+            if (field === 'date') {
+                aValue = new Date(a.cells[1].textContent);
+                bValue = new Date(b.cells[1].textContent);
+            } else if (field === 'amount') {
+                aValue = parseFloat(a.cells[4].textContent.replace(/[^\d.-]/g, ''));
+                bValue = parseFloat(b.cells[4].textContent.replace(/[^\d.-]/g, ''));
+            }
             
-            badgesContainer.innerHTML = '';
-            
-            const filterLabels = {
-                'category': '交易类型',
-                'bankAccount': '银行/卡号',
-                'search': '关键词',
-                'startDate': '开始日期',
-                'endDate': '结束日期',
-                'minAmount': '最小金额',
-                'maxAmount': '最大金额'
-            };
-            
-            let hasActiveFilters = false;
-            
-            urlParams.forEach((value, key) => {
-                if (key !== 'page' && value) {
-                    hasActiveFilters = true;
-                    const label = filterLabels[key] || key;
-                    
-                    const badge = document.createElement('div');
-                    badge.className = 'filter-badge';
-                    badge.innerHTML = `
-                        <span>${label}: ${value}</span>
-                        <span class="close-icon" data-param="${key}">
-                            {{ icon("close", "sm") }}
-                        </span>
-                    `;
-                    badgesContainer.appendChild(badge);
+            return order === 'asc' ? aValue - bValue : bValue - aValue;
+        });
+        
+        // 重新插入排序后的行
+        rows.forEach(row => tbody.appendChild(row));
+    }
+    
+    // 应用高级筛选
+    function applyAdvancedFilter(formData) {
+        // 构建筛选条件
+        const filters = {};
+        for (let [key, value] of formData.entries()) {
+            if (value) {
+                if (filters[key]) {
+                    if (!Array.isArray(filters[key])) {
+                        filters[key] = [filters[key]];
+                    }
+                    filters[key].push(value);
+                } else {
+                    filters[key] = value;
                 }
-            });
-            
-            // 显示或隐藏筛选条件区域
-            activeFiltersContainer.style.display = hasActiveFilters ? 'block' : 'none';
-            
-            // 绑定移除筛选条件事件
-            document.querySelectorAll('.filter-badge .close-icon').forEach(icon => {
-                icon.addEventListener('click', function() {
-                    const param = this.getAttribute('data-param');
-                    const url = new URL(window.location.href);
-                    url.searchParams.delete(param);
-                    window.location.href = url.toString();
-                });
-            });
-        };
-        
-        // 初始化快速筛选按钮
-        const setupQuickFilters = () => {
-            document.querySelectorAll('.quick-filter').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const filterType = this.getAttribute('data-filter-type');
-                    const today = new Date();
-                    
-                    // 清除当前的日期和金额筛选
-                    document.getElementById('startDate').value = '';
-                    document.getElementById('endDate').value = '';
-                    document.getElementById('minAmount').value = '';
-                    document.getElementById('maxAmount').value = '';
-                    
-                    switch(filterType) {
-                        case 'today':
-                            const todayStr = today.toISOString().split('T')[0];
-                            document.getElementById('startDate').value = todayStr;
-                            document.getElementById('endDate').value = todayStr;
-                            break;
-                        case 'last7days':
-                            const last7days = new Date();
-                            last7days.setDate(today.getDate() - 6);
-                            document.getElementById('startDate').value = last7days.toISOString().split('T')[0];
-                            document.getElementById('endDate').value = today.toISOString().split('T')[0];
-                            break;
-                        case 'thisMonth':
-                            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                            document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
-                            document.getElementById('endDate').value = today.toISOString().split('T')[0];
-                            break;
-                        case 'income':
-                            document.getElementById('minAmount').value = '0.01';
-                            break;
-                        case 'expense':
-                            document.getElementById('maxAmount').value = '-0.01';
-                            break;
-                    }
-                    
-                    // 自动应用筛选条件
-                    document.getElementById('apply-filters').click();
-                });
-            });
-        };
-        
-        // 绑定清除所有筛选条件按钮
-        const setupClearAllFilters = () => {
-            const clearAllBtn = document.getElementById('clear-all-filters');
-            if (clearAllBtn) {
-                clearAllBtn.addEventListener('click', function() {
-                    window.location.href = window.location.pathname;
-                });
             }
-        };
-        
-        // 初始化各组件
-        updateActiveFilters();
-        setupClearInputButtons();
-        setupQuickFilters();
-        setupClearAllFilters();
-        
-        // 监听表格变化
-        const observer = new MutationObserver(formatTransactionRows);
-        const target = document.querySelector('#transactions-body');
-        if (target) {
-            observer.observe(target, { childList: true, subtree: true });
         }
         
-        // 初始化时也执行一次
-        setTimeout(formatTransactionRows, 500);
+        // 更新URL参数
+        const url = new URL(window.location.href);
+        for (let key in filters) {
+            if (Array.isArray(filters[key])) {
+                url.searchParams.set(key, filters[key].join(','));
+            } else {
+                url.searchParams.set(key, filters[key]);
+            }
+        }
+        
+        // 更新活跃筛选条件显示
+        updateActiveFilters(filters);
+        
+        // 重新加载页面
+        window.location.href = url.toString();
+    }
+    
+    // 更新活跃筛选条件显示
+    function updateActiveFilters(filters) {
+        const container = document.getElementById('activeFilters');
+        container.innerHTML = '';
+        
+        for (let key in filters) {
+            const value = filters[key];
+            if (value) {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-light text-dark me-2 mb-2';
+                badge.textContent = `${key}: ${value}`;
+                container.appendChild(badge);
+            }
+        }
+    }
+    
+    // 清除所有筛选
+    function clearAllFilters() {
+        // 重置表单
+        document.getElementById('advancedFilterForm').reset();
+        
+        // 清除URL参数
+        const url = new URL(window.location.href);
+        url.search = '';
+        
+        // 重新加载页面
+        window.location.href = url.toString();
+    }
     });
 </script>
 {% endblock %}

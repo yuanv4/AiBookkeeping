@@ -24,7 +24,9 @@ function applyDynamicStyles() {
     const netIconInner = document.getElementById('netIconInner');
     
     if (netIcon && netIconInner) {
-        netIcon.style.backgroundColor = netAmount >= 0 ? 'rgba(71, 184, 129, 0.1)' : 'rgba(236, 76, 71, 0.1)';
+        netIcon.style.backgroundColor = netAmount >= 0 
+            ? getCssVar('--success-light')
+            : getCssVar('--danger-light');
         netIconInner.style.color = netAmount >= 0 ? 'var(--success)' : 'var(--danger)';
     }
     
@@ -35,7 +37,9 @@ function applyDynamicStyles() {
     
     if (cashFlowValue && cashFlowIcon && cashFlowIconInner) {
         const cashFlowAmount = parseFloat(cashFlowValue.textContent || '0');
-        cashFlowIcon.style.backgroundColor = cashFlowAmount >= 0 ? 'rgba(71, 184, 129, 0.1)' : 'rgba(236, 76, 71, 0.1)';
+        cashFlowIcon.style.backgroundColor = cashFlowAmount >= 0 
+            ? getCssVar('--success-light')
+            : getCssVar('--danger-light');
         cashFlowIconInner.style.color = cashFlowAmount >= 0 ? 'var(--success)' : 'var(--danger)';
     }
     
@@ -245,11 +249,11 @@ function initBalanceHistoryChart() {
                 datasets: [{
                     label: '账户余额',
                     data: chartData.values,
-                    borderColor: window.defaultColors.balance,
-                    backgroundColor: balanceFill,
+                    borderColor: getCssVar('--chart-blue'),
+                    backgroundColor: getCssVar('--chart-blue-alpha'),
                     borderWidth: 2,
                     pointRadius: 3,
-                    pointBackgroundColor: window.defaultColors.balance,
+                    pointBackgroundColor: getCssVar('--chart-blue'),
                     tension: 0.4,
                     fill: true
                 }]
@@ -262,7 +266,7 @@ function initBalanceHistoryChart() {
                         beginAtZero: false,
                         grid: {
                             display: true,
-                            color: 'rgba(0,0,0,0.05)'
+                            color: getCssVar('--border-light')
                         }
                     },
                     x: {
@@ -276,9 +280,11 @@ function initBalanceHistoryChart() {
                         display: false
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
-                        padding: 10,
-                        cornerRadius: 4,
+                        backgroundColor: getCssVar('--bg-overlay'),
+                        titleColor: getCssVar('--text-white'),
+                        bodyColor: getCssVar('--light'),
+                        borderColor: getCssVar('--border-white'),
+                        borderWidth: 1,
                         callbacks: {
                             label: function(context) {
                                 return `余额: ${context.raw.toFixed(2)}`;
@@ -330,14 +336,14 @@ function initIncomeExpenseChart() {
                         label: '收入',
                         data: chartData.income,
                         backgroundColor: incomeColor,
-                        borderColor: window.defaultColors.income,
+                        borderColor: getCssVar('--success'),
                         borderWidth: 1
                     },
                     {
                         label: '支出',
                         data: chartData.expense.map(val => Math.abs(val)), // 取绝对值，使支出显示为正数
                         backgroundColor: expenseColor,
-                        borderColor: window.defaultColors.expense,
+                        borderColor: getCssVar('--danger'),
                         borderWidth: 1
                     }
                 ]
@@ -350,7 +356,7 @@ function initIncomeExpenseChart() {
                         beginAtZero: true,
                         grid: {
                             display: true,
-                            color: 'rgba(0,0,0,0.05)'
+                            color: getCssVar('--border-light')
                         }
                     },
                     x: {
@@ -365,9 +371,11 @@ function initIncomeExpenseChart() {
                         position: 'top'
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
-                        padding: 10,
-                        cornerRadius: 4,
+                        backgroundColor: getCssVar('--bg-overlay'),
+                        titleColor: getCssVar('--text-white'),
+                        bodyColor: getCssVar('--light'),
+                        borderColor: getCssVar('--border-white'),
+                        borderWidth: 1,
                         callbacks: {
                             label: function(context) {
                                 const label = context.dataset.label || '';
@@ -429,13 +437,16 @@ function initIncomeSourceChart() {
                         position: 'bottom',
                         labels: {
                             boxWidth: 15,
-                            padding: 10
+                            padding: 10,
+                            color: 'var(--text-primary)'
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
-                        padding: 10,
-                        cornerRadius: 4,
+                        backgroundColor: getCssVar('--bg-overlay'),
+                        titleColor: getCssVar('--text-white'),
+                        bodyColor: getCssVar('--light'),
+                        borderColor: getCssVar('--border-white'),
+                        borderWidth: 1,
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
@@ -498,13 +509,16 @@ function initExpenseCategoryChart() {
                         position: 'bottom',
                         labels: {
                             boxWidth: 15,
-                            padding: 10
+                            padding: 10,
+                            color: 'var(--text-primary)'
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
-                        padding: 10,
-                        cornerRadius: 4,
+                        backgroundColor: getCssVar('--bg-overlay'),
+                        titleColor: getCssVar('--text-white'),
+                        bodyColor: getCssVar('--light'),
+                        borderColor: getCssVar('--border-white'),
+                        borderWidth: 1,
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
@@ -546,33 +560,33 @@ function initMonthlyTrendChart() {
                     {
                         label: '净收支',
                         data: chartData.net,
-                        borderColor: '#4663ac',
-                        backgroundColor: 'rgba(70, 99, 172, 0.1)',
+                        borderColor: getCssVar('--chart-blue'),
+                        backgroundColor: getCssVar('--chart-blue-alpha'),
                         borderWidth: 2,
                         pointRadius: 3,
-                        pointBackgroundColor: '#4663ac',
+                        pointBackgroundColor: getCssVar('--chart-blue'),
                         tension: 0.4,
                         fill: false
                     },
                     {
                         label: '收入',
                         data: chartData.income,
-                        borderColor: 'rgba(71, 184, 129, 1)',
-                        backgroundColor: 'rgba(71, 184, 129, 0.1)',
+                        borderColor: getCssVar('--success'),
+                        backgroundColor: getCssVar('--success-light'),
                         borderWidth: 2,
                         pointRadius: 3,
-                        pointBackgroundColor: 'rgba(71, 184, 129, 1)',
+                        pointBackgroundColor: getCssVar('--success'),
                         tension: 0.4,
                         fill: false
                     },
                     {
                         label: '支出',
                         data: chartData.expense.map(val => Math.abs(val)), // 取绝对值，使支出显示为正数
-                        borderColor: 'rgba(236, 76, 71, 1)',
-                        backgroundColor: 'rgba(236, 76, 71, 0.1)',
+                        borderColor: getCssVar('--danger'),
+                        backgroundColor: getCssVar('--danger-light'),
                         borderWidth: 2,
                         pointRadius: 3,
-                        pointBackgroundColor: 'rgba(236, 76, 71, 1)',
+                        pointBackgroundColor: getCssVar('--danger'),
                         tension: 0.4,
                         fill: false
                     }
@@ -586,7 +600,7 @@ function initMonthlyTrendChart() {
                         beginAtZero: false,
                         grid: {
                             display: true,
-                            color: 'rgba(0,0,0,0.05)'
+                            color: getCssVar('--border-light')
                         }
                     },
                     x: {
@@ -601,9 +615,11 @@ function initMonthlyTrendChart() {
                         position: 'top'
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
-                        padding: 10,
-                        cornerRadius: 4,
+                        backgroundColor: 'var(--bg-overlay)',
+                        titleColor: 'var(--text-white)',
+                        bodyColor: 'var(--text-white)',
+                        borderColor: 'var(--border-white)',
+                        borderWidth: 1,
                         callbacks: {
                             label: function(context) {
                                 const label = context.dataset.label || '';

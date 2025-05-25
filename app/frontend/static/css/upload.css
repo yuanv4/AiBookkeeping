@@ -64,4 +64,9 @@
     .field-section {
         margin-top: 1.5rem;
     }
+}
+
+.upload-header {
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-light);
 } 

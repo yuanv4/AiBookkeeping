@@ -14,21 +14,28 @@ function initIncomeAnalysisCharts() {
     // 定义常用颜色，优先使用全局财务主题颜色
     const colors = useFinanceTheme ? {
         // 使用财务专业版主题颜色
-        income: window.defaultColors.success,
-        expense: window.defaultColors.danger,
-        savings: window.defaultColors.warning,
-        ratio: window.defaultColors.info,
-        primary: window.defaultColors.primary,
-        secondary: window.defaultColors.secondary,
-        success: window.defaultColors.success,
-        danger: window.defaultColors.danger,
-        warning: window.defaultColors.warning,
-        info: window.defaultColors.info,
+        income: 'var(--chart-blue-alpha)',
+        expense: 'var(--chart-red-alpha)',
+        savings: 'var(--chart-green-alpha)',
+        ratio: 'var(--chart-orange-alpha)',
+        primary: 'var(--primary)',
+        secondary: 'var(--secondary)',
+        success: 'var(--success)',
+        danger: 'var(--danger)',
+        warning: 'var(--warning)',
+        info: 'var(--info)',
         // 图表分类颜色
-        category: window.defaultColors.category,
-        neutral: window.defaultColors.neutral,
+        category: 'var(--chart-blue)',
+        neutral: 'var(--gray-600)',
         // 将颜色转换为半透明版本的辅助函数
         getAlpha: function(color, alpha = 0.8) {
+            // 处理CSS变量
+            if (color.startsWith('var(--')) {
+                const computedColor = getComputedStyle(document.documentElement)
+                    .getPropertyValue(color.slice(4, -1))
+                    .trim();
+                return this.getAlpha(computedColor, alpha);
+            }
             // 处理十六进制颜色
             if (color.startsWith('#')) {
                 const r = parseInt(color.slice(1, 3), 16);
@@ -47,16 +54,16 @@ function initIncomeAnalysisCharts() {
             return color;
         }
     } : {
-        // 保留原有颜色作为后备方案
-        income: 'rgba(70, 99, 172, 0.8)',
-        expense: 'rgba(236, 76, 71, 0.8)',
-        savings: 'rgba(71, 184, 129, 0.8)',
-        ratio: 'rgba(255, 171, 0, 0.8)',
-        primary: '#4663ac',
-        danger: '#ec4c47',
-        success: '#47b881',
-        warning: '#ffab00',
-        info: '#1070ca'
+        // 默认颜色
+        income: 'var(--chart-blue-alpha)',
+        expense: 'var(--chart-red-alpha)',
+        savings: 'var(--chart-green-alpha)',
+        ratio: 'var(--chart-orange-alpha)',
+        primary: 'var(--primary)',
+        danger: 'var(--danger)',
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        info: 'var(--info)'
     };
     
     /**
@@ -1154,11 +1161,63 @@ function initIncomeAnalysisCharts() {
         ctx.font = '14px "Noto Sans SC", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#8492a6';
+        ctx.fillStyle = 'var(--text-light)';
         
         // 绘制消息
         ctx.fillText(message || '暂无数据', width / 2, height / 2);
     }
+
+    // 颜色处理函数
+    function getComputedColor(color, alpha = 1) {
+        if (color.startsWith('var(--')) {
+            const computedColor = getComputedStyle(document.documentElement)
+                .getPropertyValue(color.slice(4, -1))
+                .trim();
+            return computedColor;
+        }
+        return color;
+    }
+
+    function setAlpha(color, alpha) {
+        if (color.startsWith('var(--')) {
+            const baseColor = getComputedColor(color);
+            if (baseColor.startsWith('rgba')) {
+                return baseColor.replace(/rgba\((.+?), .+?\)/, `rgba($1, ${alpha})`);
+            }
+            if (baseColor.startsWith('rgb')) {
+                return baseColor.replace(/rgb\((.+?)\)/, `rgba($1, ${alpha})`);
+            }
+        }
+        return color;
+    }
+
+    // 图表颜色配置
+    const chartColors = {
+        income: 'var(--chart-blue-alpha)',
+        expense: 'var(--chart-red-alpha)',
+        savings: 'var(--chart-green-alpha)',
+        ratio: 'var(--chart-orange-alpha)',
+        primary: 'var(--primary)',
+        danger: 'var(--danger)',
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        info: 'var(--info)'
+    };
+
+    // 图表配置
+    const chartConfig = {
+        colors: chartColors,
+        // ... existing code ...
+    };
+
+    // 更新工具提示配置
+    const tooltipConfig = {
+        backgroundColor: 'var(--bg-overlay)',
+        titleColor: 'var(--text-white)',
+        bodyColor: 'var(--text-white)',
+        borderColor: 'var(--border-white)',
+        // ... existing code ...
+    };
 } 
 
 // 页面加载完成后初始化图表
@@ -1166,3 +1225,112 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('初始化收入分析图表...');
     initIncomeAnalysisCharts();
 }); 
+
+// 获取CSS变量的辅助函数
+function getCssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// 更新图表配置
+const chartConfig = {
+    // ... existing code ...
+    options: {
+        // ... existing code ...
+        scales: {
+            y: {
+                grid: {
+                    color: getCssVar('--border-light')
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                backgroundColor: getCssVar('--bg-overlay'),
+                titleColor: getCssVar('--text-white'),
+                bodyColor: getCssVar('--light'),
+                borderColor: getCssVar('--border-white')
+            }
+        }
+    }
+};
+
+// ... existing code ...
+
+// 更新收入分析图表
+const incomeAnalysisChart = new Chart(incomeAnalysisCtx, {
+    type: 'bar',
+    data: {
+        // ... existing code ...
+        datasets: [{
+            backgroundColor: getCssVar('--success-light'),
+            borderColor: getCssVar('--success'),
+            borderWidth: 1
+        }]
+    },
+    options: {
+        // ... existing code ...
+        scales: {
+            y: {
+                grid: {
+                    color: getCssVar('--border-light')
+                }
+            }
+        }
+    }
+});
+
+// ... existing code ...
+
+// 更新支出分析图表
+const expenseAnalysisChart = new Chart(expenseAnalysisCtx, {
+    type: 'bar',
+    data: {
+        // ... existing code ...
+        datasets: [{
+            backgroundColor: getCssVar('--danger-light'),
+            borderColor: getCssVar('--danger'),
+            borderWidth: 1
+        }]
+    },
+    options: {
+        // ... existing code ...
+        scales: {
+            y: {
+                grid: {
+                    color: getCssVar('--border-light')
+                }
+            }
+        }
+    }
+});
+
+// ... existing code ...
+
+// 更新趋势图表
+const trendChart = new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        // ... existing code ...
+        datasets: [{
+            borderColor: getCssVar('--success'),
+            backgroundColor: getCssVar('--success-light'),
+            pointBackgroundColor: getCssVar('--success')
+        }, {
+            borderColor: getCssVar('--danger'),
+            backgroundColor: getCssVar('--danger-light'),
+            pointBackgroundColor: getCssVar('--danger')
+        }]
+    },
+    options: {
+        // ... existing code ...
+        scales: {
+            y: {
+                grid: {
+                    color: getCssVar('--border-light')
+                }
+            }
+        }
+    }
+});
+
+// ... existing code ... 

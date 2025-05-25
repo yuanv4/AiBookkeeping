@@ -66,6 +66,27 @@
     .trend-icon-danger {
         background-color: var(--danger-light);
     }
+    
+    .dashboard-container {
+        background: linear-gradient(to right, var(--primary-light), var(--gray-100));
+        padding: 2rem;
+        border-radius: var(--border-radius);
+    }
+    
+    .account-balance-item {
+        background-color: var(--gray-100);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .chart-legend-color {
+        background-color: var(--chart-blue);
+    }
+    
+    .chart-legend-color.secondary {
+        background-color: var(--chart-blue-alpha);
+    }
 </style>
 {% endblock %}
 
@@ -129,7 +150,7 @@
                                 <div class="accordion-body p-1 ps-3">
                                     <ul class="list-unstyled small mb-0">
                                         {% for account in data.summary.account_balance_list %}
-                                        <li class="mb-2 p-2 rounded" style="background-color: rgba(0,0,0,0.02);">
+                                        <li class="mb-2 p-2 rounded" style="background-color: var(--bg-overlay-light);">
                                             <div class="d-flex justify-content-between">
                                                 <span class="text-muted">{{ account.bank }} ({{ (account.account|string)[-4:] if (account.account|string)|length >= 4 else account.account|string }})</span>
                                                 <span class="fw-bold">{{ "%.2f"|format(account.balance) }}</span>
@@ -164,11 +185,11 @@
                     {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
                 <div class="chart-legend">
                     <div class="legend-item">
-                        <div class="legend-color" style="background-color: rgba(70, 99, 172, 1);"></div>
+                        <div class="legend-color" style="background-color: var(--chart-blue);"></div>
                         <span>账户余额</span>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background-color: rgba(70, 99, 172, 0.1); border-radius: 0;"></div>
+                        <div class="legend-color" style="background-color: var(--chart-blue-alpha); border-radius: 0;"></div>
                         <span>趋势区域</span>
                     </div>
                 </div>
@@ -259,41 +280,43 @@
     </div>
     <div class="card-body p-0">
         {% if data.transactions|length > 0 %}
-        <div class="table-responsive" style="position: relative; min-height: 200px;">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>序号</th>
-                        <th>日期</th>
-                        <th>类型</th>
-                        <th>交易对象</th>
-                        <th>金额</th>
-                        <th>账户余额</th>
-                        <th>账号</th>
-                        <th>银行</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for transaction in data.transactions %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ transaction.transaction_date if transaction.transaction_date else '' }}</td>
-                        <td>
-                            <span class="badge {% if '退款' in transaction.transaction_type %}bg-success{% elif '转账' in transaction.transaction_type %}bg-info{% elif 'income' in transaction.transaction_type or '收款' in transaction.transaction_type %}bg-success{% else %}bg-primary{% endif %} rounded-pill">
-                                {{ transaction.transaction_type }}
-                            </span>
-                        </td>
-                        <td>{{ transaction.counterparty }}</td>
-                        <td class="{% if transaction.amount > 0 %}text-success{% elif transaction.amount < 0 %}text-danger{% endif %} fw-medium">
-                            {% if transaction.amount > 0 %}+{% endif %}{{ "%.2f"|format(transaction.amount or 0) }}
-                        </td>
-                        <td>{{ "%.2f"|format(transaction.balance or 0) }}</td>
-                        <td><span class="badge bg-light text-dark">{{ transaction.account_number }}</span></td>
-                        <td><span class="badge rounded-pill text-bg-secondary">{{ transaction.bank_name }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="table-container">
+            <div class="table-responsive" style="position: relative; min-height: 200px;">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>日期</th>
+                            <th>类型</th>
+                            <th>交易对象</th>
+                            <th>金额</th>
+                            <th>账户余额</th>
+                            <th>账号</th>
+                            <th>银行</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in data.transactions %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ transaction.transaction_date if transaction.transaction_date else '' }}</td>
+                            <td>
+                                <span class="transaction-badge {% if '退款' in transaction.transaction_type or 'income' in transaction.transaction_type or '收款' in transaction.transaction_type %}income{% elif '转账' in transaction.transaction_type %}transfer{% else %}expense{% endif %}">
+                                    {{ transaction.transaction_type }}
+                                </span>
+                            </td>
+                            <td>{{ transaction.counterparty }}</td>
+                            <td class="transaction-amount {% if transaction.amount > 0 %}positive{% else %}negative{% endif %}">
+                                {% if transaction.amount > 0 %}+{% endif %}{{ "%.2f"|format(transaction.amount or 0) }}
+                            </td>
+                            <td>{{ "%.2f"|format(transaction.balance or 0) }}</td>
+                            <td><span class="account-badge">{{ transaction.account_number }}</span></td>
+                            <td><span class="bank-badge">{{ transaction.bank_name }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
         
         <!-- 无数据提示（当过滤后没有匹配的记录时显示） -->

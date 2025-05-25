@@ -7,7 +7,7 @@
 <link href="{{ url_for('static', filename='css/upload.css') }}" rel="stylesheet">
 <style>
     .upload-header {
-        background: linear-gradient(to right, var(--primary-light), #f8f9fa);
+        background: linear-gradient(to right, var(--primary-light), var(--bg-light));
         border-radius: var(--border-radius-lg);
         padding: var(--spacing-lg);
         margin-bottom: var(--spacing-xl);
@@ -19,7 +19,7 @@
         padding: 2rem;
         text-align: center;
         transition: all var(--transition-speed) ease;
-        background-color: #f8f9fa;
+        background-color: var(--bg-light);
         position: relative;
         cursor: pointer;
     }
@@ -101,6 +101,24 @@
     .card-icon i {
         color: var(--primary);
         font-size: 24px;
+    }
+    
+    .upload-container {
+        background-color: var(--bg-light);
+    }
+    
+    .upload-box {
+        background-color: var(--gray-100);
+        border: 2px dashed var(--gray-300);
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        text-align: center;
+        transition: all var(--transition-speed) ease;
+    }
+    
+    .upload-box:hover {
+        border-color: var(--primary);
+        background-color: var(--gray-100);
     }
 </style>
 {% endblock %}

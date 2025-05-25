@@ -3,240 +3,120 @@
  * 提供统一的图表样式、主题和交互功能
  */
 
+// 获取CSS变量的辅助函数
+function getCssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// 财务专业版主题
+const financialTheme = {
+    // 基础颜色
+    primary: getCssVar('--primary'),
+    secondary: getCssVar('--secondary'),
+    success: getCssVar('--success'),
+    danger: getCssVar('--danger'),
+    warning: getCssVar('--warning'),
+    info: getCssVar('--info'),
+    
+    // 中性色系列
+    neutral: [
+        getCssVar('--primary'),
+        getCssVar('--gray-600'),
+        getCssVar('--gray-500'),
+        getCssVar('--gray-400'),
+        getCssVar('--gray-300'),
+        getCssVar('--gray-200')
+    ],
+    
+    // 分类颜色
+    category: [
+        getCssVar('--primary'),
+        getCssVar('--success'),
+        getCssVar('--danger'),
+        getCssVar('--warning'),
+        getCssVar('--info'),
+        getCssVar('--chart-blue'),
+        getCssVar('--chart-green'),
+        getCssVar('--chart-orange')
+    ],
+    
+    // 单色系列
+    monochrome: [
+        getCssVar('--primary'),
+        getCssVar('--gray-700'),
+        getCssVar('--gray-600'),
+        getCssVar('--gray-500'),
+        getCssVar('--gray-400'),
+        getCssVar('--gray-300'),
+        getCssVar('--gray-200')
+    ]
+};
+
 // 图表主题配置
-const ChartThemes = {
-    // 默认主题 - 财务专业版
-    default: {
-        colors: {
-            primary: '#1A3A5F',          // 深海军蓝
-            secondary: '#2C3E50',        // 深蓝灰
-            success: '#2D5F5D',          // 专业墨绿色
-            danger: '#8B2635',           // 深酒红色
-            warning: '#BFA46F',          // 优雅金褐色
-            info: '#4A6FA5',             // 淡蓝色
-            neutral: ['#1A3A5F', '#2F5377', '#446B8F', '#5984A7', '#6E9CBF', '#83B5D7'], // 蓝色系渐变
-            category: ['#1A3A5F', '#2D5F5D', '#8B2635', '#BFA46F', '#4A6FA5', '#5D4A6F', '#5F4B2D', '#63455E'], // 低饱和度配色
-            monochrome: ['#1A3A5F', '#234567', '#2C5170', '#355D7A', '#3E6985', '#47758F', '#508199'] // 单色系列
+const chartTheme = {
+    // 基础样式
+    base: {
+        font: {
+            family: "'PingFang SC', 'Microsoft YaHei', sans-serif",
+            size: 13,
+            color: getCssVar('--text-primary')
         },
-        fonts: {
-            family: "'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-            size: 12,
-            color: '#2C3E50'  // 深蓝灰色文字
-        },
-        elements: {
-            line: {
-                tension: 0.2,  // 降低曲线张力，更加直观
-                borderWidth: 2,
-                fill: true,
-                borderJoinStyle: 'round'
-            },
-            point: {
-                radius: 3,  // 更小的点，专业感更强
-                hoverRadius: 5,
-                borderWidth: 2,
-                hoverBorderWidth: 2,
-                hitRadius: 8
-            },
-            bar: {
-                borderRadius: 2,  // 更方正的柱状图
-                borderWidth: 0,
-                borderSkipped: false,
-                maxBarThickness: 45
-            },
-            arc: {
-                borderWidth: 1,
-                borderColor: '#F9F9F7'  // 象牙白边框
-            }
-        },
-        grid: {
-            color: '#E5E8ED',  // 更明显但不突兀的网格线
-            borderColor: '#E5E8ED',
-            tickColor: '#C5CDD7'
-        },
-        tooltip: {
-            backgroundColor: 'rgba(44, 62, 80, 0.85)',  // 深蓝灰背景
-            titleColor: '#fff',
-            bodyColor: '#F9F9F7',  // 象牙白
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-            borderWidth: 1
-        },
-        animation: {
-            duration: 800,  // 更快的动画速度，增强专业感
-            easing: 'easeOutQuad'
-        }
+        backgroundColor: getCssVar('--bg-light'),
+        borderColor: getCssVar('--border-light')
     },
     
-    // 经典亮色主题
-    classic: {
-        colors: {
-            primary: '#4361ee',
-            success: '#4cc9a6',
-            danger: '#f25767',
-            warning: '#ffaa46',
-            info: '#3db0ef',
-            neutral: ['#4361ee', '#6c84ca', '#8ea2d8', '#b0bfe5', '#d2dcf3'],
-            category: ['#4361ee', '#4cc9a6', '#f25767', '#ffaa46', '#3db0ef', '#9b5de5', '#20c997', '#d63384']
-        },
-        fonts: {
-            family: "'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-            size: 12,
-            color: '#334152'
-        },
-        elements: {
-            line: {
-                tension: 0.4,
-                borderWidth: 2,
-                fill: true,
-                borderJoinStyle: 'round'
-            },
-            point: {
-                radius: 4,
-                hoverRadius: 6,
-                borderWidth: 2,
-                hoverBorderWidth: 2,
-                hitRadius: 8
-            },
-            bar: {
-                borderRadius: 4,
-                borderWidth: 0,
-                borderSkipped: false,
-                maxBarThickness: 50
-            },
-            arc: {
-                borderWidth: 1,
-                borderColor: '#fff'
-            }
-        },
-        grid: {
-            color: 'rgba(0, 0, 0, 0.05)',
-            borderColor: 'rgba(0, 0, 0, 0.05)',
-            tickColor: 'rgba(0, 0, 0, 0.1)'
-        },
-        tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-            borderWidth: 1
-        },
-        animation: {
-            duration: 1000,
-            easing: 'easeOutQuart'
-        }
+    // 网格线样式
+    grid: {
+        color: getCssVar('--gray-200'),
+        borderColor: getCssVar('--gray-200'),
+        tickColor: getCssVar('--gray-300')
     },
     
-    // 深色主题
-    dark: {
-        colors: {
-            primary: '#6c8bfc',
-            success: '#4cc9a6',
-            danger: '#f25767',
-            warning: '#ffaa46',
-            info: '#3db0ef',
-            neutral: ['#6c8bfc', '#8ba4fc', '#a8bcfd', '#c5d3fd', '#e2e9fe'],
-            category: ['#6c8bfc', '#4cc9a6', '#f25767', '#ffaa46', '#3db0ef', '#9b5de5', '#20c997', '#d63384']
-        },
-        fonts: {
-            family: "'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-            size: 12,
-            color: '#e2e8f0'
-        },
-        elements: {
-            line: {
-                tension: 0.4,
-                borderWidth: 2,
-                fill: true,
-                borderJoinStyle: 'round'
-            },
-            point: {
-                radius: 4,
-                hoverRadius: 6,
-                borderWidth: 2,
-                hoverBorderWidth: 2,
-                hitRadius: 8
-            },
-            bar: {
-                borderRadius: 4,
-                borderWidth: 0,
-                borderSkipped: false,
-                maxBarThickness: 50
-            },
-            arc: {
-                borderWidth: 1,
-                borderColor: '#1f2937'
-            }
-        },
-        grid: {
-            color: 'rgba(255, 255, 255, 0.07)',
-            borderColor: 'rgba(255, 255, 255, 0.07)',
-            tickColor: 'rgba(255, 255, 255, 0.12)'
-        },
-        tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-            titleColor: '#fff',
-            bodyColor: '#e2e8f0',
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-            borderWidth: 1
-        },
-        animation: {
-            duration: 1000,
-            easing: 'easeOutQuart'
-        }
-    },
-    
-    // 打印主题 - 适合导出和打印
-    print: {
-        colors: {
-            primary: '#000000',
-            success: '#333333',
-            danger: '#666666',
-            warning: '#999999',
-            info: '#555555',
-            neutral: ['#000000', '#333333', '#666666', '#999999', '#cccccc'],
-            category: ['#000000', '#333333', '#666666', '#999999', '#555555', '#777777', '#222222', '#444444']
-        },
-        fonts: {
-            family: "'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-            size: 10,
-            color: '#000000'
-        },
-        elements: {
-            line: {
-                tension: 0,
-                borderWidth: 1.5,
-                fill: false,
-                borderDash: [4, 4]
-            },
-            point: {
-                radius: 3,
-                hoverRadius: 3,
-                borderWidth: 1,
-                hoverBorderWidth: 1,
-                hitRadius: 3
-            },
-            bar: {
-                borderRadius: 0,
-                borderWidth: 1,
-                borderSkipped: false,
-                maxBarThickness: 40
-            },
-            arc: {
-                borderWidth: 1,
-                borderColor: '#fff'
-            }
-        },
-        grid: {
-            color: 'rgba(0, 0, 0, 0.1)',
-            borderColor: 'rgba(0, 0, 0, 0.1)',
-            tickColor: 'rgba(0, 0, 0, 0.2)'
-        },
-        tooltip: {
-            enabled: false
-        },
-        animation: {
-            duration: 0
-        }
+    // 提示框样式
+    tooltip: {
+        backgroundColor: getCssVar('--bg-overlay'),
+        titleColor: getCssVar('--text-white'),
+        bodyColor: getCssVar('--light'),
+        borderColor: getCssVar('--border-white')
     }
+};
+
+// 现代简约主题
+const modernTheme = {
+    // 基础颜色
+    primary: getCssVar('--chart-blue'),
+    success: getCssVar('--chart-green'),
+    danger: getCssVar('--chart-red'),
+    warning: getCssVar('--chart-orange'),
+    info: getCssVar('--chart-cyan'),
+    
+    // 中性色系列
+    neutral: [
+        getCssVar('--chart-blue'),
+        getCssVar('--gray-600'),
+        getCssVar('--gray-500'),
+        getCssVar('--gray-400'),
+        getCssVar('--gray-300')
+    ],
+    
+    // 分类颜色
+    category: [
+        getCssVar('--chart-blue'),
+        getCssVar('--chart-green'),
+        getCssVar('--chart-red'),
+        getCssVar('--chart-orange'),
+        getCssVar('--chart-cyan'),
+        getCssVar('--chart-indigo'),
+        getCssVar('--chart-pink'),
+        getCssVar('--primary')
+    ]
+};
+
+// 导出主题
+export {
+    financialTheme,
+    chartTheme,
+    modernTheme
 };
 
 // 图表交互增强
