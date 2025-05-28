@@ -23,13 +23,13 @@ if root_dir not in sys.path:
 if scripts_dir not in sys.path:
     sys.path.append(scripts_dir)
 
-from scripts.db.db_manager import DBManager
+from core.db.db_manager import DBManager
 
 # 导入错误处理机制
-from scripts.common.exceptions import (
+from core.common.exceptions import (
     AnalyzerError, InvalidParameterError, NoDataError
 )
-from scripts.common.error_handler import error_handler, safe_operation, log_error
+from core.common.error_handler import error_handler, safe_operation, log_error
 
 # 配置日志
 logging.basicConfig(
@@ -48,7 +48,7 @@ except:
     font = None
 
 # 导入模块化分析器
-from scripts.analyzers.modules.analyzer_factory import AnalyzerFactory
+from core.analyzers.modules.analyzer_factory import AnalyzerFactory
 
 class TransactionAnalyzer:
     """交易分析器门面类，统一管理和调用各种分析功能"""
@@ -517,7 +517,7 @@ class TransactionAnalyzer:
 
 # 使用示例
 if __name__ == "__main__":
-    from scripts.db.db_manager import DBManager
+    from core.db.db_manager import DBManager
     db_manager = DBManager()
     analyzer = TransactionAnalyzer(db_manager)
     # 示例使用

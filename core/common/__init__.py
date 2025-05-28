@@ -6,7 +6,7 @@
 """
 
 # 导入并导出所有异常类
-from scripts.common.exceptions import (
+from core.common.exceptions import (
     AIBookkeepingError,
     # 数据提取相关异常
     ExtractorError,
@@ -32,7 +32,7 @@ from scripts.common.exceptions import (
 )
 
 # 导入并导出错误处理功能
-from scripts.common.error_handler import (
+from core.common.error_handler import (
     log_error,
     error_handler,
     retry,
@@ -67,4 +67,4 @@ __all__ = [
 ]
 
 # 版本信息
-__version__ = '1.0.0' 
+__version__ = '1.0.0'

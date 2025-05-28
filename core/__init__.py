@@ -23,16 +23,16 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
 
 # 设置日志
-from scripts.common.logging_setup import setup_logging
-logger = setup_logging(module_name='scripts')
+# from core.common.logging_setup import setup_logging # Commented out as app instance is not available here
+# logger = setup_logging(module_name='scripts') # Commented out
 
 # 导入主要组件
-from scripts.common.config import get_config_manager
-from scripts.common.exceptions import AIBookkeepingError
-from scripts.db.db_manager import DBManager
-from scripts.extractors.factory.extractor_factory import ExtractorFactory
-from scripts.analyzers.transaction_analyzer import TransactionAnalyzer
-from scripts.visualization.visualization_helper import VisualizationHelper
+# from core.common.config import get_config_manager # This line is intentionally commented out
+from core.common.exceptions import AIBookkeepingError
+from core.db.db_manager import DBManager
+from core.extractors.factory.extractor_factory import ExtractorFactory
+from core.analyzers.transaction_analyzer import TransactionAnalyzer
+from core.visualization.visualization_helper import VisualizationHelper
 
 # 版本信息
 __version__ = '1.0.0'
@@ -176,4 +176,4 @@ def generate_visualizations(analysis_data: Dict[str, Any]) -> Dict[str, Any]:
         return {
             'success': False,
             'error': str(e)
-        } 
+        }

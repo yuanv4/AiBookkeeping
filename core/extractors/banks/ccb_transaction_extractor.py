@@ -18,8 +18,8 @@ if root_dir not in sys.path:
 if scripts_dir not in sys.path:
     sys.path.append(scripts_dir)
 
-from scripts.extractors.base.bank_transaction_extractor import BankTransactionExtractor
-from scripts.extractors.config.config_loader import get_config_loader
+from core.extractors.base.bank_transaction_extractor import BankTransactionExtractor
+from core.extractors.config.config_loader import get_config_loader
 
 # 配置日志
 logger = logging.getLogger('ccb_extractor')
@@ -144,4 +144,4 @@ class CCBTransactionExtractor(BankTransactionExtractor):
             pandas.DataFrame: 提取的交易数据，如果提取失败返回None
         """
         # 调用基类的提取方法
-        return self.extract_transactions_from_df(df) 
+        return self.extract_transactions_from_df(df)

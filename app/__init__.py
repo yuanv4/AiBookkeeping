@@ -1,15 +1,19 @@
 import os
 import logging
 import sys
-from flask import Flask, request, render_template, jsonify 
+import os # Added import os
+from flask import Flask, current_app, g, send_from_directory, flash, url_for, session, get_flashed_messages, request, jsonify, render_template
 
 # 从同一目录的 config 模块导入配置字典
-# 假设 config.py 已经被移动到了 app/config.py
 from .config import config
 from .frontend.template_filters import register_template_filters
+from core.common.logging_setup import setup_logging # Ensure setup_logging is imported
 
-def create_app(config_name='default'):
+def create_app(config_name='development'):
+    """应用工厂函数"""
     # 设置模板和静态文件路径
+    # __file__ 是当前文件的路径 (app/__init__.py)
+    # os.path.dirname(__file__) 是 app 目录
     template_folder = os.path.join(os.path.dirname(__file__), 'frontend', 'templates')
     static_folder = os.path.join(os.path.dirname(__file__), 'frontend', 'static')
     
@@ -18,15 +22,11 @@ def create_app(config_name='default'):
                 static_folder=static_folder)
     app.config.from_object(config[config_name])
 
-    # 配置日志
-    log_level = logging.DEBUG if app.debug else logging.INFO
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[logging.StreamHandler()]
-    )
-    # 可以使用 app.logger 记录应用特定的日志
-    app.logger.info(f"应用以 '{config_name}' 配置启动。日志级别: {logging.getLevelName(log_level)}")
+    # 配置日志系统，可以根据需要传递覆盖参数
+    initial_log_level = app.config.get('LOG_LEVEL', 'INFO')
+    # Pass the app instance to setup_logging
+    setup_logging(app, log_level_override=initial_log_level, console_output_override=True, file_output_override=True, module_name=None) # 明确 module_name=None 配置根记录器
+    # app.logger.info(f"Root logger configured with level: {logging.getLogger().getLevel()}") # Temporarily commented out to ensure stability
 
     # 确保上传和数据文件夹存在 (路径来自 app.config)
     try:
@@ -38,33 +38,24 @@ def create_app(config_name='default'):
         app.logger.error(f"创建目录失败: {e}")
         # 根据情况决定是否抛出异常或优雅退出
 
-    # 添加 scripts 目录到 Python 路径 (scripts 在项目根目录 AiBookkeeping/scripts)
-    project_root_dir = os.path.dirname(app.root_path) # app.root_path 是 app/
-    scripts_path = os.path.join(project_root_dir, 'scripts')
-    if scripts_path not in sys.path:
-        sys.path.append(scripts_path)
-        app.logger.info(f"已将 {scripts_path} 添加到 sys.path")
-    # 如果有其他模块直接在项目根目录，也添加项目根目录
-    if project_root_dir not in sys.path:
-        sys.path.append(project_root_dir)
-        app.logger.info(f"已将 {project_root_dir} 添加到 sys.path")
-
     # 导入和初始化核心服务/管理器
     # 这些依赖于上面的 sys.path 修改可能已经完成
-    from scripts.db.db_manager import DBManager
-    from scripts.extractors.factory.extractor_factory import get_extractor_factory
+    # 注意：由于 'scripts' 目录已重命名为 'core' 并且项目根目录已添加到 sys.path (在 run.py 中),
+    # 下面的导入语句需要更新
+    from core.db.db_manager import DBManager
+    from core.extractors.factory.extractor_factory import get_extractor_factory # Modified to accept app
+    from core.analyzers.modules.analyzer_factory import get_analyzer_factory # Updated import
     # services 目录现在是 app/services/
     from app.services.file_processor_service import FileProcessorService
 
-    # 将实例附加到 app 对象，供蓝图和应用上下文使用
-    app.db_manager = DBManager()
-    app.extractor_factory = get_extractor_factory()
-    app.file_processor_service = FileProcessorService(
-        app.extractor_factory, 
-        app.db_manager, 
-        app.config['UPLOAD_FOLDER']
-    )
-    app.logger.info("DBManager, ExtractorFactory, FileProcessorService 已初始化并附加到 app 对象。")
+    # 初始化核心服务
+    app.db_manager = DBManager(app)  # 传递 app 实例
+    app.extractor_factory = get_extractor_factory(app) # 传递 app 实例
+    # FileProcessorService 现在需要 app, db_manager, extractor_factory, 和 upload_folder
+    # upload_folder 通常从 app.config 获取
+    upload_folder = app.config.get('UPLOAD_FOLDER', os.path.join(app.root_path, 'uploads')) # Default if not in config
+    app.file_processor_service = FileProcessorService(app, app.extractor_factory, app.db_manager, upload_folder)
+    app.analyzer_factory = get_analyzer_factory(app, app.db_manager) # 初始化分析器工厂并传递 app 和 db_manager
 
     # 注册自定义模板过滤器
     register_template_filters(app)
@@ -136,4 +127,4 @@ def create_app(config_name='default'):
     except Exception as e_init:
         app.logger.error(f"应用启动时执行 init_database 逻辑出错: {e_init}", exc_info=True)
 
-    return app 
+    return app

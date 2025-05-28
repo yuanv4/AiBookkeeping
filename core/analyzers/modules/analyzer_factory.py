@@ -3,20 +3,20 @@ import logging
 from typing import Dict, Any, List, Optional, Union, Type
 
 # 导入分析器
-from scripts.analyzers.modules.data_extractor import DataExtractor
-from scripts.analyzers.modules.base_analyzer import BaseAnalyzer
-from scripts.analyzers.modules.time_analyzer import TimeAnalyzer
-from scripts.analyzers.modules.category_analyzer import CategoryAnalyzer
-from scripts.analyzers.modules.merchant_analyzer import MerchantAnalyzer
-from scripts.analyzers.modules.anomaly_analyzer import AnomalyAnalyzer
-from scripts.analyzers.modules.summary_analyzer import SummaryAnalyzer
+from core.analyzers.modules.data_extractor import DataExtractor
+from core.analyzers.modules.base_analyzer import BaseAnalyzer
+from core.analyzers.modules.time_analyzer import TimeAnalyzer
+from core.analyzers.modules.category_analyzer import CategoryAnalyzer
+from core.analyzers.modules.merchant_analyzer import MerchantAnalyzer
+from core.analyzers.modules.anomaly_analyzer import AnomalyAnalyzer
+from core.analyzers.modules.summary_analyzer import SummaryAnalyzer
 
 # 导入错误处理机制
-from scripts.common.exceptions import AnalyzerError, InvalidParameterError
-from scripts.common.error_handler import error_handler, safe_operation
+from core.common.exceptions import AnalyzerError, InvalidParameterError
+from core.common.error_handler import error_handler, safe_operation
 
 # 导入配置管理器
-from scripts.common.config import get_config_manager
+# from core.common.config import get_config_manager # Removed
 
 # 配置日志
 logger = logging.getLogger('analyzer_factory')
@@ -24,17 +24,19 @@ logger = logging.getLogger('analyzer_factory')
 class AnalyzerFactory:
     """分析器工厂类，负责创建和管理各种分析器"""
     
-    def __init__(self, db_manager):
+    def __init__(self, app, db_manager):
         """初始化分析器工厂
         
         Args:
+            app: Flask application instance.
             db_manager: 数据库管理器实例
         """
+        self.app = app
         self.db_manager = db_manager
         self.logger = logger
         
-        # 获取配置管理器
-        self.config_manager = get_config_manager()
+        # 使用 app.config 替代 config_manager
+        self.config_manager = self.app.config 
         
         # 创建数据提取器
         self.data_extractor = DataExtractor(db_manager)
@@ -49,11 +51,11 @@ class AnalyzerFactory:
     def _create_analyzers(self):
         """创建各种分析器实例"""
         # 检查配置中是否启用各种分析模块
-        time_enabled = self.config_manager.get('analysis.time_analysis_enabled', True)
-        category_enabled = self.config_manager.get('analysis.category_analysis_enabled', True)
-        merchant_enabled = self.config_manager.get('analysis.merchant_analysis_enabled', True)
-        anomaly_enabled = self.config_manager.get('analysis.anomaly_detection_enabled', True)
-        summary_enabled = self.config_manager.get('analysis.summary_enabled', True)
+        time_enabled = self.config_manager.get('ANALYSIS_TIME_ANALYSIS_ENABLED', True)
+        category_enabled = self.config_manager.get('ANALYSIS_CATEGORY_ANALYSIS_ENABLED', True)
+        merchant_enabled = self.config_manager.get('ANALYSIS_MERCHANT_ANALYSIS_ENABLED', True)
+        anomaly_enabled = self.config_manager.get('ANALYSIS_ANOMALY_DETECTION_ENABLED', True)
+        summary_enabled = self.config_manager.get('ANALYSIS_SUMMARY_ENABLED', True)
         
         # 创建分析器实例，如果配置中启用了相应模块
         if time_enabled:
@@ -118,7 +120,7 @@ class AnalyzerFactory:
         
         # 从配置中获取默认日期范围
         if 'start_date' not in kwargs and 'end_date' not in kwargs:
-            default_days = self.config_manager.get('analysis.default_date_range_days', 90)
+            default_days = self.config_manager.get('ANALYSIS_DEFAULT_DATE_RANGE_DAYS', 90)
             self.logger.info(f"使用默认日期范围: 最近 {default_days} 天")
             
             # 让db_manager根据默认天数计算日期范围
@@ -151,4 +153,20 @@ class AnalyzerFactory:
                 analyzer.clear_cache()
                 self.logger.info(f"已清除 {analyzer_type} 分析器缓存")
         
-        self.logger.info("所有分析器缓存已清除") 
+        self.logger.info("所有分析器缓存已清除")
+
+# 全局工厂实例管理调整
+def get_analyzer_factory(app, db_manager) -> AnalyzerFactory:
+    """获取分析器工厂的实例
+
+    Args:
+        app: Flask application instance.
+        db_manager: DBManager instance.
+
+    Returns:
+        AnalyzerFactory: The AnalyzerFactory instance.
+    """
+    if not hasattr(app, 'analyzer_factory_instance'):
+        factory = AnalyzerFactory(app, db_manager)
+        app.analyzer_factory_instance = factory
+    return app.analyzer_factory_instance

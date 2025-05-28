@@ -5,26 +5,22 @@ import logging
 from typing import Dict, Any, Optional, List
 
 # 导入错误处理机制
-from scripts.common.exceptions import ConfigError, ConfigLoadError
-from scripts.common.error_handler import error_handler, safe_operation
+from core.common.exceptions import ConfigError, ConfigLoadError
+from core.common.error_handler import error_handler, safe_operation
 
-# 导入新的配置管理器
-from scripts.common.config import get_config_manager
+# from core.common.config import get_config_manager # Removed
 
 class ConfigLoader:
     """银行配置加载器"""
     
-    def __init__(self, config_file=None):
+    def __init__(self, app):
         """初始化配置加载器
         
         Args:
-            config_file: 配置文件路径，如果为None则使用默认路径
+            app: Flask application instance.
         """
         self.logger = logging.getLogger('config_loader')
-        
-        # 获取配置管理器
-        self.config_manager = get_config_manager()
-        
+        self.app = app
         # 存储银行配置
         self.configs = self._load_configs()
     
@@ -36,30 +32,15 @@ class ConfigLoader:
             dict: 银行配置字典
         """
         try:
-            # 从统一配置系统获取银行配置
-            banks_config = self.config_manager.get('extractors.banks')
+            # 从 Flask app 配置中获取银行配置
+            banks_config = self.app.config.get('EXTRACTORS_BANKS', {})
             
             if banks_config:
-                self.logger.info(f"成功加载银行配置，共 {len(banks_config)} 个银行")
+                self.logger.info(f"成功从 app.config 加载银行配置，共 {len(banks_config)} 个银行")
                 return banks_config
-            
-            # 如果统一配置中没有银行配置，尝试从原始文件加载（向后兼容）
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            legacy_config_file = os.path.join(current_dir, 'bank_configs.json')
-            
-            if os.path.exists(legacy_config_file):
-                with open(legacy_config_file, 'r', encoding='utf-8') as f:
-                    configs = json.load(f)
-                
-                self.logger.info(f"从原始配置文件加载了 {len(configs)} 个银行配置")
-                
-                # 将配置迁移到新的配置系统
-                self.config_manager.set('extractors.banks', configs, save=True)
-                
-                return configs
-            
-            self.logger.warning("未找到任何银行配置")
-            return {}
+            else:
+                self.logger.warning("在 app.config 中未找到 'EXTRACTORS_BANKS' 配置")
+                return {}
             
         except Exception as e:
             self.logger.error(f"加载配置文件时出错: {str(e)}")
@@ -101,11 +82,10 @@ class ConfigLoader:
     @safe_operation("重新加载配置")
     def reload(self):
         """重新加载配置文件"""
-        # 首先重新加载统一配置
-        self.config_manager.reload()
-        # 然后更新银行配置
+        # 配置现在通过 Flask app.config 管理，通常在应用重启或特定机制下重新加载
+        # 此处仅重新从 app.config 加载银行特定配置
         self.configs = self._load_configs()
-        self.logger.info("已重新加载配置文件")
+        self.logger.info("已从 app.config 重新加载银行配置")
     
     def update_bank_config(self, bank_code: str, config: Dict[str, Any], save: bool = True) -> bool:
         """更新银行配置
@@ -127,8 +107,11 @@ class ConfigLoader:
             # 更新内存中的配置
             self.configs[bank_code] = config
             
-            # 更新统一配置系统
-            self.config_manager.set(f'extractors.banks.{bank_code}', config, save=save)
+            # 更新统一配置系统 - 注意：此操作现在可能不会持久化到配置文件
+            # 需要通过 Flask 的配置管理机制来处理持久化，或者此功能需要调整
+            # self.config_manager.set(f'extractors.banks.{bank_code}', config, save=save)
+            self.app.config.get('EXTRACTORS_BANKS', {})[bank_code] = config
+            self.logger.warning(f"银行配置 '{bank_code}' 已在内存中更新，但持久化依赖于 Flask 配置管理。")
             
             self.logger.info(f"已更新银行配置: {bank_code}")
             return True
@@ -137,15 +120,18 @@ class ConfigLoader:
             return False
 
 # 单例模式
-_config_loader = None
+# _config_loader singleton is removed as ConfigLoader now requires 'app' instance.
+# It should be instantiated in ExtractorFactory with the app context.
 
-def get_config_loader() -> ConfigLoader:
-    """获取配置加载器单例
-    
+def get_config_loader(app) -> ConfigLoader:
+    """获取配置加载器实例
+
+    Args:
+        app: Flask application instance.
+
     Returns:
         ConfigLoader: 配置加载器实例
     """
-    global _config_loader
-    if _config_loader is None:
-        _config_loader = ConfigLoader()
-    return _config_loader 
+    # Consider if a singleton per app is needed or just direct instantiation.
+    # For now, direct instantiation is simpler.
+    return ConfigLoader(app)

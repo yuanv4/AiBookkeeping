@@ -21,16 +21,16 @@ if scripts_dir not in sys.path:
     sys.path.append(scripts_dir)
 
 # 导入接口和配置
-from scripts.extractors.interfaces.extractor_interface import ExtractorInterface
-from scripts.extractors.config.config_loader import get_config_loader
-from scripts.db.db_manager import DBManager
+from core.extractors.interfaces.extractor_interface import ExtractorInterface
+from core.extractors.config.config_loader import get_config_loader
+from core.db.db_manager import DBManager
 
 # 导入异常处理机制
-from scripts.common.exceptions import (
+from core.common.exceptions import (
     ExtractorError, FileProcessingError, UnsupportedFileError, 
     DataExtractionError, DatabaseError, ImportError
 )
-from scripts.common.error_handler import error_handler, safe_operation, log_error
+from core.common.error_handler import error_handler, safe_operation, log_error
 
 # 设置日志格式
 logging.basicConfig(
@@ -917,4 +917,4 @@ class BankTransactionExtractor(ExtractorInterface):
             return result
             
         # 所有检查都通过
-        return result 
+        return result

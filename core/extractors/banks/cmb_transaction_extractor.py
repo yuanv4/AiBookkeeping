@@ -18,8 +18,8 @@ if root_dir not in sys.path:
 if scripts_dir not in sys.path:
     sys.path.append(scripts_dir)
 
-from scripts.extractors.base.bank_transaction_extractor import BankTransactionExtractor
-from scripts.extractors.config.config_loader import get_config_loader
+from core.extractors.base.bank_transaction_extractor import BankTransactionExtractor
+from core.extractors.config.config_loader import get_config_loader
 
 # 配置日志
 logger = logging.getLogger('cmb_extractor')
@@ -181,4 +181,4 @@ class CMBTransactionExtractor(BankTransactionExtractor):
         result_df['bank_code'] = self.get_bank_code()
         result_df['bank_name'] = self.get_bank_name()
         
-        return result_df 
+        return result_df

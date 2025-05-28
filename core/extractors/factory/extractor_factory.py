@@ -17,17 +17,22 @@ if root_dir not in sys.path:
 if scripts_dir not in sys.path:
     sys.path.append(scripts_dir)
 
-from scripts.extractors.interfaces.extractor_interface import ExtractorInterface
-from scripts.extractors.config.config_loader import get_config_loader
+from core.extractors.interfaces.extractor_interface import ExtractorInterface
+from core.extractors.config.config_loader import get_config_loader
 
 class ExtractorFactory:
     """银行提取器工厂，用于创建和管理银行提取器"""
     
-    def __init__(self):
-        """初始化提取器工厂"""
+    def __init__(self, app):
+        """初始化提取器工厂
+        
+        Args:
+            app: Flask application instance.
+        """
         self.logger = logging.getLogger('extractor_factory')
+        self.app = app
         self.extractors: Dict[str, Type[ExtractorInterface]] = {}
-        self.config_loader = get_config_loader()
+        self.config_loader = get_config_loader(self.app)
     
     def register(self, bank_code: str, extractor_class: Type[ExtractorInterface]):
         """注册银行提取器
@@ -238,18 +243,22 @@ class ExtractorFactory:
         
         return all_processed_files
 
-# 单例模式
-_factory = None
+# 单例模式管理调整：工厂现在依赖 app 实例
+# _factory = None # Global singleton might be problematic if app context changes or for testing
 
-def get_extractor_factory() -> ExtractorFactory:
-    """获取提取器工厂单例
-    
+def get_extractor_factory(app) -> ExtractorFactory:
+    """获取提取器工厂实例
+
+    Args:
+        app: Flask application instance.
+
     Returns:
         ExtractorFactory: 提取器工厂实例
     """
-    global _factory
-    if _factory is None:
-        _factory = ExtractorFactory()
-        # 自动注册所有提取器
-        _factory.auto_discover_and_register()
-    return _factory 
+    # Simplest approach: create a new factory per app or manage it on the app object itself.
+    # For now, let's assume it's okay to create it or retrieve from app if already set.
+    if not hasattr(app, 'extractor_factory_instance'):
+        factory = ExtractorFactory(app)
+        factory.auto_discover_and_register()  # 自动发现并注册
+        app.extractor_factory_instance = factory
+    return app.extractor_factory_instance

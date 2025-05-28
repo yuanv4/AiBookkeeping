@@ -14,7 +14,7 @@ from typing import Type, Callable, Any, Dict, Optional, Union
 import time
 
 # 导入自定义异常
-from scripts.common.exceptions import AIBookkeepingError
+from core.common.exceptions import AIBookkeepingError
 
 # 创建日志记录器
 logger = logging.getLogger('error_handler')
@@ -120,7 +120,7 @@ def error_handler(
                     
                     # 否则包装为AIBookkeepingError
                     error_message = f"在 {func.__name__} 中发生异常: {str(e)}"
-                    from scripts.common.exceptions import AIBookkeepingError
+                    from core.common.exceptions import AIBookkeepingError
                     raise AIBookkeepingError(error_message, details=str(e))
                 
                 # 返回后备值
@@ -224,4 +224,4 @@ def safe_operation(operation_name: str = "操作") -> Callable:
                 })
                 raise
         return wrapper
-    return decorator 
+    return decorator

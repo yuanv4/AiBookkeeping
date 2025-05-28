@@ -21,40 +21,45 @@ if scripts_dir not in sys.path:
     sys.path.append(scripts_dir)
 
 # 导入错误处理机制
-from scripts.common.exceptions import (
+from core.common.exceptions import (
     VisualizationError, ChartGenerationError, ConfigError
 )
-from scripts.common.error_handler import error_handler, safe_operation, log_error
+from core.common.error_handler import error_handler, safe_operation, log_error
 
-# 导入配置管理器
-from scripts.common.config import get_config_manager
+# 导入 Flask 的 current_app (如果需要直接访问)
+# from flask import current_app # Potentially needed if not passing config
 
-# 配置日志
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('visualization_helper')
+# 配置日志 - 日志现在应该由应用在启动时统一配置
+logger = logging.getLogger(__name__) # 使用 __name__ 获取当前模块的 logger
 
 class VisualizationHelper:
     """用于生成交易数据可视化的工具类"""
     
-    def __init__(self, json_file: Optional[Union[str, Path]] = None, data: Optional[Dict[str, Any]] = None):
+    def __init__(self, 
+                 json_file: Optional[Union[str, Path]] = None, 
+                 data: Optional[Dict[str, Any]] = None, 
+                 config: Optional[Dict[str, Any]] = None, # 应用配置
+                 project_root_path: Optional[str] = None): # 项目根目录路径
         """
         初始化可视化助手
         
         参数:
             json_file: 包含分析数据的JSON文件路径
             data: 直接提供的分析数据字典
+            config: 应用配置字典 (例如, current_app.config)
+            project_root_path: 项目的根目录路径，用于解析相对路径
         """
-        # 获取配置管理器
-        self.config_manager = get_config_manager()
-        
+        self.config = config if config is not None else {}
+        self.project_root_path = project_root_path if project_root_path else os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # Fallback to auto-detect if not provided
+
         self.data = None
         if data is not None:
             self.data = data
         elif json_file is not None and isinstance(json_file, (str, Path)):
-            self._load_data(json_file)
+            self._load_data(json_file) # _load_data 内部不再需要 config_manager
         
-        # 从配置中获取图表风格
-        theme = self.config_manager.get('visualization.theme', 'default')
+        # 从传入的配置或默认值中获取图表风格
+        theme = self.config.get('VISUALIZATION_THEME', 'default') # Key name updated for consistency
         if theme == 'default':
             plt.style.use('seaborn-v0_8-pastel')
         else:
@@ -65,21 +70,22 @@ class VisualizationHelper:
                 plt.style.use('seaborn-v0_8-pastel')
         
         # 设置中文字体支持
-        self._setup_chinese_font()
+        self._setup_chinese_font() # _setup_chinese_font will use self.config
         
-        # 从配置中获取图表保存目录
-        charts_dir = self.config_manager.get('visualization.charts_dir', 'static/charts')
+        # 从传入的配置或默认值中获取图表保存目录
+        charts_dir_config = self.config.get('VISUALIZATION_CHARTS_DIR', 'static/charts')
         
         # 确保路径是绝对路径
-        if not os.path.isabs(charts_dir):
-            self.charts_dir = os.path.join(root_dir, charts_dir)
+        if not os.path.isabs(charts_dir_config):
+            # 使用传入的 project_root_path 或自动检测的路径来构建绝对路径
+            self.charts_dir = os.path.join(self.project_root_path, charts_dir_config)
         else:
-            self.charts_dir = charts_dir
+            self.charts_dir = charts_dir_config
             
         os.makedirs(self.charts_dir, exist_ok=True)
         
         # 获取颜色配置
-        self.colors = self.config_manager.get('visualization.colors', {
+        self.colors = self.config.get('VISUALIZATION_COLORS', {
             'income': '#4CAF50',
             'expense': '#F44336',
             'net': '#2196F3',
@@ -89,9 +95,9 @@ class VisualizationHelper:
     @error_handler(fallback_value=None)
     def _setup_chinese_font(self) -> None:
         """设置中文字体支持"""
-        # 从配置中获取字体信息
-        default_font = self.config_manager.get('visualization.fonts.default', 'SimHei')
-        fallback_fonts = self.config_manager.get('visualization.fonts.fallback', 
+        # 从传入的配置或默认值中获取字体信息
+        default_font = self.config.get('VISUALIZATION_FONT_DEFAULT', 'SimHei')
+        fallback_fonts = self.config.get('VISUALIZATION_FONT_FALLBACK', 
                                                ['Microsoft YaHei', 'SimSun', 'STSong', 'WenQuanYi Micro Hei'])
         
         # 所有可能的字体
@@ -885,4 +891,4 @@ class VisualizationHelper:
             logger.error(f"生成日消费趋势图时出错: {e}")
             import traceback
             logger.error(traceback.format_exc())
-            return None 
+            return None

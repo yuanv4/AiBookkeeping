@@ -15,16 +15,16 @@
 """
 
 # 导入基础接口和工厂
-from scripts.extractors.interfaces.extractor_interface import ExtractorInterface
-from scripts.extractors.factory.extractor_factory import get_extractor_factory
-from scripts.extractors.config.config_loader import get_config_loader
+from core.extractors.interfaces.extractor_interface import ExtractorInterface
+from core.extractors.factory.extractor_factory import get_extractor_factory
+from core.extractors.config.config_loader import get_config_loader
 
 # 导入基类实现
-from scripts.extractors.base.bank_transaction_extractor import BankTransactionExtractor
+from core.extractors.base.bank_transaction_extractor import BankTransactionExtractor
 
 # 导入银行实现
-from scripts.extractors.banks.cmb_transaction_extractor import CMBTransactionExtractor
-from scripts.extractors.banks.ccb_transaction_extractor import CCBTransactionExtractor
+from core.extractors.banks.cmb_transaction_extractor import CMBTransactionExtractor
+from core.extractors.banks.ccb_transaction_extractor import CCBTransactionExtractor
 
 __all__ = [
     'ExtractorInterface',
@@ -36,7 +36,7 @@ __all__ = [
 ]
 
 # 初始化工厂
-factory = get_extractor_factory()
+# factory = get_extractor_factory() # Commented out: Factory should be initialized with app context
 
 # 提供简便函数用于处理文件
 def process_files(upload_dir):
@@ -51,4 +51,4 @@ def process_files(upload_dir):
     return factory.process_files(upload_dir)
 
 # 添加到导出列表
-__all__.append('process_files') 
+__all__.append('process_files')

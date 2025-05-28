@@ -7,16 +7,16 @@ from datetime import datetime
 import json
 import numpy as np
 import traceback
+# from flask import current_app # Replaced with app instance
 
 # 导入错误处理机制
-from scripts.common.exceptions import (
+from core.common.exceptions import (
     DatabaseError, ConnectionError as DBConnectionError, 
     QueryError, ImportError
 )
-from scripts.common.error_handler import error_handler, safe_operation, log_error
+from core.common.error_handler import error_handler, safe_operation, log_error
 
-# 导入配置管理器
-from scripts.common.config import get_config_manager
+# ConfigManager不再在此处使用
 
 # 配置日志
 logger = logging.getLogger('db_manager')
@@ -24,38 +24,18 @@ logger = logging.getLogger('db_manager')
 class DBManager:
     """数据库管理类，负责SQLite数据库的创建、连接和交易数据管理"""
     
-    def __init__(self, db_path=None):
+    def __init__(self, app):
         """初始化数据库管理器
         
         Args:
-            db_path: 数据库文件路径，默认使用配置中的路径
+            app: Flask application instance.
         """
-        # 获取配置管理器
-        self.config_manager = get_config_manager()
+        self.app = app
+        self.db_path = app.config['DB_PATH']
+        # Ensure the directory for db_path exists
+        db_dir = os.path.dirname(self.db_path)
+        os.makedirs(db_dir, exist_ok=True)
         
-        # 如果未指定数据库路径，从配置中获取
-        if db_path is None:
-            # 从配置中获取数据库类型和路径
-            db_type = self.config_manager.get('database.type', 'sqlite')
-            config_db_path = self.config_manager.get('database.path', 'data/transactions.db')
-            
-            # 确保路径是绝对路径
-            if not os.path.isabs(config_db_path):
-                # 定位项目根目录
-                current_dir = os.path.dirname(os.path.abspath(__file__))
-                scripts_dir = os.path.dirname(current_dir)
-                root_dir = os.path.dirname(scripts_dir)
-                
-                # 结合根目录和配置路径
-                db_path = os.path.join(root_dir, config_db_path)
-            else:
-                db_path = config_db_path
-                
-            # 确保目录存在
-            db_dir = os.path.dirname(db_path)
-            os.makedirs(db_dir, exist_ok=True)
-        
-        self.db_path = db_path
         self.logger = logger
         self.logger.info(f"数据库路径设置为: {self.db_path}")
         
@@ -66,9 +46,9 @@ class DBManager:
     def get_connection(self):
         """获取数据库连接"""
         try:
-            # 从配置中获取连接超时参数
-            timeout = self.config_manager.get('database.timeout', 30.0)
-            busy_timeout = self.config_manager.get('database.busy_timeout', 30000)
+            # 从 Flask app 配置中获取连接超时参数
+            timeout = self.app.config.get('DATABASE_TIMEOUT', 30.0)
+            busy_timeout = self.app.config.get('DATABASE_BUSY_TIMEOUT', 30000)
             
             # 设置超时时间
             conn = sqlite3.connect(self.db_path, timeout=timeout)
@@ -153,8 +133,8 @@ class DBManager:
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_trans_type ON transactions(transaction_type_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_trans_amount ON transactions(amount)')
             
-            # 添加常见交易类型 - 从配置中获取
-            category_mapping = self.config_manager.get('analysis.category_mapping', {})
+            # 添加常见交易类型 - 从 Flask app 配置中获取
+            category_mapping = self.app.config.get('ANALYSIS_CATEGORY_MAPPING', {})
             common_transaction_types = []
             
             # 收入类型
@@ -176,9 +156,9 @@ class DBManager:
             for type_info in common_transaction_types:
                 self.get_or_create_transaction_type(type_info[0], type_info[1], type_info[2])
             
-            # 添加常见银行 - 从配置中获取
-            supported_banks = self.config_manager.get('extractors.supported_banks', ['CMB', 'CCB'])
-            banks_config = self.config_manager.get('extractors.banks', {})
+            # 添加常见银行 - 从 Flask app 配置中获取
+            supported_banks = self.app.config.get('EXTRACTORS_SUPPORTED_BANKS', ['CMB', 'CCB'])
+            banks_config = self.app.config.get('EXTRACTORS_BANKS', {})
             common_banks = []
             
             for bank_code in supported_banks:
@@ -1982,4 +1962,4 @@ class DBManager:
 # 如果直接运行此脚本，创建数据库结构
 if __name__ == "__main__":
     db_manager = DBManager()
-    print(f"数据库结构已初始化: {db_manager.db_path}") 
+    print(f"数据库结构已初始化: {db_manager.db_path}")

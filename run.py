@@ -1,4 +1,10 @@
 import os
+import sys
+
+# 将项目根目录添加到 sys.path
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 from dotenv import load_dotenv # 导入 python-dotenv 库中的 load_dotenv 函数
 from app import create_app
 
@@ -24,4 +30,4 @@ if __name__ == '__main__':
     # host 和 port 可以硬编码或从配置/环境变量读取
     # app.run 的 debug 参数若设置，会覆盖配置中的 DEBUG 值
     # 通常在开发时，依赖配置中的 DEBUG=True，或通过环境变量 FLASK_DEBUG=1
-    app.run(host='0.0.0.0', port=5000) 
+    app.run(host='0.0.0.0', port=5000)
