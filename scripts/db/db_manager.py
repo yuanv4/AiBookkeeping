@@ -68,7 +68,7 @@ class DBManager:
         try:
             # 从配置中获取连接超时参数
             timeout = self.config_manager.get('database.timeout', 30.0)
-            busy_timeout = self.config_manager.get('database.busy_timeout', 30000)
+            busy_timeout = self.config_manager.get('database.busy_timeout', 60000)  # 增加到60秒
             
             # 设置超时时间
             conn = sqlite3.connect(self.db_path, timeout=timeout)
@@ -80,6 +80,8 @@ class DBManager:
             conn.execute("PRAGMA journal_mode = WAL")
             # 设置busy_timeout，避免数据库锁定
             conn.execute(f"PRAGMA busy_timeout = {busy_timeout}")
+            # 设置锁定超时
+            conn.execute("PRAGMA lock_timeout = 30000")
             return conn
         except sqlite3.Error as e:
             self.logger.error(f"获取数据库连接时出错: {str(e)}")
@@ -218,56 +220,95 @@ class DBManager:
     @error_handler(fallback_value=None, reraise=True)
     def get_or_create_bank(self, bank_code, bank_name):
         """获取或创建银行记录"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT id FROM banks WHERE bank_code = ?', (bank_code,))
-        bank = cursor.fetchone()
-        
-        if bank:
-            return bank[0]
-        
-        cursor.execute('INSERT INTO banks (bank_code, bank_name) VALUES (?, ?)', (bank_code, bank_name))
-        conn.commit()
-        return cursor.lastrowid
+        conn = None
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM banks WHERE bank_code = ?', (bank_code,))
+            bank = cursor.fetchone()
+            
+            if bank:
+                return bank[0]
+            
+            cursor.execute('INSERT INTO banks (bank_code, bank_name) VALUES (?, ?)', (bank_code, bank_name))
+            conn.commit()
+            return cursor.lastrowid
+        except sqlite3.Error as e:
+            if conn:
+                conn.rollback()
+            raise DatabaseError(f"创建银行记录失败: {str(e)}")
+        finally:
+            if conn:
+                conn.close()
     
     @error_handler(fallback_value=None, reraise=True)
-    def get_or_create_account(self, account_number, bank_id, account_name=None):
+    def get_or_create_account(self, account_number, bank_id, account_name=None, conn=None, cursor=None):
         """获取或创建账户记录"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT id FROM accounts WHERE account_number = ?', (account_number,))
-        account = cursor.fetchone()
+        # 如果没有提供连接，创建新连接（保持向后兼容）
+        should_close_conn = False
+        if conn is None:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            should_close_conn = True
         
-        if account:
-            # 如果账号存在但名称为空，且提供了名称，更新账号名称
-            if account_name and account_name != 'unknown':
-                cursor.execute('UPDATE accounts SET account_name = ? WHERE id = ?', 
-                              (account_name, account[0]))
+        try:
+            # 检查账户是否存在
+            cursor.execute('SELECT id FROM accounts WHERE account_number = ?', (account_number,))
+            account = cursor.fetchone()
+            
+            if account:
+                # 如果账号存在但名称为空，且提供了名称，更新账号名称
+                if account_name and account_name != 'unknown':
+                    cursor.execute('UPDATE accounts SET account_name = ? WHERE id = ?', 
+                                  (account_name, account[0]))
+                    if should_close_conn:
+                        conn.commit()
+                return account[0]
+            
+            # 创建新账户
+            cursor.execute('INSERT INTO accounts (account_number, bank_id, account_name) VALUES (?, ?, ?)', 
+                          (account_number, bank_id, account_name))
+            if should_close_conn:
                 conn.commit()
-            return account[0]
-        
-        # 创建新账户
-        cursor.execute('INSERT INTO accounts (account_number, bank_id, account_name) VALUES (?, ?, ?)', 
-                      (account_number, bank_id, account_name))
-        conn.commit()
-        return cursor.lastrowid
+            return cursor.lastrowid
+        except sqlite3.Error as e:
+            if should_close_conn and conn:
+                conn.rollback()
+            raise DatabaseError(f"创建账户记录失败: {str(e)}")
+        finally:
+            if should_close_conn and conn:
+                conn.close()
     
     @error_handler(fallback_value=None, reraise=True)
-    def get_or_create_transaction_type(self, type_name, type_code=None, category=None):
+    def get_or_create_transaction_type(self, type_name, type_code=None, category=None, conn=None, cursor=None):
         """获取或创建交易类型记录"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT id FROM transaction_types WHERE type_name = ?', (type_name,))
-        transaction_type = cursor.fetchone()
+        # 如果没有提供连接，创建新连接（保持向后兼容）
+        should_close_conn = False
+        if conn is None:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            should_close_conn = True
         
-        if transaction_type:
-            return transaction_type[0]
-        
-        # 创建新交易类型
-        cursor.execute('INSERT INTO transaction_types (type_name, type_code, category) VALUES (?, ?, ?)', 
-                      (type_name, type_code, category))
-        conn.commit()
-        return cursor.lastrowid
+        try:
+            cursor.execute('SELECT id FROM transaction_types WHERE type_name = ?', (type_name,))
+            transaction_type = cursor.fetchone()
+            
+            if transaction_type:
+                return transaction_type[0]
+            
+            # 创建新交易类型
+            cursor.execute('INSERT INTO transaction_types (type_name, type_code, category) VALUES (?, ?, ?)', 
+                          (type_name, type_code, category))
+            if should_close_conn:
+                conn.commit()
+            return cursor.lastrowid
+        except sqlite3.Error as e:
+            if should_close_conn and conn:
+                conn.rollback()
+            raise DatabaseError(f"创建交易类型失败: {str(e)}")
+        finally:
+            if should_close_conn and conn:
+                conn.close()
     
     @safe_operation("数据导入")
     def import_transactions(self, df, bank_id, import_batch=None):
@@ -292,6 +333,7 @@ class DBManager:
                 raise ImportError(f"缺少必要的列: {col}", details={"missing_column": col})
                 
         # 进行数据清理和预处理
+        conn = None
         try:
             # 去重操作
             df = df.drop_duplicates()
@@ -316,6 +358,9 @@ class DBManager:
             conn = self.get_connection()
             cursor = conn.cursor()
             
+            # 开始事务
+            conn.execute("BEGIN IMMEDIATE")
+            
             # 记录插入计数
             inserted_count = 0
             
@@ -328,8 +373,8 @@ class DBManager:
                     if len(account_name_records) > 0 and not pd.isna(account_name_records[0]):
                         account_name = account_name_records[0]
                 
-                # 获取或创建账户
-                account_id = self.get_or_create_account(account_number, bank_id, account_name)
+                # 获取或创建账户（使用现有连接）
+                account_id = self.get_or_create_account(account_number, bank_id, account_name, conn, cursor)
                 
                 # 筛选此账户的交易
                 account_df = df[df['account_number'] == account_number].copy()
@@ -340,8 +385,8 @@ class DBManager:
                     transaction_type_id = None
                     
                     if transaction_type and not pd.isna(transaction_type):
-                        # 获取或创建交易类型
-                        transaction_type_id = self.get_or_create_transaction_type(transaction_type)
+                        # 获取或创建交易类型 - 传入当前连接和游标
+                        transaction_type_id = self.get_or_create_transaction_type(transaction_type, conn=conn, cursor=cursor)
                     
                     # 准备插入数据
                     # 检查是否存在相同交易（账户ID、日期、金额、类型ID、对手方、导入批次都相同）
@@ -401,7 +446,12 @@ class DBManager:
             return inserted_count
             
         except Exception as e:
+            if conn:
+                conn.rollback()  # 回滚事务
             raise ImportError(f"导入交易数据失败: {str(e)}")
+        finally:
+            if conn:
+                conn.close()  # 确保连接被关闭
         
         return 0
     
@@ -1982,4 +2032,4 @@ class DBManager:
 # 如果直接运行此脚本，创建数据库结构
 if __name__ == "__main__":
     db_manager = DBManager()
-    print(f"数据库结构已初始化: {db_manager.db_path}") 
+    print(f"数据库结构已初始化: {db_manager.db_path}")

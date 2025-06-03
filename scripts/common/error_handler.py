@@ -59,45 +59,12 @@ def log_error(error: Exception, context: Optional[Dict[str, Any]] = None) -> Non
     logger.debug("错误调用栈: %s", "".join(stack_trace))
 
 
-def error_handler(
-    fallback_value: Any = None,
-    reraise: bool = False,
-    expected_exceptions: Optional[Union[Type[Exception], tuple]] = None,
-    log_level: int = logging.ERROR
-) -> Callable:
-    """错误处理装饰器
-    
-    用于包装函数，统一处理可能出现的异常
-    
-    Args:
-        fallback_value: 发生异常时的返回值
-        reraise: 是否重新抛出异常
-        expected_exceptions: 预期的异常类型，如果不指定则捕获所有异常
-        log_level: 日志级别
-        
-    Returns:
-        装饰后的函数
-    
-    Examples:
-        ```python
-        @error_handler(fallback_value=[], reraise=False)
-        def get_data():
-            # 可能抛出异常的代码
-            return [1, 2, 3]
-        ```
-    """
-    def decorator(func: Callable) -> Callable:
+# 在装饰器函数中，移除重复的导入
+def error_handler(reraise=True, fallback_value=None, log_level=logging.ERROR, expected_exceptions=None):
+    def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            # 构建上下文信息
-            context = {
-                'function': func.__name__,
-                'module': func.__module__,
-                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
-            }
-            
             try:
-                # 调用原始函数
                 return func(*args, **kwargs)
             except Exception as e:
                 # 检查是否为预期异常
@@ -106,6 +73,8 @@ def error_handler(
                 
                 # 记录错误
                 if log_level >= logging.ERROR:
+                    # 修复：创建context字典包含函数调用信息
+                    context = {"function": func.__name__, "args": str(args), "kwargs": str(kwargs)}
                     log_error(e, context)
                 elif log_level >= logging.WARNING:
                     logger.warning(f"警告: {func.__name__} 中发生异常: {str(e)}")
@@ -120,7 +89,6 @@ def error_handler(
                     
                     # 否则包装为AIBookkeepingError
                     error_message = f"在 {func.__name__} 中发生异常: {str(e)}"
-                    from scripts.common.exceptions import AIBookkeepingError
                     raise AIBookkeepingError(error_message, details=str(e))
                 
                 # 返回后备值
@@ -224,4 +192,4 @@ def safe_operation(operation_name: str = "操作") -> Callable:
                 })
                 raise
         return wrapper
-    return decorator 
+    return decorator
