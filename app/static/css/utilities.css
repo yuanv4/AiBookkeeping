@@ -1,0 +1,205 @@
+/* 
+ * AiBookkeeping - 工具类样式
+ * 包含通用工具类，用于替代内联样式
+ */
+
+/* 图标对齐 */
+.icon-align-middle {
+    vertical-align: -4px !important;
+}
+
+.icon-align-top {
+    vertical-align: -6px !important;
+}
+
+.icon-align-bottom {
+    vertical-align: -2px !important;
+}
+
+/* 图标尺寸 */
+.icon-xs {
+    font-size: 14px !important;
+}
+
+.icon-sm {
+    font-size: 16px !important;
+}
+
+.icon-md {
+    font-size: 18px !important;
+}
+
+.icon-lg {
+    font-size: 24px !important;
+}
+
+.icon-xl {
+    font-size: 32px !important;
+}
+
+.icon-xxl {
+    font-size: 48px !important;
+}
+
+/* 图标颜色 */
+.icon-primary {
+    color: var(--primary) !important;
+}
+
+.icon-secondary {
+    color: var(--secondary) !important;
+}
+
+.icon-success {
+    color: var(--success) !important;
+}
+
+.icon-danger {
+    color: var(--danger) !important;
+}
+
+.icon-warning {
+    color: var(--warning) !important;
+}
+
+.icon-info {
+    color: var(--info) !important;
+}
+
+.icon-light {
+    color: rgba(0,0,0,0.15) !important;
+}
+
+/* 背景颜色透明度工具类 */
+.bg-primary-light {
+    background-color: var(--primary-light) !important;
+}
+
+.bg-success-light {
+    background-color: var(--success-light) !important;
+}
+
+.bg-danger-light {
+    background-color: var(--danger-light) !important;
+}
+
+.bg-warning-light {
+    background-color: var(--warning-light) !important;
+}
+
+.bg-info-light {
+    background-color: var(--info-light) !important;
+}
+
+/* 间距工具类 */
+.spacer-xs {
+    margin-bottom: 0.5rem !important;
+}
+
+.spacer-sm {
+    margin-bottom: 1rem !important;
+}
+
+.spacer-md {
+    margin-bottom: 1.5rem !important;
+}
+
+.spacer-lg {
+    margin-bottom: 2.5rem !important;
+}
+
+.spacer-xl {
+    margin-bottom: 4rem !important;
+}
+
+/* 文本工具类 */
+.text-primary-dark {
+    color: var(--primary-dark) !important;
+}
+
+.text-small {
+    font-size: 0.875rem !important;
+}
+
+.text-medium {
+    font-size: 1rem !important;
+}
+
+.text-large {
+    font-size: 1.25rem !important;
+}
+
+/* 金额样式 */
+.positive {
+    color: var(--success) !important;
+    font-weight: 500 !important;
+}
+
+.negative {
+    color: var(--danger) !important;
+    font-weight: 500 !important;
+}
+
+/* 边框工具类 */
+.rounded-sm {
+    border-radius: 4px !important;
+}
+
+.rounded-md {
+    border-radius: 8px !important;
+}
+
+.rounded-lg {
+    border-radius: 12px !important;
+}
+
+/* 显示工具类 */
+.flex-center {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.flex-between {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+/* 常见内联样式替代 */
+.primary-hover:hover {
+    color: var(--primary) !important;
+}
+
+.no-border {
+    border: none !important;
+}
+
+.hover-shadow {
+    transition: var(--transition);
+}
+
+.hover-shadow:hover {
+    box-shadow: var(--shadow) !important;
+}
+
+.hover-lift {
+    transition: var(--transition);
+}
+
+.hover-lift:hover {
+    transform: translateY(-2px) !important;
+}
+
+/* 高度工具类 */
+.h-200 {
+    height: 200px !important;
+}
+
+.h-300 {
+    height: 300px !important;
+}
+
+.h-400 {
+    height: 400px !important;
+} 

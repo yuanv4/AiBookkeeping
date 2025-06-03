@@ -1,27 +1,35 @@
 import os
 from pathlib import Path
 from werkzeug.utils import secure_filename
-# from flask import current_app, flash # Removed current_app and flash
+from flask import current_app, flash # current_app 用于访问 app.config 和 logger
 # 导入 extractor_factory 和 db_manager (或者通过依赖注入传递它们)
 # from scripts.extractors.factory.extractor_factory import get_extractor_factory # 假设这些在 app 层面实例化后传入
 # from scripts.db.db_manager import DBManager
 import logging
 
 class FileProcessorService:
-    def __init__(self, app, extractor_factory, db_manager, upload_folder):
-        self.app = app # Store the app instance
+    def __init__(self, extractor_factory, db_manager, upload_folder):
         self.extractor_factory = extractor_factory
         self.db_manager = db_manager
         self.upload_folder = Path(upload_folder)
-        # Logger will be accessed via self.app.logger or a dedicated logger instance if needed outside app context
+        # 移除对 current_app.logger 的直接访问
+        # self.logger = current_app.logger # 使用 Flask 的 logger
 
     def _get_logger(self):
-        """获取 logger via self.app.logger"""
-        return self.app.logger
+        """获取 logger，如果在应用上下文中，使用 current_app.logger，否则使用标准库 logger"""
+        try:
+            return current_app.logger
+        except RuntimeError:
+            # 如果不在应用上下文中，使用标准库 logging
+            return logging.getLogger('file_processor_service')
 
     def _get_allowed_extensions(self):
-        """获取允许的文件扩展名 via self.app.config"""
-        return self.app.config.get('ALLOWED_EXTENSIONS', {'xlsx', 'xls'})
+        """获取允许的文件扩展名，如果在应用上下文中，使用 current_app.config，否则使用默认值"""
+        try:
+            return current_app.config['ALLOWED_EXTENSIONS']
+        except RuntimeError:
+            # 如果不在应用上下文中，使用默认值
+            return {'xlsx', 'xls'}
 
     def process_uploaded_files(self, uploaded_file_objects):
         """
@@ -32,10 +40,12 @@ class FileProcessorService:
         filenames = []
         # saved_file_paths = [] # 暂时未使用
         if not uploaded_file_objects or (uploaded_file_objects and uploaded_file_objects[0].filename == ''):
+            # flash('没有选择文件 (来自服务)') # flash 应在视图层处理
             return None, "没有选择文件"
 
         for file_obj in uploaded_file_objects:
             if not self._is_allowed_file(file_obj.filename):
+                # flash(f'不支持的文件类型: {file_obj.filename} (来自服务)')
                 return None, f'不支持的文件类型: {file_obj.filename}'
             
             filename = secure_filename(file_obj.filename)
@@ -46,6 +56,7 @@ class FileProcessorService:
                 # saved_file_paths.append(file_path)
             except Exception as e:
                 self._get_logger().error(f"保存文件 {filename} 失败: {e}")
+                # flash(f"保存文件 {filename} 失败。")
                 return None, f"保存文件 {filename} 失败"
         
         if not filenames:
@@ -128,4 +139,4 @@ class FileProcessorService:
     def _is_allowed_file(self, filename):
         # 使用 _get_allowed_extensions 方法获取允许的扩展名
         return '.' in filename and \
-               filename.rsplit('.', 1)[1].lower() in self._get_allowed_extensions()
+               filename.rsplit('.', 1)[1].lower() in self._get_allowed_extensions() 

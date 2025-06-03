@@ -4,7 +4,7 @@ import os # For send_file basename
 
 # TransactionAnalyzer 需要在运行时从 scripts 模块导入
 # (scripts 目录已由 app/__init__.py 添加到 sys.path)
-from core.analyzers.transaction_analyzer import TransactionAnalyzer
+from scripts.analyzers.transaction_analyzer import TransactionAnalyzer
 
 from . import api_bp
 
@@ -78,4 +78,4 @@ def export_transactions_route(): # 重命名函数
 
     except Exception as e:
         current_app.logger.error(f"API /export_transactions 时出错: {e}", exc_info=True)
-        raise
+        raise 

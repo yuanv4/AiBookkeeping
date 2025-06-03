@@ -21,65 +21,15 @@ class Config:
     ITEMS_PER_PAGE = 20 # 默认值
     TEMPLATES_AUTO_RELOAD = True
     API_URL_PREFIX = '/api' # For error handler
-    # 数据库配置 (示例，具体根据DBManager调整)
-    DB_TYPE = 'sqlite'
-    DB_NAME = 'bookkeeping.db' # 默认数据库文件名
-    # DB_PATH 将在下面基于 DATA_FOLDER 构建
-
-    # DBManager specific configurations (previously from ConfigManager)
-    DATABASE_TIMEOUT = 30.0
-    DATABASE_BUSY_TIMEOUT = 30000  # milliseconds
-
-    ANALYSIS_CATEGORY_MAPPING = {
-        'income': ['收入', '工资', '退款', '红包', '利息'],
-        'expense': ['支出', '购物', '餐饮', '交通', '房租', '医疗', '教育', '娱乐', '旅行'],
-        'transfer': ['转账', '信用卡还款']
-    }
-
-    EXTRACTORS_SUPPORTED_BANKS = ['CMB', 'CCB'] # Example, adjust as needed
-    EXTRACTORS_BANKS = {
-        'CMB': {'bank_name': '招商银行'},
-        'CCB': {'bank_name': '建设银行'}
-        # Add other bank configurations here if needed
-    }
-
-    # Logging configurations (previously from ConfigManager)
-    LOG_LEVEL = 'INFO'
-    LOG_DIR = 'logs' # Relative to project root, or absolute path
-    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
-    LOG_MAX_BYTES = 10 * 1024 * 1024  # 10MB
-    LOG_BACKUP_COUNT = 5
-
-    # Visualization configurations (previously from ConfigManager)
-    VISUALIZATION_THEME = 'seaborn-v0_8-pastel' # 'default' or any valid matplotlib style
-    VISUALIZATION_CHARTS_DIR = 'app/frontend/static/charts' # Relative to project root, or absolute path
-    VISUALIZATION_FONT_DEFAULT = 'SimHei'
-    VISUALIZATION_FONT_FALLBACK = ['Microsoft YaHei', 'SimSun', 'STSong', 'WenQuanYi Micro Hei']
-    VISUALIZATION_COLORS = {
-        'income': '#4CAF50',
-        'expense': '#F44336',
-        'net': '#2196F3',
-        'transfer': '#FF9800'
-    }
-
-    # 其他应用特有的配置
-    pass 
+    # 数据库配置 (如果 DBManager 需要外部配置)
+    # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///your_default_database.db'
+    # SQLALCHEMY_TRACK_MODIFICATIONS = False 
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    # 开发环境数据库路径 (通常与基本配置相同，除非特别指定)
-    # SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(Config.DATA_FOLDER, Config.DB_NAME)}"
-    DB_PATH = os.path.join(Config.DATA_FOLDER, Config.DB_NAME)
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{DB_PATH}"
 
 class ProductionConfig(Config):
-    # 生产环境特有配置，例如关闭DEBUG模式
     DEBUG = False
-    # 生产环境数据库路径
-    # SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(Config.DATA_FOLDER, Config.DB_NAME)}"
-    DB_PATH = os.path.join(Config.DATA_FOLDER, Config.DB_NAME) # 通常与Config中的定义一致，除非需要区分
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{DB_PATH}"
     SECRET_KEY = os.environ.get('SECRET_KEY') # 生产环境必须从环境变量读取
     TEMPLATES_AUTO_RELOAD = False
     
@@ -93,4 +43,4 @@ config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
     'default': DevelopmentConfig
-}
+} 

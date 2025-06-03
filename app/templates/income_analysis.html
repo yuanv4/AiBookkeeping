@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+
+{% block title %}收入分析 - 银行账单分析系统{% endblock %}
+
+{% block header_title %}收入分析{% endblock %}
+
+{% block page_css %}
+<link href="{{ url_for('static', filename='css/income_analysis.css') }}" rel="stylesheet">
+<style>
+    .analysis-header {
+        background: linear-gradient(to right, var(--primary-light), #f8f9fa);
+        border-radius: var(--border-radius-lg);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .metric-card {
+        background-color: white;
+        border-radius: var(--border-radius);
+        padding: 1.25rem;
+        box-shadow: var(--card-shadow);
+        transition: all var(--transition-speed) ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .metric-label {
+        color: var(--gray-600);
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--gray-800);
+    }
+    
+    .metric-status {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 50rem;
+        display: inline-block;
+    }
+    
+    .metric-status.good {
+        background-color: var(--success-light);
+        color: var(--success);
+    }
+    
+    .metric-status.moderate {
+        background-color: var(--warning-light);
+        color: var(--warning);
+    }
+    
+    .metric-status.poor {
+        background-color: var(--danger-light);
+        color: var(--danger);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 280px;
+    }
+    
+    .stat-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        justify-content: center;
+    }
+    
+    .stat-item {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        background-color: var(--gray-100);
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+    
+    .stat-description {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        margin-top: 0.25rem;
+    }
+    
+    .stats-container.horizontal {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: space-between;
+    }
+    
+    .stats-container.horizontal .stat-item {
+        flex: 1;
+        min-width: 200px;
+        text-align: center;
+    }
+    
+    .card {
+        border: none;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        transition: all var(--transition-speed) ease;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card:hover {
+        box-shadow: var(--card-shadow-hover);
+    }
+    
+    .card-header {
+        background-color: white;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+    
+    .card-title {
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+    
+    .card-subtitle {
+        color: var(--gray-600);
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 收入分析页头 -->
+<div class="analysis-header">
+    <div class="row align-items-center">
+        <div class="col-md-7">
+            <h1 class="fw-bold mb-1">收入分析</h1>
+            <p class="text-muted mb-0">全方位分析您的收入情况和财务健康状况</p>
+        </div>
+        <div class="col-md-5">
+            <div class="d-flex justify-content-md-end mt-3 mt-md-0">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary btn-sm me-2">
+                    {{ icon("dashboard", "sm", "", "me-1") }}
+                    返回仪表盘
+                </a>
+                <a href="{{ url_for('upload_bp.upload_file_route') }}" class="btn btn-primary btn-sm">
+                    {{ icon("cloud_upload", "sm", "", "me-1") }}
+                    上传新数据
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-0">
+    <!-- 健康状况总览 -->
+    <div class="row g-4 mb-4">
+        <!-- 收入与支出平衡 -->
+        <div class="col-md-4">
+            <div class="metric-card">
+                <span class="metric-label">月均储蓄率</span>
+                <span class="metric-value">{{ "%.1f"|format(data.income_expense_balance.overall_stats.avg_monthly_saving_rate * 100) }}%</span>
+                {% if data.income_expense_balance.overall_stats.avg_monthly_saving_rate >= 0.2 %}
+                <span class="metric-status good">良好</span>
+                {% elif data.income_expense_balance.overall_stats.avg_monthly_saving_rate >= 0.1 %}
+                <span class="metric-status moderate">一般</span>
+                {% else %}
+                <span class="metric-status poor">需改善</span>
+                {% endif %}
+                <div class="mt-2 small text-muted">
+                    储蓄率表示您每月收入中存下来的比例，专家建议应保持在10%-20%之间
+                </div>
+            </div>
+        </div>
+        
+        <!-- 收入稳定性 -->
+        <div class="col-md-4">
+            <div class="metric-card">
+                <span class="metric-label">工资收入占比</span>
+                <span class="metric-value">{{ "%.1f"|format(data.income_stability.salary_income_ratio * 100) }}%</span>
+                {% if data.income_stability.salary_income_ratio >= 0.7 %}
+                <span class="metric-status good">稳定</span>
+                {% elif data.income_stability.salary_income_ratio >= 0.5 %}
+                <span class="metric-status moderate">一般</span>
+                {% else %}
+                <span class="metric-status poor">不稳定</span>
+                {% endif %}
+                <div class="mt-2 small text-muted">
+                    工资收入占比反映您的收入稳定性，比例越高表示收入来源越稳定
+                </div>
+            </div>
+        </div>
+        
+        <!-- 现金流健康度 -->
+        <div class="col-md-4">
+            <div class="metric-card">
+                <span class="metric-label">紧急备用金覆盖月数</span>
+                <span class="metric-value">{{ "%.1f"|format(data.cash_flow_health.emergency_fund_months) }}个月</span>
+                {% if data.cash_flow_health.emergency_fund_months >= 6 %}
+                <span class="metric-status good">充足</span>
+                {% elif data.cash_flow_health.emergency_fund_months >= 3 %}
+                <span class="metric-status moderate">一般</span>
+                {% else %}
+                <span class="metric-status poor">不足</span>
+                {% endif %}
+                <div class="mt-2 small text-muted">
+                    紧急备用金应覆盖3-6个月的基本生活支出，以应对突发情况
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 收入与支出平衡分析 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-start">
+            <div>
+                <h5 class="card-title">收入与支出平衡分析</h5>
+                <p class="card-subtitle">分析收支差额比率、必要支出覆盖率和储蓄率</p>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="icon-circle bg-light d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                    {{ icon("balance", "md", "text-primary") }}
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <canvas id="incomeExpenseChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-container">
+                        <div class="stat-item">
+                            <div class="stat-label">平均收支比率</div>
+                            <div class="stat-value">{{ "%.2f"|format(data.income_expense_balance.overall_stats.avg_monthly_ratio) }}</div>
+                            <div class="stat-description">比值大于1表示收入大于支出</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">平均储蓄率</div>
+                            <div class="stat-value">{{ "%.1f"|format(data.income_expense_balance.overall_stats.avg_monthly_saving_rate * 100) }}%</div>
+                            <div class="stat-description">收入中节省的比例</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">必要支出覆盖率</div>
+                            <div class="stat-value">{{ "%.2f"|format(data.income_expense_balance.overall_stats.avg_necessary_expense_coverage) }}</div>
+                            <div class="stat-description">收入对必要生活支出的覆盖倍数</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 收入稳定性分析 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-start">
+            <div>
+                <h5 class="card-title">收入稳定性分析</h5>
+                <p class="card-subtitle">分析固定收入占比、收入波动和收入周期</p>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="icon-circle bg-light d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                    {{ icon("trending_up", "md", "text-primary") }}
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <canvas id="incomeStabilityChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-container">
+                        <div class="stat-item">
+                            <div class="stat-label">工资收入占比</div>
+                            <div class="stat-value">{{ "%.1f"|format(data.income_stability.salary_income_ratio * 100) }}%</div>
+                            <div class="stat-description">工资类收入占总收入比例</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">收入波动系数</div>
+                            <div class="stat-value">{{ "%.2f"|format(data.income_stability.income_stats.coefficient_of_variation) }}</div>
+                            <div class="stat-description">值越小表示收入越稳定</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">平均月收入</div>
+                            <div class="stat-value">¥{{ "%.2f"|format(data.income_stability.income_stats.mean_income) }}</div>
+                        </div>
+                        {% if data.income_stability.max_no_income_period.days > 0 %}
+                        <div class="stat-item">
+                            <div class="stat-label">最长无收入周期</div>
+                            <div class="stat-value">{{ data.income_stability.max_no_income_period.days }}天</div>
+                            <div class="stat-description">{{ data.income_stability.max_no_income_period.start }} 至 {{ data.income_stability.max_no_income_period.end }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 收入多样性评估 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-start">
+            <div>
+                <h5 class="card-title">收入多样性评估</h5>
+                <p class="card-subtitle">分析收入来源分布、集中度和被动收入占比</p>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="icon-circle bg-light d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                    {{ icon("pie_chart", "md", "text-primary") }}
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="incomeSourcesPieChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="monthlySourcesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="stats-container horizontal">
+                        <div class="stat-item">
+                            <div class="stat-label">收入来源数量</div>
+                            <div class="stat-value">{{ data.income_diversity.source_count }}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">主要收入来源占比</div>
+                            <div class="stat-value">{{ "%.1f"|format(data.income_diversity.concentration * 100) }}%</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">被动收入占比</div>
+                            <div class="stat-value">{{ "%.1f"|format(data.income_diversity.passive_income_ratio * 100) }}%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 现金流健康度 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-start">
+            <div>
+                <h5 class="card-title">现金流健康度</h5>
+                <p class="card-subtitle">分析月度现金流趋势、紧急备用金和资金缺口</p>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="icon-circle bg-light d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                    {{ icon("account_balance_wallet", "md", "text-primary") }}
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <canvas id="cashFlowChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-container">
+                        <div class="stat-item">
+                            <div class="stat-label">紧急备用金覆盖月数</div>
+                            <div class="stat-value">{{ "%.1f"|format(data.cash_flow_health.emergency_fund_months) }}个月</div>
+                            <div class="stat-description">当前余额可以覆盖的月度支出数量</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">资金缺口频率</div>
+                            <div class="stat-value">{{ "%.1f"|format(data.cash_flow_health.gap_frequency * 100) }}%</div>
+                            <div class="stat-description">月度收支为负的频率</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">平均资金缺口</div>
+                            <div class="stat-value">¥{{ "%.2f"|format(data.cash_flow_health.avg_gap) }}</div>
+                            <div class="stat-description">当月收支为负时的平均缺口金额</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">当前总余额</div>
+                            <div class="stat-value">¥{{ "%.2f"|format(data.cash_flow_health.total_balance) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 收入增长评估 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-start">
+            <div>
+                <h5 class="card-title">收入增长评估</h5>
+                <p class="card-subtitle">分析收入长期增长趋势和波动</p>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="icon-circle bg-light d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                    {{ icon("show_chart", "md", "text-primary") }}
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <canvas id="incomeGrowthChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-container">
+                        <div class="stat-item">
+                            <div class="stat-label">年化增长率</div>
+                            <div class="stat-value">{{ "%.1f"|format(data.income_growth.get('annual_growth_rate', 0) * 100) }}%</div>
+                            <div class="stat-description">按年计算的收入增长率</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">年度峰值月</div>
+                            <div class="stat-value">{{ data.income_growth.get('peak_month', '未知') }}</div>
+                            <div class="stat-description">年度收入通常达到最高的月份</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">预计年收入增长</div>
+                            <div class="stat-value">¥{{ "%.2f"|format(data.income_growth.get('projected_annual_increase', 0)) }}</div>
+                            <div class="stat-description">基于历史数据预测的年度增长额</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<!-- 加载基础图表库 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<!-- 加载图表主题和交互模块 -->
+<script src="{{ url_for('static', filename='js/chart-themes.js') }}"></script>
+<!-- 加载通用模块 -->
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+
+<script>
+// 将后端数据转换为JavaScript变量，添加默认值和存在性检查
+// 收入支出平衡数据
+var incomeExpenseData = [];
+{% if data.income_expense_balance and data.income_expense_balance.get('monthly_data') %}
+    incomeExpenseData = {{ data.income_expense_balance.monthly_data | tojson | safe }};
+{% endif %}
+
+// 收入稳定性数据
+var incomeStabilityData = [];
+{% if data.income_stability and data.income_stability.get('monthly_income') %}
+    incomeStabilityData = {{ data.income_stability.monthly_income | tojson | safe }};
+{% endif %}
+
+// 收入来源分布数据
+var incomeSourcesData = [];
+{% if data.income_diversity and data.income_diversity.get('sources') %}
+    incomeSourcesData = {{ data.income_diversity.sources | tojson | safe }};
+{% endif %}
+
+// 月度收入来源数据
+var monthlySourcesData = [];
+{% if data.income_diversity and data.income_diversity.get('monthly_sources') %}
+    monthlySourcesData = {{ data.income_diversity.monthly_sources | tojson | safe }};
+{% endif %}
+
+// 现金流数据
+var cashFlowData = [];
+{% if data.cash_flow_health and data.cash_flow_health.get('monthly_cash_flow') %}
+    cashFlowData = {{ data.cash_flow_health.monthly_cash_flow | tojson | safe }};
+{% endif %}
+
+// 收入增长数据 - 使用yearly_income作为主要数据源
+var incomeGrowthData = {
+    yearly: []
+};
+{% if data.income_growth and data.income_growth.get('yearly_income') %}
+    incomeGrowthData.yearly = {{ data.income_growth.yearly_income | tojson | safe }};
+{% endif %}
+
+// 收入对比通胀数据
+var incomeVsInflationData = [];
+{% if data.income_growth and data.income_growth.get('income_vs_inflation') %}
+    incomeVsInflationData = {{ data.income_growth.income_vs_inflation | tojson | safe }};
+    // 添加到incomeGrowthData对象中，以便在图表中使用
+    incomeGrowthData.inflation = incomeVsInflationData;
+{% endif %}
+
+// 收支平衡点数据
+var breakEvenData = {};
+{% if data.financial_resilience and data.financial_resilience.get('break_even_analysis') %}
+    breakEvenData = {{ data.financial_resilience.break_even_analysis | tojson | safe }};
+{% endif %}
+
+// 调试信息
+console.log('收入支出平衡数据:', incomeExpenseData);
+console.log('收入稳定性数据:', incomeStabilityData);
+console.log('收入来源分布数据:', incomeSourcesData);
+console.log('月度收入来源数据:', monthlySourcesData);
+console.log('现金流数据:', cashFlowData);
+console.log('收入增长数据:', incomeGrowthData);
+console.log('收入VS通胀数据:', incomeVsInflationData);
+</script>
+<script src="{{ url_for('static', filename='js/income_analysis.js') }}"></script>
+{% endblock %} 

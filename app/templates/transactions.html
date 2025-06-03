@@ -1,0 +1,557 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, data_table, filter_form, filter_input %}
+
+{% block title %}交易记录 - 银行账单分析系统{% endblock %}
+
+{% block header_title %}交易记录{% endblock %}
+
+{% block page_css %}
+<link href="{{ url_for('static', filename='css/transactions.css') }}" rel="stylesheet">
+<style>
+    .transactions-header {
+        background: linear-gradient(to right, var(--primary-light), #f8f9fa);
+        border-radius: var(--border-radius-lg);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .filter-form-container {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        transition: all var(--transition-speed) ease;
+        border: none;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .filter-form-container:hover {
+        box-shadow: var(--card-shadow-hover);
+    }
+      
+    .filter-form-container .card-header {
+        cursor: pointer;
+    }
+    
+    .filter-badge {
+        display: inline-flex;
+        align-items: center;
+        background-color: var(--light);
+        border-radius: 50rem;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        user-select: none;
+    }
+    
+    .filter-badge .close-icon {
+        cursor: pointer;
+        margin-left: 0.5rem;
+        opacity: 0.6;
+    }
+    
+    .filter-badge .close-icon:hover {
+        opacity: 1;
+    }
+    
+    .active-filters {
+        padding: 0.5rem 1rem;
+        background-color: var(--light);
+        border-radius: var(--border-radius);
+        margin-bottom: 1rem;
+    }
+    
+    .filter-input-group {
+        position: relative;
+    }
+    
+    .filter-input-group .clear-input {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        opacity: 0.5;
+        z-index: 5;
+        display: none;
+    }
+    
+    .filter-input-group .clear-input:hover {
+        opacity: 1;
+    }
+    
+    .filter-input-group input:not(:placeholder-shown) ~ .clear-input,
+    .filter-input-group select:not([value=""]) ~ .clear-input {
+        display: block;
+    }
+    
+    .daterange-picker-container {
+        display: flex;
+        position: relative;
+    }
+    
+    .amount-range-slider {
+        margin-top: 0.5rem;
+    }
+    
+    .table-container {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        transition: all var(--transition-speed) ease;
+    }
+    
+    .transaction-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 50rem;
+    }
+    
+    .transaction-amount {
+        font-weight: 600;
+    }
+    
+    .transaction-amount.positive {
+        color: var(--success);
+    }
+    
+    .transaction-amount.negative {
+        color: var(--danger);
+    }
+
+    .collapse-toggle[aria-expanded="true"] .material-icons-round.expand-icon {
+        transform: rotate(180deg);
+        transition: transform 0.2s ease;
+    }
+
+    .collapse-toggle .material-icons-round.expand-icon {
+        transition: transform 0.2s ease;
+    }
+
+    /* 自定义滑块样式 */
+    .range-slider {
+        width: 100%;
+        margin: 1rem 0;
+    }
+
+    .range-slider-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .filter-quick-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .filter-quick-actions button {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block page_scripts %}
+<!-- 延迟加载交易页面特定脚本 -->
+<script src="{{ url_for('static', filename='js/transactions.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+<!-- 交易记录页头 -->
+<div class="transactions-header">
+    <div class="row align-items-center">
+        <div class="col-md-7">
+            <h1 class="fw-bold mb-1">交易记录</h1>
+            <p class="text-muted mb-0">
+                查看和搜索您的所有交易记录，共 <span class="badge rounded-pill bg-primary" id="total-count">{{ total_count }}</span> 条
+            </p>
+        </div>
+        <div class="col-md-5">
+            <div class="d-flex justify-content-md-end mt-3 mt-md-0">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary btn-sm me-2">
+                    {{ icon("dashboard", "sm", "", "me-1") }}
+                    返回仪表盘
+                </a>
+                <a href="{{ url_for('upload_bp.upload_file_route') }}" class="btn btn-primary btn-sm">
+                    {{ icon("cloud_upload", "sm", "", "me-1") }}
+                    上传新数据
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 分页数据元素 -->
+<div id="current-page-data" 
+     data-page="{{ data.pagination.page }}" 
+     data-limit="{{ data.pagination.limit }}" 
+     data-pages="{{ data.pagination.totalPages }}"
+     style="display: none;"></div>
+
+<!-- 交易数据元素 -->
+<div id="transactions-data" 
+     data-transactions='{{ data.transactions | tojson | safe }}' 
+     style="display: none;"></div>
+
+<!-- 调试信息（仅开发环境可见） -->
+<div id="debug-info" class="d-none">
+    <p>页数: {{ data.pagination.page }}/{{ data.pagination.pages }}</p>
+    <p>每页显示: {{ data.pagination.limit }}</p>
+    <p>当前筛选: {{ data.filters }}</p>
+    <p>记录数: {{ data.transactions|length }}</p>
+</div>
+
+<!-- 活跃筛选条件展示区 -->
+<div class="active-filters mb-3" id="active-filters-container" style="display: none;">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0 fw-bold">当前筛选条件</h6>
+        <button type="button" id="clear-all-filters" class="btn btn-sm btn-link text-danger p-0">清除全部</button>
+    </div>
+    <div id="active-filters-badges" class="d-flex flex-wrap"></div>
+</div>
+
+<!-- 筛选表单 -->
+<div class="card mb-4 filter-form-container">
+    <div class="card-header bg-white border-0 collapse-toggle" data-bs-toggle="collapse" data-bs-target="#filterFormCollapse" aria-expanded="true" aria-controls="filterFormCollapse">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
+                    {{ icon("filter_list", "sm", "text-primary") }}
+                </div>
+                <h6 class="card-title fw-bold mb-0">筛选条件</h6>
+            </div>
+            <div class="icon-circle bg-light d-flex align-items-center justify-content-center">
+                {{ icon("expand_more", "sm", "text-muted expand-icon") }}
+            </div>
+        </div>
+    </div>
+    <div class="collapse show" id="filterFormCollapse">
+        <div class="card-body">
+            <!-- 快速筛选按钮 -->
+            <div class="filter-quick-actions">
+                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="today">
+                    {{ icon("today", "sm", "", "me-1") }}今天
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="last7days">
+                    {{ icon("date_range", "sm", "", "me-1") }}最近7天
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="thisMonth">
+                    {{ icon("calendar_month", "sm", "", "me-1") }}本月
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="income">
+                    {{ icon("trending_up", "sm", "", "me-1") }}收入
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="expense">
+                    {{ icon("trending_down", "sm", "", "me-1") }}支出
+                </button>
+            </div>
+
+            <form id="filter-form" class="row g-3 filter-form">
+                <!-- 第一行：交易类型、银行/卡号、关键词 -->
+                <div class="col-lg-4 col-md-6">
+                    <label for="category" class="form-label small fw-medium">交易类型</label>
+                    <div class="filter-input-group">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0">
+                                {{ icon("category", "sm", "text-muted") }}
+                            </span>
+                            <select class="form-select border-start-0 shadow-none" id="category" name="category">
+                                <option value="">全部交易类型</option>
+                                {% for category in data.categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <label for="bankAccount" class="form-label small fw-medium">银行/卡号</label>
+                    <div class="filter-input-group">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0">
+                                {{ icon("account_balance", "sm", "text-muted") }}
+                            </span>
+                            <select class="form-select border-start-0 shadow-none" id="bankAccount" name="bankAccount">
+                                <option value="">全部银行/卡号</option>
+                                {% for account in data.accounts %}
+                                {% if account is mapping %}
+                                <option value="{{ account.id }}">{{ account.bank_name }} ({{ account.account_number }})</option>
+                                {% else %}
+                                <option value="{{ account }}">{{ account }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-12">
+                    <label for="search" class="form-label small fw-medium">关键词搜索</label>
+                    <div class="filter-input-group">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0">
+                                {{ icon("search", "sm", "text-muted") }}
+                            </span>
+                            <input type="text" class="form-control border-start-0 shadow-none" id="search" name="search" placeholder="输入交易对象、备注等...">
+                        </div>
+                        <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
+                    </div>
+                </div>
+
+                <!-- 第二行：日期范围 -->
+                <div class="col-md-8">
+                    <label class="form-label small fw-medium">交易日期范围</label>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="filter-input-group">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        {{ icon("event", "sm", "text-muted") }}
+                                    </span>
+                                    <input type="date" class="form-control border-start-0 shadow-none" id="startDate" name="startDate" placeholder="开始日期">
+                                </div>
+                                <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="filter-input-group">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        {{ icon("event", "sm", "text-muted") }}
+                                    </span>
+                                    <input type="date" class="form-control border-start-0 shadow-none" id="endDate" name="endDate" placeholder="结束日期">
+                                </div>
+                                <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 第二行：金额范围 -->
+                <div class="col-md-4">
+                    <label class="form-label small fw-medium">金额范围</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="filter-input-group">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        {{ icon("paid", "sm", "text-muted") }}
+                                    </span>
+                                    <input type="number" class="form-control border-start-0 shadow-none" id="minAmount" name="minAmount" placeholder="最小金额">
+                                </div>
+                                <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="filter-input-group">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        {{ icon("paid", "sm", "text-muted") }}
+                                    </span>
+                                    <input type="number" class="form-control border-start-0 shadow-none" id="maxAmount" name="maxAmount" placeholder="最大金额">
+                                </div>
+                                <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12 text-end mt-4 filter-actions">
+                    <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm me-2 d-inline-flex align-items-center">
+                        {{ icon("refresh", "sm", "", "me-1") }}
+                        <span>重置</span>
+                    </button>
+                    <button type="button" id="apply-filters" class="btn btn-primary btn-sm d-inline-flex align-items-center">
+                        {{ icon("search", "sm", "", "me-1") }}
+                        <span>搜索</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 交易记录表格 -->
+<div class="table-container">
+    {{ data_table("transactions-table", 
+                  ["序号", "日期", "类型", "交易对象", "金额", "账户余额", "账号", "银行"],
+                  true, 
+                  total=total_count, 
+                  filtered=data.transactions|length) }}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('交易记录页面DOM加载完成');
+        
+        // 美化交易金额显示
+        function formatTransactionRows() {
+            const tbody = document.querySelector('#transactions-body');
+            if (tbody) {
+                const rows = tbody.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const amountCell = row.querySelector('td:nth-child(5)');
+                    if (amountCell) {
+                        const amount = parseFloat(amountCell.textContent.replace(/[^\d.-]/g, ''));
+                        if (amount > 0) {
+                            amountCell.classList.add('transaction-amount', 'positive');
+                        } else if (amount < 0) {
+                            amountCell.classList.add('transaction-amount', 'negative');
+                        }
+                    }
+                    
+                    const typeCell = row.querySelector('td:nth-child(3) .badge');
+                    if (typeCell) {
+                        typeCell.classList.add('transaction-badge');
+                    }
+                });
+            }
+        }
+        
+        // 设置清除单个筛选条件的功能
+        const setupClearInputButtons = () => {
+            document.querySelectorAll('.clear-input').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const inputGroup = this.closest('.filter-input-group');
+                    const input = inputGroup.querySelector('input, select');
+                    if (input) {
+                        input.value = '';
+                        // 触发change事件以更新活跃筛选条件
+                        input.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+        };
+        
+        // 更新活跃筛选条件展示
+        const updateActiveFilters = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const badgesContainer = document.getElementById('active-filters-badges');
+            const activeFiltersContainer = document.getElementById('active-filters-container');
+            
+            if (!badgesContainer || !activeFiltersContainer) return;
+            
+            badgesContainer.innerHTML = '';
+            
+            const filterLabels = {
+                'category': '交易类型',
+                'bankAccount': '银行/卡号',
+                'search': '关键词',
+                'startDate': '开始日期',
+                'endDate': '结束日期',
+                'minAmount': '最小金额',
+                'maxAmount': '最大金额'
+            };
+            
+            let hasActiveFilters = false;
+            
+            urlParams.forEach((value, key) => {
+                if (key !== 'page' && value) {
+                    hasActiveFilters = true;
+                    const label = filterLabels[key] || key;
+                    
+                    const badge = document.createElement('div');
+                    badge.className = 'filter-badge';
+                    badge.innerHTML = `
+                        <span>${label}: ${value}</span>
+                        <span class="close-icon" data-param="${key}">
+                            {{ icon("close", "sm") }}
+                        </span>
+                    `;
+                    badgesContainer.appendChild(badge);
+                }
+            });
+            
+            // 显示或隐藏筛选条件区域
+            activeFiltersContainer.style.display = hasActiveFilters ? 'block' : 'none';
+            
+            // 绑定移除筛选条件事件
+            document.querySelectorAll('.filter-badge .close-icon').forEach(icon => {
+                icon.addEventListener('click', function() {
+                    const param = this.getAttribute('data-param');
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete(param);
+                    window.location.href = url.toString();
+                });
+            });
+        };
+        
+        // 初始化快速筛选按钮
+        const setupQuickFilters = () => {
+            document.querySelectorAll('.quick-filter').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const filterType = this.getAttribute('data-filter-type');
+                    const today = new Date();
+                    
+                    // 清除当前的日期和金额筛选
+                    document.getElementById('startDate').value = '';
+                    document.getElementById('endDate').value = '';
+                    document.getElementById('minAmount').value = '';
+                    document.getElementById('maxAmount').value = '';
+                    
+                    switch(filterType) {
+                        case 'today':
+                            const todayStr = today.toISOString().split('T')[0];
+                            document.getElementById('startDate').value = todayStr;
+                            document.getElementById('endDate').value = todayStr;
+                            break;
+                        case 'last7days':
+                            const last7days = new Date();
+                            last7days.setDate(today.getDate() - 6);
+                            document.getElementById('startDate').value = last7days.toISOString().split('T')[0];
+                            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+                            break;
+                        case 'thisMonth':
+                            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                            document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
+                            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+                            break;
+                        case 'income':
+                            document.getElementById('minAmount').value = '0.01';
+                            break;
+                        case 'expense':
+                            document.getElementById('maxAmount').value = '-0.01';
+                            break;
+                    }
+                    
+                    // 自动应用筛选条件
+                    document.getElementById('apply-filters').click();
+                });
+            });
+        };
+        
+        // 绑定清除所有筛选条件按钮
+        const setupClearAllFilters = () => {
+            const clearAllBtn = document.getElementById('clear-all-filters');
+            if (clearAllBtn) {
+                clearAllBtn.addEventListener('click', function() {
+                    window.location.href = window.location.pathname;
+                });
+            }
+        };
+        
+        // 初始化各组件
+        updateActiveFilters();
+        setupClearInputButtons();
+        setupQuickFilters();
+        setupClearAllFilters();
+        
+        // 监听表格变化
+        const observer = new MutationObserver(formatTransactionRows);
+        const target = document.querySelector('#transactions-body');
+        if (target) {
+            observer.observe(target, { childList: true, subtree: true });
+        }
+        
+        // 初始化时也执行一次
+        setTimeout(formatTransactionRows, 500);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,67 @@
+/* 
+ * AiBookkeeping - 上传页面样式
+ * 包含上传页面特定的样式
+ */
+
+/* 上传表单 */
+.upload-form-container {
+    margin-bottom: 2rem;
+}
+
+.file-input-wrapper {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.file-input-wrapper input[type="file"] {
+    color: #444;
+    transition: var(--transition);
+}
+
+.file-input-wrapper input[type="file"]:hover {
+    background-color: var(--primary-light);
+}
+
+/* 信息卡片 */
+.info-card {
+    margin-bottom: 1.5rem;
+}
+
+.info-card .card-header {
+    display: flex;
+    align-items: center;
+}
+
+.info-card .card-header i {
+    margin-right: 0.5rem;
+    color: var(--primary);
+}
+
+/* 字段列表 */
+.field-list {
+    padding-left: 0;
+    list-style: none;
+}
+
+.field-list-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+}
+
+.field-list-item:last-child {
+    border-bottom: none;
+}
+
+.field-list-item i {
+    margin-right: 0.75rem;
+    color: var(--primary);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .field-section {
+        margin-top: 1.5rem;
+    }
+} 

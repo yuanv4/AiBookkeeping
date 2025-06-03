@@ -1,1 +1,0 @@
-# This file makes the 'tests/app' directory a Python package
