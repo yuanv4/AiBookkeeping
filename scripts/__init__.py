@@ -29,7 +29,7 @@ logger = setup_logging(module_name='scripts')
 # 导入主要组件
 from scripts.common.config import get_config_manager
 from scripts.common.exceptions import AIBookkeepingError
-from scripts.db.db_manager import DBManager
+from scripts.db.db_facade import DBFacade
 from scripts.extractors.factory.extractor_factory import ExtractorFactory
 from scripts.analyzers.transaction_analyzer import TransactionAnalyzer
 from scripts.visualization.visualization_helper import VisualizationHelper
@@ -56,18 +56,18 @@ def initialize_system(config_path: Optional[str] = None) -> Dict[str, Any]:
             pass
         
         # 初始化数据库管理器
-        db_manager = DBManager()
+        db_facade = DBFacade()
         
         # 初始化提取器工厂
         extractor_factory = ExtractorFactory()
         
         # 初始化交易分析器
-        transaction_analyzer = TransactionAnalyzer(db_manager)
+        transaction_analyzer = TransactionAnalyzer(db_facade)
         
         # 返回系统组件
         return {
             'config_manager': config_manager,
-            'db_manager': db_manager,
+            'db_facade': db_facade,
             'extractor_factory': extractor_factory,
             'transaction_analyzer': transaction_analyzer
         }
@@ -176,4 +176,4 @@ def generate_visualizations(analysis_data: Dict[str, Any]) -> Dict[str, Any]:
         return {
             'success': False,
             'error': str(e)
-        } 
+        }

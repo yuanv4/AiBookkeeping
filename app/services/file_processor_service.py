@@ -2,15 +2,15 @@ import os
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask import current_app, flash # current_app 用于访问 app.config 和 logger
-# 导入 extractor_factory 和 db_manager (或者通过依赖注入传递它们)
+# 导入 extractor_factory 和 db_facade (或者通过依赖注入传递它们)
 # from scripts.extractors.factory.extractor_factory import get_extractor_factory # 假设这些在 app 层面实例化后传入
-# from scripts.db.db_manager import DBManager
+# from scripts.db.db_facade import DBFacade
 import logging
 
 class FileProcessorService:
-    def __init__(self, extractor_factory, db_manager, upload_folder):
+    def __init__(self, extractor_factory, db_facade, upload_folder):
         self.extractor_factory = extractor_factory
-        self.db_manager = db_manager
+        self.db_facade = db_facade
         self.upload_folder = Path(upload_folder)
         # 移除对 current_app.logger 的直接访问
         # self.logger = current_app.logger # 使用 Flask 的 logger
@@ -139,4 +139,4 @@ class FileProcessorService:
     def _is_allowed_file(self, filename):
         # 使用 _get_allowed_extensions 方法获取允许的扩展名
         return '.' in filename and \
-               filename.rsplit('.', 1)[1].lower() in self._get_allowed_extensions() 
+               filename.rsplit('.', 1)[1].lower() in self._get_allowed_extensions()

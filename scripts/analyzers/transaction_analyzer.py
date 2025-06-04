@@ -23,7 +23,7 @@ if root_dir not in sys.path:
 if scripts_dir not in sys.path:
     sys.path.append(scripts_dir)
 
-from scripts.db.db_manager import DBManager
+from scripts.db.db_facade import DBFacade
 
 # 导入错误处理机制
 from scripts.common.exceptions import (
@@ -53,17 +53,17 @@ from scripts.analyzers.modules.analyzer_factory import AnalyzerFactory
 class TransactionAnalyzer:
     """交易分析器门面类，统一管理和调用各种分析功能"""
     
-    def __init__(self, db_manager=None):
+    def __init__(self, db_facade=None):
         """初始化交易分析器
         
         Args:
-            db_manager: DBManager实例，如果为None则创建新实例
+            db_facade: DBFacade实例，如果为None则创建新实例
         """
-        if db_manager is None:
+        if db_facade is None:
             raise ValueError("DBManager instance must be provided to TransactionAnalyzer")
         
         # 创建分析器工厂
-        self.analyzer_factory = AnalyzerFactory(db_manager)
+        self.analyzer_factory = AnalyzerFactory(db_facade)
         self.logger = logger
     
     @error_handler(fallback_value=pd.DataFrame(), expected_exceptions=InvalidParameterError)
@@ -517,8 +517,8 @@ class TransactionAnalyzer:
 
 # 使用示例
 if __name__ == "__main__":
-    from scripts.db.db_manager import DBManager
-    db_manager = DBManager()
+    from scripts.db.db_facade import DBFacade
+    db_facade = DBFacade()
     analyzer = TransactionAnalyzer(db_manager)
     # 示例使用
     # results = analyzer.analyze_transaction_data_direct(start_date='2023-01-01', end_date='2023-12-31')

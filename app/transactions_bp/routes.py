@@ -6,7 +6,7 @@ from . import transactions_bp
 def transactions_list_route(): # 重命名函数
     """交易记录页面"""
     try:
-        db_manager = current_app.db_manager
+        db_facade = current_app.db_facade
         page = request.args.get('page', 1, type=int)
         # limit 从 app.config 获取
         limit = request.args.get('limit', current_app.config.get('ITEMS_PER_PAGE', 20), type=int)
@@ -39,7 +39,7 @@ def transactions_list_route(): # 重命名函数
             'distinct': distinct_req
         }
         
-        transactions_list = db_manager.get_transactions(**query_params_for_db)
+        transactions_list = db_facade.get_transactions(**query_params_for_db)
         
         count_query_params = {
             'account_number_filter': account_number_req,
@@ -53,14 +53,14 @@ def transactions_list_route(): # 重命名函数
             'account_name_filter': account_name_req,
             'distinct': distinct_req
         }
-        total_transactions = db_manager.get_transactions_count(**count_query_params) 
+        total_transactions = db_facade.get_transactions_count(**count_query_params) 
 
-        accounts = db_manager.get_accounts()
+        accounts = db_facade.get_accounts()
         
-        distinct_types_from_db = db_manager.get_distinct_values('transaction_types', 'type_name')
+        distinct_types_from_db = db_facade.get_distinct_values('transaction_types', 'type_name')
         transaction_types_for_filter = [{'type_name': t} for t in distinct_types_from_db]
 
-        distinct_currencies_from_db = db_manager.get_distinct_values('transactions', 'currency')
+        distinct_currencies_from_db = db_facade.get_distinct_values('transactions', 'currency')
         currencies_for_filter = [{'currency_code': c} for c in distinct_currencies_from_db]
 
         current_filters = {
@@ -101,4 +101,4 @@ def transactions_list_route(): # 重命名函数
     except Exception as e:
         current_app.logger.error(f"Error in /transactions route: {e}", exc_info=True)
         # 依赖全局错误处理器
-        raise # 或者 return render_template('errors/500.html', error_message="无法加载交易记录。 " + str(e)), 500 
+        raise # 或者 return render_template('errors/500.html', error_message="无法加载交易记录。 " + str(e)), 500

@@ -12,8 +12,8 @@ from . import api_bp
 def api_data_route(): #重命名函数
     """API接口获取分析数据"""
     try:
-        db_manager = current_app.db_manager
-        analyzer = TransactionAnalyzer(db_manager) # 实例化分析器
+        db_facade = current_app.db_facade
+        analyzer = TransactionAnalyzer(db_facade) # 实例化分析器
 
         start_date = request.args.get('start_date', None)
         end_date = request.args.get('end_date', None)
@@ -54,7 +54,7 @@ def api_data_route(): #重命名函数
 def export_transactions_route(): # 重命名函数
     """导出交易记录为CSV文件"""
     try:
-        db_manager = current_app.db_manager
+        db_facade = current_app.db_facade
         query_params = {
             'account_number_filter': request.args.get('account_number', None),
             'start_date': request.args.get('start_date', None),
@@ -68,7 +68,7 @@ def export_transactions_route(): # 重命名函数
             'distinct': request.args.get('distinct', False, type=lambda v: v.lower() == 'true')
         }
         
-        output_file = db_manager.export_to_csv(query_params=query_params)
+        output_file = db_facade.export_to_csv(query_params=query_params)
         
         if output_file and os.path.exists(output_file):
             return send_file(output_file, as_attachment=True, download_name=os.path.basename(output_file))
@@ -78,4 +78,4 @@ def export_transactions_route(): # 重命名函数
 
     except Exception as e:
         current_app.logger.error(f"API /export_transactions 时出错: {e}", exc_info=True)
-        raise 
+        raise

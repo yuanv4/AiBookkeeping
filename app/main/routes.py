@@ -1,9 +1,19 @@
 # app/main/routes.py
-from flask import redirect, url_for, render_template, flash, current_app, request
+from flask import redirect, url_for, render_template, flash, current_app, request, g
 from datetime import datetime # dashboard 中使用
 # from scripts.analyzers.transaction_analyzer import TransactionAnalyzer # 将在需要时实例化
 
 from . import main # 从同级 __init__.py 导入 main 蓝图实例
+
+@main.before_request
+def before_request():
+    g.db_facade = current_app.db_facade
+
+@main.after_request
+def after_request(response):
+    if hasattr(g, 'db_facade'):
+        g.db_facade.db_connection.close_connection()
+    return response
 
 @main.route('/')
 def index():
@@ -14,24 +24,36 @@ def index():
 def dashboard():
     """仪表盘页面"""
     try:
-        db_manager = current_app.db_manager
+        # 从 g 对象获取 db_facade，确保每个请求使用独立的连接
+        db_facade = g.db_facade
         # 获取账户余额
-        balance_summary = db_manager.get_balance_summary()
-        total_balance = sum(float(account.get('latest_balance', 0) or 0) for account in balance_summary)
-        recent_transactions = db_manager.get_transactions(limit=10, distinct=True)
+        summary_data = db_facade.get_balance_summary()
+        
+        # 检查 summary_data 是否为 None 或空，以避免后续错误
+        if not summary_data:
+            current_app.logger.warning("获取余额汇总数据失败。")
+            # 提供默认值或重定向到错误页面
+            summary_data = {'net_balance': 0.0, 'account_balances': {}}
+
+        total_balance = summary_data.get('net_balance', 0.0)
+        
+        # 将 account_balances 从字典的值转换为列表
+        account_balances_raw = summary_data.get('account_balances', {}).values()
         
         account_balances = []
-        for account in balance_summary:
+        for acc_data in account_balances_raw:
             account_balances.append({
-                'account': account['account_number'],
-                'bank': account['bank_name'],
-                'balance': float(account['latest_balance'] or 0),
-                'update_date': account['balance_date']
+                'account': acc_data.get('account_number', 'N/A'),
+                'bank': acc_data.get('bank_name', 'N/A'), # Assuming bank_name might be added to acc_data in future or fetched separately
+                'balance': float(acc_data.get('balance', 0) or 0),
+                'update_date': acc_data.get('balance_date', 'N/A') # Assuming balance_date might be added to acc_data in future or fetched separately
             })
+
+        recent_transactions = db_facade.get_transactions(limit=10, distinct=True)
         
-        db_stats = db_manager.get_statistics()
-        balance_range = db_manager.get_balance_range()
-        monthly_balance_history = db_manager.get_monthly_balance_history(months=12)
+        db_stats = db_facade.get_general_statistics()
+        balance_range = db_facade.get_balance_range()
+        monthly_balance_history = db_facade.get_monthly_balance_history(months=12)
         
         income = db_stats.get('total_income', 0)
         expense = db_stats.get('total_expense', 0)
@@ -97,4 +119,4 @@ def dashboard():
         # 或者，如果全局处理器不能很好地处理这种情况（例如，它只渲染500页面而不带flash消息）
         # 可以在这里渲染一个带有错误消息的dashboard，或者重定向
         # 保持简单，依赖全局处理器：
-        raise # 或者 return render_template('errors/500.html', error=str(e)), 500 
+        raise # 或者 return render_template('errors/500.html', error=str(e)), 500

@@ -6,15 +6,15 @@ from datetime import datetime
 class DataExtractor:
     """数据提取器，负责从数据库获取原始交易数据并进行基础处理"""
     
-    def __init__(self, db_manager):
+    def __init__(self, db_facade):
         """初始化数据提取器
         
         Args:
-            db_manager: DBManager实例，用于数据库操作
+            db_facade: DBFacade实例，用于数据库操作
         """
-        if db_manager is None:
+        if db_facade is None:
             raise ValueError("DBManager instance must be provided to DataExtractor")
-        self.db_manager = db_manager
+        self.db_facade = db_facade
         self.logger = logging.getLogger(self.__class__.__name__)
         self.cached_transactions = {}  # 用于缓存最近的查询结果
         
@@ -47,7 +47,7 @@ class DataExtractor:
         )
         
         # 从数据库获取交易数据
-        transactions = self.db_manager.get_transactions(
+        transactions = self.db_facade.get_transactions(
             account_number_filter=account_number, 
             start_date=start_date,
             end_date=end_date,
@@ -96,7 +96,7 @@ class DataExtractor:
         
     def get_accounts(self):
         """获取账户信息"""
-        accounts = self.db_manager.get_accounts()
+        accounts = self.db_facade.get_accounts()
         if accounts:
             return pd.DataFrame(accounts)
-        return pd.DataFrame() 
+        return pd.DataFrame()

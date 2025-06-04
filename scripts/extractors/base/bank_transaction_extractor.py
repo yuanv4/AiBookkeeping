@@ -23,7 +23,7 @@ if scripts_dir not in sys.path:
 # 导入接口和配置
 from scripts.extractors.interfaces.extractor_interface import ExtractorInterface
 from scripts.extractors.config.config_loader import get_config_loader
-from scripts.db.db_manager import DBManager
+from scripts.db.db_facade import DBFacade
 
 # 导入异常处理机制
 from scripts.common.exceptions import (
@@ -50,7 +50,7 @@ class BankTransactionExtractor(ExtractorInterface):
         """
         self.bank_code = bank_code
         self.logger = logging.getLogger(f'{bank_code}_extractor')
-        self.db_manager = DBManager()
+        self.db_facade = DBFacade()
         
         # 加载配置
         self.config_loader = get_config_loader()
@@ -212,14 +212,14 @@ class BankTransactionExtractor(ExtractorInterface):
             )
             
         # 获取银行ID
-        bank_id = self.db_manager.get_or_create_bank(self.get_bank_code(), self.get_bank_name())
+        bank_id = self.db_facade.get_or_create_bank(self.get_bank_code(), self.get_bank_name())
         
         # 创建导入批次ID
         import_batch = f"{self.get_bank_code()}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         
         try:
             # 导入数据
-            record_count = self.db_manager.import_transactions(df, bank_id, import_batch)
+            record_count = self.db_facade.import_transactions(df, bank_id, import_batch)
             self.logger.info(f"成功导入 {record_count} 条交易记录")
             return record_count
             
@@ -917,4 +917,4 @@ class BankTransactionExtractor(ExtractorInterface):
             return result
             
         # 所有检查都通过
-        return result 
+        return result

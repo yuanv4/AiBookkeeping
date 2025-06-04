@@ -6,9 +6,9 @@
 负责数据库操作和数据存储。
 
 主要模块：
-- db_manager.py - 数据库管理器，处理所有数据库操作
+- db_facade.py - 数据库门面，统一管理所有数据库操作
 """
 
-from .db_manager import DBManager
+from .db_facade import DBFacade
 
-__all__ = ['DBManager'] 
+__all__ = ['DBManager']

@@ -5,28 +5,28 @@ from . import income_analysis_bp
 def income_analysis():
     """收入分析页面"""
     try:
-        db_manager = current_app.db_manager
+        db_facade = current_app.db_facade
         
         # 获取账户余额
-        balance_summary = db_manager.get_balance_summary()
+        balance_summary = db_facade.get_balance_summary()
         
         # 获取收入与支出平衡分析数据
-        income_expense_balance = db_manager.get_income_expense_balance()
+        income_expense_balance = db_facade.get_income_expense_balance()
         
         # 获取收入稳定性分析数据
-        income_stability = db_manager.get_income_stability()
+        income_stability = db_facade.get_income_stability()
         
         # 获取收入多样性评估数据
-        income_diversity = db_manager.get_income_diversity()
+        income_diversity = db_facade.get_income_diversity()
         
         # 获取现金流健康度数据
-        cash_flow_health = db_manager.get_cash_flow_health()
+        cash_flow_health = db_facade.get_cash_flow_health()
         
         # 获取收入增长评估数据
-        income_growth = db_manager.get_income_growth()
+        income_growth = db_facade.get_income_growth()
         
         # 获取财务韧性指标数据
-        financial_resilience = db_manager.get_financial_resilience()
+        financial_resilience = db_facade.get_financial_resilience()
         
         # 组装数据
         data = {
@@ -44,4 +44,4 @@ def income_analysis():
         
     except Exception as e:
         current_app.logger.error(f"收入分析页面加载出错: {e}", exc_info=True)
-        raise 
+        raise

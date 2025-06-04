@@ -45,17 +45,33 @@ def create_app(config_name='default'):
 
     # 导入和初始化核心服务/管理器
     # 这些依赖于上面的 sys.path 修改可能已经完成
-    from scripts.db.db_manager import DBManager
+    from scripts.db.db_facade import DBFacade
     from scripts.extractors.factory.extractor_factory import get_extractor_factory
     # services 目录现在是 app/services/
     from app.services.file_processor_service import FileProcessorService
 
     # 将实例附加到 app 对象，供蓝图和应用上下文使用
-    app.db_manager = DBManager()
+    # 初始化数据库门面
+    # 注意：这里只创建 DBFacade 实例，不直接初始化连接
+    # 连接将在每个请求中通过 db_facade.get_connection() 获取
+    app.db_facade = DBFacade(app.config['DATABASE_PATH'])
+
+    # 在应用上下文销毁时关闭数据库连接
+    @app.teardown_appcontext
+    def close_db_connection(exception):
+        # 确保在应用关闭时，所有线程的连接都被关闭
+        # 对于 threading.local() 管理的连接，这里不需要额外操作
+        # 因为每个请求结束时，连接已经在 after_request 中关闭
+        pass # 实际的关闭逻辑已移至 after_request
+
+    # 确保在应用启动时，主线程的数据库连接被初始化
+    with app.app_context():
+        app.db_facade.init_db() # Ensure database tables are created
+
     app.extractor_factory = get_extractor_factory()
     app.file_processor_service = FileProcessorService(
-        app.extractor_factory, 
-        app.db_manager, 
+        app.extractor_factory,
+        app.db_facade,
         app.config['UPLOAD_FOLDER']
     )
     app.logger.info("DBManager, ExtractorFactory, FileProcessorService 已初始化并附加到 app 对象。")
@@ -122,7 +138,7 @@ def create_app(config_name='default'):
         elif message != "未找到待处理的Excel文件": # 只记录非"未找到"的消息
              app.logger.info(f"启动时文件处理消息: {message}")
         # 数据库统计信息检查
-        stats = app.db_manager.get_statistics()
+        stats = app.db_facade.get_general_statistics()
         if stats and stats.get('total_transactions', 0) > 0:
             app.logger.info(f"数据库已连接并包含 {stats.get('total_transactions', 0)} 条交易记录")
         else:
@@ -130,4 +146,4 @@ def create_app(config_name='default'):
     except Exception as e_init:
         app.logger.error(f"应用启动时执行 init_database 逻辑出错: {e_init}", exc_info=True)
 
-    return app 
+    return app

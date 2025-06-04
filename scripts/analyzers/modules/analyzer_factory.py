@@ -24,20 +24,20 @@ logger = logging.getLogger('analyzer_factory')
 class AnalyzerFactory:
     """分析器工厂类，负责创建和管理各种分析器"""
     
-    def __init__(self, db_manager):
+    def __init__(self, db_facade):
         """初始化分析器工厂
         
         Args:
-            db_manager: 数据库管理器实例
+            db_facade: 数据库门面实例
         """
-        self.db_manager = db_manager
+        self.db_facade = db_facade
         self.logger = logger
         
         # 获取配置管理器
         self.config_manager = get_config_manager()
         
         # 创建数据提取器
-        self.data_extractor = DataExtractor(db_manager)
+        self.data_extractor = DataExtractor(db_facade)
         
         # 创建各种分析器
         self._create_analyzers()
@@ -122,7 +122,7 @@ class AnalyzerFactory:
             self.logger.info(f"使用默认日期范围: 最近 {default_days} 天")
             
             # 让db_manager根据默认天数计算日期范围
-            date_range = self.db_manager.get_default_date_range(default_days)
+            date_range = self.db_facade.get_default_date_range(default_days)
             kwargs.update(date_range)
         
         # 首先获取交易数据
@@ -151,4 +151,4 @@ class AnalyzerFactory:
                 analyzer.clear_cache()
                 self.logger.info(f"已清除 {analyzer_type} 分析器缓存")
         
-        self.logger.info("所有分析器缓存已清除") 
+        self.logger.info("所有分析器缓存已清除")

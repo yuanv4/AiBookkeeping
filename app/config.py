@@ -21,6 +21,7 @@ class Config:
     ITEMS_PER_PAGE = 20 # 默认值
     TEMPLATES_AUTO_RELOAD = True
     API_URL_PREFIX = '/api' # For error handler
+    DATABASE_PATH = os.path.join(PROJECT_ROOT, 'instance', 'app.db')
     # 数据库配置 (如果 DBManager 需要外部配置)
     # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///your_default_database.db'
     # SQLALCHEMY_TRACK_MODIFICATIONS = False 
@@ -43,4 +44,4 @@ config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
     'default': DevelopmentConfig
-} 
+}
