@@ -47,9 +47,10 @@ logs/
 
 # 数据文件
 # 数据目录可能包含敏感信息，因此默认忽略
-data/
+instance/*
 uploads/*
-downloads/
+
+# 临时文件
 tmp/*
 
 # 但是确保data目录结构存在
