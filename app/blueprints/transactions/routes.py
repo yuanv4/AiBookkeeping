@@ -15,8 +15,7 @@ def transactions_list_route(): # 重命名函数
         transaction_service = TransactionService()
         
         page = request.args.get('page', 1, type=int)
-        # limit 从 app.config 获取
-        limit = request.args.get('limit', current_app.config.get('ITEMS_PER_PAGE', 20), type=int)
+        limit = request.args.get('limit', 20, type=int)
         
         account_number_req = request.args.get('account_number', None) 
         start_date_req = request.args.get('start_date', None)
@@ -92,7 +91,6 @@ def transactions_list_route(): # 重命名函数
             'distinct': distinct_req
         }
 
-        if limit <= 0: limit = current_app.config.get('ITEMS_PER_PAGE', 20)
         total_pages = (total_transactions + limit - 1) // limit if total_transactions > 0 else 1
 
         # 转换交易记录为模板需要的格式

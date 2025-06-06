@@ -1,12 +1,12 @@
 import os
 import logging
 import sys
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler
 from flask import Flask, request, render_template, jsonify
 from flask_migrate import Migrate
 
-# 从同一目录的 config 模块导入配置字典
-from .config import config, get_config
+# 从同一目录的 config 模块导入配置函数
+from .config import get_config
 from .template_filters import register_template_filters
 from .models import db
 from .services.database_service import DatabaseService
@@ -25,17 +25,19 @@ def configure_logging(app):
     # 创建日志格式器
     formatter = logging.Formatter(app.config.get('LOG_FORMAT'))
     
-    # 配置文件处理器 - 每小时轮转
-    log_file = os.path.join(app.config['LOG_DIR'], 'app.log')
-    file_handler = TimedRotatingFileHandler(
+    # 配置文件处理器 - 使用RotatingFileHandler按大小轮转
+    log_file = app.config.get('LOG_FILE', 'logs/app.log')
+    # 确保日志目录存在
+    log_dir = os.path.dirname(log_file)
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+    
+    file_handler = RotatingFileHandler(
         filename=log_file,
-        when=app.config.get('LOG_ROTATION_WHEN', 'H'),
-        interval=app.config.get('LOG_ROTATION_INTERVAL', 1),
-        backupCount=app.config.get('LOG_BACKUP_COUNT', 168),
+        maxBytes=app.config.get('LOG_MAX_BYTES', 10 * 1024 * 1024),
+        backupCount=app.config.get('LOG_BACKUP_COUNT', 5),
         encoding='utf-8'
     )
-    # 设置轮转后文件的命名格式：app.log.2025-01-05_14
-    file_handler.suffix = "%Y-%m-%d_%H"
     file_handler.setFormatter(formatter)
     file_handler.setLevel(log_level)
     
@@ -53,12 +55,11 @@ def configure_logging(app):
     app.logger.info(f"应用以 '{app.config.get('ENV', 'unknown')}' 配置启动。日志级别: {logging.getLevelName(log_level)}")
     app.logger.info(f"日志文件路径: {log_file}")
 
-def create_app(config_name='default'):
+def create_app():
     app = Flask(__name__)
     
     # Load configuration
-    config_obj = get_config(config_name)
-    app.config.from_object(config_obj)
+    config_obj = get_config()
     
     # Initialize configuration
     config_obj.init_app(app)
@@ -125,8 +126,8 @@ def create_app(config_name='default'):
     app.logger.info("已注册 transactions_bp, 前缀 /transactions")
 
     from .blueprints.api.routes import api_bp
-    app.register_blueprint(api_bp, url_prefix=app.config.get('API_URL_PREFIX', '/api'))
-    app.logger.info(f"已注册 api_bp, 前缀 {app.config.get('API_URL_PREFIX', '/api')}")
+    app.register_blueprint(api_bp, url_prefix='/api')
+    app.logger.info(f"已注册 api_bp, 前缀 {'/api'}")
     
     from .blueprints.income_analysis.routes import income_analysis_bp
     app.register_blueprint(income_analysis_bp, url_prefix='/income-analysis')
@@ -151,7 +152,7 @@ def create_app(config_name='default'):
     @app.errorhandler(Exception)
     def handle_general_exception_handler(e):
         app.logger.error(f"发生未捕获的异常: {e}", exc_info=True)
-        if request.path.startswith(app.config.get('API_URL_PREFIX', '/api')) or \
+        if request.path.startswith('/api') or \
            (request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html):
             return jsonify(success=False, error="服务器发生内部错误", details=str(e)), 500
         return render_template('errors/500.html', error="发生了一个意外错误"), 500

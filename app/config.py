@@ -1,103 +1,86 @@
 import os
-
-# 项目的根目录
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from pathlib import Path
 
 class Config:
-    """基础配置类"""
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    """应用配置类 - 从环境变量读取所有配置"""
     
-    # 数据库配置
-    DATABASE_PATH = os.path.join(PROJECT_ROOT, 'instance', 'app.db')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'sqlite:///{DATABASE_PATH}'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
-    # 文件上传配置
-    UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, 'uploads')
-    ALLOWED_EXTENSIONS = {'xlsx', 'xls', 'csv', 'txt'}
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
-    
-    # 分页配置
-    TRANSACTIONS_PER_PAGE = 50
-    
-    # 货币设置
-    DEFAULT_CURRENCY = 'CNY'
-    
-    # 日期格式
-    DATE_FORMAT = '%Y-%m-%d'
-    DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-    
-    # 日志配置
-    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
-    LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
-    LOG_FILE_MAX_BYTES = 10 * 1024 * 1024  # 10MB
-    LOG_BACKUP_COUNT = 168  # 保留7天的小时日志 (24*7=168)
-    LOG_ROTATION_WHEN = 'H'  # 按小时轮转
-    LOG_ROTATION_INTERVAL = 1  # 每1小时
-    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    
-    @staticmethod
-    def init_app(app):
-        """初始化应用配置"""
-        # 创建必要的文件夹
-        for folder in [app.config['UPLOAD_FOLDER'], 
-                      os.path.dirname(app.config['DATABASE_PATH']),
-                      app.config['LOG_DIR']]:
-            if not os.path.exists(folder):
-                os.makedirs(folder, exist_ok=True) 
-
-class DevelopmentConfig(Config):
-    """开发环境配置"""
-    DEBUG = True
-    SQLALCHEMY_ECHO = True
-    
-    # 开发环境数据库
-    DATABASE_PATH = os.path.join(PROJECT_ROOT, 'instance', 'dev_app.db')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or f'sqlite:///{DATABASE_PATH}'
-    
-    # 开发环境日志配置
-    LOG_LEVEL = 'DEBUG'
-    LOG_BACKUP_COUNT = 24  # 开发环境保留24小时日志
-
-class TestingConfig(Config):
-    """测试环境配置"""
-    TESTING = True
-    DEBUG = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite://'
-    
-    # 测试环境使用临时目录
-    import tempfile
-    UPLOAD_FOLDER = os.path.join(tempfile.gettempdir(), 'test_uploads')
-    
-    # 测试环境日志配置
-    LOG_LEVEL = 'INFO'
-    LOG_BACKUP_COUNT = 48  # 测试环境保留48小时日志
-
-class ProductionConfig(Config):
-    """生产环境配置"""
-    DEBUG = False
-    
-    # 生产环境日志配置
-    LOG_LEVEL = 'WARNING'
-    LOG_BACKUP_COUNT = 168  # 生产环境保留7天日志
-    
-    @classmethod
-    def init_app(cls, app):
-        Config.init_app(app)
+    def __init__(self):
+        # 基础配置
+        self.SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
+        self.DEBUG = self._get_bool('DEBUG', False)
         
-        # 检查生产环境必需的环境变量
-        if not os.environ.get('SECRET_KEY'):
-            raise ValueError("生产环境中未设置 SECRET_KEY 环境变量")
+        # 环境配置
+        self.FLASK_ENV = os.environ.get('FLASK_CONFIG', 'development')
+        
+        # 数据库配置
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if self.FLASK_ENV == 'testing':
+            # 测试环境使用内存数据库
+            self.SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+        elif self.FLASK_ENV == 'production':
+            # 生产环境使用固定的SQLite数据库文件
+            db_path = os.path.join(project_root, 'instance', 'prod_app.db')
+            self.SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
+        else:
+            # 开发环境使用固定的SQLite数据库文件
+            db_path = os.path.join(project_root, 'instance', 'dev_app.db')
+            self.SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
 
-config = {
-    'development': DevelopmentConfig,
-    'testing': TestingConfig,
-    'production': ProductionConfig,
-    'default': DevelopmentConfig
-}
+        # 文件上传配置
+        self.UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
+        allowed_extensions = self._get_list('ALLOWED_EXTENSIONS', 
+                                          ['xlsx', 'xls'])
+        self.ALLOWED_EXTENSIONS = set(allowed_extensions)
+        
+        # 日志配置
+        self.LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+        self.LOG_FILE = os.environ.get('LOG_FILE', 'logs/app.log')
+        self.LOG_MAX_BYTES = self._get_int('LOG_MAX_BYTES', 10 * 1024 * 1024)
+        self.LOG_BACKUP_COUNT = self._get_int('LOG_BACKUP_COUNT', 5)
+        self.LOG_FORMAT = os.environ.get('LOG_FORMAT', '%(asctime)s %(levelname)s %(name)s %(message)s')
+        self.LOG_DATE_FORMAT = os.environ.get('LOG_DATE_FORMAT', '%Y-%m-%d %H:%M:%S')
+        
+        # 生产环境配置验证
+        if self.FLASK_ENV == 'production':
+            if not os.environ.get('SECRET_KEY') or os.environ.get('SECRET_KEY') == 'dev-secret-key-change-in-production':
+                raise ValueError("生产环境中未设置有效的 SECRET_KEY 环境变量")
+    
+    def _get_bool(self, key, default=False):
+        """从环境变量获取布尔值"""
+        value = os.environ.get(key, str(default)).lower()
+        return value in ('true', '1', 'yes', 'on')
+    
+    def _get_int(self, key, default=0):
+        """从环境变量获取整数值"""
+        try:
+            return int(os.environ.get(key, default))
+        except (ValueError, TypeError):
+            return default
+    
+    def _get_list(self, key, default=None, separator=','):
+        """从环境变量获取列表值"""
+        if default is None:
+            default = []
+        value = os.environ.get(key, '')
+        if not value:
+            return default
+        return [item.strip() for item in value.split(separator) if item.strip()]
+    
+    def init_app(self, app):
+        """初始化应用配置"""
+        # 将配置应用到Flask应用
+        for key, value in self.__dict__.items():
+            if key.isupper():
+                app.config[key] = value
+        
+        # 确保上传目录存在
+        upload_path = Path(self.UPLOAD_FOLDER)
+        upload_path.mkdir(parents=True, exist_ok=True)
+        
+        # 确保日志目录存在
+        log_path = Path(self.LOG_FILE).parent
+        log_path.mkdir(parents=True, exist_ok=True) 
 
-def get_config(config_name=None):
-    """获取配置类"""
-    if config_name is None:
-        config_name = os.environ.get('FLASK_ENV', 'default')
-    return config.get(config_name, config['default'])
+def get_config():
+    """获取配置实例"""
+    return Config()

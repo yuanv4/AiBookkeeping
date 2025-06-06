@@ -136,6 +136,59 @@ AiBookkeeping/
 
 这些交互式功能让数据分析变得更加直观和灵活，用户可以根据自己的需求自由探索数据。
 
+## 环境配置
+
+### 配置文件说明
+
+项目使用 `.env` 文件管理环境配置，支持开发、测试、生产三种环境。
+
+#### 配置文件结构
+
+- `.env` - 当前环境配置文件（不提交到版本控制）
+- `.env.example` - 配置模板文件
+
+#### 环境配置步骤
+
+1. **复制配置模板**：
+```bash
+# 复制配置模板
+cp .env.example .env
+```
+
+2. **设置环境类型**（可选）：
+```bash
+# 开发环境（默认）
+FLASK_CONFIG=development
+
+# 测试环境
+FLASK_CONFIG=testing
+
+# 生产环境
+FLASK_CONFIG=production
+```
+
+#### 主要配置参数
+
+| 参数 | 说明 | 默认值 | 示例 |
+|------|------|--------|---------|
+| `FLASK_CONFIG` | 应用环境 | development | development/testing/production |
+| `SECRET_KEY` | 应用密钥 | 自动生成 | your-secret-key-here |
+| `UPLOAD_FOLDER` | 上传目录 | uploads | /path/to/uploads |
+| `LOG_LEVEL` | 日志级别 | INFO | DEBUG/INFO/WARNING/ERROR |
+
+### 数据库说明
+
+项目使用内置SQLite数据库，无需额外配置：
+- **开发环境**：数据库文件存储在 `instance/dev_app.db`
+- **生产环境**：数据库文件存储在 `instance/prod_app.db`
+- **测试环境**：使用内存数据库，测试结束后自动清理
+
+### 配置注意事项
+
+- 生产环境建议设置强密钥
+- 配置模板文件（`.env.example`）可以提交到版本控制，便于团队协作
+- 数据库文件会自动创建，无需手动配置
+
 ## 安装
 
 1. 确保已安装Python 3.6或更高版本
@@ -143,6 +196,13 @@ AiBookkeeping/
 
 ```bash
 pip install -r requirements.txt
+```
+
+3. 配置环境变量：
+
+```bash
+# 复制配置模板并根据需要修改
+copy .env.example .env
 ```
 
 ## 使用方法
