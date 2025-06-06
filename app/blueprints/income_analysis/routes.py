@@ -14,13 +14,17 @@ def income_analysis():
         database_service = DatabaseService()
         analysis_service = AnalysisService()
         
-        # 获取收入分析数据
+        # 获取综合收入分析数据（包含模板所需的data结构）
+        data = analysis_service.get_comprehensive_income_analysis()
+        
+        # 获取其他收入分析数据（保持向后兼容）
         monthly_income = analysis_service.get_monthly_income_summary()
         yearly_income = analysis_service.get_yearly_income_summary()
         income_by_account = analysis_service.get_income_by_account()
         income_trends = analysis_service.get_income_trends()
         
         return render_template('income_analysis.html',
+                             data=data,
                              monthly_income=monthly_income,
                              yearly_income=yearly_income,
                              income_by_account=income_by_account,

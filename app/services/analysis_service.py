@@ -787,3 +787,654 @@ class AnalysisService:
         except Exception as e:
             logger.error(f"Error exporting financial data: {e}")
             raise
+    
+    @staticmethod
+    def get_comprehensive_income_analysis() -> Dict[str, Any]:
+        """获取综合收入分析数据，返回模板所需的完整data结构"""
+        try:
+            # 获取基础数据
+            today = date.today()
+            start_date = today.replace(year=today.year - 1, month=1, day=1)  # 过去一年
+            end_date = today
+            
+            # 构建综合分析数据结构
+            data = {
+                'income_expense_balance': AnalysisService._get_income_expense_balance(start_date, end_date),
+                'income_stability': AnalysisService._get_income_stability(start_date, end_date),
+                'cash_flow_health': AnalysisService._get_cash_flow_health(start_date, end_date),
+                'income_diversity': AnalysisService._get_income_diversity(start_date, end_date),
+                'income_growth': AnalysisService._get_income_growth(start_date, end_date),
+                'financial_resilience': AnalysisService._get_financial_resilience(start_date, end_date)
+            }
+            
+            return data
+            
+        except Exception as e:
+            logger.error(f"Error getting comprehensive income analysis: {e}")
+            # 返回默认数据结构以防止模板错误
+            return AnalysisService._get_default_analysis_data()
+    
+    @staticmethod
+    def _get_income_expense_balance(start_date: date, end_date: date) -> Dict[str, Any]:
+        """获取收入支出平衡分析"""
+        try:
+            # 查询收入和支出数据
+            income_query = db.session.query(
+                func.sum(Transaction.amount).label('total_income'),
+                func.count(Transaction.id).label('income_count')
+            ).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).first()
+            
+            expense_query = db.session.query(
+                func.sum(func.abs(Transaction.amount)).label('total_expense'),
+                func.count(Transaction.id).label('expense_count')
+            ).filter(
+                Transaction.amount < 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).first()
+            
+            total_income = float(income_query.total_income or 0)
+            total_expense = float(expense_query.total_expense or 0)
+            
+            # 计算月度数据
+            monthly_query = db.session.query(
+                extract('year', Transaction.date).label('year'),
+                extract('month', Transaction.date).label('month'),
+                func.sum(case([(Transaction.amount > 0, Transaction.amount)], else_=0)).label('monthly_income'),
+                func.sum(case([(Transaction.amount < 0, func.abs(Transaction.amount))], else_=0)).label('monthly_expense')
+            ).filter(
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                extract('year', Transaction.date),
+                extract('month', Transaction.date)
+            ).order_by('year', 'month')
+            
+            monthly_results = monthly_query.all()
+            monthly_data = []
+            total_months = len(monthly_results) if monthly_results else 1
+            
+            for result in monthly_results:
+                month_income = float(result.monthly_income or 0)
+                month_expense = float(result.monthly_expense or 0)
+                monthly_data.append({
+                    'year': int(result.year),
+                    'month': int(result.month),
+                    'income': month_income,
+                    'expense': month_expense,
+                    'balance': month_income - month_expense,
+                    'saving_rate': (month_income - month_expense) / month_income if month_income > 0 else 0
+                })
+            
+            # 计算整体统计
+            avg_monthly_income = total_income / total_months
+            avg_monthly_expense = total_expense / total_months
+            avg_monthly_saving = avg_monthly_income - avg_monthly_expense
+            avg_monthly_saving_rate = avg_monthly_saving / avg_monthly_income if avg_monthly_income > 0 else 0
+            avg_monthly_ratio = avg_monthly_income / avg_monthly_expense if avg_monthly_expense > 0 else 0
+            
+            return {
+                'overall_stats': {
+                    'total_income': total_income,
+                    'total_expense': total_expense,
+                    'net_saving': total_income - total_expense,
+                    'avg_monthly_income': avg_monthly_income,
+                    'avg_monthly_expense': avg_monthly_expense,
+                    'avg_monthly_saving_rate': avg_monthly_saving_rate,
+                    'avg_monthly_ratio': avg_monthly_ratio,
+                    'avg_necessary_expense_coverage': avg_monthly_ratio  # 简化处理
+                },
+                'monthly_data': monthly_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting income expense balance: {e}")
+            return {
+                'overall_stats': {
+                    'total_income': 0,
+                    'total_expense': 0,
+                    'net_saving': 0,
+                    'avg_monthly_income': 0,
+                    'avg_monthly_expense': 0,
+                    'avg_monthly_saving_rate': 0,
+                    'avg_monthly_ratio': 0,
+                    'avg_necessary_expense_coverage': 0
+                },
+                'monthly_data': []
+             }
+    
+    @staticmethod
+    def _get_income_stability(start_date: date, end_date: date) -> Dict[str, Any]:
+        """获取收入稳定性分析"""
+        try:
+            # 查询收入数据按类型分组
+            income_by_type = db.session.query(
+                TransactionType.name,
+                func.sum(Transaction.amount).label('total_amount'),
+                func.count(Transaction.id).label('transaction_count')
+            ).join(Transaction.transaction_type).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(TransactionType.name).all()
+            
+            total_income = sum(float(item.total_amount) for item in income_by_type)
+            
+            # 计算工资收入比例（假设包含"工资"、"薪资"等关键词的为工资收入）
+            salary_keywords = ['工资', '薪资', '薪水', '月薪', 'salary']
+            salary_income = 0
+            for item in income_by_type:
+                if any(keyword in item.name.lower() for keyword in salary_keywords):
+                    salary_income += float(item.total_amount)
+            
+            salary_income_ratio = salary_income / total_income if total_income > 0 else 0
+            
+            # 计算月度收入数据
+            monthly_income_query = db.session.query(
+                extract('year', Transaction.date).label('year'),
+                extract('month', Transaction.date).label('month'),
+                func.sum(Transaction.amount).label('monthly_income')
+            ).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                extract('year', Transaction.date),
+                extract('month', Transaction.date)
+            ).order_by('year', 'month')
+            
+            monthly_results = monthly_income_query.all()
+            monthly_income = []
+            income_values = []
+            
+            for result in monthly_results:
+                income_amount = float(result.monthly_income or 0)
+                monthly_income.append({
+                    'year': int(result.year),
+                    'month': int(result.month),
+                    'income': income_amount
+                })
+                income_values.append(income_amount)
+            
+            # 计算收入统计指标
+            if income_values:
+                mean_income = sum(income_values) / len(income_values)
+                variance = sum((x - mean_income) ** 2 for x in income_values) / len(income_values)
+                std_dev = variance ** 0.5
+                coefficient_of_variation = std_dev / mean_income if mean_income > 0 else 0
+            else:
+                mean_income = 0
+                coefficient_of_variation = 0
+            
+            # 计算最长无收入期间（简化处理）
+            max_no_income_period = {
+                'days': 0,
+                'start': '',
+                'end': ''
+            }
+            
+            return {
+                'salary_income_ratio': salary_income_ratio,
+                'income_stats': {
+                    'mean_income': mean_income,
+                    'coefficient_of_variation': coefficient_of_variation
+                },
+                'max_no_income_period': max_no_income_period,
+                'monthly_income': monthly_income
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting income stability: {e}")
+            return {
+                'salary_income_ratio': 0,
+                'income_stats': {
+                    'mean_income': 0,
+                    'coefficient_of_variation': 0
+                },
+                'max_no_income_period': {
+                    'days': 0,
+                    'start': '',
+                    'end': ''
+                },
+                'monthly_income': []
+             }
+    
+    @staticmethod
+    def _get_cash_flow_health(start_date: date, end_date: date) -> Dict[str, Any]:
+        """获取现金流健康分析"""
+        try:
+            # 获取账户总余额
+            total_balance_query = db.session.query(
+                func.sum(Account.balance).label('total_balance')
+            ).first()
+            
+            total_balance = float(total_balance_query.total_balance or 0)
+            
+            # 计算月度现金流
+            monthly_cashflow_query = db.session.query(
+                extract('year', Transaction.date).label('year'),
+                extract('month', Transaction.date).label('month'),
+                func.sum(case([(Transaction.amount > 0, Transaction.amount)], else_=0)).label('monthly_income'),
+                func.sum(case([(Transaction.amount < 0, func.abs(Transaction.amount))], else_=0)).label('monthly_expense')
+            ).filter(
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                extract('year', Transaction.date),
+                extract('month', Transaction.date)
+            ).order_by('year', 'month')
+            
+            monthly_results = monthly_cashflow_query.all()
+            monthly_cash_flow = []
+            monthly_expenses = []
+            gap_months = 0
+            total_gaps = 0
+            
+            for result in monthly_results:
+                month_income = float(result.monthly_income or 0)
+                month_expense = float(result.monthly_expense or 0)
+                cash_flow = month_income - month_expense
+                
+                monthly_cash_flow.append({
+                    'year': int(result.year),
+                    'month': int(result.month),
+                    'income': month_income,
+                    'expense': month_expense,
+                    'cash_flow': cash_flow
+                })
+                
+                monthly_expenses.append(month_expense)
+                
+                # 统计现金流缺口
+                if cash_flow < 0:
+                    gap_months += 1
+                    total_gaps += abs(cash_flow)
+            
+            # 计算应急基金月数（基于平均月支出）
+            avg_monthly_expense = sum(monthly_expenses) / len(monthly_expenses) if monthly_expenses else 1
+            emergency_fund_months = total_balance / avg_monthly_expense if avg_monthly_expense > 0 else 0
+            
+            # 计算缺口频率
+            total_months = len(monthly_results) if monthly_results else 1
+            gap_frequency = gap_months / total_months
+            
+            # 计算平均缺口
+            avg_gap = total_gaps / gap_months if gap_months > 0 else 0
+            
+            return {
+                'emergency_fund_months': emergency_fund_months,
+                'gap_frequency': gap_frequency,
+                'avg_gap': avg_gap,
+                'total_balance': total_balance,
+                'monthly_cash_flow': monthly_cash_flow
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting cash flow health: {e}")
+            return {
+                'emergency_fund_months': 0,
+                'gap_frequency': 0,
+                'avg_gap': 0,
+                'total_balance': 0,
+                'monthly_cash_flow': []
+             }
+    
+    @staticmethod
+    def _get_income_diversity(start_date: date, end_date: date) -> Dict[str, Any]:
+        """获取收入多样性分析"""
+        try:
+            # 按收入类型分组统计
+            income_sources_query = db.session.query(
+                TransactionType.name,
+                func.sum(Transaction.amount).label('total_amount'),
+                func.count(Transaction.id).label('transaction_count')
+            ).join(Transaction.transaction_type).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(TransactionType.name).all()
+            
+            sources = []
+            total_income = 0
+            passive_income_keywords = ['利息', '分红', '投资', '理财', '租金', 'dividend', 'interest']
+            passive_income = 0
+            
+            for source in income_sources_query:
+                amount = float(source.total_amount)
+                total_income += amount
+                
+                # 判断是否为被动收入
+                is_passive = any(keyword in source.name.lower() for keyword in passive_income_keywords)
+                if is_passive:
+                    passive_income += amount
+                
+                sources.append({
+                    'name': source.name,
+                    'amount': amount,
+                    'count': source.transaction_count,
+                    'is_passive': is_passive
+                })
+            
+            # 计算收入来源数量
+            source_count = len(sources)
+            
+            # 计算收入集中度（最大收入来源占比）
+            if sources:
+                max_source_amount = max(source['amount'] for source in sources)
+                concentration = max_source_amount / total_income if total_income > 0 else 0
+            else:
+                concentration = 0
+            
+            # 计算被动收入比例
+            passive_income_ratio = passive_income / total_income if total_income > 0 else 0
+            
+            # 计算月度收入来源分布
+            monthly_sources_query = db.session.query(
+                extract('year', Transaction.date).label('year'),
+                extract('month', Transaction.date).label('month'),
+                TransactionType.name,
+                func.sum(Transaction.amount).label('monthly_amount')
+            ).join(Transaction.transaction_type).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                extract('year', Transaction.date),
+                extract('month', Transaction.date),
+                TransactionType.name
+            ).order_by('year', 'month')
+            
+            monthly_sources_results = monthly_sources_query.all()
+            monthly_sources = defaultdict(lambda: defaultdict(float))
+            
+            for result in monthly_sources_results:
+                year_month = f"{int(result.year)}-{int(result.month):02d}"
+                monthly_sources[year_month][result.name] = float(result.monthly_amount)
+            
+            # 转换为列表格式
+            monthly_sources_list = []
+            for year_month, sources_data in sorted(monthly_sources.items()):
+                monthly_sources_list.append({
+                    'period': year_month,
+                    'sources': dict(sources_data)
+                })
+            
+            return {
+                'source_count': source_count,
+                'concentration': concentration,
+                'passive_income_ratio': passive_income_ratio,
+                'sources': sources,
+                'monthly_sources': monthly_sources_list
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting income diversity: {e}")
+            return {
+                'source_count': 0,
+                'concentration': 0,
+                'passive_income_ratio': 0,
+                'sources': [],
+                'monthly_sources': []
+             }
+    
+    @staticmethod
+    def _get_income_growth(start_date: date, end_date: date) -> Dict[str, Any]:
+        """获取收入增长分析"""
+        try:
+            # 按年度统计收入
+            yearly_income_query = db.session.query(
+                extract('year', Transaction.date).label('year'),
+                func.sum(Transaction.amount).label('yearly_income')
+            ).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(extract('year', Transaction.date)).order_by('year')
+            
+            yearly_results = yearly_income_query.all()
+            yearly_income = []
+            
+            for result in yearly_results:
+                yearly_income.append({
+                    'year': int(result.year),
+                    'income': float(result.yearly_income or 0)
+                })
+            
+            # 计算年度增长率
+            annual_growth_rate = 0
+            if len(yearly_income) >= 2:
+                first_year_income = yearly_income[0]['income']
+                last_year_income = yearly_income[-1]['income']
+                years_span = yearly_income[-1]['year'] - yearly_income[0]['year']
+                if first_year_income > 0 and years_span > 0:
+                    annual_growth_rate = ((last_year_income / first_year_income) ** (1/years_span)) - 1
+            
+            # 找出收入最高的月份
+            monthly_income_query = db.session.query(
+                extract('year', Transaction.date).label('year'),
+                extract('month', Transaction.date).label('month'),
+                func.sum(Transaction.amount).label('monthly_income')
+            ).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                extract('year', Transaction.date),
+                extract('month', Transaction.date)
+            ).order_by(func.sum(Transaction.amount).desc())
+            
+            peak_month_result = monthly_income_query.first()
+            peak_month = '未知'
+            if peak_month_result:
+                peak_month = f"{int(peak_month_result.year)}-{int(peak_month_result.month):02d}"
+            
+            # 计算预计年度增长金额
+            projected_annual_increase = 0
+            if len(yearly_income) >= 2:
+                recent_income = yearly_income[-1]['income']
+                projected_annual_increase = recent_income * annual_growth_rate
+            
+            # 收入与通胀对比（简化处理，假设通胀率3%）
+            inflation_rate = 0.03
+            income_vs_inflation = []
+            for year_data in yearly_income:
+                real_growth = annual_growth_rate - inflation_rate
+                income_vs_inflation.append({
+                    'year': year_data['year'],
+                    'nominal_income': year_data['income'],
+                    'real_growth': real_growth,
+                    'inflation_adjusted': year_data['income'] / ((1 + inflation_rate) ** (year_data['year'] - yearly_income[0]['year'])) if yearly_income else year_data['income']
+                })
+            
+            return {
+                'annual_growth_rate': annual_growth_rate,
+                'peak_month': peak_month,
+                'projected_annual_increase': projected_annual_increase,
+                'yearly_income': yearly_income,
+                'income_vs_inflation': income_vs_inflation
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting income growth: {e}")
+            return {
+                'annual_growth_rate': 0,
+                'peak_month': '未知',
+                'projected_annual_increase': 0,
+                'yearly_income': [],
+                 'income_vs_inflation': []
+             }
+    
+    @staticmethod
+    def _get_financial_resilience(start_date: date, end_date: date) -> Dict[str, Any]:
+        """获取财务韧性分析"""
+        try:
+            # 获取所有账户余额
+            accounts = Account.query.all()
+            total_balance = sum(account.balance for account in accounts)
+            
+            # 计算月平均支出
+            monthly_expense_query = db.session.query(
+                func.avg(func.abs(Transaction.amount)).label('avg_expense')
+            ).filter(
+                Transaction.amount < 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            )
+            
+            avg_monthly_expense = monthly_expense_query.scalar() or 0
+            
+            # 计算应急基金月数
+            emergency_fund_months = 0
+            if avg_monthly_expense > 0:
+                emergency_fund_months = total_balance / avg_monthly_expense
+            
+            # 计算收入稳定性（收入变异系数）
+            monthly_income_query = db.session.query(
+                extract('year', Transaction.date).label('year'),
+                extract('month', Transaction.date).label('month'),
+                func.sum(Transaction.amount).label('monthly_income')
+            ).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                extract('year', Transaction.date),
+                extract('month', Transaction.date)
+            )
+            
+            monthly_incomes = [float(result.monthly_income or 0) for result in monthly_income_query.all()]
+            
+            income_stability_score = 0
+            if len(monthly_incomes) > 1:
+                mean_income = sum(monthly_incomes) / len(monthly_incomes)
+                if mean_income > 0:
+                    variance = sum((x - mean_income) ** 2 for x in monthly_incomes) / len(monthly_incomes)
+                    std_dev = variance ** 0.5
+                    coefficient_of_variation = std_dev / mean_income
+                    # 稳定性评分：变异系数越小，稳定性越高
+                    income_stability_score = max(0, 1 - coefficient_of_variation)
+            
+            # 计算债务收入比（简化处理，假设负余额账户为债务）
+            debt_accounts = [account for account in accounts if account.balance < 0]
+            total_debt = sum(abs(account.balance) for account in debt_accounts)
+            
+            # 计算月平均收入
+            avg_monthly_income = sum(monthly_incomes) / len(monthly_incomes) if monthly_incomes else 0
+            
+            debt_to_income_ratio = 0
+            if avg_monthly_income > 0:
+                debt_to_income_ratio = total_debt / avg_monthly_income
+            
+            # 计算流动性比率（现金及现金等价物/月支出）
+            cash_accounts = [account for account in accounts if account.account_type in ['现金', '储蓄', '支票']]
+            liquid_assets = sum(account.balance for account in cash_accounts if account.balance > 0)
+            
+            liquidity_ratio = 0
+            if avg_monthly_expense > 0:
+                liquidity_ratio = liquid_assets / avg_monthly_expense
+            
+            # 风险承受能力评估
+            risk_tolerance = 'low'
+            if emergency_fund_months >= 6 and income_stability_score >= 0.7 and debt_to_income_ratio <= 0.3:
+                risk_tolerance = 'high'
+            elif emergency_fund_months >= 3 and income_stability_score >= 0.5 and debt_to_income_ratio <= 0.5:
+                risk_tolerance = 'medium'
+            
+            # 财务健康度评分（0-100）
+            health_score = 0
+            # 应急基金权重30%
+            emergency_score = min(100, (emergency_fund_months / 6) * 30)
+            # 收入稳定性权重25%
+            stability_score = income_stability_score * 25
+            # 债务比率权重25%（债务越少分数越高）
+            debt_score = max(0, (1 - min(1, debt_to_income_ratio)) * 25)
+            # 流动性权重20%
+            liquidity_score = min(20, (liquidity_ratio / 3) * 20)
+            
+            health_score = emergency_score + stability_score + debt_score + liquidity_score
+            
+            return {
+                'emergency_fund_months': emergency_fund_months,
+                'income_stability_score': income_stability_score,
+                'debt_to_income_ratio': debt_to_income_ratio,
+                'liquidity_ratio': liquidity_ratio,
+                'risk_tolerance': risk_tolerance,
+                'financial_health_score': health_score,
+                'total_balance': total_balance,
+                'total_debt': total_debt,
+                'liquid_assets': liquid_assets
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting financial resilience: {e}")
+            return {
+                'emergency_fund_months': 0,
+                'income_stability_score': 0,
+                'debt_to_income_ratio': 0,
+                'liquidity_ratio': 0,
+                'risk_tolerance': 'low',
+                'financial_health_score': 0,
+                'total_balance': 0,
+                'total_debt': 0,
+                'liquid_assets': 0
+            }
+    
+    @staticmethod
+    def _get_default_analysis_data() -> Dict[str, Any]:
+        """获取默认分析数据结构"""
+        return {
+            'income_expense_balance': {
+                'overall_stats': {
+                    'total_income': 0,
+                    'total_expense': 0,
+                    'net_saving': 0,
+                    'avg_monthly_income': 0,
+                    'avg_monthly_expense': 0,
+                    'avg_monthly_saving': 0,
+                    'avg_monthly_saving_rate': 0,
+                    'income_expense_ratio': 0
+                },
+                'monthly_data': []
+            },
+            'income_stability': {
+                'salary_income_ratio': 0,
+                'mean_income': 0,
+                'coefficient_of_variation': 0
+            },
+            'cash_flow_health': {
+                'emergency_fund_months': 0,
+                'cash_flow_gap_frequency': 0,
+                'avg_gap_amount': 0,
+                'total_balance': 0,
+                'monthly_cash_flow': []
+            },
+            'income_diversity': {
+                'source_count': 0,
+                'concentration': 0,
+                'passive_income_ratio': 0,
+                'sources': [],
+                'monthly_sources': []
+            },
+            'income_growth': {
+                'annual_growth_rate': 0,
+                'peak_month': '未知',
+                'projected_annual_increase': 0,
+                'yearly_income': [],
+                'income_vs_inflation': []
+            },
+            'financial_resilience': {
+                'emergency_fund_months': 0,
+                'income_stability_score': 0,
+                'debt_to_income_ratio': 0,
+                'liquidity_ratio': 0,
+                'risk_tolerance': 'low',
+                'financial_health_score': 0,
+                'total_balance': 0,
+                'total_debt': 0,
+                'liquid_assets': 0
+            }
+        }
