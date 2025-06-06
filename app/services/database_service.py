@@ -226,7 +226,33 @@ class DatabaseService:
     def get_expense_types() -> List[TransactionType]:
         """Get all expense transaction types."""
         return TransactionType.get_expense_types()
-    
+
+    @staticmethod
+    def get_all_currencies() -> List[str]:
+        """Get all distinct currencies from transactions and accounts."""
+        try:
+            # Get currencies from transactions
+            transaction_currencies = db.session.query(Transaction.currency).distinct().all()
+            # Get currencies from accounts
+            account_currencies = db.session.query(Account.currency).distinct().all()
+            
+            # Combine and deduplicate
+            all_currencies = set()
+            for (currency,) in transaction_currencies:
+                if currency:
+                    all_currencies.add(currency)
+            for (currency,) in account_currencies:
+                if currency:
+                    all_currencies.add(currency)
+            
+            # Convert to sorted list
+            return sorted(list(all_currencies))
+            
+        except Exception as e:
+            logger.error(f"Error getting all currencies: {e}")
+            # Return default currency if error occurs
+            return ['CNY']
+
     @staticmethod
     def update_transaction_type(type_id: int, **kwargs) -> bool:
         """Update transaction type information."""
