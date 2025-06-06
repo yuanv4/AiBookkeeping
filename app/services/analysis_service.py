@@ -11,7 +11,7 @@ from collections import defaultdict
 import calendar
 
 from app.models import Transaction, Account, TransactionType, Bank, db
-from sqlalchemy import func, and_, or_, extract
+from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
@@ -237,8 +237,8 @@ class AnalysisService:
         # Daily trends
         daily_query = db.session.query(
             Transaction.date,
-            func.sum(func.case([(Transaction.amount > 0, Transaction.amount)], else_=0)).label('daily_income'),
-            func.sum(func.case([(Transaction.amount < 0, func.abs(Transaction.amount))], else_=0)).label('daily_expense')
+            func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)).label('daily_income'),
+            func.sum(case((Transaction.amount < 0, func.abs(Transaction.amount)), else_=0)).label('daily_expense')
         )
         
         if account_id:

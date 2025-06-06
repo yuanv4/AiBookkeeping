@@ -1,6 +1,8 @@
 # app/main/routes.py
 from flask import redirect, url_for, render_template, flash, current_app, request, g
 from datetime import datetime # dashboard 中使用
+from app.services.database_service import DatabaseService
+from app.services.analysis_service import AnalysisService
 # from scripts.analyzers.transaction_analyzer import TransactionAnalyzer # 将在需要时实例化
 
 from . import main # 从同级 __init__.py 导入 main 蓝图实例
@@ -11,8 +13,7 @@ def before_request():
 
 @main.after_request
 def after_request(response):
-    if hasattr(g, 'db_facade'):
-        g.db_facade.db_connection.close_connection()
+    # 新的 DatabaseService 使用 Flask-SQLAlchemy 自动管理连接，无需手动关闭
     return response
 
 @main.route('/')
@@ -50,7 +51,7 @@ def dashboard():
             })
 
         # 获取最近交易记录（最多10条）
-        recent_transactions_data = database_service.get_recent_transactions(limit=10)
+        recent_transactions_data = db_facade.get_transactions(limit=10)
         
         recent_transactions = []
         for trans in recent_transactions_data:
@@ -67,6 +68,7 @@ def dashboard():
         current_date = date.today()
         start_of_month = current_date.replace(day=1)
         
+        analysis_service = AnalysisService()
         monthly_report = analysis_service.generate_financial_report(
             start_date=start_of_month,
             end_date=current_date
@@ -84,6 +86,7 @@ def dashboard():
         net_income = all_time_report['summary'].get('net_amount', 0)
         
         # 获取余额范围和历史数据
+        database_service = DatabaseService()  # 新增实例化
         balance_range = database_service.get_balance_range()
         monthly_balance_history = database_service.get_monthly_balance_history(months=12)
         

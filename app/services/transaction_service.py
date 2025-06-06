@@ -11,7 +11,7 @@ from collections import defaultdict
 
 from app.models import Transaction, Account, TransactionType, db
 from app.services.database_service import DatabaseService
-from sqlalchemy import func, and_, or_
+from sqlalchemy import func, and_, or_, case
 from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
@@ -356,8 +356,8 @@ class TransactionService:
             
             query = db.session.query(
                 func.strftime('%Y-%m', Transaction.date).label('month'),
-                func.sum(func.case([(Transaction.amount > 0, Transaction.amount)], else_=0)).label('income'),
-                func.sum(func.case([(Transaction.amount < 0, func.abs(Transaction.amount))], else_=0)).label('expense')
+                func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)).label('income'),
+            func.sum(case((Transaction.amount < 0, func.abs(Transaction.amount)), else_=0)).label('expense')
             )
             
             if account_id:

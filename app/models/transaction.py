@@ -247,8 +247,8 @@ class Transaction(BaseModel):
         
         query = db.session.query(
             db.extract('month', cls.date).label('month'),
-            db.func.sum(db.case([(cls.amount > 0, cls.amount)], else_=0)).label('income'),
-            db.func.sum(db.case([(cls.amount < 0, cls.amount)], else_=0)).label('expense'),
+            db.func.sum(db.case((cls.amount > 0, cls.amount), else_=0)).label('income'),
+            db.func.sum(db.case((cls.amount < 0, cls.amount), else_=0)).label('expense'),
             db.func.count(cls.id).label('count')
         ).filter(db.extract('year', cls.date) == year)
         
