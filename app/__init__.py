@@ -117,9 +117,7 @@ def create_app():
     app.register_blueprint(main_blueprint)
     app.logger.info("已注册 main_blueprint")
 
-    from .blueprints.upload.routes import upload_bp
-    app.register_blueprint(upload_bp, url_prefix='/upload')
-    app.logger.info("已注册 upload_bp, 前缀 /upload")
+    # upload_bp 已迁移到 settings_bp，不再需要单独注册
 
     from .blueprints.transactions.routes import transactions_bp
     app.register_blueprint(transactions_bp, url_prefix='/transactions')
@@ -132,6 +130,10 @@ def create_app():
     from .blueprints.income_analysis.routes import income_analysis_bp
     app.register_blueprint(income_analysis_bp, url_prefix='/income-analysis')
     app.logger.info("已注册 income_analysis_bp, 前缀 /income-analysis")
+    
+    from .blueprints.settings.routes import settings_bp
+    app.register_blueprint(settings_bp, url_prefix='/settings')
+    app.logger.info("已注册 settings_bp, 前缀 /settings")
 
     # 注册全局错误处理函数
     @app.errorhandler(404)

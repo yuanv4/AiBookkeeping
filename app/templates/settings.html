@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, card %}
+
+{% block title %}系统设置 - 银行账单分析系统{% endblock %}
+
+{% block page_css %}
+<style>
+    .settings-header {
+        background: linear-gradient(to right, var(--primary-light), #f8f9fa);
+        border-radius: var(--border-radius-lg);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .settings-card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: all 0.15s ease-in-out;
+    }
+    
+    .settings-card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .settings-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+    
+    .settings-section {
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 页面标题 -->
+<div class="settings-header">
+    <div class="row align-items-center">
+        <div class="col-md-7">
+            <h1 class="fw-bold mb-1">系统设置</h1>
+            <p class="text-muted mb-0">管理系统配置、数据上传和其他功能设置</p>
+        </div>
+        <div class="col-md-5">
+            <div class="d-flex justify-content-md-end mt-3 mt-md-0">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary btn-sm">
+                    {{ icon("dashboard", "sm", "", "me-1") }}
+                    返回仪表盘
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 设置选项 -->
+<div class="row g-4">
+    <!-- 数据管理 -->
+    <div class="col-lg-6">
+        <div class="settings-section">
+            <h5 class="fw-bold mb-3">数据管理</h5>
+            
+            <!-- 文件上传 -->
+            <div class="card settings-card mb-3">
+                <div class="card-body p-4">
+                    <div class="settings-icon bg-primary bg-opacity-10 mx-auto">
+                        {{ icon("cloud_upload", "lg", "text-primary") }}
+                    </div>
+                    <h6 class="card-title text-center fw-bold mb-2">文件上传</h6>
+                    <p class="card-text text-center text-muted mb-3">上传银行账单Excel文件进行数据分析</p>
+                    <div class="d-grid">
+                        <a href="{{ url_for('settings_bp.upload_file_route') }}" class="btn btn-primary">
+                            {{ icon("file_upload", "sm", "", "me-1") }}
+                            上传文件
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 数据导出 -->
+            <div class="card settings-card mb-3">
+                <div class="card-body p-4">
+                    <div class="settings-icon bg-success bg-opacity-10 mx-auto">
+                        {{ icon("download", "lg", "text-success") }}
+                    </div>
+                    <h6 class="card-title text-center fw-bold mb-2">数据导出</h6>
+                    <p class="card-text text-center text-muted mb-3">导出分析结果和交易数据</p>
+                    <div class="d-grid">
+                        <button class="btn btn-success" disabled>
+                            {{ icon("file_download", "sm", "", "me-1") }}
+                            导出数据
+                        </button>
+                        <small class="text-muted text-center mt-2">功能开发中</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 系统配置 -->
+    <div class="col-lg-6">
+        <div class="settings-section">
+            <h5 class="fw-bold mb-3">系统配置</h5>
+            
+            <!-- 数据库管理 -->
+            <div class="card settings-card mb-3">
+                <div class="card-body p-4">
+                    <div class="settings-icon bg-info bg-opacity-10 mx-auto">
+                        {{ icon("storage", "lg", "text-info") }}
+                    </div>
+                    <h6 class="card-title text-center fw-bold mb-2">数据库管理</h6>
+                    <p class="card-text text-center text-muted mb-3">管理数据库连接和数据清理</p>
+                    <div class="d-grid">
+                        <button class="btn btn-info" disabled>
+                            {{ icon("settings", "sm", "", "me-1") }}
+                            数据库设置
+                        </button>
+                        <small class="text-muted text-center mt-2">功能开发中</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 系统信息 -->
+            <div class="card settings-card mb-3">
+                <div class="card-body p-4">
+                    <div class="settings-icon bg-warning bg-opacity-10 mx-auto">
+                        {{ icon("info", "lg", "text-warning") }}
+                    </div>
+                    <h6 class="card-title text-center fw-bold mb-2">系统信息</h6>
+                    <p class="card-text text-center text-muted mb-3">查看系统版本和运行状态</p>
+                    <div class="d-grid">
+                        <button class="btn btn-warning" disabled>
+                            {{ icon("info_outline", "sm", "", "me-1") }}
+                            查看信息
+                        </button>
+                        <small class="text-muted text-center mt-2">功能开发中</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速操作 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card settings-card">
+            <div class="card-header bg-light">
+                <h6 class="card-title fw-bold mb-0">
+                    {{ icon("flash_on", "sm", "text-primary", "me-2") }}
+                    快速操作
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('settings_bp.upload_file_route') }}" class="btn btn-outline-primary">
+                                {{ icon("cloud_upload", "sm", "", "me-1") }}
+                                上传文件
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+                                {{ icon("dashboard", "sm", "", "me-1") }}
+                                返回仪表盘
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('transactions_bp.transactions_list_route') }}" class="btn btn-outline-info">
+                                {{ icon("receipt_long", "sm", "", "me-1") }}
+                                查看交易
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('income_analysis_bp.income_analysis') }}" class="btn btn-outline-success">
+                                {{ icon("trending_up", "sm", "", "me-1") }}
+                                收入分析
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
