@@ -11,6 +11,11 @@ from collections import defaultdict
 import calendar
 
 from app.models import Transaction, Account, TransactionType, Bank, db
+from app.models.analysis_models import ComprehensiveAnalysisData
+from app.services.specialized_analyzers import (
+    IncomeExpenseAnalyzer, IncomeStabilityAnalyzer, CashFlowAnalyzer,
+    IncomeDiversityAnalyzer, IncomeGrowthAnalyzer, FinancialResilienceAnalyzer
+)
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -789,25 +794,41 @@ class AnalysisService:
             raise
     
     @staticmethod
-    def get_comprehensive_income_analysis() -> Dict[str, Any]:
-        """获取综合收入分析数据，返回模板所需的完整data结构"""
+    def get_comprehensive_income_analysis(account_id: Optional[int] = None) -> Dict[str, Any]:
+        """获取综合收入分析数据，返回模板所需的完整data结构
+        
+        Args:
+            account_id: 可选的账户ID，用于分析特定账户
+            
+        Returns:
+            Dict[str, Any]: 包含所有分析模块数据的字典
+        """
         try:
             # 获取基础数据
             today = date.today()
             start_date = today.replace(year=today.year - 1, month=1, day=1)  # 过去一年
             end_date = today
             
-            # 构建综合分析数据结构
-            data = {
-                'income_expense_balance': AnalysisService._get_income_expense_balance(start_date, end_date),
-                'income_stability': AnalysisService._get_income_stability(start_date, end_date),
-                'cash_flow_health': AnalysisService._get_cash_flow_health(start_date, end_date),
-                'income_diversity': AnalysisService._get_income_diversity(start_date, end_date),
-                'income_growth': AnalysisService._get_income_growth(start_date, end_date),
-                'financial_resilience': AnalysisService._get_financial_resilience(start_date, end_date)
-            }
+            # 使用专门的分析器进行分析
+            income_expense_analyzer = IncomeExpenseAnalyzer(start_date, end_date, account_id)
+            stability_analyzer = IncomeStabilityAnalyzer(start_date, end_date, account_id)
+            cash_flow_analyzer = CashFlowAnalyzer(start_date, end_date, account_id)
+            diversity_analyzer = IncomeDiversityAnalyzer(start_date, end_date, account_id)
+            growth_analyzer = IncomeGrowthAnalyzer(start_date, end_date, account_id)
+            resilience_analyzer = FinancialResilienceAnalyzer(start_date, end_date, account_id)
             
-            return data
+            # 构建综合分析数据结构
+            comprehensive_data = ComprehensiveAnalysisData(
+                income_expense_balance=income_expense_analyzer.analyze(),
+                income_stability=stability_analyzer.analyze(),
+                cash_flow_health=cash_flow_analyzer.analyze(),
+                income_diversity=diversity_analyzer.analyze(),
+                income_growth=growth_analyzer.analyze(),
+                financial_resilience=resilience_analyzer.analyze()
+            )
+            
+            # 返回字典格式以保持模板兼容性
+            return comprehensive_data.to_dict()
             
         except Exception as e:
             logger.error(f"Error getting comprehensive income analysis: {e}")
@@ -1385,56 +1406,7 @@ class AnalysisService:
     
     @staticmethod
     def _get_default_analysis_data() -> Dict[str, Any]:
-        """获取默认分析数据结构"""
-        return {
-            'income_expense_balance': {
-                'overall_stats': {
-                    'total_income': 0,
-                    'total_expense': 0,
-                    'net_saving': 0,
-                    'avg_monthly_income': 0,
-                    'avg_monthly_expense': 0,
-                    'avg_monthly_saving': 0,
-                    'avg_monthly_saving_rate': 0,
-                    'income_expense_ratio': 0
-                },
-                'monthly_data': []
-            },
-            'income_stability': {
-                'salary_income_ratio': 0,
-                'mean_income': 0,
-                'coefficient_of_variation': 0
-            },
-            'cash_flow_health': {
-                'emergency_fund_months': 0,
-                'cash_flow_gap_frequency': 0,
-                'avg_gap_amount': 0,
-                'total_balance': 0,
-                'monthly_cash_flow': []
-            },
-            'income_diversity': {
-                'source_count': 0,
-                'concentration': 0,
-                'passive_income_ratio': 0,
-                'sources': [],
-                'monthly_sources': []
-            },
-            'income_growth': {
-                'annual_growth_rate': 0,
-                'peak_month': '未知',
-                'projected_annual_increase': 0,
-                'yearly_income': [],
-                'income_vs_inflation': []
-            },
-            'financial_resilience': {
-                'emergency_fund_months': 0,
-                'income_stability_score': 0,
-                'debt_to_income_ratio': 0,
-                'liquidity_ratio': 0,
-                'risk_tolerance': 'low',
-                'financial_health_score': 0,
-                'total_balance': 0,
-                'total_debt': 0,
-                'liquid_assets': 0
-            }
-        }
+        """获取默认分析数据结构，使用新的数据模型"""
+        # 使用新的数据模型创建默认结构
+        default_data = ComprehensiveAnalysisData()
+        return default_data.to_dict()

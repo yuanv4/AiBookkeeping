@@ -193,10 +193,10 @@
         <div class="col-md-4">
             <div class="metric-card">
                 <span class="metric-label">工资收入占比</span>
-                <span class="metric-value">{{ "%.1f"|format(data.income_stability.salary_income_ratio * 100) }}%</span>
-                {% if data.income_stability.salary_income_ratio >= 0.7 %}
+                <span class="metric-value">{{ "%.1f"|format(data.income_stability.metrics.stability_score) }}%</span>
+                {% if data.income_stability.metrics.stability_score >= 70 %}
                 <span class="metric-status good">稳定</span>
-                {% elif data.income_stability.salary_income_ratio >= 0.5 %}
+                {% elif data.income_stability.metrics.stability_score >= 50 %}
                 <span class="metric-status moderate">一般</span>
                 {% else %}
                 <span class="metric-status poor">不稳定</span>
@@ -211,10 +211,10 @@
         <div class="col-md-4">
             <div class="metric-card">
                 <span class="metric-label">紧急备用金覆盖月数</span>
-                <span class="metric-value">{{ "%.1f"|format(data.cash_flow_health.emergency_fund_months) }}个月</span>
-                {% if data.cash_flow_health.emergency_fund_months >= 6 %}
+                <span class="metric-value">{{ "%.1f"|format(data.cash_flow_health.metrics.emergency_fund_months) }}个月</span>
+                {% if data.cash_flow_health.metrics.emergency_fund_months >= 6 %}
                 <span class="metric-status good">充足</span>
-                {% elif data.cash_flow_health.emergency_fund_months >= 3 %}
+                {% elif data.cash_flow_health.metrics.emergency_fund_months >= 3 %}
                 <span class="metric-status moderate">一般</span>
                 {% else %}
                 <span class="metric-status poor">不足</span>
@@ -293,25 +293,26 @@
                     <div class="stat-container">
                         <div class="stat-item">
                             <div class="stat-label">工资收入占比</div>
-                            <div class="stat-value">{{ "%.1f"|format(data.income_stability.salary_income_ratio * 100) }}%</div>
+                            <div class="stat-value">{{ "%.1f"|format(data.income_stability.metrics.stability_score) }}%</div>
                             <div class="stat-description">工资类收入占总收入比例</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-label">收入波动系数</div>
-                            <div class="stat-value">{{ "%.2f"|format(data.income_stability.income_stats.coefficient_of_variation) }}</div>
+                            <div class="stat-value">{{ "%.2f"|format(data.income_stability.metrics.coefficient_of_variation) }}</div>
                             <div class="stat-description">值越小表示收入越稳定</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-label">平均月收入</div>
-                            <div class="stat-value">¥{{ "%.2f"|format(data.income_stability.income_stats.mean_income) }}</div>
+                            <div class="stat-value">¥{{ "%.2f"|format(data.income_expense_balance.overall_stats.avg_monthly_income) }}</div>
                         </div>
-                        {% if data.income_stability.max_no_income_period.days > 0 %}
+                        {# 最长无收入周期功能暂时移除，等待后续实现 #}
+                        {# {% if data.income_stability.max_no_income_period.days > 0 %}
                         <div class="stat-item">
                             <div class="stat-label">最长无收入周期</div>
                             <div class="stat-value">{{ data.income_stability.max_no_income_period.days }}天</div>
                             <div class="stat-description">{{ data.income_stability.max_no_income_period.start }} 至 {{ data.income_stability.max_no_income_period.end }}</div>
                         </div>
-                        {% endif %}
+                        {% endif %} #}
                     </div>
                 </div>
             </div>
@@ -389,7 +390,7 @@
                     <div class="stat-container">
                         <div class="stat-item">
                             <div class="stat-label">紧急备用金覆盖月数</div>
-                            <div class="stat-value">{{ "%.1f"|format(data.cash_flow_health.emergency_fund_months) }}个月</div>
+                            <div class="stat-value">{{ "%.1f"|format(data.cash_flow_health.metrics.emergency_fund_months) }}个月</div>
                             <div class="stat-description">当前余额可以覆盖的月度支出数量</div>
                         </div>
                         <div class="stat-item">
