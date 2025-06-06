@@ -312,6 +312,229 @@ class AnalysisService:
         ]
     
     @staticmethod
+    def get_monthly_income_summary() -> Dict[str, Any]:
+        """获取月度收入汇总"""
+        try:
+            # 获取当前月份的开始和结束日期
+            today = date.today()
+            start_date = today.replace(day=1)
+            
+            # 计算月末日期
+            if today.month == 12:
+                end_date = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+            else:
+                end_date = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+            
+            # 查询当月收入交易
+            income_query = db.session.query(
+                func.sum(Transaction.amount).label('total_income'),
+                func.count(Transaction.id).label('transaction_count'),
+                func.avg(Transaction.amount).label('average_income')
+            ).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            )
+            
+            result = income_query.first()
+            
+            return {
+                'period': {
+                    'start_date': start_date.isoformat(),
+                    'end_date': end_date.isoformat(),
+                    'month': today.strftime('%Y-%m')
+                },
+                'total_income': float(result.total_income or 0),
+                'transaction_count': result.transaction_count or 0,
+                'average_income': float(result.average_income or 0)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting monthly income summary: {e}")
+            return {
+                'period': {'start_date': '', 'end_date': '', 'month': ''},
+                'total_income': 0,
+                'transaction_count': 0,
+                'average_income': 0
+            }
+    
+    @staticmethod
+    def get_yearly_income_summary() -> Dict[str, Any]:
+        """获取年度收入汇总"""
+        try:
+            # 获取当前年份的开始和结束日期
+            today = date.today()
+            start_date = today.replace(month=1, day=1)
+            end_date = today.replace(month=12, day=31)
+            
+            # 查询当年收入交易
+            income_query = db.session.query(
+                func.sum(Transaction.amount).label('total_income'),
+                func.count(Transaction.id).label('transaction_count'),
+                func.avg(Transaction.amount).label('average_income')
+            ).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            )
+            
+            result = income_query.first()
+            
+            # 按月份分组的收入数据
+            monthly_query = db.session.query(
+                extract('month', Transaction.date).label('month'),
+                func.sum(Transaction.amount).label('monthly_income')
+            ).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(extract('month', Transaction.date)).order_by('month')
+            
+            monthly_results = monthly_query.all()
+            monthly_breakdown = []
+            for month_result in monthly_results:
+                monthly_breakdown.append({
+                    'month': int(month_result.month),
+                    'month_name': calendar.month_name[int(month_result.month)],
+                    'income': float(month_result.monthly_income or 0)
+                })
+            
+            return {
+                'period': {
+                    'start_date': start_date.isoformat(),
+                    'end_date': end_date.isoformat(),
+                    'year': today.year
+                },
+                'total_income': float(result.total_income or 0),
+                'transaction_count': result.transaction_count or 0,
+                'average_income': float(result.average_income or 0),
+                'monthly_breakdown': monthly_breakdown
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting yearly income summary: {e}")
+            return {
+                'period': {'start_date': '', 'end_date': '', 'year': 0},
+                'total_income': 0,
+                'transaction_count': 0,
+                'average_income': 0,
+                'monthly_breakdown': []
+            }
+    
+    @staticmethod
+    def get_income_by_account() -> Dict[str, Any]:
+        """获取按账户分组的收入数据"""
+        try:
+            # 查询按账户分组的收入数据
+            account_query = db.session.query(
+                Account.id,
+                Account.account_name,
+                Account.bank_name,
+                func.sum(Transaction.amount).label('total_income'),
+                func.count(Transaction.id).label('transaction_count')
+            ).join(Transaction).filter(
+                Transaction.amount > 0
+            ).group_by(
+                Account.id, Account.account_name, Account.bank_name
+            ).order_by(func.sum(Transaction.amount).desc())
+            
+            results = account_query.all()
+            
+            accounts = []
+            total_income = 0
+            
+            for result in results:
+                income = float(result.total_income or 0)
+                total_income += income
+                accounts.append({
+                    'account_id': result.id,
+                    'account_name': result.account_name,
+                    'bank_name': result.bank_name,
+                    'total_income': income,
+                    'transaction_count': result.transaction_count or 0
+                })
+            
+            # 计算百分比
+            for account in accounts:
+                account['percentage'] = (account['total_income'] / total_income * 100) if total_income > 0 else 0
+            
+            return {
+                'accounts': accounts,
+                'total_income': total_income,
+                'account_count': len(accounts)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting income by account: {e}")
+            return {
+                'accounts': [],
+                'total_income': 0,
+                'account_count': 0
+            }
+    
+    @staticmethod
+    def get_income_trends() -> Dict[str, Any]:
+        """获取收入趋势数据"""
+        try:
+            # 获取最近12个月的收入趋势
+            today = date.today()
+            start_date = today.replace(day=1) - timedelta(days=365)
+            
+            # 按月份分组的收入趋势
+            monthly_query = db.session.query(
+                extract('year', Transaction.date).label('year'),
+                extract('month', Transaction.date).label('month'),
+                func.sum(Transaction.amount).label('monthly_income')
+            ).filter(
+                Transaction.amount > 0,
+                Transaction.date >= start_date
+            ).group_by(
+                extract('year', Transaction.date),
+                extract('month', Transaction.date)
+            ).order_by('year', 'month')
+            
+            monthly_results = monthly_query.all()
+            monthly_trends = []
+            
+            for result in monthly_results:
+                monthly_trends.append({
+                    'year': int(result.year),
+                    'month': int(result.month),
+                    'month_name': calendar.month_name[int(result.month)],
+                    'period': f"{int(result.year)}-{int(result.month):02d}",
+                    'income': float(result.monthly_income or 0)
+                })
+            
+            # 计算增长率
+            for i in range(1, len(monthly_trends)):
+                current = monthly_trends[i]['income']
+                previous = monthly_trends[i-1]['income']
+                if previous > 0:
+                    growth_rate = ((current - previous) / previous) * 100
+                else:
+                    growth_rate = 0
+                monthly_trends[i]['growth_rate'] = growth_rate
+            
+            # 如果有数据，第一个月的增长率设为0
+            if monthly_trends:
+                monthly_trends[0]['growth_rate'] = 0
+            
+            return {
+                'monthly_trends': monthly_trends,
+                'trend_period': {
+                    'start_date': start_date.isoformat(),
+                    'end_date': today.isoformat()
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting income trends: {e}")
+            return {
+                'monthly_trends': [],
+                'trend_period': {'start_date': '', 'end_date': ''}
+            }
+    
+    @staticmethod
     def _generate_insights(account_id: int = None, start_date: date = None, 
                          end_date: date = None) -> List[Dict[str, Any]]:
         """Generate financial insights and recommendations."""
