@@ -1,6 +1,7 @@
 import os
 import logging
 import sys
+from logging.handlers import TimedRotatingFileHandler
 from flask import Flask, request, render_template, jsonify
 from flask_migrate import Migrate
 
@@ -17,6 +18,41 @@ from .services.file_processor_service import FileProcessorService
 # Initialize extensions
 migrate = Migrate()
 
+def configure_logging(app):
+    """配置应用日志"""
+    log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO'))
+    
+    # 创建日志格式器
+    formatter = logging.Formatter(app.config.get('LOG_FORMAT'))
+    
+    # 配置文件处理器 - 每小时轮转
+    log_file = os.path.join(app.config['LOG_DIR'], 'app.log')
+    file_handler = TimedRotatingFileHandler(
+        filename=log_file,
+        when=app.config.get('LOG_ROTATION_WHEN', 'H'),
+        interval=app.config.get('LOG_ROTATION_INTERVAL', 1),
+        backupCount=app.config.get('LOG_BACKUP_COUNT', 168),
+        encoding='utf-8'
+    )
+    # 设置轮转后文件的命名格式：app.log.2025-01-05_14
+    file_handler.suffix = "%Y-%m-%d_%H"
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(log_level)
+    
+    # 配置控制台处理器
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(log_level)
+    
+    # 配置根日志器
+    logging.basicConfig(
+        level=log_level,
+        handlers=[console_handler, file_handler]
+    )
+    
+    app.logger.info(f"应用以 '{app.config.get('ENV', 'unknown')}' 配置启动。日志级别: {logging.getLevelName(log_level)}")
+    app.logger.info(f"日志文件路径: {log_file}")
+
 def create_app(config_name='default'):
     app = Flask(__name__)
     
@@ -32,13 +68,7 @@ def create_app(config_name='default'):
     migrate.init_app(app, db)
     
     # Configure logging
-    log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO'))
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[logging.StreamHandler()]
-    )
-    app.logger.info(f"应用以 '{config_name}' 配置启动。日志级别: {logging.getLevelName(log_level)}")
+    configure_logging(app)
 
     # 添加 scripts 目录到 Python 路径 (scripts 在项目根目录 AiBookkeeping/scripts)
     project_root_dir = os.path.dirname(app.root_path) # app.root_path 是 app/
