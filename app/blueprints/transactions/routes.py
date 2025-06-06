@@ -1,0 +1,137 @@
+from flask import request, render_template, current_app
+
+# 使用新的服务层
+from app.services.database_service import DatabaseService
+from app.services.transaction_service import TransactionService
+
+from . import transactions_bp
+
+@transactions_bp.route('/') # 蓝图根路径对应 /transactions/
+def transactions_list_route(): # 重命名函数
+    """交易记录页面"""
+    try:
+        # 使用新的服务层
+        database_service = DatabaseService()
+        transaction_service = TransactionService()
+        
+        page = request.args.get('page', 1, type=int)
+        # limit 从 app.config 获取
+        limit = request.args.get('limit', current_app.config.get('ITEMS_PER_PAGE', 20), type=int)
+        
+        account_number_req = request.args.get('account_number', None) 
+        start_date_req = request.args.get('start_date', None)
+        end_date_req = request.args.get('end_date', None)
+        min_amount_req = request.args.get('min_amount', None, type=float)
+        max_amount_req = request.args.get('max_amount', None, type=float)
+        transaction_type_req = request.args.get('type', None) 
+        counterparty_req = request.args.get('counterparty', None)
+        currency_req = request.args.get('currency', None) 
+        account_name_req = request.args.get('account_name_filter', None)
+        distinct_req = request.args.get('distinct', False, type=lambda v: v.lower() == 'true')
+
+        offset = (page - 1) * limit
+
+        # 构建查询过滤器
+        filters = {}
+        if account_number_req:
+            filters['account_number'] = account_number_req
+        if start_date_req:
+            filters['start_date'] = start_date_req
+        if end_date_req:
+            filters['end_date'] = end_date_req
+        if min_amount_req is not None:
+            filters['min_amount'] = min_amount_req
+        if max_amount_req is not None:
+            filters['max_amount'] = max_amount_req
+        if transaction_type_req:
+            filters['transaction_type'] = transaction_type_req
+        if counterparty_req:
+            filters['counterparty'] = counterparty_req
+        if currency_req:
+            filters['currency'] = currency_req
+        if account_name_req:
+            filters['account_name'] = account_name_req
+
+        # 获取交易记录和总数
+        transactions_list = transaction_service.get_transactions_with_filters(
+            filters=filters,
+            limit=limit,
+            offset=offset
+        )
+        
+        count_query_params = {
+            'account_number_filter': account_number_req,
+            'start_date': start_date_req,
+            'end_date': end_date_req,
+            'min_amount': min_amount_req,
+            'max_amount': max_amount_req,
+            'transaction_type_filter': transaction_type_req, 
+            'counterparty_filter': counterparty_req, 
+            'currency_filter': currency_req,
+            'account_name_filter': account_name_req,
+            'distinct': distinct_req
+        }
+        total_transactions = transaction_service.count_transactions_with_filters(filters)
+
+        accounts = database_service.get_all_accounts()
+        
+        transaction_types_for_filter = database_service.get_all_transaction_types()
+
+        currencies_for_filter = database_service.get_all_currencies()
+
+        current_filters = {
+            'account_number': account_number_req,
+            'start_date': start_date_req,
+            'end_date': end_date_req,
+            'min_amount': min_amount_req,
+            'max_amount': max_amount_req,
+            'type': transaction_type_req,
+            'counterparty': counterparty_req,
+            'currency': currency_req,
+            'account_name_filter': account_name_req,
+            'distinct': distinct_req
+        }
+
+        if limit <= 0: limit = current_app.config.get('ITEMS_PER_PAGE', 20)
+        total_pages = (total_transactions + limit - 1) // limit if total_transactions > 0 else 1
+
+        # 转换交易记录为模板需要的格式
+        transactions_data = []
+        for trans in transactions_list:
+            transactions_data.append({
+                'id': trans.id,
+                'transaction_date': trans.transaction_date,
+                'amount': trans.amount,
+                'counterparty': trans.counterparty,
+                'description': trans.description,
+                'account_number': trans.account.account_number if trans.account else 'N/A',
+                'account_name': trans.account.account_name if trans.account else 'N/A',
+                'bank_name': trans.account.bank.name if trans.account and trans.account.bank else 'N/A',
+                'transaction_type': trans.transaction_type.name if trans.transaction_type else 'N/A',
+                'currency': trans.currency,
+                'balance': trans.balance
+            })
+
+        data_for_template = {
+            'transactions': transactions_data,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total_items': total_transactions,
+                'totalPages': total_pages
+            },
+            'accounts': accounts,
+            'transaction_types': transaction_types_for_filter,
+            'currencies': currencies_for_filter,
+            'current_filters': current_filters
+        }
+
+        return render_template(
+            'transactions.html', 
+            data=data_for_template,
+            total_count=total_transactions
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error in /transactions route: {e}", exc_info=True)
+        # 依赖全局错误处理器
+        raise # 或者 return render_template('errors/500.html', error_message="无法加载交易记录。 " + str(e)), 500

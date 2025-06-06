@@ -1,11 +1,32 @@
-flask>=2.2.5
+# Flask and extensions
+Flask>=2.2.3
+Flask-SQLAlchemy>=3.0.5
+Flask-Migrate>=4.0.5
+Werkzeug>=2.2.3
+
+# Database
+SQLAlchemy>=2.0.0
+Alembic>=1.12.0
+
+# Data processing
 pandas>=1.5.0
-matplotlib>=3.6.0
 numpy>=1.23.0
 openpyxl>=3.0.10
 xlrd>=2.0.1
-werkzeug>=2.2.3
-jieba>=0.42
+matplotlib>=3.6.0
 seaborn>=0.11.0
+
+# Text processing
+jieba>=0.42
+
+# Validation and utilities
 jsonschema>=4.17.0
-python-dotenv>=0.21.0 
+validators>=0.22.0
+python-dateutil>=2.8.2
+python-dotenv>=0.21.0
+
+# Development and testing (optional)
+pytest>=7.4.0
+pytest-flask>=1.2.0
+flake8>=6.0.0
+black>=23.0.0

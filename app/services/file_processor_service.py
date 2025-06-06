@@ -8,10 +8,18 @@ from flask import current_app, flash # current_app 用于访问 app.config 和 l
 import logging
 
 class FileProcessorService:
-    def __init__(self, extractor_factory, db_facade, upload_folder):
-        self.extractor_factory = extractor_factory
-        self.db_facade = db_facade
-        self.upload_folder = Path(upload_folder)
+    def __init__(self, extractor_service, database_service, upload_folder=None):
+        self.extractor_service = extractor_service
+        self.database_service = database_service
+        # 如果没有提供 upload_folder，使用默认值或从配置获取
+        if upload_folder:
+            self.upload_folder = Path(upload_folder)
+        else:
+            try:
+                from flask import current_app
+                self.upload_folder = Path(current_app.config.get('UPLOAD_FOLDER', 'uploads'))
+            except RuntimeError:
+                self.upload_folder = Path('uploads')
         # 移除对 current_app.logger 的直接访问
         # self.logger = current_app.logger # 使用 Flask 的 logger
 
@@ -90,7 +98,7 @@ class FileProcessorService:
         """
         try:
             # extractor_factory.auto_detect_and_process 需要一个 Path 对象
-            processed_files_result_all = self.extractor_factory.auto_detect_and_process(Path(folder_path))
+            processed_files_result_all = self.extractor_service.auto_detect_and_process(Path(folder_path))
 
             if not processed_files_result_all:
                 self._get_logger().warning("提取器未能成功处理任何文件。")

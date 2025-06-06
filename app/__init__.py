@@ -1,36 +1,44 @@
 import os
 import logging
 import sys
-from flask import Flask, request, render_template, jsonify 
+from flask import Flask, request, render_template, jsonify
+from flask_migrate import Migrate
 
 # 从同一目录的 config 模块导入配置字典
-# 假设 config.py 已经被移动到了 app/config.py
-from .config import config
+from .config import config, get_config
 from .template_filters import register_template_filters
+from .models import db
+from .services.database_service import DatabaseService
+from .services.transaction_service import TransactionService
+from .services.analysis_service import AnalysisService
+from .services.extractor_service import ExtractorService
+from .services.file_processor_service import FileProcessorService
+
+# Initialize extensions
+migrate = Migrate()
 
 def create_app(config_name='default'):
-    app = Flask(__name__) # 使用 __name__ (即 'app') 作为蓝图的模板/静态文件查找起点
-    app.config.from_object(config[config_name])
-
-    # 配置日志
-    log_level = logging.DEBUG if app.debug else logging.INFO
+    app = Flask(__name__)
+    
+    # Load configuration
+    config_obj = get_config(config_name)
+    app.config.from_object(config_obj)
+    
+    # Initialize configuration
+    config_obj.init_app(app)
+    
+    # Initialize extensions
+    db.init_app(app)
+    migrate.init_app(app, db)
+    
+    # Configure logging
+    log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO'))
     logging.basicConfig(
         level=log_level,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[logging.StreamHandler()]
     )
-    # 可以使用 app.logger 记录应用特定的日志
     app.logger.info(f"应用以 '{config_name}' 配置启动。日志级别: {logging.getLevelName(log_level)}")
-
-    # 确保上传和数据文件夹存在 (路径来自 app.config)
-    try:
-        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-        os.makedirs(app.config['DATA_FOLDER'], exist_ok=True)
-        app.logger.info(f"Upload folder: {app.config['UPLOAD_FOLDER']}")
-        app.logger.info(f"Data folder: {app.config['DATA_FOLDER']}")
-    except OSError as e:
-        app.logger.error(f"创建目录失败: {e}")
-        # 根据情况决定是否抛出异常或优雅退出
 
     # 添加 scripts 目录到 Python 路径 (scripts 在项目根目录 AiBookkeeping/scripts)
     project_root_dir = os.path.dirname(app.root_path) # app.root_path 是 app/
@@ -43,60 +51,54 @@ def create_app(config_name='default'):
         sys.path.append(project_root_dir)
         app.logger.info(f"已将 {project_root_dir} 添加到 sys.path")
 
-    # 导入和初始化核心服务/管理器
-    # 这些依赖于上面的 sys.path 修改可能已经完成
-    from scripts.db.db_facade import DBFacade
-    from scripts.extractors.factory.extractor_factory import get_extractor_factory
-    # services 目录现在是 app/services/
-    from app.services.file_processor_service import FileProcessorService
-
-    # 将实例附加到 app 对象，供蓝图和应用上下文使用
-    # 初始化数据库门面
-    # 注意：这里只创建 DBFacade 实例，不直接初始化连接
-    # 连接将在每个请求中通过 db_facade.get_connection() 获取
-    app.db_facade = DBFacade(app.config['DATABASE_PATH'])
-
-    # 在应用上下文销毁时关闭数据库连接
-    @app.teardown_appcontext
-    def close_db_connection(exception):
-        # 确保在应用关闭时，所有线程的连接都被关闭
-        # 对于 threading.local() 管理的连接，这里不需要额外操作
-        # 因为每个请求结束时，连接已经在 after_request 中关闭
-        pass # 实际的关闭逻辑已移至 after_request
-
-    # 确保在应用启动时，主线程的数据库连接被初始化
+    # Initialize database and services
     with app.app_context():
-        app.db_facade.init_db() # Ensure database tables are created
-
-    app.extractor_factory = get_extractor_factory()
-    app.file_processor_service = FileProcessorService(
-        app.extractor_factory,
-        app.db_facade,
-        app.config['UPLOAD_FOLDER']
-    )
-    app.logger.info("DBManager, ExtractorFactory, FileProcessorService 已初始化并附加到 app 对象。")
+        # Create database tables
+        db.create_all()
+        app.logger.info("数据库表已创建")
+        
+        # Initialize services
+        app.database_service = DatabaseService()
+        app.transaction_service = TransactionService()
+        app.analysis_service = AnalysisService()
+        app.extractor_service = ExtractorService()
+        
+        # Initialize file processor service with dependencies
+        app.file_processor_service = FileProcessorService(
+            extractor_service=app.extractor_service,
+            database_service=app.database_service
+        )
+        
+        # Initialize default data
+        app.database_service.init_database()
+        app.logger.info("数据库已初始化，默认数据已创建")
+    
+    # 为了向后兼容，保留旧的属性名
+    app.db_facade = app.database_service
+    app.extractor_factory = app.extractor_service
+    app.logger.info("服务层已初始化并附加到 app 对象")
 
     # 注册自定义模板过滤器
     register_template_filters(app)
 
     # 注册蓝图
-    from .main.routes import main as main_blueprint # 蓝图实例通常在 routes.py 中定义或在其 __init__ 中
+    from .blueprints.main.routes import main as main_blueprint
     app.register_blueprint(main_blueprint)
     app.logger.info("已注册 main_blueprint")
 
-    from .upload_bp.routes import upload_bp
+    from .blueprints.upload.routes import upload_bp
     app.register_blueprint(upload_bp, url_prefix='/upload')
     app.logger.info("已注册 upload_bp, 前缀 /upload")
 
-    from .transactions_bp.routes import transactions_bp
+    from .blueprints.transactions.routes import transactions_bp
     app.register_blueprint(transactions_bp, url_prefix='/transactions')
     app.logger.info("已注册 transactions_bp, 前缀 /transactions")
 
-    from .api_bp.routes import api_bp
+    from .blueprints.api.routes import api_bp
     app.register_blueprint(api_bp, url_prefix=app.config.get('API_URL_PREFIX', '/api'))
     app.logger.info(f"已注册 api_bp, 前缀 {app.config.get('API_URL_PREFIX', '/api')}")
     
-    from .income_analysis_bp.routes import income_analysis_bp
+    from .blueprints.income_analysis.routes import income_analysis_bp
     app.register_blueprint(income_analysis_bp, url_prefix='/income-analysis')
     app.logger.info("已注册 income_analysis_bp, 前缀 /income-analysis")
 
@@ -138,11 +140,16 @@ def create_app(config_name='default'):
         elif message != "未找到待处理的Excel文件": # 只记录非"未找到"的消息
              app.logger.info(f"启动时文件处理消息: {message}")
         # 数据库统计信息检查
-        stats = app.db_facade.get_general_statistics()
-        if stats and stats.get('total_transactions', 0) > 0:
-            app.logger.info(f"数据库已连接并包含 {stats.get('total_transactions', 0)} 条交易记录")
-        else:
-            app.logger.info("数据库为空或新创建")
+        try:
+            stats = app.database_service.get_database_stats()
+            total_transactions = stats.get('transactions_count', 0)
+            if total_transactions > 0:
+                app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
+            else:
+                app.logger.info("数据库为空或新创建")
+        except Exception as e:
+            app.logger.warning(f"获取数据库统计信息时出错: {e}")
+            app.logger.info("数据库连接正常，但无法获取统计信息")
     except Exception as e_init:
         app.logger.error(f"应用启动时执行 init_database 逻辑出错: {e_init}", exc_info=True)
 

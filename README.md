@@ -7,11 +7,24 @@ AiBookkeeping/
 ├── app/                   # 应用主目录
 │   ├── __init__.py        # 应用工厂函数
 │   ├── config.py          # 配置文件
+│   ├── models/            # 数据模型层
+│   │   ├── __init__.py    # 模型包初始化
+│   │   ├── base.py        # 基础模型类
+│   │   ├── bank.py        # 银行模型
+│   │   ├── account.py     # 账户模型
+│   │   ├── transaction_type.py # 交易类型模型
+│   │   └── transaction.py # 交易模型
+│   ├── services/          # 业务逻辑层
+│   │   ├── __init__.py    # 服务包初始化
+│   │   ├── database_service.py    # 数据库服务
+│   │   ├── transaction_service.py # 交易服务
+│   │   ├── analysis_service.py    # 分析服务
+│   │   └── file_processor_service.py # 文件处理服务
 │   ├── main/              # 主蓝图（首页、仪表盘）
 │   ├── api_bp/            # API蓝图
 │   ├── transactions_bp/   # 交易记录蓝图
 │   ├── upload_bp/         # 文件上传蓝图
-│   ├── services/          # 应用服务
+│   ├── income_analysis_bp/ # 收入分析蓝图
 │   ├── static/            # 静态文件
 │   └── templates/         # HTML模板目录
 │       ├── base.html      # 基础模板
@@ -19,6 +32,11 @@ AiBookkeeping/
 │       ├── transactions.html # 交易记录页面
 │       ├── upload.html    # 上传页面
 │       └── errors/        # 错误页面模板
+├── migrations/            # 数据库迁移文件
+│   ├── alembic.ini        # Alembic配置文件
+│   ├── env.py            # 迁移环境配置
+│   ├── script.py.mako    # 迁移脚本模板
+│   └── versions/         # 迁移版本文件
 ├── data/                  # 数据目录
 │   └── transactions.db    # SQLite数据库文件
 ├── config/                # 配置文件目录
@@ -261,4 +279,4 @@ python run.py
    - 增加了核心交易识别功能，可自动识别常规收支模式
    - 增加了异常交易检测功能，基于多种统计方法检测异常消费
    - 增强了多维度分析能力（日、周、月、年、类别）
-   - 改进了分类算法，提高了交易分类准确性 
+   - 改进了分类算法，提高了交易分类准确性
