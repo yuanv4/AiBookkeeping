@@ -1,4 +1,4 @@
-"""Analysis data models using dataclasses for better type safety and structure."""
+"""Analysis models for financial data analysis."""
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional
@@ -54,8 +54,23 @@ class MonthlyData:
 
 
 @dataclass
+class IncomeExpenseAnalysis:
+    """Income and expense analysis results."""
+    overall_stats: OverallStats
+    monthly_data: List[MonthlyData] = field(default_factory=list)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'overall_stats': self.overall_stats.to_dict(),
+            'monthly_data': [month.to_dict() for month in self.monthly_data]
+        }
+
+
+# Legacy compatibility classes
+@dataclass
 class IncomeExpenseBalance:
-    """Income and expense balance analysis data."""
+    """Legacy compatibility class for IncomeExpenseAnalysis."""
     overall_stats: OverallStats = field(default_factory=OverallStats)
     monthly_data: List[MonthlyData] = field(default_factory=list)
     
@@ -63,7 +78,7 @@ class IncomeExpenseBalance:
         """Convert to dictionary for template compatibility."""
         return {
             'overall_stats': self.overall_stats.to_dict(),
-            'monthly_data': [data.to_dict() for data in self.monthly_data]
+            'monthly_data': [month.to_dict() for month in self.monthly_data]
         }
 
 
@@ -96,46 +111,6 @@ class IncomeStability:
         return {
             'metrics': self.metrics.to_dict(),
             'monthly_variance': self.monthly_variance
-        }
-
-
-@dataclass
-class CashFlowMetrics:
-    """Cash flow health metrics."""
-    liquidity_ratio: float = 0.0
-    cash_flow_trend: str = 'stable'
-    emergency_fund_months: float = 0.0
-    debt_to_income_ratio: float = 0.0
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for template compatibility."""
-        return {
-            'liquidity_ratio': self.liquidity_ratio,
-            'cash_flow_trend': self.cash_flow_trend,
-            'emergency_fund_months': self.emergency_fund_months,
-            'debt_to_income_ratio': self.debt_to_income_ratio
-        }
-
-
-@dataclass
-class CashFlowHealth:
-    """Cash flow health analysis data."""
-    metrics: CashFlowMetrics = field(default_factory=CashFlowMetrics)
-    monthly_flow: List[Dict[str, Any]] = field(default_factory=list)
-    gap_frequency: float = 0.0
-    avg_gap: float = 0.0
-    total_balance: float = 0.0
-    monthly_cash_flow: List[Dict[str, Any]] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for template compatibility."""
-        return {
-            'metrics': self.metrics.to_dict(),
-            'monthly_flow': self.monthly_flow,
-            'gap_frequency': self.gap_frequency,
-            'avg_gap': self.avg_gap,
-            'total_balance': self.total_balance,
-            'monthly_cash_flow': self.monthly_cash_flow
         }
 
 
@@ -218,40 +193,158 @@ class IncomeGrowth:
 
 
 @dataclass
-class ResilienceMetrics:
-    """Financial resilience metrics."""
-    resilience_score: float = 0.0
-    stress_test_result: str = 'good'
-    recovery_capacity: float = 0.0
-    financial_buffer_months: float = 0.0
+class CashFlowMetrics:
+    """Cash flow analysis metrics."""
+    total_inflow: float = 0.0
+    total_outflow: float = 0.0
+    net_cash_flow: float = 0.0
+    average_monthly_inflow: float = 0.0
+    average_monthly_outflow: float = 0.0
+    cash_flow_volatility: float = 0.0
+    positive_months: int = 0
+    negative_months: int = 0
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for template compatibility."""
         return {
-            'resilience_score': self.resilience_score,
-            'stress_test_result': self.stress_test_result,
-            'recovery_capacity': self.recovery_capacity,
-            'financial_buffer_months': self.financial_buffer_months
+            'total_inflow': self.total_inflow,
+            'total_outflow': self.total_outflow,
+            'net_cash_flow': self.net_cash_flow,
+            'average_monthly_inflow': self.average_monthly_inflow,
+            'average_monthly_outflow': self.average_monthly_outflow,
+            'cash_flow_volatility': self.cash_flow_volatility,
+            'positive_months': self.positive_months,
+            'negative_months': self.negative_months
+        }
+
+
+@dataclass
+class CashFlowHealth:
+    """Cash flow health assessment."""
+    health_score: float = 0.0
+    health_level: str = "Unknown"
+    recommendations: List[str] = field(default_factory=list)
+    metrics: CashFlowMetrics = field(default_factory=CashFlowMetrics)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'health_score': self.health_score,
+            'health_level': self.health_level,
+            'recommendations': self.recommendations,
+            'metrics': self.metrics.to_dict()
+        }
+
+
+@dataclass
+class IncomeDiversityMetrics:
+    """Income diversity analysis metrics."""
+    diversity_score: float = 0.0
+    income_sources: Dict[str, float] = field(default_factory=dict)
+    concentration_risk: float = 0.0
+    stability_score: float = 0.0
+    recommendations: List[str] = field(default_factory=list)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'diversity_score': self.diversity_score,
+            'income_sources': self.income_sources,
+            'concentration_risk': self.concentration_risk,
+            'stability_score': self.stability_score,
+            'recommendations': self.recommendations
+        }
+
+
+@dataclass
+class IncomeGrowthMetrics:
+    """Income growth analysis metrics."""
+    growth_rate: float = 0.0
+    trend: str = "Stable"
+    volatility: float = 0.0
+    consistency_score: float = 0.0
+    monthly_growth_rates: List[float] = field(default_factory=list)
+    recommendations: List[str] = field(default_factory=list)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'growth_rate': self.growth_rate,
+            'trend': self.trend,
+            'volatility': self.volatility,
+            'consistency_score': self.consistency_score,
+            'monthly_growth_rates': self.monthly_growth_rates,
+            'recommendations': self.recommendations
+        }
+
+
+@dataclass
+class ResilienceMetrics:
+    """Financial resilience metrics."""
+    emergency_fund_months: float = 0.0
+    debt_to_income_ratio: float = 0.0
+    savings_rate: float = 0.0
+    expense_stability: float = 0.0
+    income_stability: float = 0.0
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'emergency_fund_months': self.emergency_fund_months,
+            'debt_to_income_ratio': self.debt_to_income_ratio,
+            'savings_rate': self.savings_rate,
+            'expense_stability': self.expense_stability,
+            'income_stability': self.income_stability
         }
 
 
 @dataclass
 class FinancialResilience:
-    """Financial resilience analysis data."""
+    """Financial resilience analysis results."""
+    resilience_score: float = 0.0
+    resilience_level: str = "Unknown"
     metrics: ResilienceMetrics = field(default_factory=ResilienceMetrics)
-    scenario_analysis: List[Dict[str, Any]] = field(default_factory=list)
+    recommendations: List[str] = field(default_factory=list)
+    risk_factors: List[str] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for template compatibility."""
         return {
+            'resilience_score': self.resilience_score,
+            'resilience_level': self.resilience_level,
             'metrics': self.metrics.to_dict(),
-            'scenario_analysis': self.scenario_analysis
+            'recommendations': self.recommendations,
+            'risk_factors': self.risk_factors
+        }
+
+
+@dataclass
+class ComprehensiveAnalysis:
+    """Comprehensive financial analysis results."""
+    income_expense: IncomeExpenseAnalysis = field(default_factory=IncomeExpenseAnalysis)
+    cash_flow: CashFlowHealth = field(default_factory=CashFlowHealth)
+    diversity: IncomeDiversityMetrics = field(default_factory=IncomeDiversityMetrics)
+    growth: IncomeGrowthMetrics = field(default_factory=IncomeGrowthMetrics)
+    resilience: FinancialResilience = field(default_factory=FinancialResilience)
+    overall_score: float = 0.0
+    summary: str = ""
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'income_expense': self.income_expense.to_dict(),
+            'cash_flow': self.cash_flow.to_dict(),
+            'diversity': self.diversity.to_dict(),
+            'growth': self.growth.to_dict(),
+            'resilience': self.resilience.to_dict(),
+            'overall_score': self.overall_score,
+            'summary': self.summary
         }
 
 
 @dataclass
 class ComprehensiveAnalysisData:
-    """Complete comprehensive analysis data structure."""
+    """Legacy compatibility class for comprehensive analysis data."""
     income_expense_balance: IncomeExpenseBalance = field(default_factory=IncomeExpenseBalance)
     income_stability: IncomeStability = field(default_factory=IncomeStability)
     cash_flow_health: CashFlowHealth = field(default_factory=CashFlowHealth)

@@ -30,6 +30,9 @@ ENV/
 .env.local
 .env.*.local
 
+# 缓存
+.cache
+
 # 但保留环境配置模板文件
 !.env.example
 

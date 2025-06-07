@@ -9,11 +9,11 @@ from flask_migrate import Migrate
 from .config import get_config
 from .template_filters import register_template_filters
 from .models import db
-from .services.database_service import DatabaseService
-from .services.transaction_service import TransactionService
+from .services.core.database_service import DatabaseService
+from .services.core.transaction_service import TransactionService
 from .services.analysis_service import AnalysisService
-from .services.extractor_service import ExtractorService
-from .services.file_processor_service import FileProcessorService
+from .services.extraction.bank_statement_extractor import BankStatementExtractor
+from .services.core.file_processor_service import FileProcessorService
 
 # Initialize extensions
 migrate = Migrate()
@@ -92,7 +92,7 @@ def create_app():
         app.database_service = DatabaseService()
         app.transaction_service = TransactionService()
         app.analysis_service = AnalysisService()
-        app.extractor_service = ExtractorService()
+        app.extractor_service = BankStatementExtractor()
         
         # Initialize file processor service with dependencies
         app.file_processor_service = FileProcessorService(

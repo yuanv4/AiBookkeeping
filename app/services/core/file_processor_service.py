@@ -97,8 +97,10 @@ class FileProcessorService:
         返回处理结果元组 (processed_files_result, message)。
         """
         try:
-            # extractor_factory.auto_detect_and_process 需要一个 Path 对象
-            processed_files_result_all = self.extractor_service.auto_detect_and_process(Path(folder_path))
+            # 获取文件夹中的所有文件
+            folder_path_obj = Path(folder_path)
+            file_paths = [str(f) for f in folder_path_obj.glob('*') if f.is_file()]
+            processed_files_result_all = self.extractor_service.process_files(file_paths)
 
             if not processed_files_result_all:
                 self._get_logger().warning("提取器未能成功处理任何文件。")

@@ -19,13 +19,13 @@ from typing import Dict, List, Type, Optional, Any, Union, Tuple
 from abc import ABC, abstractmethod
 
 from app.models import Bank, Account, Transaction, TransactionType, db
-from app.services.database_service import DatabaseService
-from app.services.transaction_service import TransactionService
+from app.services.core.database_service import DatabaseService
+from app.services.core.transaction_service import TransactionService
 
 logger = logging.getLogger(__name__)
 
-class ExtractorInterface(ABC):
-    """银行交易提取器接口"""
+class BankStatementExtractorInterface(ABC):
+    """银行对账单提取器接口"""
 
     @abstractmethod
     def get_bank_code(self) -> str:
@@ -71,7 +71,7 @@ class ExtractorInterface(ABC):
         """
         pass
 
-class BaseTransactionExtractor(ExtractorInterface):
+class BaseTransactionExtractor(BankStatementExtractorInterface):
     """银行交易明细提取器基类"""
     
     def __init__(self, bank_code: str):
@@ -465,7 +465,7 @@ class ExtractorFactory:
     """银行提取器工厂"""
     
     def __init__(self):
-        self.extractors: Dict[str, Type[ExtractorInterface]] = {}
+        self.extractors: Dict[str, Type[BankStatementExtractorInterface]] = {}
         self.logger = logging.getLogger('extractor_factory')
         self._register_default_extractors()
     
@@ -474,12 +474,12 @@ class ExtractorFactory:
         self.register('CMB', CMBTransactionExtractor)
         self.register('CCB', CCBTransactionExtractor)
     
-    def register(self, bank_code: str, extractor_class: Type[ExtractorInterface]):
+    def register(self, bank_code: str, extractor_class: Type[BankStatementExtractorInterface]):
         """注册银行提取器"""
         self.extractors[bank_code] = extractor_class
         self.logger.info(f"注册提取器: {bank_code} -> {extractor_class.__name__}")
     
-    def create(self, bank_code: str) -> Optional[ExtractorInterface]:
+    def create(self, bank_code: str) -> Optional[BankStatementExtractorInterface]:
         """创建指定银行的提取器实例"""
         if bank_code in self.extractors:
             return self.extractors[bank_code]()
@@ -489,7 +489,7 @@ class ExtractorFactory:
         """获取可用的银行代码列表"""
         return list(self.extractors.keys())
     
-    def find_suitable_extractor(self, file_path: str) -> Optional[ExtractorInterface]:
+    def find_suitable_extractor(self, file_path: str) -> Optional[BankStatementExtractorInterface]:
         """根据文件找到合适的提取器"""
         for bank_code in self.extractors:
             extractor = self.create(bank_code)
@@ -497,7 +497,7 @@ class ExtractorFactory:
                 return extractor
         return None
 
-class ExtractorService:
+class BankStatementExtractor:
     """提取器服务"""
     
     def __init__(self):
@@ -560,9 +560,9 @@ class ExtractorService:
 # 全局实例
 _extractor_service = None
 
-def get_extractor_service() -> ExtractorService:
+def get_extractor_service() -> BankStatementExtractor:
     """获取提取器服务实例"""
     global _extractor_service
     if _extractor_service is None:
-        _extractor_service = ExtractorService()
+        _extractor_service = BankStatementExtractor()
     return _extractor_service

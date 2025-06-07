@@ -10,7 +10,7 @@ import logging
 from collections import defaultdict
 
 from app.models import Transaction, Account, TransactionType, db
-from app.services.database_service import DatabaseService
+from .database_service import DatabaseService
 from sqlalchemy import func, and_, or_, case
 from sqlalchemy.exc import SQLAlchemyError
 
