@@ -23,12 +23,10 @@ from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 
 # 导入分析结果类，避免在异常处理中重复导入
-from app.services.analysis.analyzers.income_analyzer import IncomeExpenseAnalysis
-from app.services.analysis.analyzers.income_stability_analyzer import IncomeStability
-from app.services.analysis.analyzers.cash_flow_analyzer import CashFlowHealth
-from app.services.analysis.analyzers.income_diversity_analyzer import IncomeDiversity
-from app.services.analysis.analyzers.income_growth_analyzer import IncomeGrowth
-from app.services.analysis.analyzers.financial_resilience_analyzer import FinancialResilience
+from app.models.analysis_models import (
+    IncomeExpenseAnalysis, IncomeStability, CashFlowHealth,
+    IncomeDiversityMetrics, IncomeGrowthMetrics, FinancialResilience
+)
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +118,7 @@ class ComprehensiveService:
                 'income_expense': IncomeExpenseAnalysis(),
                 'stability': IncomeStability(),
                 'cash_flow': CashFlowHealth(),
-                'diversity': IncomeDiversity(),
-                'growth': IncomeGrowth(),
+                'diversity': IncomeDiversityMetrics(),
+                'growth': IncomeGrowthMetrics(),
                 'resilience': FinancialResilience()
             }
