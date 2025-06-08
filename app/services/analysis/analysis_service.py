@@ -28,6 +28,9 @@ from app.models.analysis_models import (
     IncomeDiversityMetrics, IncomeGrowthMetrics, FinancialResilience
 )
 
+# 导入报告服务
+from app.services.reporting.financial_report_service import FinancialReportService
+
 logger = logging.getLogger(__name__)
 
 class ComprehensiveService:
@@ -121,4 +124,44 @@ class ComprehensiveService:
                 'diversity': IncomeDiversityMetrics(),
                 'growth': IncomeGrowthMetrics(),
                 'resilience': FinancialResilience()
+            }
+    
+    @staticmethod
+    def generate_financial_report(account_id: int = None, start_date: date = None, 
+                                end_date: date = None) -> Dict[str, Any]:
+        """生成财务报告，委托给FinancialReportService处理。
+        
+        Args:
+            account_id: 可选的账户ID
+            start_date: 开始日期
+            end_date: 结束日期
+            
+        Returns:
+            Dict[str, Any]: 财务报告数据
+        """
+        try:
+            return FinancialReportService.generate_financial_report(
+                account_id=account_id,
+                start_date=start_date,
+                end_date=end_date
+            )
+        except Exception as e:
+            logger.error(f"生成财务报告时出错: {e}")
+            # 返回默认的空报告结构
+            return {
+                'period': {
+                    'start_date': start_date.isoformat() if start_date else None,
+                    'end_date': end_date.isoformat() if end_date else None,
+                    'days': 0
+                },
+                'summary': {
+                    'total_income': 0,
+                    'total_expense': 0,
+                    'net_income': 0
+                },
+                'income_analysis': {},
+                'expense_analysis': {},
+                'category_breakdown': {},
+                'trends': {},
+                'insights': []
             }

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import os # For send_file basename
 
 # 使用新的分析服务
-from app.services.analysis_service import AnalysisService
+from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService
 
 from . import api_bp
 

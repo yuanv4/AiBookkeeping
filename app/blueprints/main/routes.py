@@ -2,7 +2,7 @@
 from flask import redirect, url_for, render_template, flash, current_app, request, g
 from datetime import datetime # dashboard 中使用
 from app.services.core.database_service import DatabaseService
-from app.services.analysis_service import AnalysisService
+from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService
 # from scripts.analyzers.transaction_analyzer import TransactionAnalyzer # 将在需要时实例化
 
 from . import main # 从同级 __init__.py 导入 main 蓝图实例

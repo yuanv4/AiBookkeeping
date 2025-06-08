@@ -2,7 +2,7 @@ from flask import render_template, current_app
 
 # 使用新的服务层
 from app.services.core.database_service import DatabaseService
-from app.services.analysis_service import AnalysisService
+from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService
 
 from . import income_analysis_bp
 

@@ -6,16 +6,14 @@ Includes base extractors, specific bank extractors, factory patterns, and compre
 
 from .extractors.base_extractor import BankStatementExtractorInterface, BaseTransactionExtractor
 from .extractor_factory import ExtractorFactory
-from .bank_statement_service import BankStatementExtractor, get_extractor_service
-from .comprehensive_extraction_service import ComprehensiveExtractionService, get_comprehensive_extraction_service
+from .extraction_service import BankStatementExtractor, get_extractor_service
+# 文件验证功能已移除
 from .extractors import *
 
 __all__ = [
     'BankStatementExtractorInterface',
     'BaseTransactionExtractor', 
     'ExtractorFactory',
-    'BankStatementExtractor',
-    'get_extractor_service',
-    'ComprehensiveExtractionService',
-    'get_comprehensive_extraction_service'
+    'BankStatementExtractor', 
+    'get_extractor_service'
 ]

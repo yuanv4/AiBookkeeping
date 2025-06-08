@@ -11,8 +11,8 @@ from .template_filters import register_template_filters
 from .models import db
 from .services.core.database_service import DatabaseService
 from .services.core.transaction_service import TransactionService
-from .services.analysis_service import AnalysisService
-from .services.extraction.bank_statement_service import BankStatementExtractor
+from .services.analysis.analysis_service import ComprehensiveService as AnalysisService
+from .services.extraction.extraction_service import BankStatementExtractor
 from .services.core.file_processor_service import FileProcessorService
 
 # Initialize extensions
@@ -106,7 +106,6 @@ def create_app():
     
     # 为了向后兼容，保留旧的属性名
     app.db_facade = app.database_service
-    app.extractor_factory = app.extractor_service
     app.logger.info("服务层已初始化并附加到 app 对象")
 
     # 注册自定义模板过滤器

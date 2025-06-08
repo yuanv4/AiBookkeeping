@@ -10,7 +10,7 @@ from .analyzers.cash_flow_analyzer import CashFlowAnalyzer
 from .analyzers.diversity_analyzer import IncomeDiversityAnalyzer
 from .analyzers.growth_analyzer import IncomeGrowthAnalyzer
 from .analyzers.resilience_analyzer import FinancialResilienceAnalyzer
-from .comprehensive_analysis_service import ComprehensiveService
+from .analysis_service import ComprehensiveService
 
 __all__ = [
     'BaseAnalyzer',
