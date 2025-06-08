@@ -123,11 +123,14 @@ class CashFlowAnalyzer(BaseAnalyzer):
     def _build_cash_flow_metrics(self, cash_flow_data: Dict[str, Any]) -> CashFlowMetrics:
         """构建现金流指标。"""
         return CashFlowMetrics(
-            average_monthly_income=cash_flow_data.get('avg_monthly_income', 0.0),
-            average_monthly_expense=cash_flow_data.get('avg_monthly_expense', 0.0),
+            total_inflow=cash_flow_data.get('total_inflow', 0.0),
+            total_outflow=cash_flow_data.get('total_outflow', 0.0),
+            net_cash_flow=cash_flow_data.get('net_cash_flow', 0.0),
+            average_monthly_inflow=cash_flow_data.get('avg_monthly_income', 0.0),
+            average_monthly_outflow=cash_flow_data.get('avg_monthly_expense', 0.0),
             cash_flow_volatility=cash_flow_data.get('volatility', 0.0),
-            positive_cash_flow_months=cash_flow_data.get('positive_months', 0),
-            negative_cash_flow_months=cash_flow_data.get('negative_months', 0)
+            positive_months=cash_flow_data.get('positive_months', 0),
+            negative_months=cash_flow_data.get('negative_months', 0)
         )
     
     def _calculate_monthly_flow(self) -> List[Dict[str, Any]]:

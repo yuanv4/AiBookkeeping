@@ -28,33 +28,17 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
     def get_bank_keyword(self) -> str:
         return '招商银行'
     
-    def can_process_file(self, file_path: str) -> bool:
-        """判断是否可以处理指定文件"""
-        try:
-            # 检查文件名是否包含招商银行关键词
-            filename = os.path.basename(file_path).lower()
-            keywords = ['招商', 'cmb', '一卡通']
-            
-            if not any(keyword in filename for keyword in keywords):
-                return False
-            
-            # 尝试读取文件检查格式
-            df = pd.read_excel(file_path, nrows=10)
-            
-            # 检查是否包含招商银行特有的列
-            cmb_columns = ['交易日期', '交易时间', '对方户名', '对方账号', '交易金额', '余额']
-            return any(col in df.columns for col in cmb_columns)
-            
-        except Exception:
-            return False
+
     
-    def extract_account_info(self, df: pd.DataFrame) -> Tuple[str, str]:
+    def extract_account_info(self, file_path: str) -> Tuple[str, str]:
         """提取账户信息"""
-        # 招商银行通常在前几行包含账户信息
-        account_name = '招商银行账户'
-        account_number = 'CMB_UNKNOWN'
+        account_name = None
+        account_number = None
         
         try:
+            # 读取Excel文件的前几行来查找账户信息
+            df = pd.read_excel(file_path)
+            
             # 尝试从DataFrame的前几行提取账户信息
             for i in range(min(10, len(df))):
                 for col in df.columns:
@@ -72,11 +56,16 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
                         parts = cell_value.split()
                         if len(parts) > 1:
                             account_name = parts[1]
+            
+            # 只有当真正提取到账户信息时才返回，否则返回None
+            if account_name and account_number:
+                return account_name, account_number
+            else:
+                return None, None
         
         except Exception as e:
             self.logger.warning(f"提取账户信息失败: {e}")
-        
-        return account_name, account_number
+            return None, None
     
     def extract_transactions(self, file_path: str) -> Optional[pd.DataFrame]:
         """提取交易数据"""

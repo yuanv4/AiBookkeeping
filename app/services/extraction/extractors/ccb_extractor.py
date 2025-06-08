@@ -28,91 +28,107 @@ class CCBTransactionExtractor(BaseTransactionExtractor):
     def get_bank_keyword(self) -> str:
         return '建设银行'
     
-    def can_process_file(self, file_path: str) -> bool:
-        """判断是否可以处理指定文件"""
-        try:
-            # 检查文件名是否包含建设银行关键词
-            filename = os.path.basename(file_path).lower()
-            keywords = ['建设', 'ccb', '龙卡']
-            
-            if not any(keyword in filename for keyword in keywords):
-                return False
-            
-            # 尝试读取文件检查格式
-            df = pd.read_excel(file_path, nrows=10)
-            
-            # 检查是否包含建设银行特有的列
-            ccb_columns = ['交易日期', '交易时间', '对方户名', '交易金额', '账户余额']
-            return any(col in df.columns for col in ccb_columns)
-            
-        except Exception:
-            return False
+
     
-    def extract_account_info(self, df: pd.DataFrame) -> Tuple[str, str]:
+    def extract_account_info(self, file_path: str) -> Tuple[str, str]:
         """提取账户信息"""
-        account_name = '建设银行账户'
-        account_number = 'CCB_UNKNOWN'
+        account_name = None
+        account_number = None
         
         try:
-            # 建设银行账户信息提取逻辑
+            # 读取Excel文件的前几行来查找账户信息
+            df = pd.read_excel(file_path)
+            
+            # 在前10行中查找账户信息
             for i in range(min(10, len(df))):
                 for col in df.columns:
                     cell_value = str(df.iloc[i][col])
                     
-                    # 查找账号模式
-                    if '账号' in cell_value or '卡号' in cell_value:
+                    # 查找账号模式 - 建设银行格式：卡号/账号:6217**********2832
+                    if '卡号/账号:' in cell_value:
                         numbers = re.findall(r'\d{10,}', cell_value)
                         if numbers:
                             account_number = numbers[0]
                     
-                    # 查找户名
-                    if '户名' in cell_value or '姓名' in cell_value:
-                        parts = cell_value.split()
-                        if len(parts) > 1:
-                            account_name = parts[1]
+                    # 查找户名 - 建设银行格式：客户名称:袁成杰
+                    if '客户名称:' in cell_value:
+                        name_match = re.search(r'客户名称:(.+)', cell_value)
+                        if name_match:
+                            account_name = name_match.group(1).strip()
+            
+            # 只有当真正提取到账户信息时才返回，否则返回None
+            if account_name and account_number:
+                return account_name, account_number
+            else:
+                return None, None
         
         except Exception as e:
             self.logger.warning(f"提取账户信息失败: {e}")
-        
-        return account_name, account_number
+            return None, None
     
     def extract_transactions(self, file_path: str) -> Optional[pd.DataFrame]:
         """提取交易数据"""
         try:
-            # 读取Excel文件
-            df = pd.read_excel(file_path)
+            # 读取Excel文件，不设置header，先分析结构
+            df_raw = pd.read_excel(file_path, header=None)
             
-            # 查找数据开始行
-            data_start_row = 0
-            for i, row in df.iterrows():
-                if '交易日期' in str(row.values):
-                    data_start_row = i
+            # 查找包含'交易日期'的行作为表头
+            header_row = None
+            for i, row in df_raw.iterrows():
+                row_values = row.values
+                if any('交易日期' in str(val) for val in row_values):
+                    header_row = i
+                    self.logger.info(f"找到表头行在第{i}行: {row_values}")
                     break
             
-            # 重新读取，跳过前面的行
-            if data_start_row > 0:
-                df = pd.read_excel(file_path, skiprows=data_start_row)
+            if header_row is None:
+                self.logger.error("未找到包含'交易日期'的表头行")
+                return None
+            
+            # 使用找到的行作为表头重新读取
+            df = pd.read_excel(file_path, header=header_row)
             
             # 清理列名
             df.columns = df.columns.str.strip()
             
-            # 过滤有效数据行
-            df = df.dropna(subset=['交易日期'], how='all')
+            self.logger.info(f"读取到的列名: {df.columns.tolist()}")
+            self.logger.info(f"数据形状: {df.shape}")
+            
+            # 过滤有效数据行（排除空的交易日期）
+            if '交易日期' in df.columns:
+                df = df.dropna(subset=['交易日期'], how='all')
+                # 进一步过滤：确保交易日期不是字符串'交易日期'本身
+                df = df[df['交易日期'] != '交易日期']
+                self.logger.info(f"过滤后数据行数: {len(df)}")
+            else:
+                self.logger.error(f"未找到'交易日期'列，可用列: {df.columns.tolist()}")
+                return None
             
             # 重命名列以匹配标准格式
             column_mapping = {
                 '交易日期': 'transaction_date',
                 '交易金额': 'amount',
                 '账户余额': 'balance',
-                '对方户名': 'counterparty',
+                '对方账号与户名': 'counterparty',
                 '摘要': 'description',
-                '备注': 'description'
+                '备注': 'description',
+                '交易地点/附言': 'memo'
             }
             
             df = df.rename(columns=column_mapping)
             
+            # 确保必要的列存在
+            required_columns = ['transaction_date', 'amount']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                self.logger.error(f"缺少必要的列: {missing_columns}")
+                return None
+            
+            self.logger.info(f"成功提取到 {len(df)} 条交易记录")
             return df
             
         except Exception as e:
             self.logger.error(f"提取建设银行交易数据失败: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
             return None

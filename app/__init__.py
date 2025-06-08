@@ -173,12 +173,13 @@ def create_app():
              app.logger.info(f"启动时文件处理消息: {message}")
         # 数据库统计信息检查
         try:
-            stats = app.database_service.get_database_stats()
-            total_transactions = stats.get('transactions_count', 0)
-            if total_transactions > 0:
-                app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
-            else:
-                app.logger.info("数据库为空或新创建")
+            with app.app_context():
+                stats = app.database_service.get_database_stats()
+                total_transactions = stats.get('transactions_count', 0)
+                if total_transactions > 0:
+                    app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
+                else:
+                    app.logger.info("数据库为空或新创建")
         except Exception as e:
             app.logger.warning(f"获取数据库统计信息时出错: {e}")
             app.logger.info("数据库连接正常，但无法获取统计信息")

@@ -35,12 +35,12 @@ class IncomeGrowthAnalyzer(BaseAnalyzer):
             historical_data = self._build_historical_growth_data(monthly_data)
             
             return IncomeGrowthMetrics(
-                monthly_growth_rate=growth_metrics.get('monthly_growth_rate', 0.0),
-                quarterly_growth_rate=growth_metrics.get('quarterly_growth_rate', 0.0),
-                yearly_growth_rate=growth_metrics.get('yearly_growth_rate', 0.0),
-                growth_trend=growth_metrics.get('growth_trend', 'stable'),
-                growth_volatility=growth_metrics.get('growth_volatility', 0.0),
-                historical_data=historical_data
+                growth_rate=growth_metrics.get('monthly_growth_rate', 0.0),
+                trend=growth_metrics.get('growth_trend', 'Stable'),
+                volatility=growth_metrics.get('growth_volatility', 0.0),
+                consistency_score=growth_metrics.get('consistency_score', 0.0),
+                monthly_growth_rates=growth_metrics.get('monthly_growth_rates', []),
+                recommendations=growth_metrics.get('recommendations', [])
             )
         except Exception as e:
             logger.error(f"收入增长分析失败: {e}")

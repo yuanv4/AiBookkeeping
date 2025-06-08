@@ -44,6 +44,18 @@ class ExtractorFactory:
         """根据文件找到合适的提取器"""
         for bank_code in self.extractors:
             extractor = self.create(bank_code)
-            if extractor and extractor.can_process_file(file_path):
-                return extractor
+            if extractor:
+                try:
+                    # 尝试提取交易数据
+                    df = extractor.extract_transactions(file_path)
+                    if df is not None and not df.empty:
+                        # 尝试提取账户信息
+                        account_name, account_number = extractor.extract_account_info(file_path)
+                        # 只有当成功提取到真实的账户信息时，才认为该提取器适用
+                        if account_name and account_number:
+                            return extractor
+                except Exception as e:
+                    # 如果提取失败，继续尝试下一个提取器
+                    self.logger.debug(f"提取器 {bank_code} 无法处理文件 {file_path}: {e}")
+                    continue
         return None

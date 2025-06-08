@@ -112,7 +112,10 @@ class FileProcessorService:
             if specific_filenames:
                 # 筛选出本次上传并被处理的文件信息
                 for proc_file_info in processed_files_result_all:
-                    if proc_file_info['file'] in specific_filenames:
+                    # 使用file_path字段而不是file字段
+                    file_path = proc_file_info.get('file_path', '')
+                    file_name = Path(file_path).name if file_path else ''
+                    if file_name in specific_filenames:
                         files_to_consider_for_result_and_cleanup.append(proc_file_info)
                 
                 if not files_to_consider_for_result_and_cleanup:
@@ -127,7 +130,9 @@ class FileProcessorService:
             # 处理完成后删除已处理的文件 (仅删除 files_to_consider_for_result_and_cleanup 中的)
             for file_info in files_to_consider_for_result_and_cleanup:
                 try:
-                    file_name_to_delete = file_info['file']
+                    # 使用file_path字段并提取文件名
+                    file_path_to_delete = file_info.get('file_path', '')
+                    file_name_to_delete = Path(file_path_to_delete).name if file_path_to_delete else ''
                     path_to_delete = Path(folder_path) / file_name_to_delete
                     if path_to_delete.exists():
                         path_to_delete.unlink()

@@ -37,10 +37,7 @@ class BankStatementExtractorInterface(ABC):
         """获取银行关键词，用于文件匹配"""
         pass
 
-    @abstractmethod
-    def can_process_file(self, file_path: str) -> bool:
-        """判断是否可以处理指定文件"""
-        pass
+
 
     @abstractmethod
     def extract_account_info(self, df: pd.DataFrame) -> Tuple[str, str]:
@@ -148,14 +145,6 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
             dict: 处理结果
         """
         try:
-            if not self.can_process_file(file_path):
-                return {
-                    'success': False,
-                    'error': f'文件不支持: {file_path}',
-                    'bank': self.get_bank_name(),
-                    'record_count': 0
-                }
-            
             # 提取交易数据
             df = self.extract_transactions(file_path)
             if df is None or df.empty:
@@ -163,7 +152,8 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     'success': False,
                     'error': '无法提取交易数据',
                     'bank': self.get_bank_name(),
-                    'record_count': 0
+                    'record_count': 0,
+                    'file_path': file_path
                 }
             
             # 标准化数据
@@ -243,5 +233,6 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                 'success': False,
                 'error': str(e),
                 'bank': self.get_bank_name(),
-                'record_count': 0
+                'record_count': 0,
+                'file_path': file_path
             }
