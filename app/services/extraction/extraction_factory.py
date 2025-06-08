@@ -17,7 +17,7 @@ class ExtractorFactory:
     
     def __init__(self):
         self.extractors: Dict[str, Type[BankStatementExtractorInterface]] = {}
-        self.logger = logging.getLogger('extractor_factory')
+        self.logger = logging.getLogger('extraction_factory')
         self._register_default_extractors()
     
     def _register_default_extractors(self):

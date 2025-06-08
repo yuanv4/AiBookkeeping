@@ -6,7 +6,7 @@ This package contains services responsible for generating various types of finan
 including comprehensive financial statements, charts, and export functionality.
 """
 
-from .financial_report_service import FinancialReportService
+from .report_service import FinancialReportService
 
 __all__ = [
     'FinancialReportService'

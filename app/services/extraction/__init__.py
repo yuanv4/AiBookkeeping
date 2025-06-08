@@ -5,7 +5,7 @@ Includes base extractors, specific bank extractors, factory patterns, and compre
 """
 
 from .extractors.base_extractor import BankStatementExtractorInterface, BaseTransactionExtractor
-from .extractor_factory import ExtractorFactory
+from .extraction_factory import ExtractorFactory
 from .extraction_service import BankStatementExtractor, get_extractor_service
 # 文件验证功能已移除
 from .extractors import *

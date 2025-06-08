@@ -10,6 +10,7 @@ from .analyzers.cash_flow_analyzer import CashFlowAnalyzer
 from .analyzers.diversity_analyzer import IncomeDiversityAnalyzer
 from .analyzers.growth_analyzer import IncomeGrowthAnalyzer
 from .analyzers.resilience_analyzer import FinancialResilienceAnalyzer
+from .analysis_factory import AnalyzerFactory, AnalyzerType
 from .analysis_service import ComprehensiveService
 
 __all__ = [
@@ -20,5 +21,7 @@ __all__ = [
     'IncomeDiversityAnalyzer',
     'IncomeGrowthAnalyzer',
     'FinancialResilienceAnalyzer',
+    'AnalyzerFactory',
+    'AnalyzerType',
     'ComprehensiveService'
 ]

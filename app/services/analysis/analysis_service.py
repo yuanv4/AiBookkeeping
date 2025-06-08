@@ -11,11 +11,7 @@ import calendar
 
 from app.models import Transaction, Account, TransactionType, Bank, db
 from app.models.analysis_models import ComprehensiveAnalysisData
-from app.services.analysis.analyzers.income_analyzer import IncomeExpenseAnalyzer, IncomeStabilityAnalyzer
-from app.services.analysis.analyzers.cash_flow_analyzer import CashFlowAnalyzer
-from app.services.analysis.analyzers.diversity_analyzer import IncomeDiversityAnalyzer
-from app.services.analysis.analyzers.growth_analyzer import IncomeGrowthAnalyzer
-from app.services.analysis.analyzers.resilience_analyzer import FinancialResilienceAnalyzer
+from app.services.analysis.analysis_factory import AnalyzerFactory, AnalyzerType
 from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
 from app.utils.cache_manager import optimized_cache
 from app.utils.performance_monitor import monitor_performance
@@ -29,7 +25,7 @@ from app.models.analysis_models import (
 )
 
 # 导入报告服务
-from app.services.reporting.financial_report_service import FinancialReportService
+from app.services.report.report_service import FinancialReportService
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +59,7 @@ class ComprehensiveService:
             # 构建综合分析数据结构
             # 将IncomeExpenseAnalysis转换为IncomeExpenseBalance以保持模板兼容性
             from app.models.analysis_models import IncomeExpenseBalance
-            income_expense_result = analysis_results['income_expense']
+            income_expense_result = analysis_results[AnalyzerType.INCOME_EXPENSE]
             income_expense_balance = IncomeExpenseBalance(
                 overall_stats=income_expense_result.overall_stats,
                 monthly_data=income_expense_result.monthly_data
@@ -71,11 +67,11 @@ class ComprehensiveService:
             
             comprehensive_data = ComprehensiveAnalysisData(
                 income_expense_balance=income_expense_balance,
-                income_stability=analysis_results['stability'],
-                cash_flow_health=analysis_results['cash_flow'],
-                income_diversity=analysis_results['diversity'],
-                income_growth=analysis_results['growth'],
-                financial_resilience=analysis_results['resilience']
+                income_stability=analysis_results[AnalyzerType.INCOME_STABILITY],
+                cash_flow_health=analysis_results[AnalyzerType.CASH_FLOW],
+                income_diversity=analysis_results[AnalyzerType.INCOME_DIVERSITY],
+                income_growth=analysis_results[AnalyzerType.INCOME_GROWTH],
+                financial_resilience=analysis_results[AnalyzerType.FINANCIAL_RESILIENCE]
             )
             
             # 返回对象以支持属性访问
@@ -88,15 +84,33 @@ class ComprehensiveService:
     
     @staticmethod
     def _create_analyzers(start_date: date, end_date: date, account_id: Optional[int]) -> Dict[str, Any]:
-        """创建分析器实例。"""
-        return {
-            'income_expense': IncomeExpenseAnalyzer(start_date, end_date, account_id),
-            'stability': IncomeStabilityAnalyzer(start_date, end_date, account_id),
-            'cash_flow': CashFlowAnalyzer(start_date, end_date, account_id),
-            'diversity': IncomeDiversityAnalyzer(start_date, end_date, account_id),
-            'growth': IncomeGrowthAnalyzer(start_date, end_date, account_id),
-            'resilience': FinancialResilienceAnalyzer(start_date, end_date, account_id)
-        }
+        """使用工厂模式创建分析器实例。"""
+        try:
+            # 使用工厂模式创建所有分析器
+            return AnalyzerFactory.create_all_analyzers(start_date, end_date, account_id)
+        except Exception as e:
+            logger.error(f"使用工厂模式创建分析器失败: {e}")
+            # 降级到手动创建关键分析器
+            return {
+                AnalyzerType.INCOME_EXPENSE: AnalyzerFactory.create_analyzer(
+                    AnalyzerType.INCOME_EXPENSE, start_date, end_date, account_id
+                ),
+                AnalyzerType.INCOME_STABILITY: AnalyzerFactory.create_analyzer(
+                    AnalyzerType.INCOME_STABILITY, start_date, end_date, account_id
+                ),
+                AnalyzerType.CASH_FLOW: AnalyzerFactory.create_analyzer(
+                    AnalyzerType.CASH_FLOW, start_date, end_date, account_id
+                ),
+                AnalyzerType.INCOME_DIVERSITY: AnalyzerFactory.create_analyzer(
+                    AnalyzerType.INCOME_DIVERSITY, start_date, end_date, account_id
+                ),
+                AnalyzerType.INCOME_GROWTH: AnalyzerFactory.create_analyzer(
+                    AnalyzerType.INCOME_GROWTH, start_date, end_date, account_id
+                ),
+                AnalyzerType.FINANCIAL_RESILIENCE: AnalyzerFactory.create_analyzer(
+                    AnalyzerType.FINANCIAL_RESILIENCE, start_date, end_date, account_id
+                )
+            }
     
     @staticmethod
     def _execute_parallel_analysis(analyzers: Dict[str, Any]) -> Dict[str, Any]:
@@ -105,12 +119,12 @@ class ComprehensiveService:
         
         try:
             # 顺序执行各个分析器
-            results['income_expense'] = analyzers['income_expense'].analyze()
-            results['stability'] = analyzers['stability'].analyze()
-            results['cash_flow'] = analyzers['cash_flow'].analyze()
-            results['diversity'] = analyzers['diversity'].analyze()
-            results['growth'] = analyzers['growth'].analyze()
-            results['resilience'] = analyzers['resilience'].analyze()
+            results[AnalyzerType.INCOME_EXPENSE] = analyzers[AnalyzerType.INCOME_EXPENSE].analyze()
+            results[AnalyzerType.INCOME_STABILITY] = analyzers[AnalyzerType.INCOME_STABILITY].analyze()
+            results[AnalyzerType.CASH_FLOW] = analyzers[AnalyzerType.CASH_FLOW].analyze()
+            results[AnalyzerType.INCOME_DIVERSITY] = analyzers[AnalyzerType.INCOME_DIVERSITY].analyze()
+            results[AnalyzerType.INCOME_GROWTH] = analyzers[AnalyzerType.INCOME_GROWTH].analyze()
+            results[AnalyzerType.FINANCIAL_RESILIENCE] = analyzers[AnalyzerType.FINANCIAL_RESILIENCE].analyze()
             
             return results
             
@@ -118,12 +132,12 @@ class ComprehensiveService:
             logger.error(f"并行分析执行失败: {e}")
             # 返回默认结果对象
             return {
-                'income_expense': IncomeExpenseAnalysis(),
-                'stability': IncomeStability(),
-                'cash_flow': CashFlowHealth(),
-                'diversity': IncomeDiversityMetrics(),
-                'growth': IncomeGrowthMetrics(),
-                'resilience': FinancialResilience()
+                AnalyzerType.INCOME_EXPENSE: IncomeExpenseAnalysis(),
+                AnalyzerType.INCOME_STABILITY: IncomeStability(),
+                AnalyzerType.CASH_FLOW: CashFlowHealth(),
+                AnalyzerType.INCOME_DIVERSITY: IncomeDiversityMetrics(),
+                AnalyzerType.INCOME_GROWTH: IncomeGrowthMetrics(),
+                AnalyzerType.FINANCIAL_RESILIENCE: FinancialResilience()
             }
     
     @staticmethod

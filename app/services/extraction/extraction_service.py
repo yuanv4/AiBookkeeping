@@ -10,7 +10,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-from .extractor_factory import ExtractorFactory
+from .extraction_factory import ExtractorFactory
 
 class BankStatementExtractor:
     """提取器服务"""

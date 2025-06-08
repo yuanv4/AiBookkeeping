@@ -13,7 +13,7 @@ from .analysis.analysis_service import ComprehensiveService as AnalysisService
 from .analysis import ComprehensiveService
 
 # Reporting services
-from .reporting import FinancialReportService
+from .report import FinancialReportService
 
 # Extraction services
 from .extraction import BankStatementExtractor
