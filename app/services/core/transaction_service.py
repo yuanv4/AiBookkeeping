@@ -186,7 +186,7 @@ class TransactionService:
                                     limit: int = None, offset: int = None) -> List[Transaction]:
         """Get transactions with complex filtering options."""
         try:
-            from app.models.models import Account, Bank
+            from app.models import Account, Bank
             
             query = db.session.query(Transaction).join(Account).join(TransactionType)
             
@@ -246,7 +246,7 @@ class TransactionService:
     def count_transactions_with_filters(filters: Dict[str, Any] = None) -> int:
         """Count transactions with filtering options."""
         try:
-            from app.models.models import Account, Bank
+            from app.models import Account, Bank
             
             query = db.session.query(func.count(Transaction.id)).join(Account).join(TransactionType)
             
