@@ -30,79 +30,31 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
     
 
     
-    def extract_account_info(self, file_path: str) -> Tuple[str, str]:
-        """提取账户信息"""
-        account_name = None
-        account_number = None
-        
-        try:
-            # 读取Excel文件的前几行来查找账户信息，不设置表头
-            df = pd.read_excel(file_path, header=None)
-            
-            # 遍历前10行查找账户信息
-            for i in range(min(10, len(df))):
-                for j in range(len(df.columns)):
-                    cell_value = str(df.iloc[i, j])
-                    
-                    # 查找户名信息 - 招商银行格式: "户    名：袁成杰"
-                    if '户' in cell_value and '名' in cell_value and '：' in cell_value:
-                        # 提取冒号后的内容
-                        parts = cell_value.split('：')
-                        if len(parts) > 1:
-                            account_name = parts[1].strip()
-                            self.logger.info(f"找到户名: {account_name}")
-                    
-                    # 查找账号信息 - 可能在卡号或账号字段中
-                    if ('卡号' in cell_value or '账号' in cell_value) and '：' in cell_value:
-                        # 提取冒号后的内容
-                        parts = cell_value.split('：')
-                        if len(parts) > 1:
-                            account_part = parts[1].strip()
-                            # 处理带星号的账号格式，如: 6214********8516
-                            if '*' in account_part:
-                                # 提取前4位和后4位数字
-                                account_match = re.match(r'(\d{4})\*+(\d{4})', account_part)
-                                if account_match:
-                                    # 保存带星号的完整格式
-                                    account_number = account_part
-                                    self.logger.info(f"找到账号(带星号): {account_number}")
-                            else:
-                                # 尝试提取完整数字
-                                numbers = re.findall(r'\d{10,}', account_part)
-                                if numbers:
-                                    account_number = numbers[0]
-                                    self.logger.info(f"找到账号: {account_number}")
-                    
-                    # 也尝试直接从单元格中提取长数字（可能是账号）
-                    if not account_number:
-                        # 查找带星号的银行卡号格式
-                        card_pattern = re.search(r'\d{4}\*+\d{4}', cell_value)
-                        if card_pattern:
-                            account_number = card_pattern.group()
-                            self.logger.info(f"找到带星号的账号: {account_number}")
-                        else:
-                            # 查找完整数字
-                            numbers = re.findall(r'\d{16,}', cell_value)  # 银行卡号通常16位以上
-                            if numbers:
-                                account_number = numbers[0]
-                                self.logger.info(f"找到可能的账号: {account_number}")
-            
-            # 记录提取结果
-            self.logger.info(f"账户信息提取结果 - 户名: {account_name}, 账号: {account_number}")
-            
-            # 只有当真正提取到账户信息时才返回，否则返回None
-            if account_name and account_number:
-                return account_name, account_number
-            else:
-                return None, None
-        
-        except Exception as e:
-            self.logger.warning(f"提取账户信息失败: {e}")
-            import traceback
-            self.logger.warning(traceback.format_exc())
-            return None, None
+    def _extract_account_name(self, cell_value: str) -> Optional[str]:
+        """从单元格值中提取账户名称 - 招商银行格式"""
+        # 查找户名信息 - 招商银行格式: "户    名：袁成杰"
+        if '户    名' in cell_value:
+            # 提取冒号后的内容
+            parts = cell_value.split('：')
+            if len(parts) > 1:
+                account_name = parts[1].strip()
+                self.logger.info(f"找到户名: {account_name}")
+                return account_name
+        return None
     
-    def extract_transactions(self, file_path: str) -> Optional[pd.DataFrame]:
+    def _extract_account_number(self, cell_value: str) -> Optional[str]:
+        """从单元格值中提取账户号码 - 招商银行格式"""
+        # 查找账号信息 - 可能在卡号或账号字段中
+        if '账号：' in cell_value:
+            # 提取冒号后的内容
+            parts = cell_value.split('：')
+            if len(parts) > 1:
+                account_part = parts[1].strip()
+                self.logger.info(f"找到账号: {account_part}")
+                return account_part
+        return None
+    
+    def _extract_transactions_impl(self, file_path: str) -> Optional[pd.DataFrame]:
         """提取交易数据"""
         try:
             # 先读取原始数据，不设置表头
@@ -158,7 +110,7 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
             column_mapping = {
                 date_col: 'transaction_date',
                 amount_col: 'amount' if amount_col else None,
-                balance_col: 'balance' if balance_col else None,
+                balance_col: 'balance_after' if balance_col else None,
                 '对手信息': 'counterparty',
                 '交易摘要': 'description',
                 '摘要': 'description',
@@ -175,7 +127,6 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
                 self.logger.error("重命名后仍未找到transaction_date列")
                 return None
             
-            self.logger.info(f"成功提取{len(df)}条交易记录")
             return df
             
         except Exception as e:

@@ -32,7 +32,9 @@ class Account(BaseModel):
     @validates('account_number')
     def validate_account_number(self, key, account_number):
         """Validate account number."""
-        if not account_number or not account_number.strip():
+        if not account_number:
+            raise ValueError('Account number cannot be empty')
+        if not account_number.strip():
             raise ValueError('Account number cannot be empty')
         account_number = account_number.strip()
         if len(account_number) > 50:
@@ -69,6 +71,8 @@ class Account(BaseModel):
     @classmethod
     def get_by_bank_and_number(cls, bank_id, account_number):
         """Get account by bank ID and account number."""
+        if not account_number:
+            return None
         return cls.query.filter_by(bank_id=bank_id, account_number=account_number.strip()).first()
     
     @classmethod

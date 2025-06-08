@@ -30,43 +30,28 @@ class CCBTransactionExtractor(BaseTransactionExtractor):
     
 
     
-    def extract_account_info(self, file_path: str) -> Tuple[str, str]:
-        """提取账户信息"""
-        account_name = None
-        account_number = None
-        
-        try:
-            # 读取Excel文件的前几行来查找账户信息
-            df = pd.read_excel(file_path)
-            
-            # 在前10行中查找账户信息
-            for i in range(min(10, len(df))):
-                for col in df.columns:
-                    cell_value = str(df.iloc[i][col])
-                    
-                    # 查找账号模式 - 建设银行格式：卡号/账号:6217**********2832
-                    if '卡号/账号:' in cell_value:
-                        numbers = re.findall(r'\d{10,}', cell_value)
-                        if numbers:
-                            account_number = numbers[0]
-                    
-                    # 查找户名 - 建设银行格式：客户名称:***
-                    if '客户名称:' in cell_value:
-                        name_match = re.search(r'客户名称:(.+)', cell_value)
-                        if name_match:
-                            account_name = name_match.group(1).strip()
-            
-            # 只有当真正提取到账户信息时才返回，否则返回None
-            if account_name and account_number:
-                return account_name, account_number
-            else:
-                return None, None
-        
-        except Exception as e:
-            self.logger.warning(f"提取账户信息失败: {e}")
-            return None, None
+    def _extract_account_name(self, cell_value: str) -> Optional[str]:
+        """从单元格值中提取账户名称 - 建设银行格式"""
+        # 查找户名 - 建设银行格式：客户名称:***
+        if '客户名称:' in cell_value:
+            name_match = re.search(r'客户名称:(.+)', cell_value)
+            if name_match:
+                account_name = name_match.group(1).strip()
+                self.logger.info(f"找到户名: {account_name}")
+                return account_name
+        return None
     
-    def extract_transactions(self, file_path: str) -> Optional[pd.DataFrame]:
+    def _extract_account_number(self, cell_value: str) -> Optional[str]:
+        """从单元格值中提取账户号码 - 建设银行格式"""
+        # 查找账号模式 - 建设银行格式：卡号/账号:6217**********2832
+        if '卡号/账号:' in cell_value:
+            numbers = re.findall(r'\d{10,}', cell_value)
+            if numbers:
+                self.logger.info(f"找到账号: {numbers[0]}")
+                return numbers[0]
+        return None
+    
+    def _extract_transactions_impl(self, file_path: str) -> Optional[pd.DataFrame]:
         """提取交易数据"""
         try:
             # 读取Excel文件，不设置header，先分析结构
@@ -124,7 +109,6 @@ class CCBTransactionExtractor(BaseTransactionExtractor):
                 self.logger.error(f"缺少必要的列: {missing_columns}")
                 return None
             
-            self.logger.info(f"成功提取到 {len(df)} 条交易记录")
             return df
             
         except Exception as e:

@@ -56,7 +56,7 @@ def dashboard():
         recent_transactions = []
         for trans in recent_transactions_data:
             recent_transactions.append({
-                'date': trans.transaction_date.strftime('%Y-%m-%d'),
+                'date': trans.date.strftime('%Y-%m-%d'),
                 'amount': float(trans.amount),
                 'counterparty': trans.counterparty or 'N/A',
                 'description': trans.description or 'N/A',

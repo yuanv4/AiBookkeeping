@@ -40,20 +40,26 @@ class ExtractorFactory:
         """获取可用的银行代码列表"""
         return list(self.extractors.keys())
     
-    def find_suitable_extractor(self, file_path: str) -> Optional[BankStatementExtractorInterface]:
-        """根据文件找到合适的提取器"""
+    def find_suitable_extractor(self, file_path: str) -> Optional[tuple]:
+        """根据文件找到合适的提取器
+        
+        Returns:
+            tuple: (extractor, account_name, account_number) 或 None
+        """
+        import pandas as pd
+        
         for bank_code in self.extractors:
             extractor = self.create(bank_code)
             if extractor:
                 try:
-                    # 尝试提取交易数据
-                    df = extractor.extract_transactions(file_path)
+                    # 读取文件获取DataFrame用于账户信息提取
+                    df = pd.read_excel(file_path, header=None)
                     if df is not None and not df.empty:
                         # 尝试提取账户信息
-                        account_name, account_number = extractor.extract_account_info(file_path)
+                        account_name, account_number = extractor.extract_account_info(df)
                         # 只有当成功提取到真实的账户信息时，才认为该提取器适用
                         if account_name and account_number:
-                            return extractor
+                            return extractor, account_name, account_number
                 except Exception as e:
                     # 如果提取失败，继续尝试下一个提取器
                     self.logger.debug(f"提取器 {bank_code} 无法处理文件 {file_path}: {e}")

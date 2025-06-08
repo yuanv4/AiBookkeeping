@@ -33,10 +33,11 @@ class BankStatementExtractor:
         for file_path in file_paths:
             try:
                 # 查找合适的提取器
-                extractor = self.factory.find_suitable_extractor(file_path)
+                extractor_result = self.factory.find_suitable_extractor(file_path)
                 
-                if extractor:
-                    result = extractor.process_file(file_path)
+                if extractor_result:
+                    extractor, account_name, account_number = extractor_result
+                    result = extractor.process_file(file_path, account_name, account_number)
                     results.append(result)
                 else:
                     results.append({

@@ -130,7 +130,8 @@ class TransactionService:
     def _update_account_balance(account: Account, amount: Decimal):
         """Update account balance after transaction."""
         try:
-            account.balance = (account.balance or 0) + amount
+            # Note: Account balance is calculated dynamically via get_current_balance()
+            # No need to update a balance field as it doesn't exist
             db.session.commit()
         except Exception as e:
             logger.error(f"Error updating account balance: {e}")
@@ -160,7 +161,7 @@ class TransactionService:
                     transaction_data['account_id'] = account_id
                 
                 # Check for duplicates
-                if TransactionService._is_duplicate_transaction(transaction_data):
+                if TransactionService.is_duplicate_transaction(transaction_data):
                     results['duplicates'] += 1
                     continue
                 
@@ -294,7 +295,7 @@ class TransactionService:
             return 0
     
     @staticmethod
-    def _is_duplicate_transaction(transaction_data: Dict[str, Any]) -> bool:
+    def is_duplicate_transaction(transaction_data: Dict[str, Any]) -> bool:
         """Check if transaction is a duplicate."""
         try:
             existing = Transaction.query.filter(
@@ -513,7 +514,7 @@ class TransactionService:
             calculated_balance = sum(t.amount for t in transactions)
             
             # Compare with account balance and expected balance
-            account_balance = account.balance or Decimal('0')
+            account_balance = account.get_current_balance()
             
             reconciliation = {
                 'account_id': account_id,
@@ -526,13 +527,8 @@ class TransactionService:
                 'total_transactions': len(transactions)
             }
             
-            # Update account balance if needed
-            if abs(account_balance - calculated_balance) > Decimal('0.01'):
-                account.balance = calculated_balance
-                db.session.commit()
-                reconciliation['balance_updated'] = True
-            else:
-                reconciliation['balance_updated'] = False
+            # Account balance is calculated dynamically, no need to update
+            reconciliation['balance_updated'] = False
             
             return reconciliation
             
