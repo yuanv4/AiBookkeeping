@@ -50,7 +50,7 @@ class CCBTransactionExtractor(BaseTransactionExtractor):
                         if numbers:
                             account_number = numbers[0]
                     
-                    # 查找户名 - 建设银行格式：客户名称:袁成杰
+                    # 查找户名 - 建设银行格式：客户名称:***
                     if '客户名称:' in cell_value:
                         name_match = re.search(r'客户名称:(.+)', cell_value)
                         if name_match:
