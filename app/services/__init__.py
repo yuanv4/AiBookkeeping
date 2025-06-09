@@ -17,9 +17,6 @@ from .report import FinancialReportService
 # Extraction services
 from .extraction import BankStatementExtractor
 
-# Backward compatibility imports
-from .core.transaction_service import TransactionService as TransactionService_Legacy
-
 __all__ = [
     # Core services
     'TransactionService',
@@ -34,7 +31,4 @@ __all__ = [
     
     # Extraction services
     'BankStatementExtractor',
-    
-    # Legacy compatibility
-    'TransactionService_Legacy'
 ]
