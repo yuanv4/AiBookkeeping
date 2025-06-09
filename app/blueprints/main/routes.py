@@ -1,7 +1,8 @@
 # app/main/routes.py
 from flask import redirect, url_for, render_template, flash, current_app, request, g
 from datetime import datetime # dashboard 中使用
-from app.services.core.database_service import DatabaseService
+from app.services.core.statistics_service import StatisticsService
+from app.services.core.transaction_service import TransactionService
 from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService
 # from scripts.analyzers.transaction_analyzer import TransactionAnalyzer # 将在需要时实例化
 
@@ -9,7 +10,7 @@ from . import main # 从同级 __init__.py 导入 main 蓝图实例
 
 @main.before_request
 def before_request():
-    g.db_facade = current_app.db_facade
+    pass
 
 @main.after_request
 def after_request(response):
@@ -25,10 +26,9 @@ def index():
 def dashboard():
     """仪表盘页面"""
     try:
-        # 从 g 对象获取 db_facade，确保每个请求使用独立的连接
-        db_facade = g.db_facade
+        # 使用专门的服务类获取数据
         # 获取账户余额
-        summary_data = db_facade.get_balance_summary()
+        summary_data = StatisticsService.get_balance_summary()
         
         # 检查 summary_data 是否为 None 或空，以避免后续错误
         if not summary_data:
@@ -51,7 +51,7 @@ def dashboard():
             })
 
         # 获取最近交易记录（最多10条）
-        recent_transactions_data = db_facade.get_transactions(limit=10)
+        recent_transactions_data = TransactionService.get_transactions(limit=10)
         
         recent_transactions = []
         for trans in recent_transactions_data:
@@ -86,9 +86,8 @@ def dashboard():
         net_income = all_time_report['summary'].get('net_amount', 0)
         
         # 获取余额范围和历史数据
-        database_service = DatabaseService()  # 新增实例化
-        balance_range = database_service.get_balance_range()
-        monthly_balance_history = database_service.get_monthly_balance_history(months=12)
+        balance_range = StatisticsService.get_balance_range()
+        monthly_balance_history = StatisticsService.get_monthly_balance_history(months=12)
         
         months_count = 1
         if all_time_report['summary'].get('start_date') and all_time_report['summary'].get('end_date'):

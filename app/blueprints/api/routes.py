@@ -61,33 +61,3 @@ def api_data_route(): #重命名函数
         current_app.logger.error(f"API /data 时出错: {e}", exc_info=True)
         # 依赖全局错误处理器返回 500 JSON 响应
         raise
-
-@api_bp.route('/export_transactions') # API 路径 /api/export_transactions
-def export_transactions_route(): # 重命名函数
-    """导出交易记录为CSV文件"""
-    try:
-        db_facade = current_app.db_facade
-        query_params = {
-            'account_number_filter': request.args.get('account_number', None),
-            'start_date': request.args.get('start_date', None),
-            'end_date': request.args.get('end_date', None),
-            'min_amount': request.args.get('min_amount', None, type=float),
-            'max_amount': request.args.get('max_amount', None, type=float),
-            'transaction_type_filter': request.args.get('type', None),
-            'counterparty_filter': request.args.get('counterparty', None),
-            'currency_filter': request.args.get('currency', None),
-            'account_name_filter': request.args.get('account_name_filter', None),
-            'distinct': request.args.get('distinct', False, type=lambda v: v.lower() == 'true')
-        }
-        
-        output_file = db_facade.export_to_csv(query_params=query_params)
-        
-        if output_file and os.path.exists(output_file):
-            return send_file(output_file, as_attachment=True, download_name=os.path.basename(output_file))
-        else:
-            current_app.logger.warning(f"API /export_transactions: 无法导出交易记录或文件未找到. Output file: {output_file}")
-            return jsonify({"success": False, "error": "无法导出交易记录或文件未找到"}), 404
-
-    except Exception as e:
-        current_app.logger.error(f"API /export_transactions 时出错: {e}", exc_info=True)
-        raise

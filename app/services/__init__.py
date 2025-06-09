@@ -4,7 +4,6 @@ This package contains business logic and service layer functionality.
 """
 
 # Core services
-from .core.database_service import DatabaseService
 from .core.transaction_service import TransactionService
 from .core.file_processor_service import FileProcessorService
 
@@ -19,12 +18,10 @@ from .report import FinancialReportService
 from .extraction import BankStatementExtractor
 
 # Backward compatibility imports
-from .core.database_service import DatabaseService as DatabaseService_Legacy
 from .core.transaction_service import TransactionService as TransactionService_Legacy
 
 __all__ = [
     # Core services
-    'DatabaseService',
     'TransactionService',
     'FileProcessorService',
     
@@ -39,6 +36,5 @@ __all__ = [
     'BankStatementExtractor',
     
     # Legacy compatibility
-    'DatabaseService_Legacy',
     'TransactionService_Legacy'
 ]

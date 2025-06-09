@@ -9,7 +9,7 @@ from flask_migrate import Migrate
 from .config import get_config
 from .template_filters import register_template_filters
 from .models import db
-from .services.core.database_service import DatabaseService
+
 from .services.core.transaction_service import TransactionService
 from .services.analysis.analysis_service import ComprehensiveService as AnalysisService
 from .services.extraction.extraction_service import BankStatementExtractor
@@ -89,23 +89,16 @@ def create_app():
         app.logger.info("数据库表已创建")
         
         # Initialize services
-        app.database_service = DatabaseService()
         app.transaction_service = TransactionService()
         app.analysis_service = AnalysisService()
         app.extractor_service = BankStatementExtractor()
         
         # Initialize file processor service with dependencies
         app.file_processor_service = FileProcessorService(
-            extractor_service=app.extractor_service,
-            database_service=app.database_service
+            extractor_service=app.extractor_service
         )
-        
-        # Initialize default data
-        app.database_service.init_database()
-        app.logger.info("数据库已初始化，默认数据已创建")
     
-    # 为了向后兼容，保留旧的属性名
-    app.db_facade = app.database_service
+
     app.logger.info("服务层已初始化并附加到 app 对象")
 
     # 注册自定义模板过滤器
@@ -159,24 +152,18 @@ def create_app():
         return render_template('errors/500.html', error="发生了一个意外错误"), 500
     app.logger.info("已注册全局错误处理器。")
 
-    # 应用启动时的数据库文件检查逻辑 (原 init_database 部分功能)
-    # 使用 with app.app_context() 来确保在正确的上下文中执行，如果它需要访问 app 特定的东西
-    # 但 FileProcessorService 在实例化时已经有了 app context
-    # 这里可以直接调用服务，因为它已被实例化并附加到 app 对象
+    # 数据库统计信息检查
     try:
-        # 数据库统计信息检查
-        try:
-            with app.app_context():
-                stats = app.database_service.get_database_stats()
-                total_transactions = stats.get('transactions_count', 0)
-                if total_transactions > 0:
-                    app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
-                else:
-                    app.logger.info("数据库为空或新创建")
-        except Exception as e:
-            app.logger.warning(f"获取数据库统计信息时出错: {e}")
-            app.logger.info("数据库连接正常，但无法获取统计信息")
-    except Exception as e_init:
-        app.logger.error(f"应用启动时执行 init_database 逻辑出错: {e_init}", exc_info=True)
-
+        with app.app_context():
+            from app.services.core.statistics_service import StatisticsService
+            stats = StatisticsService.get_database_stats()
+            total_transactions = stats.get('transactions_count', 0)
+            if total_transactions > 0:
+                app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
+            else:
+                app.logger.info("数据库为空或新创建")
+    except Exception as e:
+        app.logger.warning(f"获取数据库统计信息时出错: {e}")
+        app.logger.info("数据库连接正常，但无法获取统计信息")
+        
     return app

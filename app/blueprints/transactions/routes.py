@@ -1,7 +1,7 @@
 from flask import request, render_template, current_app
 
 # 使用新的服务层
-from app.services.core.database_service import DatabaseService
+from app.services.core.account_service import AccountService
 from app.services.core.transaction_service import TransactionService
 
 from . import transactions_bp
@@ -11,7 +11,6 @@ def transactions_list_route(): # 重命名函数
     """交易记录页面"""
     try:
         # 使用新的服务层
-        database_service = DatabaseService()
         transaction_service = TransactionService()
         
         page = request.args.get('page', 1, type=int)
@@ -72,11 +71,11 @@ def transactions_list_route(): # 重命名函数
         }
         total_transactions = transaction_service.count_transactions_with_filters(filters)
 
-        accounts = database_service.get_all_accounts()
+        accounts = AccountService.get_all_accounts()
         
-        transaction_types_for_filter = database_service.get_all_transaction_types()
+        transaction_types_for_filter = TransactionService.get_all_transaction_types()
 
-        currencies_for_filter = database_service.get_all_currencies()
+        currencies_for_filter = AccountService.get_all_currencies()
 
         current_filters = {
             'account_number': account_number_req,

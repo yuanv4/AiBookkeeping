@@ -7,12 +7,11 @@ for the AiBookkeeping application, including database operations, transaction pr
 and file handling.
 """
 
-from .database_service import DatabaseService
+
 from .transaction_service import TransactionService
 from .file_processor_service import FileProcessorService
 
 __all__ = [
-    'DatabaseService',
     'TransactionService',
     'FileProcessorService'
 ]

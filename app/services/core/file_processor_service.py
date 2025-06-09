@@ -7,9 +7,8 @@ from flask import current_app # current_app 用于访问 app.config 和 logger
 import logging
 
 class FileProcessorService:
-    def __init__(self, extractor_service, database_service, upload_folder=None):
+    def __init__(self, extractor_service, upload_folder=None):
         self.extractor_service = extractor_service
-        self.database_service = database_service
         # 如果没有提供 upload_folder，使用默认值或从配置获取
         if upload_folder:
             self.upload_folder = Path(upload_folder)
@@ -106,7 +105,7 @@ class FileProcessorService:
                     # 这意味着 specific_filenames 中的文件一个都没在 processed_files_result_all 中找到对应的处理记录
                     self._get_logger().warning(f"提供的特定文件 {specific_filenames} 未在处理结果中找到。")
                     return None, "指定的上传文件未能被处理"
-            else: # init_database 场景，处理目录下所有检测到的文件
+            else: # 处理目录下所有检测到的文件
                 files_to_consider_for_result_and_cleanup = processed_files_result_all
             
             self._get_logger().info(f"成功处理 {len(files_to_consider_for_result_and_cleanup)} 个目标文件。")

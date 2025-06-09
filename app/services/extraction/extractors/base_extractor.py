@@ -14,7 +14,8 @@ from typing import Dict, List, Type, Optional, Any, Union, Tuple
 from abc import ABC, abstractmethod
 
 from app.models import Bank, Account, Transaction, db
-from app.services.core.database_service import DatabaseService
+from app.services.core.bank_service import BankService
+from app.services.core.account_service import AccountService
 from app.services.core.transaction_service import TransactionService
 
 logger = logging.getLogger(__name__)
@@ -155,7 +156,6 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
         """
         self.bank_code = bank_code
         self.logger = logging.getLogger(f'extractor_{bank_code.lower()}')
-        self.database_service = DatabaseService()
         self.transaction_service = TransactionService()
         
     def _standardize_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -238,13 +238,13 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                 account_name, account_number = self.extract_account_info(raw_df)
             
             # 确保银行存在
-            bank = self.database_service.get_or_create_bank(
+            bank = BankService.get_or_create_bank(
                 code=self.get_bank_code(),
                 name=self.get_bank_name()
             )
             
             # 确保账户存在
-            account = self.database_service.get_or_create_account(
+            account = AccountService.get_or_create_account(
                 account_number=account_number,
                 account_name=account_name,
                 bank_id=bank.id
@@ -279,7 +279,7 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     
                     if not is_duplicate:
                         # 使用TransactionService创建交易记录
-                        transaction = self.database_service.create_transaction(**transaction_data)
+                        transaction = TransactionService.create_transaction(**transaction_data)
                         if transaction:
                             processed_count += 1
                     

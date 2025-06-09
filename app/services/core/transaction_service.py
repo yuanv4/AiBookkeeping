@@ -10,7 +10,6 @@ import logging
 from collections import defaultdict
 
 from app.models import Transaction, Account, db
-from .database_service import DatabaseService
 from sqlalchemy import func, and_
 
 logger = logging.getLogger(__name__)
@@ -153,3 +152,117 @@ class TransactionService:
             return existing is not None
         except Exception:
             return False
+    
+    # Database transaction operations (migrated from DatabaseService)
+    @staticmethod
+    def create_transaction(account_id: int, transaction_type_id: int, date: date, 
+                         amount: Decimal, currency: str = 'CNY', description: str = None,
+                         counterparty: str = None, notes: str = None, 
+                         original_description: str = None, **kwargs) -> Transaction:
+        """Create a new transaction."""
+        try:
+            return Transaction.create(
+                account_id=account_id,
+                transaction_type_id=transaction_type_id,
+                date=date,
+                amount=amount,
+                currency=currency,
+                description=description,
+                counterparty=counterparty,
+                notes=notes,
+                original_description=original_description,
+                **kwargs
+            )
+        except Exception as e:
+            logger.error(f"Error creating transaction: {e}")
+            raise
+    
+    @staticmethod
+    def get_transactions(account_id: int = None, start_date: date = None, 
+                        end_date: date = None, transaction_type_id: int = None,
+                        limit: int = None, offset: int = None) -> List[Transaction]:
+        """Get transactions with filtering options."""
+        if account_id:
+            return Transaction.get_by_account(
+                account_id=account_id,
+                start_date=start_date,
+                end_date=end_date,
+                limit=limit,
+                offset=offset
+            )
+        
+        query = Transaction.query
+        
+        if start_date:
+            query = query.filter(Transaction.date >= start_date)
+        if end_date:
+            query = query.filter(Transaction.date <= end_date)
+        if transaction_type_id:
+            query = query.filter_by(transaction_type_id=transaction_type_id)
+        
+        query = query.order_by(Transaction.date.desc(), Transaction.created_at.desc())
+        
+        if offset:
+            query = query.offset(offset)
+        if limit:
+            query = query.limit(limit)
+        
+        return query.all()
+    
+    @staticmethod
+    def search_transactions(keyword: str, account_id: int = None, 
+                          start_date: date = None, end_date: date = None) -> List[Transaction]:
+        """Search transactions by keyword."""
+        return Transaction.search(
+            keyword=keyword,
+            account_id=account_id,
+            start_date=start_date,
+            end_date=end_date
+        )
+    
+    @staticmethod
+    def update_transaction(transaction_id: int, **kwargs) -> bool:
+        """Update transaction information."""
+        try:
+            transaction = Transaction.get_by_id(transaction_id)
+            if transaction:
+                transaction.update(**kwargs)
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error updating transaction {transaction_id}: {e}")
+            raise
+    
+    @staticmethod
+    def delete_transaction(transaction_id: int) -> bool:
+        """Delete transaction."""
+        try:
+            transaction = Transaction.get_by_id(transaction_id)
+            if transaction:
+                transaction.delete()
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error deleting transaction {transaction_id}: {e}")
+            raise
+    
+    @staticmethod
+    def get_all_transaction_types() -> List[str]:
+        """Get all distinct transaction types from transactions."""
+        try:
+            # Get transaction types from transactions
+            transaction_types = db.session.query(Transaction.transaction_type).distinct().all()
+            
+            # Filter out None and empty values, then convert to set for deduplication
+            all_types = set()
+            for (transaction_type,) in transaction_types:
+                if transaction_type and transaction_type.strip():
+                    all_types.add(transaction_type.strip())
+            
+            # Convert to sorted list
+            return sorted(list(all_types))
+            
+        except Exception as e:
+            logger.error(f"Error getting all transaction types: {e}")
+            # Return empty list if error occurs
+            return []
