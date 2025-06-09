@@ -24,11 +24,6 @@ class DatabaseService:
             db.create_all()
             logger.info("Database tables created successfully")
             
-            # 创建默认交易类型
-            created_count = TransactionType.create_default_types()
-            if created_count > 0:
-                logger.info(f"Created {created_count} default transaction types")
-            
             # 创建默认银行（如果需要）
             DatabaseService._create_default_banks()
             
@@ -185,6 +180,27 @@ class DatabaseService:
             # Return default currency if error occurs
             return ['CNY']
     
+    @staticmethod
+    def get_all_transaction_types() -> List[str]:
+        """Get all distinct transaction types from transactions."""
+        try:
+            # Get transaction types from transactions
+            transaction_types = db.session.query(Transaction.transaction_type).distinct().all()
+            
+            # Filter out None and empty values, then convert to set for deduplication
+            all_types = set()
+            for (transaction_type,) in transaction_types:
+                if transaction_type and transaction_type.strip():
+                    all_types.add(transaction_type.strip())
+            
+            # Convert to sorted list
+            return sorted(list(all_types))
+            
+        except Exception as e:
+            logger.error(f"Error getting all transaction types: {e}")
+            # Return empty list if error occurs
+            return []
+    
     # Transaction operations
     @staticmethod
     def create_transaction(account_id: int, transaction_type_id: int, date: date, 
@@ -288,8 +304,6 @@ class DatabaseService:
                 'active_banks_count': Bank.query.filter_by(is_active=True).count(),
                 'accounts_count': Account.query.count(),
                 'active_accounts_count': Account.query.filter_by(is_active=True).count(),
-                'transaction_types_count': TransactionType.query.count(),
-                'active_transaction_types_count': TransactionType.query.filter_by(is_active=True).count(),
                 'transactions_count': Transaction.query.count(),
                 'income_transactions_count': Transaction.query.filter(Transaction.amount > 0).count(),
                 'expense_transactions_count': Transaction.query.filter(Transaction.amount < 0).count(),
