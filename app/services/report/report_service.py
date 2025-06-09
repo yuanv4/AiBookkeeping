@@ -10,7 +10,7 @@ import logging
 from collections import defaultdict
 import calendar
 
-from app.models import Transaction, Account, TransactionTypeEnum, Bank, db
+from app.models import Transaction, Account, Bank, db
 from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
 from app.utils.cache_manager import optimized_cache
 from app.utils.performance_monitor import monitor_performance

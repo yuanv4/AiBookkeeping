@@ -9,7 +9,7 @@ from typing import Optional, List, Dict, Any, Tuple, Union
 from sqlalchemy import func, extract, case, and_, or_, text, select
 from sqlalchemy.orm import Query, joinedload, selectinload
 from sqlalchemy.sql import Select
-from app.models.transaction import Transaction, TransactionTypeEnum
+from app.models.transaction import Transaction
 from app.models.account import Account
 from app import db
 from app.utils.cache_manager import optimized_cache

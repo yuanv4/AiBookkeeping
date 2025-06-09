@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Dict, List, Type, Optional, Any, Union, Tuple
 from abc import ABC, abstractmethod
 
-from app.models import Bank, Account, Transaction, TransactionTypeEnum, db
+from app.models import Bank, Account, Transaction, db
 from app.services.core.database_service import DatabaseService
 from app.services.core.transaction_service import TransactionService
 

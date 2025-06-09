@@ -9,7 +9,7 @@ from datetime import date, datetime
 import logging
 from collections import defaultdict
 
-from app.models import Transaction, Account, TransactionTypeEnum, db
+from app.models import Transaction, Account, db
 from .database_service import DatabaseService
 from sqlalchemy import func, and_
 
@@ -19,7 +19,7 @@ class TransactionService:
     """Service for handling transaction operations and business logic."""
     
     @staticmethod
-    def process_transaction(account_id: int, transaction_type: TransactionTypeEnum, date: date,
+    def process_transaction(account_id: int, transaction_type: str, date: date,
                           amount: Decimal, currency: str = 'CNY', description: str = None,
                           counterparty: str = None, notes: str = None,
                           original_description: str = None, auto_categorize: bool = True,
@@ -45,7 +45,7 @@ class TransactionService:
             
             # Use default type if still not specified
             if not transaction_type:
-                transaction_type = TransactionTypeEnum.OTHER_INCOME if amount > 0 else TransactionTypeEnum.OTHER_EXPENSE
+                transaction_type = 'OTHER_INCOME' if amount > 0 else 'OTHER_EXPENSE'
             
             # Adjust amount based on transaction type
             adjusted_amount = TransactionService._adjust_amount_by_type(amount, transaction_type)
@@ -76,29 +76,29 @@ class TransactionService:
             raise
     
     @staticmethod
-    def _auto_categorize_transaction(description: str, counterparty: str, amount: Decimal) -> Optional[TransactionTypeEnum]:
+    def _auto_categorize_transaction(description: str, counterparty: str, amount: Decimal) -> Optional[str]:
         """Auto-categorize transaction based on description and counterparty."""
         if not description and not counterparty:
             return None
         
         search_text = f"{description or ''} {counterparty or ''}".lower()
         
-        # Define categorization rules mapping to enum values
+        # Define categorization rules mapping to string values
         categorization_rules = {
             # Income categories
-            TransactionTypeEnum.SALARY: ['salary', 'wage', '工资', '薪水', '薪资'],
-            TransactionTypeEnum.BONUS: ['bonus', '奖金', '年终奖', '绩效'],
-            TransactionTypeEnum.INVESTMENT: ['dividend', 'interest', '股息', '利息', '投资', '理财'],
+            'SALARY': ['salary', 'wage', '工资', '薪水', '薪资'],
+            'BONUS': ['bonus', '奖金', '年终奖', '绩效'],
+            'INVESTMENT': ['dividend', 'interest', '股息', '利息', '投资', '理财'],
             
             # Expense categories
-            TransactionTypeEnum.FOOD: ['restaurant', 'food', '餐厅', '外卖', '美团', '饿了么', 'mcdonald', 'kfc'],
-            TransactionTypeEnum.TRANSPORT: ['transport', 'taxi', 'uber', '滴滴', '地铁', '公交', '加油', 'gas'],
-            TransactionTypeEnum.SHOPPING: ['shopping', 'mall', '淘宝', '京东', '超市', 'walmart', '沃尔玛'],
-            TransactionTypeEnum.ENTERTAINMENT: ['entertainment', 'movie', 'game', '电影', '游戏', '娱乐'],
-            TransactionTypeEnum.HEALTHCARE: ['hospital', 'pharmacy', 'medical', '医院', '药店', '医疗'],
-            TransactionTypeEnum.EDUCATION: ['education', 'school', 'course', '学校', '培训', '教育'],
-            TransactionTypeEnum.RENT: ['rent', 'housing', '房租', '租金', '物业'],
-            TransactionTypeEnum.UTILITIES: ['utility', 'electric', 'water', '水费', '电费', '燃气'],
+            'FOOD': ['restaurant', 'food', '餐厅', '外卖', '美团', '饿了么', 'mcdonald', 'kfc'],
+            'TRANSPORT': ['transport', 'taxi', 'uber', '滴滴', '地铁', '公交', '加油', 'gas'],
+            'SHOPPING': ['shopping', 'mall', '淘宝', '京东', '超市', 'walmart', '沃尔玛'],
+            'ENTERTAINMENT': ['entertainment', 'movie', 'game', '电影', '游戏', '娱乐'],
+            'HEALTHCARE': ['hospital', 'pharmacy', 'medical', '医院', '药店', '医疗'],
+            'EDUCATION': ['education', 'school', 'course', '学校', '培训', '教育'],
+            'RENT': ['rent', 'housing', '房租', '租金', '物业'],
+            'UTILITIES': ['utility', 'electric', 'water', '水费', '电费', '燃气'],
         }
         
         # Find matching category
@@ -109,16 +109,21 @@ class TransactionService:
         
         # Default categorization based on amount
         if amount > 0:
-            return TransactionTypeEnum.OTHER_INCOME
+            return 'OTHER_INCOME'
         else:
-            return TransactionTypeEnum.OTHER_EXPENSE
+            return 'OTHER_EXPENSE'
     
     @staticmethod
-    def _adjust_amount_by_type(amount: Decimal, transaction_type: TransactionTypeEnum) -> Decimal:
+    def _adjust_amount_by_type(amount: Decimal, transaction_type: str) -> Decimal:
         """Adjust amount sign based on transaction type."""
-        if transaction_type.is_income and amount < 0:
+        # Define income types
+        income_types = {'SALARY', 'BONUS', 'INVESTMENT', 'OTHER_INCOME'}
+        
+        is_income = transaction_type in income_types
+        
+        if is_income and amount < 0:
             return abs(amount)
-        elif not transaction_type.is_income and amount > 0:
+        elif not is_income and amount > 0:
             return -abs(amount)
         return amount
     
