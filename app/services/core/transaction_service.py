@@ -303,10 +303,7 @@ class TransactionService:
                     Transaction.account_id == transaction_data.get('account_id'),
                     Transaction.date == transaction_data.get('date'),
                     Transaction.amount == transaction_data.get('amount'),
-                    or_(
-                        Transaction.description == transaction_data.get('description'),
-                        Transaction.original_description == transaction_data.get('original_description')
-                    )
+                    Transaction.balance_after == transaction_data.get('balance_after')
                 )
             ).first()
             return existing is not None

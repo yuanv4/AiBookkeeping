@@ -295,13 +295,7 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     }
                     
                     # 检查是否已存在相同交易（直接使用transaction_data的相关字段）
-                    is_duplicate = self.transaction_service.is_duplicate_transaction({
-                        'account_id': transaction_data['account_id'],
-                        'date': transaction_data['date'],  # 修正参数名
-                        'amount': transaction_data['amount'],
-                        'description': transaction_data['description'],
-                        'original_description': transaction_data['original_description']
-                    })
+                    is_duplicate = self.transaction_service.is_duplicate_transaction(transaction_data)
                     
                     if not is_duplicate:
                         # 使用process_transaction方法，直接传入transaction_data
