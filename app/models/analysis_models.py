@@ -343,6 +343,96 @@ class ComprehensiveAnalysis:
 
 
 @dataclass
+class BalanceMetrics:
+    """Balance analysis metrics."""
+    total_balance: float = 0.0
+    min_balance: float = 0.0
+    max_balance: float = 0.0
+    balance_range: float = 0.0
+    account_count: int = 0
+    balance_trend: str = "稳定"
+    balance_stability: float = 1.0
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'total_balance': self.total_balance,
+            'min_balance': self.min_balance,
+            'max_balance': self.max_balance,
+            'balance_range': self.balance_range,
+            'account_count': self.account_count,
+            'balance_trend': self.balance_trend,
+            'balance_stability': self.balance_stability
+        }
+
+
+@dataclass
+class BalanceAnalysis:
+    """Balance analysis results."""
+    metrics: BalanceMetrics = field(default_factory=BalanceMetrics)
+    balance_range: Dict[str, Any] = field(default_factory=dict)
+    monthly_history: List[Dict[str, Any]] = field(default_factory=list)
+    balance_summary: Dict[str, Any] = field(default_factory=dict)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'metrics': self.metrics.to_dict(),
+            'balance_range': self.balance_range,
+            'monthly_history': self.monthly_history,
+            'balance_summary': self.balance_summary
+        }
+
+
+@dataclass
+class DatabaseMetrics:
+    """Database statistics metrics."""
+    total_banks: int = 0
+    active_banks: int = 0
+    total_accounts: int = 0
+    active_accounts: int = 0
+    total_transactions: int = 0
+    income_transactions: int = 0
+    expense_transactions: int = 0
+    active_banks_ratio: float = 0.0
+    active_accounts_ratio: float = 0.0
+    income_ratio: float = 0.0
+    expense_ratio: float = 0.0
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'total_banks': self.total_banks,
+            'active_banks': self.active_banks,
+            'total_accounts': self.total_accounts,
+            'active_accounts': self.active_accounts,
+            'total_transactions': self.total_transactions,
+            'income_transactions': self.income_transactions,
+            'expense_transactions': self.expense_transactions,
+            'active_banks_ratio': self.active_banks_ratio,
+            'active_accounts_ratio': self.active_accounts_ratio,
+            'income_ratio': self.income_ratio,
+            'expense_ratio': self.expense_ratio
+        }
+
+
+@dataclass
+class DatabaseStats:
+    """Database statistics analysis results."""
+    metrics: DatabaseMetrics = field(default_factory=DatabaseMetrics)
+    basic_stats: Dict[str, Any] = field(default_factory=dict)
+    health_score: float = 0.0
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'metrics': self.metrics.to_dict(),
+            'basic_stats': self.basic_stats,
+            'health_score': self.health_score
+        }
+
+
+@dataclass
 class ComprehensiveAnalysisData:
     """Legacy compatibility class for comprehensive analysis data."""
     income_expense_balance: IncomeExpenseBalance = field(default_factory=IncomeExpenseBalance)

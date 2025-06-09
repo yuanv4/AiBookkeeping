@@ -1,7 +1,7 @@
 # app/main/routes.py
 from flask import redirect, url_for, render_template, flash, current_app, request, g
-from datetime import datetime # dashboard 中使用
-from app.services.core.statistics_service import StatisticsService
+from datetime import datetime, date # dashboard 中使用
+from app.services.analysis.analysis_factory import AnalyzerFactory, AnalyzerType
 from app.services.core.transaction_service import TransactionService
 from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService
 # from scripts.analyzers.transaction_analyzer import TransactionAnalyzer # 将在需要时实例化
@@ -28,7 +28,9 @@ def dashboard():
     try:
         # 使用专门的服务类获取数据
         # 获取账户余额
-        summary_data = StatisticsService.get_balance_summary()
+        today = date.today()
+        balance_analyzer = AnalyzerFactory.create_analyzer(AnalyzerType.BALANCE, today, today)
+        summary_data = balance_analyzer.get_balance_summary()
         
         # 检查 summary_data 是否为 None 或空，以避免后续错误
         if not summary_data:
@@ -86,8 +88,12 @@ def dashboard():
         net_income = all_time_report['summary'].get('net_amount', 0)
         
         # 获取余额范围和历史数据
-        balance_range = StatisticsService.get_balance_range()
-        monthly_balance_history = StatisticsService.get_monthly_balance_history(months=12)
+        # 重用之前创建的balance_analyzer或创建新的
+        if 'balance_analyzer' not in locals():
+            today = date.today()
+            balance_analyzer = AnalyzerFactory.create_analyzer(AnalyzerType.BALANCE, today, today)
+        balance_range = balance_analyzer.get_balance_range()
+        monthly_balance_history = balance_analyzer.get_monthly_history(months=12)
         
         months_count = 1
         if all_time_report['summary'].get('start_date') and all_time_report['summary'].get('end_date'):

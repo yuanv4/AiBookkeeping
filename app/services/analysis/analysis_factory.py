@@ -15,6 +15,8 @@ from .analyzers.cash_flow_analyzer import CashFlowAnalyzer
 from .analyzers.diversity_analyzer import IncomeDiversityAnalyzer
 from .analyzers.growth_analyzer import IncomeGrowthAnalyzer
 from .analyzers.resilience_analyzer import FinancialResilienceAnalyzer
+from .analyzers.balance_analyzer import BalanceAnalyzer
+from .analyzers.database_stats_analyzer import DatabaseStatsAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +29,8 @@ class AnalyzerType:
     INCOME_DIVERSITY = 'diversity'
     INCOME_GROWTH = 'growth'
     FINANCIAL_RESILIENCE = 'resilience'
+    BALANCE = 'balance'
+    DATABASE_STATS = 'database_stats'
 
 
 class AnalyzerFactory:
@@ -189,6 +193,8 @@ def _register_builtin_analyzers():
     AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_DIVERSITY, IncomeDiversityAnalyzer)
     AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_GROWTH, IncomeGrowthAnalyzer)
     AnalyzerFactory.register_analyzer(AnalyzerType.FINANCIAL_RESILIENCE, FinancialResilienceAnalyzer)
+    AnalyzerFactory.register_analyzer(AnalyzerType.BALANCE, BalanceAnalyzer)
+    AnalyzerFactory.register_analyzer(AnalyzerType.DATABASE_STATS, DatabaseStatsAnalyzer)
 
 
 # 模块加载时自动注册内置分析器

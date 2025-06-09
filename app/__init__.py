@@ -155,8 +155,11 @@ def create_app():
     # 数据库统计信息检查
     try:
         with app.app_context():
-            from app.services.core.statistics_service import StatisticsService
-            stats = StatisticsService.get_database_stats()
+            from app.services.analysis.analysis_factory import AnalyzerFactory, AnalyzerType
+            from datetime import date
+            today = date.today()
+            analyzer = AnalyzerFactory.create_analyzer(AnalyzerType.DATABASE_STATS, today, today)
+            stats = analyzer.get_database_stats()
             total_transactions = stats.get('transactions_count', 0)
             if total_transactions > 0:
                 app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
