@@ -278,9 +278,9 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     is_duplicate = self.transaction_service.is_duplicate_transaction(transaction_data)
                     
                     if not is_duplicate:
-                        # 使用process_transaction方法，直接传入transaction_data
-                        transaction, is_new = self.transaction_service.process_transaction(**transaction_data)
-                        if is_new:
+                        # 使用TransactionService创建交易记录
+                        transaction = self.database_service.create_transaction(**transaction_data)
+                        if transaction:
                             processed_count += 1
                     
                 except Exception as e:

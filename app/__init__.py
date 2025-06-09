@@ -100,8 +100,9 @@ def create_app():
             database_service=app.database_service
         )
         
-        # Database tables created successfully
-        app.logger.info("数据库已初始化")
+        # Initialize default data
+        app.database_service.init_database()
+        app.logger.info("数据库已初始化，默认数据已创建")
     
     # 为了向后兼容，保留旧的属性名
     app.db_facade = app.database_service
