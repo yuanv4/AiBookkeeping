@@ -22,29 +22,11 @@ from app.models.analysis_models import (
 )
 from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
 from app.utils.cache_manager import optimized_cache
+from app.utils.performance_monitor import performance_monitor
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
-
-
-def performance_monitor(operation_name: str):
-    """性能监控装饰器"""
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            start_time = datetime.now()
-            try:
-                result = func(*args, **kwargs)
-                duration = (datetime.now() - start_time).total_seconds()
-                logger.info(f"{operation_name} completed in {duration:.3f}s")
-                return result
-            except Exception as e:
-                duration = (datetime.now() - start_time).total_seconds()
-                logger.error(f"{operation_name} failed after {duration:.3f}s: {e}")
-                raise
-        return wrapper
-    return decorator
 
 
 class BaseAnalyzer(ABC):

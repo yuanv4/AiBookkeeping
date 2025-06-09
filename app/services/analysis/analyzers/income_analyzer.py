@@ -15,7 +15,8 @@ from app.models.analysis_models import (
 )
 from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
 from app.utils.cache_manager import optimized_cache
-from .base_analyzer import BaseAnalyzer, performance_monitor
+from .base_analyzer import BaseAnalyzer
+from app.utils.performance_monitor import performance_monitor
 
 logger = logging.getLogger(__name__)
 
