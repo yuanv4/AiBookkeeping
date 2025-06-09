@@ -73,21 +73,6 @@ class FileProcessorService:
         # specific_filenames 用于告知 _process_and_cleanup_files_in_folder 这些是本次上传的文件
         return self._process_and_cleanup_files_in_folder(self.upload_folder, specific_filenames=filenames)
 
-    def process_files_in_upload_folder(self):
-        """
-        处理指定上传文件夹中的所有合格Excel文件。
-        主要用于 init_database。
-        返回处理结果元组 (processed_files_result, message)。
-        """
-        self._get_logger().info(f"FileProcessorService: 检查并处理目录 {self.upload_folder} 中的现有文件")
-        excel_files = list(self.upload_folder.glob('*.xlsx')) + list(self.upload_folder.glob('*.xls'))
-        if not excel_files:
-            self._get_logger().info("在上传目录中未找到Excel文件。")
-            return None, "未找到待处理的Excel文件" # 更明确的消息
-        
-        # 这里我们处理文件夹中的所有文件，所以 specific_filenames 为 None
-        return self._process_and_cleanup_files_in_folder(self.upload_folder)
-
     def _process_and_cleanup_files_in_folder(self, folder_path, specific_filenames=None):
         """
         核心处理逻辑：调用提取器，处理数据库，清理文件。

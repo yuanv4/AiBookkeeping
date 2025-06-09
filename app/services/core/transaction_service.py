@@ -9,7 +9,7 @@ from datetime import date, datetime
 import logging
 from collections import defaultdict
 
-from app.models import Transaction, Account, TransactionType, db
+from app.models import Transaction, Account, TransactionTypeEnum, db
 from .database_service import DatabaseService
 from sqlalchemy import func, and_
 
@@ -19,7 +19,7 @@ class TransactionService:
     """Service for handling transaction operations and business logic."""
     
     @staticmethod
-    def process_transaction(account_id: int, transaction_type_id: int, date: date,
+    def process_transaction(account_id: int, transaction_type: TransactionTypeEnum, date: date,
                           amount: Decimal, currency: str = 'CNY', description: str = None,
                           counterparty: str = None, notes: str = None,
                           original_description: str = None, auto_categorize: bool = True,
@@ -35,18 +35,17 @@ class TransactionService:
             if not account:
                 raise ValueError(f"Account with ID {account_id} not found")
             
-            # Validate transaction type
-            transaction_type = DatabaseService.get_transaction_type_by_id(transaction_type_id)
-            if not transaction_type:
-                raise ValueError(f"Transaction type with ID {transaction_type_id} not found")
-            
             # Auto-categorize if enabled and no type specified
-            if auto_categorize and not transaction_type_id:
+            if auto_categorize and not transaction_type:
                 suggested_type = TransactionService._auto_categorize_transaction(
                     description or original_description, counterparty, amount
                 )
                 if suggested_type:
-                    transaction_type_id = suggested_type.id
+                    transaction_type = suggested_type
+            
+            # Use default type if still not specified
+            if not transaction_type:
+                transaction_type = TransactionTypeEnum.OTHER_INCOME if amount > 0 else TransactionTypeEnum.OTHER_EXPENSE
             
             # Adjust amount based on transaction type
             adjusted_amount = TransactionService._adjust_amount_by_type(amount, transaction_type)
@@ -54,7 +53,7 @@ class TransactionService:
             # Create transaction
             transaction = DatabaseService.create_transaction(
                 account_id=account_id,
-                transaction_type_id=transaction_type_id,
+                transaction_type=transaction_type,
                 date=date,
                 amount=adjusted_amount,
                 currency=currency,
@@ -77,47 +76,45 @@ class TransactionService:
             raise
     
     @staticmethod
-    def _auto_categorize_transaction(description: str, counterparty: str, amount: Decimal) -> Optional[TransactionType]:
+    def _auto_categorize_transaction(description: str, counterparty: str, amount: Decimal) -> Optional[TransactionTypeEnum]:
         """Auto-categorize transaction based on description and counterparty."""
         if not description and not counterparty:
             return None
         
         search_text = f"{description or ''} {counterparty or ''}".lower()
         
-        # Define categorization rules
+        # Define categorization rules mapping to enum values
         categorization_rules = {
             # Income categories
-            '工资': ['salary', 'wage', '工资', '薪水', '薪资'],
-            '奖金': ['bonus', '奖金', '年终奖', '绩效'],
-            '投资收益': ['dividend', 'interest', '股息', '利息', '投资', '理财'],
+            TransactionTypeEnum.SALARY: ['salary', 'wage', '工资', '薪水', '薪资'],
+            TransactionTypeEnum.BONUS: ['bonus', '奖金', '年终奖', '绩效'],
+            TransactionTypeEnum.INVESTMENT: ['dividend', 'interest', '股息', '利息', '投资', '理财'],
             
             # Expense categories
-            '餐饮': ['restaurant', 'food', '餐厅', '外卖', '美团', '饿了么', 'mcdonald', 'kfc'],
-            '交通': ['transport', 'taxi', 'uber', '滴滴', '地铁', '公交', '加油', 'gas'],
-            '购物': ['shopping', 'mall', '淘宝', '京东', '超市', 'walmart', '沃尔玛'],
-            '娱乐': ['entertainment', 'movie', 'game', '电影', '游戏', '娱乐'],
-            '医疗': ['hospital', 'pharmacy', 'medical', '医院', '药店', '医疗'],
-            '教育': ['education', 'school', 'course', '学校', '培训', '教育'],
-            '房租': ['rent', 'housing', '房租', '租金', '物业'],
-            '水电费': ['utility', 'electric', 'water', '水费', '电费', '燃气'],
+            TransactionTypeEnum.FOOD: ['restaurant', 'food', '餐厅', '外卖', '美团', '饿了么', 'mcdonald', 'kfc'],
+            TransactionTypeEnum.TRANSPORT: ['transport', 'taxi', 'uber', '滴滴', '地铁', '公交', '加油', 'gas'],
+            TransactionTypeEnum.SHOPPING: ['shopping', 'mall', '淘宝', '京东', '超市', 'walmart', '沃尔玛'],
+            TransactionTypeEnum.ENTERTAINMENT: ['entertainment', 'movie', 'game', '电影', '游戏', '娱乐'],
+            TransactionTypeEnum.HEALTHCARE: ['hospital', 'pharmacy', 'medical', '医院', '药店', '医疗'],
+            TransactionTypeEnum.EDUCATION: ['education', 'school', 'course', '学校', '培训', '教育'],
+            TransactionTypeEnum.RENT: ['rent', 'housing', '房租', '租金', '物业'],
+            TransactionTypeEnum.UTILITIES: ['utility', 'electric', 'water', '水费', '电费', '燃气'],
         }
         
         # Find matching category
-        for category_name, keywords in categorization_rules.items():
+        for transaction_type, keywords in categorization_rules.items():
             for keyword in keywords:
                 if keyword in search_text:
-                    transaction_type = DatabaseService.get_transaction_type_by_name(category_name)
-                    if transaction_type:
-                        return transaction_type
+                    return transaction_type
         
         # Default categorization based on amount
         if amount > 0:
-            return DatabaseService.get_transaction_type_by_name('其他收入')
+            return TransactionTypeEnum.OTHER_INCOME
         else:
-            return DatabaseService.get_transaction_type_by_name('其他支出')
+            return TransactionTypeEnum.OTHER_EXPENSE
     
     @staticmethod
-    def _adjust_amount_by_type(amount: Decimal, transaction_type: TransactionType) -> Decimal:
+    def _adjust_amount_by_type(amount: Decimal, transaction_type: TransactionTypeEnum) -> Decimal:
         """Adjust amount sign based on transaction type."""
         if transaction_type.is_income and amount < 0:
             return abs(amount)
@@ -188,7 +185,7 @@ class TransactionService:
         try:
             from app.models import Account, Bank
             
-            query = db.session.query(Transaction).join(Account).join(TransactionType)
+            query = db.session.query(Transaction).join(Account)
             
             if filters:
                 # Account number filter
@@ -217,7 +214,11 @@ class TransactionService:
                 
                 # Transaction type filter
                 if 'transaction_type' in filters and filters['transaction_type']:
-                    query = query.filter(TransactionType.name.like(f"%{filters['transaction_type']}%"))
+                    # 如果过滤器中的transaction_type是字符串，尝试匹配枚举的display_name
+                    filter_type = filters['transaction_type']
+                    matching_types = [t for t in TransactionTypeEnum if filter_type.lower() in t.display_name.lower()]
+                    if matching_types:
+                        query = query.filter(Transaction.transaction_type.in_(matching_types))
                 
                 # Counterparty filter
                 if 'counterparty' in filters and filters['counterparty']:
@@ -248,7 +249,7 @@ class TransactionService:
         try:
             from app.models import Account, Bank
             
-            query = db.session.query(func.count(Transaction.id)).join(Account).join(TransactionType)
+            query = db.session.query(func.count(Transaction.id)).join(Account)
             
             if filters:
                 # Account number filter
@@ -277,7 +278,11 @@ class TransactionService:
                 
                 # Transaction type filter
                 if 'transaction_type' in filters and filters['transaction_type']:
-                    query = query.filter(TransactionType.name.like(f"%{filters['transaction_type']}%"))
+                    # 如果过滤器中的transaction_type是字符串，尝试匹配枚举的display_name
+                    filter_type = filters['transaction_type']
+                    matching_types = [t for t in TransactionTypeEnum if filter_type.lower() in t.display_name.lower()]
+                    if matching_types:
+                        query = query.filter(Transaction.transaction_type.in_(matching_types))
                 
                 # Counterparty filter
                 if 'counterparty' in filters and filters['counterparty']:

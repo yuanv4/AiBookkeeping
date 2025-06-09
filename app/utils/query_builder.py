@@ -9,8 +9,7 @@ from typing import Optional, List, Dict, Any, Tuple, Union
 from sqlalchemy import func, extract, case, and_, or_, text, select
 from sqlalchemy.orm import Query, joinedload, selectinload
 from sqlalchemy.sql import Select
-from app.models.transaction import Transaction
-from app.models.transaction_type import TransactionType
+from app.models.transaction import Transaction, TransactionTypeEnum
 from app.models.account import Account
 from app import db
 from app.utils.cache_manager import optimized_cache
@@ -193,13 +192,9 @@ class OptimizedQueryBuilder:
         account_id = self.validate_account_id(account_id)
         start_date, end_date = self.validate_date_range(start_date, end_date)
         
-        # 构建优化的JOIN查询
+        # 构建优化的查询（不再需要JOIN TransactionType）
         query = db.session.query(
-            TransactionType.id.label('type_id'),
-            TransactionType.name.label('type_name'),
-            TransactionType.is_income,
-            TransactionType.color,
-            TransactionType.icon,
+            Transaction.transaction_type.label('type_enum'),
             
             # 聚合统计
             func.count(Transaction.id).label('transaction_count'),
@@ -211,9 +206,6 @@ class OptimizedQueryBuilder:
             # 高级统计
             func.sum(func.abs(Transaction.amount)).label('abs_total'),
             func.count(func.distinct(Transaction.account_id)).label('account_count')
-        ).join(
-            Transaction, 
-            TransactionType.id == Transaction.transaction_type_id
         )
         
         # 添加过滤条件
@@ -236,11 +228,7 @@ class OptimizedQueryBuilder:
         
         # 分组和排序
         query = query.group_by(
-            TransactionType.id,
-            TransactionType.name, 
-            TransactionType.is_income,
-            TransactionType.color, 
-            TransactionType.icon
+            Transaction.transaction_type
         ).order_by(
             func.sum(func.abs(Transaction.amount)).desc()
         )

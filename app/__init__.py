@@ -100,9 +100,8 @@ def create_app():
             database_service=app.database_service
         )
         
-        # Initialize default data
-        app.database_service.init_database()
-        app.logger.info("数据库已初始化，默认数据已创建")
+        # Database tables created successfully
+        app.logger.info("数据库已初始化")
     
     # 为了向后兼容，保留旧的属性名
     app.db_facade = app.database_service
@@ -164,13 +163,6 @@ def create_app():
     # 但 FileProcessorService 在实例化时已经有了 app context
     # 这里可以直接调用服务，因为它已被实例化并附加到 app 对象
     try:
-        app.logger.info("应用启动: 执行启动时文件处理检查。")
-        # 注意：file_processor_service 现在通过 app.file_processor_service 访问
-        processed_files_init, message = app.file_processor_service.process_files_in_upload_folder()
-        if processed_files_init:
-            app.logger.info(f"启动时处理了 {len(processed_files_init)} 个文件。消息: {message}")
-        elif message != "未找到待处理的Excel文件": # 只记录非"未找到"的消息
-             app.logger.info(f"启动时文件处理消息: {message}")
         # 数据库统计信息检查
         try:
             with app.app_context():

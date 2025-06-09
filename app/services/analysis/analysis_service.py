@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 import logging
 import calendar
 
-from app.models import Transaction, Account, TransactionType, Bank, db
+from app.models import Transaction, Account, TransactionTypeEnum, Bank, db
 from app.models.analysis_models import ComprehensiveAnalysisData
 from app.services.analysis.analysis_factory import AnalyzerFactory, AnalyzerType
 from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException

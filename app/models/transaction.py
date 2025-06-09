@@ -7,7 +7,74 @@ from .base import db, BaseModel
 from sqlalchemy.orm import validates
 from decimal import Decimal
 from datetime import datetime, date
+from enum import Enum
 import re
+
+class TransactionTypeEnum(Enum):
+    """Transaction type enumeration with display names and income/expense classification."""
+    
+    # 收入类型
+    SALARY = ("工资收入", True)
+    BONUS = ("奖金", True)
+    INVESTMENT = ("投资收益", True)
+    BUSINESS = ("经营收入", True)
+    FREELANCE = ("自由职业", True)
+    RENTAL = ("租金收入", True)
+    GIFT = ("礼金收入", True)
+    REFUND = ("退款", True)
+    OTHER_INCOME = ("其他收入", True)
+    
+    # 支出类型
+    FOOD = ("餐饮", False)
+    TRANSPORT = ("交通", False)
+    SHOPPING = ("购物", False)
+    ENTERTAINMENT = ("娱乐", False)
+    UTILITIES = ("水电费", False)
+    RENT = ("房租", False)
+    HEALTHCARE = ("医疗", False)
+    EDUCATION = ("教育", False)
+    INSURANCE = ("保险", False)
+    INVESTMENT_EXPENSE = ("投资支出", False)
+    TRANSFER = ("转账", False)
+    FEE = ("手续费", False)
+    TAX = ("税费", False)
+    OTHER_EXPENSE = ("其他支出", False)
+    
+    def __init__(self, display_name, is_income):
+        self.display_name = display_name
+        self.is_income = is_income
+    
+    @classmethod
+    def get_income_types(cls):
+        """Get all income transaction types."""
+        return [t for t in cls if t.is_income]
+    
+    @classmethod
+    def get_expense_types(cls):
+        """Get all expense transaction types."""
+        return [t for t in cls if not t.is_income]
+    
+    @classmethod
+    def get_by_name(cls, name):
+        """Get transaction type by display name."""
+        for t in cls:
+            if t.display_name == name:
+                return t
+        return None
+    
+    @classmethod
+    def get_or_create(cls, name, is_income=False, **kwargs):
+        """Get existing transaction type or return a default one."""
+        # 首先尝试按显示名称查找
+        transaction_type = cls.get_by_name(name)
+        if transaction_type:
+            return transaction_type
+        
+        # 如果找不到，返回默认类型
+        if is_income:
+            return cls.OTHER_INCOME
+        else:
+            return cls.OTHER_EXPENSE
 
 class Transaction(BaseModel):
     """Transaction model representing financial transactions."""
@@ -15,7 +82,7 @@ class Transaction(BaseModel):
     __tablename__ = 'transactions'
     
     account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False, index=True)
-    transaction_type_id = db.Column(db.Integer, db.ForeignKey('transaction_types.id'), nullable=False, index=True)
+    transaction_type = db.Column(db.Enum(TransactionTypeEnum), nullable=False, index=True)
     date = db.Column(db.Date, nullable=False, index=True)
     amount = db.Column(db.Numeric(15, 2), nullable=False, index=True)
     currency = db.Column(db.String(3), default='CNY', nullable=False)
@@ -34,7 +101,7 @@ class Transaction(BaseModel):
     __table_args__ = (
         db.Index('idx_account_date', 'account_id', 'date'),
         db.Index('idx_date_amount', 'date', 'amount'),
-        db.Index('idx_type_date', 'transaction_type_id', 'date'),
+        db.Index('idx_type_date', 'transaction_type', 'date'),
     )
     
     @validates('amount')
@@ -155,9 +222,9 @@ class Transaction(BaseModel):
         return query.all()
     
     @classmethod
-    def get_by_type(cls, transaction_type_id, start_date=None, end_date=None):
+    def get_by_type(cls, transaction_type, start_date=None, end_date=None):
         """Get transactions by type with optional date filtering."""
-        query = cls.query.filter_by(transaction_type_id=transaction_type_id)
+        query = cls.query.filter_by(transaction_type=transaction_type)
         
         if start_date:
             query = query.filter(cls.date >= start_date)
@@ -221,14 +288,11 @@ class Transaction(BaseModel):
     @classmethod
     def get_summary_by_type(cls, account_id=None, start_date=None, end_date=None):
         """Get transaction summary grouped by type."""
-        from .transaction_type import TransactionType
-        
         query = db.session.query(
-            TransactionType.name,
-            TransactionType.is_income,
+            cls.transaction_type,
             db.func.count(cls.id).label('count'),
             db.func.sum(cls.amount).label('total')
-        ).join(cls.transaction_type)
+        )
         
         if account_id:
             query = query.filter(cls.account_id == account_id)
@@ -237,7 +301,19 @@ class Transaction(BaseModel):
         if end_date:
             query = query.filter(cls.date <= end_date)
         
-        return query.group_by(TransactionType.id).order_by(TransactionType.name).all()
+        results = query.group_by(cls.transaction_type).all()
+        
+        # 转换结果格式以保持向后兼容
+        formatted_results = []
+        for transaction_type, count, total in results:
+            formatted_results.append({
+                'name': transaction_type.display_name,
+                'is_income': transaction_type.is_income,
+                'count': count,
+                'total': total
+            })
+        
+        return sorted(formatted_results, key=lambda x: x['name'])
     
     @classmethod
     def get_monthly_summary(cls, account_id=None, year=None):
@@ -315,7 +391,8 @@ class Transaction(BaseModel):
         result['tags_list'] = self.get_tags_list()
         result['account_name'] = self.account.account_name if self.account else None
         result['bank_name'] = self.account.bank.name if self.account and self.account.bank else None
-        result['transaction_type_name'] = self.transaction_type.name if self.transaction_type else None
+        result['transaction_type_name'] = self.transaction_type.display_name if self.transaction_type else None
+        result['transaction_type_is_income'] = self.transaction_type.is_income if self.transaction_type else None
         return result
     
     def __repr__(self):

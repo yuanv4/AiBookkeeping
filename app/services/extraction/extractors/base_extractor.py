@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Dict, List, Type, Optional, Any, Union, Tuple
 from abc import ABC, abstractmethod
 
-from app.models import Bank, Account, Transaction, TransactionType, db
+from app.models import Bank, Account, Transaction, TransactionTypeEnum, db
 from app.services.core.database_service import DatabaseService
 from app.services.core.transaction_service import TransactionService
 
@@ -205,21 +205,6 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
         
         return df
     
-    def _determine_transaction_type(self, amount: float, description: str = '') -> str:
-        """根据金额和描述确定交易类型
-        
-        Args:
-            amount: 交易金额
-            description: 交易描述
-            
-        Returns:
-            str: 交易类型
-        """
-        if amount > 0:
-            return '收入'
-        else:
-            return '支出'
-    
     def process_file(self, file_path: str, account_name: str = None, account_number: str = None) -> Dict[str, Any]:
         """处理单个文件
         
@@ -269,21 +254,16 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
             processed_count = 0
             for _, row in df.iterrows():
                 try:
-                    # 跳过无效记录
-                    if pd.isna(row.get('transaction_date')) or pd.isna(row.get('amount')):
-                        continue
-                    
                     # 确定交易类型
-                    type_name = self._determine_transaction_type(
-                        row['amount'], 
-                        row.get('description', '')
-                    )
-                    transaction_type = self.database_service.get_or_create_transaction_type(type_name)
+                    if row['amount'] > 0:
+                        transaction_type = TransactionTypeEnum.OTHER_INCOME
+                    else:
+                        transaction_type = TransactionTypeEnum.OTHER_EXPENSE
                     
                     # 创建交易记录
                     transaction_data = {
                         'account_id': account.id,
-                        'transaction_type_id': transaction_type.id,
+                        'transaction_type': transaction_type,
                         'amount': abs(row['amount']),  # 存储绝对值
                         'date': row['transaction_date'].date(),  # 修正参数名：transaction_date -> date
                         'counterparty': row.get('counterparty', ''),

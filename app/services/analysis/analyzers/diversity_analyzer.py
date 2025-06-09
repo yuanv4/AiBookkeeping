@@ -9,7 +9,7 @@ import math
 from datetime import datetime
 from sqlalchemy import func
 
-from app.models import Transaction, TransactionType, db
+from app.models import Transaction, TransactionTypeEnum, db
 from app.models.analysis_models import IncomeDiversityMetrics
 from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
 from app.utils.cache_manager import optimized_cache

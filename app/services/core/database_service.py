@@ -3,7 +3,7 @@
 This module provides database operations and management functionality.
 """
 
-from app.models import db, Bank, Account, TransactionType, Transaction
+from app.models import db, Bank, Account, TransactionTypeEnum, Transaction
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Dict, Any, Optional, Tuple
 from decimal import Decimal
@@ -24,21 +24,9 @@ class DatabaseService:
     
     # Transaction Type operations
     
-    @staticmethod
-    def get_transaction_type_by_id(type_id: int) -> Optional[TransactionType]:
-        """Get transaction type by ID."""
-        return TransactionType.get_by_id(type_id)
-    
-    @staticmethod
-    def get_transaction_type_by_name(name: str) -> Optional[TransactionType]:
-        """Get transaction type by name."""
-        return TransactionType.get_by_name(name)
-    
-
-    
     # Transaction operations
     @staticmethod
-    def create_transaction(account_id: int, transaction_type_id: int, date: date, 
+    def create_transaction(account_id: int, transaction_type: TransactionTypeEnum, date: date, 
                          amount: Decimal, currency: str = 'CNY', description: str = None,
                          counterparty: str = None, notes: str = None, 
                          original_description: str = None, **kwargs) -> Transaction:
@@ -46,7 +34,7 @@ class DatabaseService:
         try:
             return Transaction.create(
                 account_id=account_id,
-                transaction_type_id=transaction_type_id,
+                transaction_type=transaction_type,
                 date=date,
                 amount=amount,
                 currency=currency,

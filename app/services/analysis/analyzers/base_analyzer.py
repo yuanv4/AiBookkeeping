@@ -12,7 +12,7 @@ import statistics
 from collections import defaultdict
 from functools import wraps
 
-from app.models import Transaction, Account, TransactionType, db
+from app.models import Transaction, Account, TransactionTypeEnum, db
 from app.models.analysis_models import (
     IncomeExpenseAnalysis, OverallStats, MonthlyData,
     CashFlowHealth, CashFlowMetrics,
@@ -166,12 +166,11 @@ class BaseAnalyzer(ABC):
         def _calc():
             try:
                 query = db.session.query(
-                    TransactionType.name,
-                    TransactionType.is_income,
+                    Transaction.transaction_type.label('type_enum'),
                     func.sum(Transaction.amount).label('total_amount'),
                     func.count(Transaction.id).label('transaction_count'),
                     func.avg(Transaction.amount).label('avg_amount')
-                ).join(Transaction.transaction_type).filter(
+                ).filter(
                     Transaction.date >= self.start_date,
                     Transaction.date <= self.end_date
                 )
@@ -185,17 +184,17 @@ class BaseAnalyzer(ABC):
                     query = query.filter(Transaction.amount < 0)
                 
                 query = query.group_by(
-                    TransactionType.name,
-                    TransactionType.is_income
+                    Transaction.transaction_type
                 ).order_by(func.sum(func.abs(Transaction.amount)).desc())
                 
                 results = query.all()
                 
                 categories = []
                 for result in results:
+                    type_enum = result.type_enum
                     categories.append({
-                        'name': result.name,
-                        'is_income': result.is_income,
+                        'name': type_enum.display_name,
+                        'is_income': type_enum.is_income,
                         'total_amount': float(result.total_amount or 0),
                         'transaction_count': result.transaction_count or 0,
                         'avg_amount': float(result.avg_amount or 0)
