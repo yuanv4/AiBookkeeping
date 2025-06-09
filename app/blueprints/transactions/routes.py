@@ -98,8 +98,8 @@ def transactions_list_route(): # 重命名函数
         for trans in transactions_list:
             transactions_data.append({
                 'id': trans.id,
-                'transaction_date': trans.date,
-                'amount': trans.amount,
+                'transaction_date': trans.date.strftime('%Y-%m-%d') if trans.date else '',
+                'amount': float(trans.amount) if trans.amount else 0.0,
                 'counterparty': trans.counterparty,
                 'description': trans.description,
                 'account_number': trans.account.account_number if trans.account else 'N/A',
@@ -107,7 +107,7 @@ def transactions_list_route(): # 重命名函数
                 'bank_name': trans.account.bank.name if trans.account and trans.account.bank else 'N/A',
                 'transaction_type': trans.transaction_type.name if trans.transaction_type else 'N/A',
                 'currency': trans.currency,
-                'balance': trans.balance_after
+                'balance': float(trans.balance_after) if trans.balance_after else 0.0
             })
 
         data_for_template = {

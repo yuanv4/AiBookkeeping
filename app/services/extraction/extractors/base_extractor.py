@@ -191,12 +191,16 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                 
         # 数据类型转换
         if 'transaction_date' in df.columns:
-            df['transaction_date'] = pd.to_datetime(df['transaction_date'], errors='coerce')
+            df['transaction_date'] = pd.to_datetime(df['transaction_date'].astype(str), format='%Y%m%d', errors='coerce')
         
         if 'amount' in df.columns:
+            # 清理amount列中的逗号和其他非数字字符
+            df['amount'] = df['amount'].astype(str).str.replace(',', '').str.replace('，', '')
             df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
             
         if 'balance_after' in df.columns:
+            # 清理balance_after列中的逗号和其他非数字字符
+            df['balance_after'] = df['balance_after'].astype(str).str.replace(',', '').str.replace('，', '')
             df['balance_after'] = pd.to_numeric(df['balance_after'], errors='coerce')
         
         return df

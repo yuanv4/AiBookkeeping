@@ -93,7 +93,7 @@ class CCBTransactionExtractor(BaseTransactionExtractor):
             column_mapping = {
                 '交易日期': 'transaction_date',
                 '交易金额': 'amount',
-                '账户余额': 'balance',
+                '账户余额': 'balance_after',
                 '对方账号与户名': 'counterparty',
                 '摘要': 'description',
                 '备注': 'description',
