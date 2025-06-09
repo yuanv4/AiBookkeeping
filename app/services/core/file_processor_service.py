@@ -1,7 +1,6 @@
-import os
 from pathlib import Path
 from werkzeug.utils import secure_filename
-from flask import current_app, flash # current_app 用于访问 app.config 和 logger
+from flask import current_app # current_app 用于访问 app.config 和 logger
 # 导入 extractor_factory 和 db_facade (或者通过依赖注入传递它们)
 # from scripts.extractors.factory.extractor_factory import get_extractor_factory # 假设这些在 app 层面实例化后传入
 # from scripts.db.db_facade import DBFacade
