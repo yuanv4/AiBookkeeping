@@ -11,7 +11,7 @@ from abc import ABC
 
 from .analyzers.base_analyzer import BaseAnalyzer
 from .analyzers.comprehensive_income_analyzer import ComprehensiveIncomeAnalyzer
-from .analyzers.growth_analyzer import IncomeGrowthAnalyzer
+from .analyzers.growth_analyzer import GrowthAnalyzer
 from .analyzers.financial_health_analyzer import FinancialHealthAnalyzer
 from .analyzers.balance_analyzer import BalanceAnalyzer
 from .analyzers.database_stats_analyzer import DatabaseStatsAnalyzer
@@ -204,7 +204,7 @@ def _register_builtin_analyzers():
     AnalyzerFactory.register_analyzer(AnalyzerType.FINANCIAL_RESILIENCE, FinancialHealthAnalyzer)
     
     # 独立分析器注册
-    AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_GROWTH, IncomeGrowthAnalyzer)
+    AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_GROWTH, GrowthAnalyzer)
     AnalyzerFactory.register_analyzer(AnalyzerType.BALANCE, BalanceAnalyzer)
     AnalyzerFactory.register_analyzer(AnalyzerType.DATABASE_STATS, DatabaseStatsAnalyzer)
 

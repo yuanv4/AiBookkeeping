@@ -17,7 +17,7 @@ from app.utils.performance_monitor import performance_monitor
 logger = logging.getLogger(__name__)
 
 
-class IncomeGrowthAnalyzer(BaseAnalyzer):
+class GrowthAnalyzer(BaseAnalyzer):
     """收入增长分析器。
     
     专注于收入增长趋势和模式分析。

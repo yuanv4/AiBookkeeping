@@ -12,7 +12,7 @@ All analyzers inherit from BaseAnalyzer and follow a consistent interface patter
 from .base_analyzer import BaseAnalyzer
 from .comprehensive_income_analyzer import ComprehensiveIncomeAnalyzer
 from .financial_health_analyzer import FinancialHealthAnalyzer
-from .growth_analyzer import IncomeGrowthAnalyzer
+from .growth_analyzer import GrowthAnalyzer
 from .balance_analyzer import BalanceAnalyzer
 from .database_stats_analyzer import DatabaseStatsAnalyzer
 
@@ -20,7 +20,7 @@ __all__ = [
     'BaseAnalyzer',
     'ComprehensiveIncomeAnalyzer',
     'FinancialHealthAnalyzer',
-    'IncomeGrowthAnalyzer',
+    'GrowthAnalyzer',
     'BalanceAnalyzer',
     'DatabaseStatsAnalyzer'
 ]
