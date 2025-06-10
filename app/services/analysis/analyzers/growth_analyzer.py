@@ -1,17 +1,15 @@
-"""Income Growth Analysis Module.
+# -*- coding: utf-8 -*-
+"""
+收入增长分析器。
+优化版本：使用新的基类和缓存策略，减少代码重复。
+"""
 
-包含收入增长分析器。
-优化版本：使用新的基类和缓存策略，实现真正的增长分析算法。"""
-
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 import logging
 from datetime import datetime, timedelta
-from sqlalchemy import func
-import statistics
+from dateutil.relativedelta import relativedelta
 
-from app.models import Transaction, db
-from app.models.analysis_models import IncomeGrowthMetrics
-from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
+from app.models.analysis_models import IncomeGrowth, GrowthMetrics
 from app.utils.cache_manager import optimized_cache
 from .base_analyzer import BaseAnalyzer
 from app.utils.performance_monitor import performance_monitor
@@ -20,11 +18,14 @@ logger = logging.getLogger(__name__)
 
 
 class IncomeGrowthAnalyzer(BaseAnalyzer):
-    """优化的收入增长分析器。"""
+    """收入增长分析器。
+    
+    专注于收入增长趋势和模式分析。
+    """
     
     @performance_monitor("income_growth_analysis")
-    def analyze(self) -> IncomeGrowthMetrics:
-        """分析收入增长。"""
+    def analyze(self) -> IncomeGrowth:
+        """分析收入增长情况。"""
         try:
             # 获取月度收入数据
             monthly_data = self._get_monthly_breakdown()
@@ -32,204 +33,238 @@ class IncomeGrowthAnalyzer(BaseAnalyzer):
             # 计算增长指标
             growth_metrics = self._calculate_comprehensive_growth_metrics(monthly_data)
             
-            # 获取历史增长数据
+            # 构建历史增长数据
             historical_data = self._build_historical_growth_data(monthly_data)
             
-            return IncomeGrowthMetrics(
-                growth_rate=growth_metrics.get('monthly_growth_rate', 0.0),
-                trend=growth_metrics.get('growth_trend', 'Stable'),
-                volatility=growth_metrics.get('growth_volatility', 0.0),
-                consistency_score=growth_metrics.get('consistency_score', 0.0),
-                monthly_growth_rates=growth_metrics.get('monthly_growth_rates', []),
-                recommendations=growth_metrics.get('recommendations', [])
+            return IncomeGrowth(
+                metrics=growth_metrics,
+                historical_growth=[
+                    *historical_data.get('monthly_growth', []),
+                    *historical_data.get('quarterly_growth', []),
+                    *historical_data.get('yearly_growth', [])
+                ]
             )
         except Exception as e:
             logger.error(f"收入增长分析失败: {e}")
-            return IncomeGrowthMetrics()
+            return IncomeGrowth()
     
     @optimized_cache('comprehensive_growth_metrics', expire_minutes=30, priority=2)
-    def _calculate_comprehensive_growth_metrics(self, monthly_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _calculate_comprehensive_growth_metrics(self, monthly_data: List[Dict[str, Any]]) -> GrowthMetrics:
         """计算综合增长指标。"""
         try:
-            if len(monthly_data) < 2:
-                return {
-                    'monthly_growth_rate': 0.0,
-                    'quarterly_growth_rate': 0.0,
-                    'yearly_growth_rate': 0.0,
-                    'growth_trend': 'insufficient_data',
-                    'growth_volatility': 0.0
-                }
+            if not monthly_data or len(monthly_data) < 2:
+                return GrowthMetrics()
             
-            # 提取月度收入数据
+            # 提取收入数据
             monthly_incomes = [month['income'] for month in monthly_data]
             
             # 计算月度增长率
-            monthly_growth_rates = []
-            for i in range(1, len(monthly_incomes)):
-                if monthly_incomes[i-1] > 0:
-                    growth_rate = (monthly_incomes[i] - monthly_incomes[i-1]) / monthly_incomes[i-1]
-                    monthly_growth_rates.append(growth_rate)
+            monthly_growth_rates = self._calculate_growth_rates(monthly_incomes)
             
-            # 计算平均月度增长率
-            avg_monthly_growth = statistics.mean(monthly_growth_rates) if monthly_growth_rates else 0.0
+            # 计算平均增长率
+            avg_growth_rate = sum(monthly_growth_rates) / len(monthly_growth_rates) if monthly_growth_rates else 0.0
             
-            # 计算季度增长率（如果数据足够）
-            quarterly_growth_rate = 0.0
-            if len(monthly_data) >= 6:  # 至少需要两个季度的数据
-                quarterly_growth_rate = self._calculate_quarterly_growth(monthly_data)
+            # 计算季度和年度增长
+            quarterly_growth = self._calculate_quarterly_growth(monthly_data)
+            yearly_growth = self._calculate_yearly_growth(monthly_data)
             
-            # 计算年度增长率（如果数据足够）
-            yearly_growth_rate = 0.0
-            if len(monthly_data) >= 12:  # 至少需要一年的数据
-                yearly_growth_rate = self._calculate_yearly_growth(monthly_data)
-            
-            # 计算增长趋势
+            # 确定增长趋势
             growth_trend = self._determine_growth_trend(monthly_growth_rates)
             
-            # 计算增长波动性
+            # 计算增长稳定性
             growth_volatility = self._calculate_coefficient_of_variation(monthly_growth_rates)
             
-            return {
-                'monthly_growth_rate': avg_monthly_growth,
-                'quarterly_growth_rate': quarterly_growth_rate,
-                'yearly_growth_rate': yearly_growth_rate,
-                'growth_trend': growth_trend,
-                'growth_volatility': growth_volatility
-            }
+            # 计算复合增长率（CAGR）
+            cagr = self._calculate_cagr(monthly_incomes)
+            
+            return GrowthMetrics(
+                average_growth_rate=avg_growth_rate,
+                quarterly_growth_rate=quarterly_growth,
+                yearly_growth_rate=yearly_growth,
+                growth_trend=growth_trend,
+                growth_volatility=growth_volatility,
+                compound_annual_growth_rate=cagr,
+                positive_growth_months=sum(1 for rate in monthly_growth_rates if rate > 0),
+                negative_growth_months=sum(1 for rate in monthly_growth_rates if rate < 0)
+            )
             
         except Exception as e:
-            logger.error(f"综合增长指标计算失败: {e}")
-            return {}
+            logger.error(f"计算综合增长指标失败: {e}")
+            return GrowthMetrics()
     
     def _calculate_quarterly_growth(self, monthly_data: List[Dict[str, Any]]) -> float:
         """计算季度增长率。"""
         try:
+            if len(monthly_data) < 6:  # 至少需要两个季度的数据
+                return 0.0
+            
             # 按季度分组
-            quarterly_totals = []
-            current_quarter = []
+            quarterly_incomes = self._group_by_quarter(monthly_data)
             
-            for i, month in enumerate(monthly_data):
-                current_quarter.append(month['income'])
-                
-                # 每三个月为一个季度
-                if (i + 1) % 3 == 0:
-                    quarterly_totals.append(sum(current_quarter))
-                    current_quarter = []
+            # 计算季度增长率
+            growth_rates = self._calculate_growth_rates(quarterly_incomes)
             
-            # 处理剩余月份
-            if current_quarter:
-                quarterly_totals.append(sum(current_quarter))
-            
-            # 计算季度间增长率
-            if len(quarterly_totals) >= 2:
-                quarterly_growth_rates = []
-                for i in range(1, len(quarterly_totals)):
-                    if quarterly_totals[i-1] > 0:
-                        growth_rate = (quarterly_totals[i] - quarterly_totals[i-1]) / quarterly_totals[i-1]
-                        quarterly_growth_rates.append(growth_rate)
-                
-                return statistics.mean(quarterly_growth_rates) if quarterly_growth_rates else 0.0
-            
-            return 0.0
+            return sum(growth_rates) / len(growth_rates) if growth_rates else 0.0
             
         except Exception as e:
-            logger.error(f"季度增长率计算失败: {e}")
+            logger.error(f"计算季度增长率失败: {e}")
             return 0.0
     
     def _calculate_yearly_growth(self, monthly_data: List[Dict[str, Any]]) -> float:
         """计算年度增长率。"""
         try:
+            if len(monthly_data) < 24:  # 至少需要两年的数据
+                return 0.0
+            
             # 按年分组
-            yearly_totals = {}
+            yearly_incomes = self._group_by_year(monthly_data)
             
-            for month in monthly_data:
-                year = month['period'][:4]  # 假设period格式为'YYYY-MM'
-                if year not in yearly_totals:
-                    yearly_totals[year] = 0.0
-                yearly_totals[year] += month['income']
+            # 计算年度增长率
+            growth_rates = self._calculate_growth_rates(yearly_incomes)
             
-            # 计算年度间增长率
-            years = sorted(yearly_totals.keys())
-            if len(years) >= 2:
-                yearly_growth_rates = []
-                for i in range(1, len(years)):
-                    prev_year_total = yearly_totals[years[i-1]]
-                    curr_year_total = yearly_totals[years[i]]
-                    
-                    if prev_year_total > 0:
-                        growth_rate = (curr_year_total - prev_year_total) / prev_year_total
-                        yearly_growth_rates.append(growth_rate)
-                
-                return statistics.mean(yearly_growth_rates) if yearly_growth_rates else 0.0
-            
-            return 0.0
+            return sum(growth_rates) / len(growth_rates) if growth_rates else 0.0
             
         except Exception as e:
-            logger.error(f"年度增长率计算失败: {e}")
+            logger.error(f"计算年度增长率失败: {e}")
             return 0.0
     
     def _determine_growth_trend(self, growth_rates: List[float]) -> str:
         """确定增长趋势。"""
-        if not growth_rates:
-            return 'insufficient_data'
-        
         try:
-            # 计算趋势
-            trend = self._calculate_trend(growth_rates)
-            avg_growth = statistics.mean(growth_rates)
+            if not growth_rates:
+                return "稳定"
             
-            # 根据趋势和平均增长率确定趋势类型
-            if trend > 0.01:  # 明显上升趋势
-                return 'accelerating'
-            elif trend < -0.01:  # 明显下降趋势
-                return 'decelerating'
-            elif avg_growth > 0.05:  # 平均增长率大于5%
-                return 'increasing'
-            elif avg_growth < -0.05:  # 平均增长率小于-5%
-                return 'decreasing'
+            # 使用基类的趋势计算方法
+            trend_slope = self._calculate_trend(growth_rates)
+            
+            if trend_slope > 0.01:  # 1%以上的正趋势
+                return "上升"
+            elif trend_slope < -0.01:  # 1%以上的负趋势
+                return "下降"
             else:
-                return 'stable'
+                return "稳定"
                 
         except Exception as e:
-            logger.error(f"增长趋势确定失败: {e}")
-            return 'unknown'
+            logger.error(f"确定增长趋势失败: {e}")
+            return "稳定"
     
-    @optimized_cache('historical_growth_data', expire_minutes=60, priority=1)
-    def _build_historical_growth_data(self, monthly_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    @optimized_cache('historical_growth_data', expire_minutes=25, priority=2)
+    def _build_historical_growth_data(self, monthly_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """构建历史增长数据。"""
         try:
-            historical_data = []
+            if not monthly_data:
+                return {}
             
-            for i, month in enumerate(monthly_data):
-                # 计算同比增长率（如果有去年同期数据）
-                year_over_year_growth = 0.0
-                if i >= 12:  # 至少需要12个月前的数据
-                    prev_year_income = monthly_data[i-12]['income']
-                    if prev_year_income > 0:
-                        year_over_year_growth = (month['income'] - prev_year_income) / prev_year_income
-                
-                # 计算环比增长率
-                month_over_month_growth = 0.0
-                if i > 0:
-                    prev_month_income = monthly_data[i-1]['income']
-                    if prev_month_income > 0:
-                        month_over_month_growth = (month['income'] - prev_month_income) / prev_month_income
-                
-                # 计算累计增长率（相对于第一个月）
-                cumulative_growth = 0.0
-                if monthly_data[0]['income'] > 0:
-                    cumulative_growth = (month['income'] - monthly_data[0]['income']) / monthly_data[0]['income']
-                
-                historical_data.append({
-                    'period': month['period'],
-                    'income': month['income'],
-                    'month_over_month_growth': month_over_month_growth,
-                    'year_over_year_growth': year_over_year_growth,
-                    'cumulative_growth': cumulative_growth
-                })
+            # 构建月度增长数据
+            monthly_growth = self._build_monthly_growth_data(monthly_data)
             
-            return historical_data
+            # 构建季度增长数据
+            quarterly_growth = self._build_quarterly_growth_data(monthly_data)
+            
+            # 构建年度增长数据
+            yearly_growth = self._build_yearly_growth_data(monthly_data)
+            
+            return {
+                'monthly_growth': monthly_growth,
+                'quarterly_growth': quarterly_growth,
+                'yearly_growth': yearly_growth
+            }
             
         except Exception as e:
-            logger.error(f"历史增长数据构建失败: {e}")
-            return []
+            logger.error(f"构建历史增长数据失败: {e}")
+            return {}
+    
+    def _calculate_growth_rates(self, values: List[float]) -> List[float]:
+        """计算增长率序列。"""
+        growth_rates = []
+        for i in range(1, len(values)):
+            if values[i-1] > 0:
+                growth_rate = (values[i] - values[i-1]) / values[i-1]
+                growth_rates.append(growth_rate)
+        return growth_rates
+    
+    def _calculate_cagr(self, values: List[float]) -> float:
+        """计算复合年增长率（CAGR）。"""
+        if len(values) >= 12 and values[0] > 0:
+            periods = len(values) - 1
+            cagr = ((values[-1] / values[0]) ** (12 / periods)) - 1
+            return cagr
+        return 0.0
+    
+    def _group_by_quarter(self, monthly_data: List[Dict[str, Any]]) -> List[float]:
+        """按季度分组数据。"""
+        quarterly_data = {}
+        for month in monthly_data:
+            year = month.get('year', 0)
+            month_num = month.get('month', 0)
+            quarter = f"{year}-Q{(month_num - 1) // 3 + 1}"
+            
+            if quarter not in quarterly_data:
+                quarterly_data[quarter] = 0.0
+            quarterly_data[quarter] += month['income']
+        
+        quarters = sorted(quarterly_data.keys())
+        return [quarterly_data[q] for q in quarters]
+    
+    def _group_by_year(self, monthly_data: List[Dict[str, Any]]) -> List[float]:
+        """按年分组数据。"""
+        yearly_data = {}
+        for month in monthly_data:
+            year = month.get('year', 0)
+            if year not in yearly_data:
+                yearly_data[year] = 0.0
+            yearly_data[year] += month['income']
+        
+        years = sorted(yearly_data.keys())
+        return [yearly_data[y] for y in years]
+    
+    def _build_monthly_growth_data(self, monthly_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """构建月度增长数据。"""
+        monthly_growth = []
+        monthly_incomes = [month['income'] for month in monthly_data]
+        
+        for i in range(1, len(monthly_incomes)):
+            if monthly_incomes[i-1] > 0:
+                growth_rate = (monthly_incomes[i] - monthly_incomes[i-1]) / monthly_incomes[i-1]
+                monthly_growth.append({
+                    'period': f"{monthly_data[i].get('year', '')}-{monthly_data[i].get('month', ''):02d}",
+                    'growth_rate': growth_rate,
+                    'income': monthly_incomes[i],
+                    'previous_income': monthly_incomes[i-1]
+                })
+        
+        return monthly_growth
+    
+    def _build_quarterly_growth_data(self, monthly_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """构建季度增长数据。"""
+        quarterly_incomes = self._group_by_quarter(monthly_data)
+        quarterly_growth = []
+        
+        for i in range(1, len(quarterly_incomes)):
+            if quarterly_incomes[i-1] > 0:
+                growth_rate = (quarterly_incomes[i] - quarterly_incomes[i-1]) / quarterly_incomes[i-1]
+                quarterly_growth.append({
+                    'period': f"Q{i+1}",
+                    'growth_rate': growth_rate,
+                    'income': quarterly_incomes[i],
+                    'previous_income': quarterly_incomes[i-1]
+                })
+        
+        return quarterly_growth
+    
+    def _build_yearly_growth_data(self, monthly_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """构建年度增长数据。"""
+        yearly_incomes = self._group_by_year(monthly_data)
+        yearly_growth = []
+        
+        for i in range(1, len(yearly_incomes)):
+            if yearly_incomes[i-1] > 0:
+                growth_rate = (yearly_incomes[i] - yearly_incomes[i-1]) / yearly_incomes[i-1]
+                yearly_growth.append({
+                    'period': f"Year {i+1}",
+                    'growth_rate': growth_rate,
+                    'income': yearly_incomes[i],
+                    'previous_income': yearly_incomes[i-1]
+                })
+        
+        return yearly_growth

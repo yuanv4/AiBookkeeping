@@ -92,6 +92,18 @@ class ComprehensiveService:
             logger.error(f"使用工厂模式创建分析器失败: {e}")
             # 降级到手动创建关键分析器
             return {
+                # 使用新的合并分析器
+                AnalyzerType.COMPREHENSIVE_INCOME: AnalyzerFactory.create_analyzer(
+                    AnalyzerType.COMPREHENSIVE_INCOME, start_date, end_date, account_id
+                ),
+                AnalyzerType.FINANCIAL_HEALTH: AnalyzerFactory.create_analyzer(
+                    AnalyzerType.FINANCIAL_HEALTH, start_date, end_date, account_id
+                ),
+                AnalyzerType.INCOME_GROWTH: AnalyzerFactory.create_analyzer(
+                    AnalyzerType.INCOME_GROWTH, start_date, end_date, account_id
+                ),
+                
+                # 向后兼容映射
                 AnalyzerType.INCOME_EXPENSE: AnalyzerFactory.create_analyzer(
                     AnalyzerType.INCOME_EXPENSE, start_date, end_date, account_id
                 ),
@@ -103,9 +115,6 @@ class ComprehensiveService:
                 ),
                 AnalyzerType.INCOME_DIVERSITY: AnalyzerFactory.create_analyzer(
                     AnalyzerType.INCOME_DIVERSITY, start_date, end_date, account_id
-                ),
-                AnalyzerType.INCOME_GROWTH: AnalyzerFactory.create_analyzer(
-                    AnalyzerType.INCOME_GROWTH, start_date, end_date, account_id
                 ),
                 AnalyzerType.FINANCIAL_RESILIENCE: AnalyzerFactory.create_analyzer(
                     AnalyzerType.FINANCIAL_RESILIENCE, start_date, end_date, account_id

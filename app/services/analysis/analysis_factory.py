@@ -10,11 +10,9 @@ import logging
 from abc import ABC
 
 from .analyzers.base_analyzer import BaseAnalyzer
-from .analyzers.income_analyzer import IncomeExpenseAnalyzer, IncomeStabilityAnalyzer
-from .analyzers.cash_flow_analyzer import CashFlowAnalyzer
-from .analyzers.diversity_analyzer import IncomeDiversityAnalyzer
+from .analyzers.comprehensive_income_analyzer import ComprehensiveIncomeAnalyzer
 from .analyzers.growth_analyzer import IncomeGrowthAnalyzer
-from .analyzers.resilience_analyzer import FinancialResilienceAnalyzer
+from .analyzers.financial_health_analyzer import FinancialHealthAnalyzer
 from .analyzers.balance_analyzer import BalanceAnalyzer
 from .analyzers.database_stats_analyzer import DatabaseStatsAnalyzer
 
@@ -23,10 +21,17 @@ logger = logging.getLogger(__name__)
 
 class AnalyzerType:
     """分析器类型常量定义。"""
+    # 新的合并分析器类型
+    COMPREHENSIVE_INCOME = 'comprehensive_income'
+    FINANCIAL_HEALTH = 'financial_health'
+    
+    # 向后兼容的类型（映射到新的合并分析器）
     INCOME_EXPENSE = 'income_expense'
     INCOME_STABILITY = 'stability'
     CASH_FLOW = 'cash_flow'
     INCOME_DIVERSITY = 'diversity'
+    
+    # 独立的分析器类型
     INCOME_GROWTH = 'growth'
     FINANCIAL_RESILIENCE = 'resilience'
     BALANCE = 'balance'
@@ -187,12 +192,19 @@ class AnalyzerFactory:
 # 自动注册所有内置分析器
 def _register_builtin_analyzers():
     """注册所有内置分析器。"""
-    AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_EXPENSE, IncomeExpenseAnalyzer)
-    AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_STABILITY, IncomeStabilityAnalyzer)
-    AnalyzerFactory.register_analyzer(AnalyzerType.CASH_FLOW, CashFlowAnalyzer)
-    AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_DIVERSITY, IncomeDiversityAnalyzer)
+    # 注册新的合并分析器
+    AnalyzerFactory.register_analyzer(AnalyzerType.COMPREHENSIVE_INCOME, ComprehensiveIncomeAnalyzer)
+    AnalyzerFactory.register_analyzer(AnalyzerType.FINANCIAL_HEALTH, FinancialHealthAnalyzer)
+    
+    # 向后兼容注册（映射到新的合并分析器）
+    AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_EXPENSE, ComprehensiveIncomeAnalyzer)
+    AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_STABILITY, ComprehensiveIncomeAnalyzer)
+    AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_DIVERSITY, ComprehensiveIncomeAnalyzer)
+    AnalyzerFactory.register_analyzer(AnalyzerType.CASH_FLOW, FinancialHealthAnalyzer)
+    AnalyzerFactory.register_analyzer(AnalyzerType.FINANCIAL_RESILIENCE, FinancialHealthAnalyzer)
+    
+    # 独立分析器注册
     AnalyzerFactory.register_analyzer(AnalyzerType.INCOME_GROWTH, IncomeGrowthAnalyzer)
-    AnalyzerFactory.register_analyzer(AnalyzerType.FINANCIAL_RESILIENCE, FinancialResilienceAnalyzer)
     AnalyzerFactory.register_analyzer(AnalyzerType.BALANCE, BalanceAnalyzer)
     AnalyzerFactory.register_analyzer(AnalyzerType.DATABASE_STATS, DatabaseStatsAnalyzer)
 
