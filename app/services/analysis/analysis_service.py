@@ -12,9 +12,8 @@ import calendar
 from app.models import Transaction, Account, Bank, db
 from app.services.analysis.analysis_models import ComprehensiveAnalysisData
 from app.services.analysis.analysis_factory import AnalyzerFactory, AnalyzerType
-from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
-from app.utils.cache_manager import optimized_cache
-from app.utils.performance_monitor import monitor_performance
+# 查询构建器功能已移除，直接使用 SQLAlchemy 查询
+# 缓存和性能监控功能已移除
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -33,8 +32,6 @@ class ComprehensiveService:
     """优化的综合分析服务。"""
     
     @staticmethod
-    @monitor_performance("comprehensive_analysis")
-    @optimized_cache('comprehensive_income_analysis', expire_minutes=45, priority=1)
     def get_comprehensive_income_analysis(account_id: Optional[int] = None) -> Dict[str, Any]:
         """获取综合收入分析数据，返回模板所需的完整data结构
         

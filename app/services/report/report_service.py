@@ -11,9 +11,12 @@ from collections import defaultdict
 import calendar
 
 from app.models import Transaction, Account, Bank, db
-from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
-from app.utils.cache_manager import optimized_cache
-from app.utils.performance_monitor import monitor_performance
+# 查询构建器功能已移除，直接使用 SQLAlchemy 查询
+
+class AnalysisException(Exception):
+    """分析服务自定义异常类"""
+    pass
+# 缓存和性能监控功能已移除
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -64,13 +67,16 @@ class FinancialReportService:
             raise
     
     @staticmethod
-    @monitor_performance('analysis.period_summary')
-    @optimized_cache(cache_name='period_summary', expire_minutes=10)
     def _get_period_summary(account_id: int = None, start_date: date = None, 
                           end_date: date = None) -> Dict[str, Any]:
         """Get summary statistics for the period using optimized query."""
         try:
-            query_builder = OptimizedQueryBuilder()
+            # 直接使用 SQLAlchemy 查询替代查询构建器
+            # 简单的参数验证
+            if account_id and (not isinstance(account_id, int) or account_id <= 0):
+                raise AnalysisException("无效的账户ID")
+            if start_date and end_date and start_date > end_date:
+                raise AnalysisException("开始日期不能晚于结束日期")
             
             # 使用聚合查询替代加载所有交易记录
             query = db.session.query(
@@ -84,10 +90,8 @@ class FinancialReportService:
             
             # 应用过滤条件
             if account_id:
-                query_builder.validate_account_id(account_id)
                 query = query.filter(Transaction.account_id == account_id)
             if start_date:
-                query_builder.validate_date_range(start_date, end_date)
                 query = query.filter(Transaction.date >= start_date)
             if end_date:
                 query = query.filter(Transaction.date <= end_date)
@@ -136,20 +140,41 @@ class FinancialReportService:
             }
     
     @staticmethod
-    @monitor_performance('analysis.income_analysis')
-    @optimized_cache(cache_name='income_analysis', expire_minutes=15)
     def _get_income_analysis(account_id: int = None, start_date: date = None, 
                            end_date: date = None) -> Dict[str, Any]:
         """Analyze income patterns using optimized query."""
         try:
-            query_builder = OptimizedQueryBuilder()
+            # 直接使用 SQLAlchemy 查询替代查询构建器
+            # 简单的参数验证
+            if account_id and (not isinstance(account_id, int) or account_id <= 0):
+                raise AnalysisException("无效的账户ID")
+            if start_date and end_date and start_date > end_date:
+                raise AnalysisException("开始日期不能晚于结束日期")
             
-            # 使用优化的查询构建器进行收入分析
-            query = query_builder.build_category_analysis_query(
-                account_id=account_id,
-                start_date=start_date,
-                end_date=end_date,
-                income_only=True  # 只查询收入
+            # 构建收入分析查询
+            query = db.session.query(
+                Transaction.transaction_type.label('type_enum'),
+                func.count(Transaction.id).label('transaction_count'),
+                func.sum(Transaction.amount).label('total_amount'),
+                func.avg(Transaction.amount).label('avg_amount'),
+                func.max(Transaction.amount).label('max_amount'),
+                func.min(Transaction.amount).label('min_amount')
+            )
+            
+            # 添加过滤条件
+            if account_id:
+                query = query.filter(Transaction.account_id == account_id)
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            if end_date:
+                query = query.filter(Transaction.date <= end_date)
+            
+            # 只查询收入
+            query = query.filter(Transaction.amount > 0)
+            
+            # 分组和排序
+            query = query.group_by(Transaction.transaction_type).order_by(
+                func.sum(Transaction.amount).desc()
             )
             
             # 安全执行查询
@@ -194,20 +219,41 @@ class FinancialReportService:
             }
     
     @staticmethod
-    @monitor_performance('analysis.expense_analysis')
-    @optimized_cache(cache_name='expense_analysis', expire_minutes=15)
     def _get_expense_analysis(account_id: int = None, start_date: date = None, 
                             end_date: date = None) -> Dict[str, Any]:
         """Analyze expense patterns using optimized query."""
         try:
-            query_builder = OptimizedQueryBuilder()
+            # 直接使用 SQLAlchemy 查询替代查询构建器
+            # 简单的参数验证
+            if account_id and (not isinstance(account_id, int) or account_id <= 0):
+                raise AnalysisException("无效的账户ID")
+            if start_date and end_date and start_date > end_date:
+                raise AnalysisException("开始日期不能晚于结束日期")
             
-            # 使用优化的查询构建器进行支出分析
-            query = query_builder.build_category_analysis_query(
-                account_id=account_id,
-                start_date=start_date,
-                end_date=end_date,
-                expense_only=True  # 只查询支出
+            # 构建支出分析查询
+            query = db.session.query(
+                Transaction.transaction_type.label('type_enum'),
+                func.count(Transaction.id).label('transaction_count'),
+                func.sum(func.abs(Transaction.amount)).label('total_amount'),
+                func.avg(func.abs(Transaction.amount)).label('avg_amount'),
+                func.max(func.abs(Transaction.amount)).label('max_amount'),
+                func.min(func.abs(Transaction.amount)).label('min_amount')
+            )
+            
+            # 添加过滤条件
+            if account_id:
+                query = query.filter(Transaction.account_id == account_id)
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            if end_date:
+                query = query.filter(Transaction.date <= end_date)
+            
+            # 只查询支出
+            query = query.filter(Transaction.amount < 0)
+            
+            # 分组和排序
+            query = query.group_by(Transaction.transaction_type).order_by(
+                func.sum(func.abs(Transaction.amount)).desc()
             )
             
             # 安全执行查询
@@ -253,19 +299,40 @@ class FinancialReportService:
             }
     
     @staticmethod
-    @monitor_performance('analysis.category_breakdown')
-    @optimized_cache(cache_name='category_breakdown', expire_minutes=15)
     def _get_category_breakdown(account_id: int = None, start_date: date = None, 
                               end_date: date = None) -> Dict[str, Any]:
         """Get detailed category breakdown using optimized query."""
         try:
-            query_builder = OptimizedQueryBuilder()
+            # 直接使用 SQLAlchemy 查询替代查询构建器
+            # 简单的参数验证
+            if account_id and (not isinstance(account_id, int) or account_id <= 0):
+                raise AnalysisException("无效的账户ID")
+            if start_date and end_date and start_date > end_date:
+                raise AnalysisException("开始日期不能晚于结束日期")
             
-            # 使用优化的查询构建器
-            query = query_builder.build_category_analysis_query(
-                account_id=account_id,
-                start_date=start_date,
-                end_date=end_date
+            # 构建类别分析查询
+            query = db.session.query(
+                Transaction.transaction_type.label('type_enum'),
+                func.count(Transaction.id).label('transaction_count'),
+                func.sum(Transaction.amount).label('total_amount'),
+                func.avg(Transaction.amount).label('avg_amount'),
+                func.max(Transaction.amount).label('max_amount'),
+                func.min(Transaction.amount).label('min_amount'),
+                func.sum(func.abs(Transaction.amount)).label('abs_total'),
+                func.count(func.distinct(Transaction.account_id)).label('account_count')
+            )
+            
+            # 添加过滤条件
+            if account_id:
+                query = query.filter(Transaction.account_id == account_id)
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            if end_date:
+                query = query.filter(Transaction.date <= end_date)
+            
+            # 分组和排序
+            query = query.group_by(Transaction.transaction_type).order_by(
+                func.sum(func.abs(Transaction.amount)).desc()
             )
             
             # 安全执行查询
@@ -300,13 +367,16 @@ class FinancialReportService:
             raise AnalysisException(f"类别分析失败: {str(e)}")
     
     @staticmethod
-    @monitor_performance('analysis.trend_analysis')
-    @optimized_cache(cache_name='trend_analysis', expire_minutes=20)
     def _get_trend_analysis(account_id: int = None, start_date: date = None, 
                           end_date: date = None) -> Dict[str, Any]:
         """Analyze trends over time using optimized queries."""
         try:
-            query_builder = OptimizedQueryBuilder()
+            # 直接使用 SQLAlchemy 查询替代查询构建器
+            # 简单的参数验证
+            if account_id and (not isinstance(account_id, int) or account_id <= 0):
+                raise AnalysisException("无效的账户ID")
+            if start_date and end_date and start_date > end_date:
+                raise AnalysisException("开始日期不能晚于结束日期")
             
             # 构建日趋势分析查询
             daily_query = db.session.query(

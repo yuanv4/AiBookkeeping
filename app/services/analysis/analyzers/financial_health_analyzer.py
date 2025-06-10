@@ -15,10 +15,9 @@ from app.services.analysis.analysis_models import (
     CashFlowHealth, CashFlowMetrics,
     FinancialResilience, ResilienceMetrics
 )
-from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
-from app.utils.cache_manager import optimized_cache
+# 查询构建器功能已移除，直接使用 SQLAlchemy 查询
 from .base_analyzer import BaseAnalyzer
-from app.utils.performance_monitor import performance_monitor
+# 缓存和性能监控功能已移除
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,6 @@ class FinancialHealthAnalyzer(BaseAnalyzer):
     整合现金流健康状况分析和财务韧性分析功能。
     """
     
-    @performance_monitor("cash_flow_analysis")
     def analyze_cash_flow(self) -> CashFlowHealth:
         """分析现金流健康状况。"""
         try:
@@ -49,7 +47,6 @@ class FinancialHealthAnalyzer(BaseAnalyzer):
             logger.error(f"现金流分析失败: {e}")
             return CashFlowHealth()
     
-    @performance_monitor("financial_resilience_analysis")
     def analyze_resilience(self) -> FinancialResilience:
         """分析财务韧性。"""
         try:
@@ -71,23 +68,42 @@ class FinancialHealthAnalyzer(BaseAnalyzer):
             logger.error(f"财务韧性分析失败: {e}")
             return FinancialResilience()
     
-    @optimized_cache('cash_flow_analysis', expire_minutes=20, priority=2)
     def _analyze_cash_flow_patterns(self) -> Dict[str, Any]:
         """分析现金流模式。"""
         try:
-            query_builder = OptimizedQueryBuilder()
+            # 直接使用 SQLAlchemy 查询替代查询构建器
+            from app.models.transaction import Transaction
+            from sqlalchemy import func, case
+            from app import db
             
-            # 获取现金流分析查询
-            cash_flow_query = query_builder.build_cash_flow_analysis_query(
-                account_id=self.account_id,
-                start_date=self.start_date,
-                end_date=self.end_date
+            # 构建现金流分析查询
+            query = db.session.query(
+                Transaction.date,
+                Transaction.amount,
+                func.sum(Transaction.amount).over(
+                    order_by=Transaction.date.asc()
+                ).label('running_balance'),
+                func.sum(Transaction.amount).over(
+                    partition_by=Transaction.date
+                ).label('daily_net'),
+                func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)).over(
+                    partition_by=Transaction.date
+                ).label('daily_income'),
+                func.sum(case((Transaction.amount < 0, func.abs(Transaction.amount)), else_=0)).over(
+                    partition_by=Transaction.date
+                ).label('daily_expense')
             )
             
-            # 执行查询
-            results = query_builder.execute_with_error_handling(
-                cash_flow_query, "现金流分析查询"
-            )
+            # 添加过滤条件
+            if self.account_id:
+                query = query.filter(Transaction.account_id == self.account_id)
+            if self.start_date:
+                query = query.filter(Transaction.date >= self.start_date)
+            if self.end_date:
+                query = query.filter(Transaction.date <= self.end_date)
+            
+            query = query.order_by(Transaction.date.asc(), Transaction.id.asc())
+            results = query.all()
             
             # 处理结果
             daily_balances = []
@@ -170,7 +186,6 @@ class FinancialHealthAnalyzer(BaseAnalyzer):
             logger.error(f"构建现金流指标失败: {e}")
             return CashFlowMetrics()
     
-    @optimized_cache('resilience_metrics', expire_minutes=35)
     def _calculate_resilience_metrics(self) -> ResilienceMetrics:
         """计算韧性指标。"""
         try:
@@ -213,7 +228,6 @@ class FinancialHealthAnalyzer(BaseAnalyzer):
             logger.error(f"计算韧性指标失败: {e}")
             return ResilienceMetrics()
     
-    @optimized_cache('scenario_analysis', expire_minutes=40)
     def _calculate_scenario_analysis(self) -> List[Dict[str, Any]]:
         """计算情景分析数据。"""
         try:
@@ -349,7 +363,6 @@ class FinancialHealthAnalyzer(BaseAnalyzer):
         
         return risk_factors
     
-    @optimized_cache('financial_health_summary', expire_minutes=25, priority=1)
     def get_comprehensive_health_summary(self) -> Dict[str, Any]:
         """获取综合财务健康摘要。"""
         try:

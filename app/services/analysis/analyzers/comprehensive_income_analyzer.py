@@ -17,10 +17,9 @@ from app.services.analysis.analysis_models import (
     IncomeStability, StabilityMetrics,
     IncomeDiversity, DiversityMetrics
 )
-from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
-from app.utils.cache_manager import optimized_cache
+# 查询构建器功能已移除，直接使用 SQLAlchemy 查询
 from .base_analyzer import BaseAnalyzer
-from app.utils.performance_monitor import performance_monitor
+# 缓存和性能监控功能已移除
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +30,6 @@ class ComprehensiveIncomeAnalyzer(BaseAnalyzer):
     整合收入支出分析、收入稳定性分析和收入多样性分析功能。
     """
     
-    @performance_monitor("comprehensive_income_analysis")
     def analyze_income_expense(self) -> IncomeExpenseAnalysis:
         """分析收入支出状况。"""
         try:
@@ -68,7 +66,6 @@ class ComprehensiveIncomeAnalyzer(BaseAnalyzer):
             logger.error(f"收入支出分析失败: {e}")
             return IncomeExpenseAnalysis(overall_stats=OverallStats(), monthly_data=[])
     
-    @performance_monitor("income_stability_analysis")
     def analyze_income_stability(self) -> IncomeStability:
         """分析收入稳定性。"""
         try:
@@ -96,7 +93,6 @@ class ComprehensiveIncomeAnalyzer(BaseAnalyzer):
             logger.error(f"收入稳定性分析失败: {e}")
             return IncomeStability()
     
-    @performance_monitor("income_diversity_analysis")
     def analyze_income_diversity(self) -> IncomeDiversity:
         """分析收入多样性。"""
         try:
@@ -171,23 +167,43 @@ class ComprehensiveIncomeAnalyzer(BaseAnalyzer):
             logger.error(f"计算稳定性指标失败: {e}")
             return StabilityMetrics()
     
-    @optimized_cache('income_diversity_analysis', expire_minutes=25, priority=2)
     def _analyze_income_diversity(self) -> Dict[str, Any]:
         """分析收入多样性。"""
         try:
-            query_builder = OptimizedQueryBuilder()
+            # 直接使用 SQLAlchemy 查询替代查询构建器
+            from app.models.transaction import Transaction
+            from sqlalchemy import func, case
+            from app import db
             
-            # 获取收入交易的分类统计
-            income_query = query_builder.build_category_analysis_query(
-                account_id=self.account_id,
-                start_date=self.start_date,
-                end_date=self.end_date,
-                transaction_type='income'
+            # 构建收入分类分析查询
+            query = db.session.query(
+                Transaction.transaction_type.label('type_enum'),
+                func.count(Transaction.id).label('transaction_count'),
+                func.sum(Transaction.amount).label('total_amount'),
+                func.avg(Transaction.amount).label('avg_amount'),
+                func.max(Transaction.amount).label('max_amount'),
+                func.min(Transaction.amount).label('min_amount'),
+                func.sum(func.abs(Transaction.amount)).label('abs_total'),
+                func.count(func.distinct(Transaction.account_id)).label('account_count')
             )
             
-            results = query_builder.execute_with_error_handling(
-                income_query, "收入多样性分析查询"
+            # 添加过滤条件
+            if self.account_id:
+                query = query.filter(Transaction.account_id == self.account_id)
+            if self.start_date:
+                query = query.filter(Transaction.date >= self.start_date)
+            if self.end_date:
+                query = query.filter(Transaction.date <= self.end_date)
+            
+            # 只分析收入交易
+            query = query.filter(Transaction.amount > 0)
+            
+            # 分组和排序
+            query = query.group_by(Transaction.transaction_type).order_by(
+                func.sum(func.abs(Transaction.amount)).desc()
             )
+            
+            results = query.all()
             
             # 处理结果
             categories = []
@@ -227,7 +243,6 @@ class ComprehensiveIncomeAnalyzer(BaseAnalyzer):
             logger.error(f"收入多样性分析失败: {e}")
             return {}
     
-    @optimized_cache('income_source_breakdown', expire_minutes=30, priority=2)
     def _get_income_source_breakdown(self) -> List[Dict[str, Any]]:
         """获取收入来源明细。"""
         try:
@@ -252,7 +267,6 @@ class ComprehensiveIncomeAnalyzer(BaseAnalyzer):
             logger.error(f"构建多样性指标失败: {e}")
             return DiversityMetrics()
     
-    @optimized_cache('comprehensive_income_summary', expire_minutes=20, priority=1)
     def get_comprehensive_summary(self) -> Dict[str, Any]:
         """获取综合收入分析摘要。"""
         try:

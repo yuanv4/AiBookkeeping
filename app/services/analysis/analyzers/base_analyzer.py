@@ -20,9 +20,8 @@ from app.services.analysis.analysis_models import (
     IncomeGrowthMetrics,
     FinancialResilience, ResilienceMetrics
 )
-from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
-from app.utils.cache_manager import optimized_cache
-from app.utils.performance_monitor import performance_monitor
+# 查询构建器功能已移除，直接使用 SQLAlchemy 查询
+# 缓存和性能监控功能已移除
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -37,7 +36,7 @@ class BaseAnalyzer(ABC):
         self.end_date = end_date
         self.account_id = account_id
         self._cache = {}
-        self._query_builder = OptimizedQueryBuilder()
+        # 查询构建器功能已移除
     
     @abstractmethod
     def analyze(self) -> Any:
@@ -46,15 +45,19 @@ class BaseAnalyzer(ABC):
     
     def _get_base_query(self):
         """获取带有通用过滤器的基础查询。"""
-        return self._query_builder.build_transaction_query(
-            account_id=self.account_id,
-            start_date=self.start_date,
-            end_date=self.end_date
-        )
+        from app.models.transaction import Transaction
+        query = Transaction.query
+        
+        if self.account_id:
+            query = query.filter(Transaction.account_id == self.account_id)
+        if self.start_date:
+            query = query.filter(Transaction.date >= self.start_date)
+        if self.end_date:
+            query = query.filter(Transaction.date <= self.end_date)
+            
+        return query
     
     # 通用数据获取方法
-    @performance_monitor("income_expense_totals")
-    @optimized_cache(cache_name='income_expense_totals', expire_minutes=15)
     def _get_income_expense_totals(self) -> Tuple[float, float, int, int]:
         """获取收入支出总计 - 通用方法"""
         def _calc():
@@ -90,8 +93,6 @@ class BaseAnalyzer(ABC):
         
         return self._get_cached_data('income_expense_totals', _calc)
     
-    @performance_monitor("monthly_breakdown")
-    @optimized_cache(cache_name='monthly_breakdown', expire_minutes=20)
     def _get_monthly_breakdown(self) -> List[Dict[str, Any]]:
         """获取月度分解数据 - 通用方法"""
         def _calc():
@@ -141,8 +142,6 @@ class BaseAnalyzer(ABC):
         
         return self._get_cached_data('monthly_breakdown', _calc)
     
-    @performance_monitor("transaction_categories")
-    @optimized_cache(cache_name='transaction_categories', expire_minutes=25)
     def _get_transaction_categories(self, income_only: bool = False, expense_only: bool = False) -> List[Dict[str, Any]]:
         """获取交易类别分析 - 通用方法"""
         def _calc():

@@ -12,10 +12,9 @@ from sqlalchemy import func
 
 from app.models import Bank, Account, Transaction, db
 from app.services.analysis.analysis_models import BalanceAnalysis, BalanceMetrics
-from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
-from app.utils.cache_manager import optimized_cache
+# 查询构建器功能已移除，直接使用 SQLAlchemy 查询
 from .base_analyzer import BaseAnalyzer
-from app.utils.performance_monitor import performance_monitor
+# 缓存和性能监控功能已移除
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +25,6 @@ class BalanceAnalyzer(BaseAnalyzer):
     提供余额范围分析、月度历史记录和详细余额汇总功能。
     """
     
-    @performance_monitor("balance_analysis")
     def analyze(self) -> BalanceAnalysis:
         """分析账户余额状况。"""
         try:
@@ -52,7 +50,6 @@ class BalanceAnalyzer(BaseAnalyzer):
             logger.error(f"余额分析失败: {e}")
             return BalanceAnalysis()
     
-    @optimized_cache('balance_range', expire_minutes=30, priority=2)
     def get_balance_range(self) -> Dict[str, Any]:
         """获取余额范围（最小值和最大值）。"""
         try:
@@ -74,7 +71,6 @@ class BalanceAnalyzer(BaseAnalyzer):
             logger.error(f"获取余额范围失败: {e}")
             return {'min_balance': 0, 'max_balance': 0, 'range': 0}
     
-    @optimized_cache('monthly_balance_history', expire_minutes=60, priority=1)
     def get_monthly_history(self, months: int = 12) -> List[Dict[str, Any]]:
         """获取指定月数的月度余额历史记录。"""
         try:
@@ -123,7 +119,6 @@ class BalanceAnalyzer(BaseAnalyzer):
             logger.error(f"获取月度余额历史失败: {e}")
             return []
     
-    @optimized_cache('balance_summary', expire_minutes=30, priority=2)
     def get_balance_summary(self) -> Dict[str, Any]:
         """获取所有账户的余额汇总。"""
         try:

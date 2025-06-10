@@ -10,9 +10,8 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 from app.services.analysis.analysis_models import IncomeGrowth, GrowthMetrics
-from app.utils.cache_manager import optimized_cache
 from .base_analyzer import BaseAnalyzer
-from app.utils.performance_monitor import performance_monitor
+# 缓存和性能监控功能已移除
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,6 @@ class GrowthAnalyzer(BaseAnalyzer):
     专注于收入增长趋势和模式分析。
     """
     
-    @performance_monitor("income_growth_analysis")
     def analyze(self) -> IncomeGrowth:
         """分析收入增长情况。"""
         try:
@@ -48,7 +46,6 @@ class GrowthAnalyzer(BaseAnalyzer):
             logger.error(f"收入增长分析失败: {e}")
             return IncomeGrowth()
     
-    @optimized_cache('comprehensive_growth_metrics', expire_minutes=30, priority=2)
     def _calculate_comprehensive_growth_metrics(self, monthly_data: List[Dict[str, Any]]) -> GrowthMetrics:
         """计算综合增长指标。"""
         try:
@@ -148,7 +145,6 @@ class GrowthAnalyzer(BaseAnalyzer):
             logger.error(f"确定增长趋势失败: {e}")
             return "稳定"
     
-    @optimized_cache('historical_growth_data', expire_minutes=25, priority=2)
     def _build_historical_growth_data(self, monthly_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """构建历史增长数据。"""
         try:

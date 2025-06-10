@@ -8,9 +8,8 @@ import logging
 
 from app.models import Bank, Account, Transaction, db
 from app.services.analysis.analysis_models import DatabaseStats, DatabaseMetrics
-from app.utils.cache_manager import optimized_cache
 from .base_analyzer import BaseAnalyzer
-from app.utils.performance_monitor import performance_monitor
+# 缓存和性能监控功能已移除
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,6 @@ class DatabaseStatsAnalyzer(BaseAnalyzer):
     提供数据库实体统计、数据健康状况和完整性分析功能。
     """
     
-    @performance_monitor("database_stats_analysis")
     def analyze(self) -> DatabaseStats:
         """分析数据库统计信息。"""
         try:
@@ -40,7 +38,6 @@ class DatabaseStatsAnalyzer(BaseAnalyzer):
             logger.error(f"数据库统计分析失败: {e}")
             return DatabaseStats()
     
-    @optimized_cache('database_stats', expire_minutes=15, priority=3)
     def get_database_stats(self) -> Dict[str, Any]:
         """获取数据库统计信息。"""
         try:
@@ -139,7 +136,6 @@ class DatabaseStatsAnalyzer(BaseAnalyzer):
             logger.error(f"计算健康分数失败: {e}")
             return 0.0
     
-    @optimized_cache('data_integrity_check', expire_minutes=30, priority=2)
     def check_data_integrity(self) -> Dict[str, Any]:
         """检查数据完整性。"""
         try:
