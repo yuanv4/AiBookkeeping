@@ -32,7 +32,7 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
     
     def _extract_account_name(self, cell_value: str) -> Optional[str]:
         """从单元格值中提取账户名称 - 招商银行格式"""
-        # 查找户名信息 - 招商银行格式: "户    名：袁成杰"
+        # 查找户名信息 - 招商银行格式: "户    名：***"
         if '户    名' in cell_value:
             # 提取冒号后的内容
             parts = cell_value.split('：')

@@ -43,7 +43,7 @@ class CCBTransactionExtractor(BaseTransactionExtractor):
     
     def _extract_account_number(self, cell_value: str) -> Optional[str]:
         """从单元格值中提取账户号码 - 建设银行格式"""
-        # 查找账号模式 - 建设银行格式：卡号/账号:6217**********2832
+        # 查找账号模式 - 建设银行格式：卡号/账号:6000**********0000
         if '卡号/账号:' in cell_value:
             numbers = re.findall(r'\d{10,}', cell_value)
             if numbers:
