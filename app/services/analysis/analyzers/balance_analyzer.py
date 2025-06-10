@@ -11,7 +11,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import func
 
 from app.models import Bank, Account, Transaction, db
-from app.models.analysis_models import BalanceAnalysis, BalanceMetrics
+from app.services.analysis.analysis_models import BalanceAnalysis, BalanceMetrics
 from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
 from app.utils.cache_manager import optimized_cache
 from .base_analyzer import BaseAnalyzer

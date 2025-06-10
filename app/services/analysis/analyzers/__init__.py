@@ -10,22 +10,17 @@ All analyzers inherit from BaseAnalyzer and follow a consistent interface patter
 """
 
 from .base_analyzer import BaseAnalyzer
-from .income_analyzer import IncomeExpenseAnalyzer, IncomeStabilityAnalyzer
-from .cash_flow_analyzer import CashFlowAnalyzer
-from .diversity_analyzer import IncomeDiversityAnalyzer
+from .comprehensive_income_analyzer import ComprehensiveIncomeAnalyzer
+from .financial_health_analyzer import FinancialHealthAnalyzer
 from .growth_analyzer import IncomeGrowthAnalyzer
-from .resilience_analyzer import FinancialResilienceAnalyzer
 from .balance_analyzer import BalanceAnalyzer
 from .database_stats_analyzer import DatabaseStatsAnalyzer
 
 __all__ = [
     'BaseAnalyzer',
-    'IncomeExpenseAnalyzer',
-    'IncomeStabilityAnalyzer',
-    'CashFlowAnalyzer',
-    'IncomeDiversityAnalyzer',
+    'ComprehensiveIncomeAnalyzer',
+    'FinancialHealthAnalyzer',
     'IncomeGrowthAnalyzer',
-    'FinancialResilienceAnalyzer',
     'BalanceAnalyzer',
     'DatabaseStatsAnalyzer'
 ]

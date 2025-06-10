@@ -13,7 +13,7 @@ from collections import defaultdict
 from functools import wraps
 
 from app.models import Transaction, Account, db
-from app.models.analysis_models import (
+from app.services.analysis.analysis_models import (
     IncomeExpenseAnalysis, OverallStats, MonthlyData,
     CashFlowHealth, CashFlowMetrics,
     IncomeDiversityMetrics,

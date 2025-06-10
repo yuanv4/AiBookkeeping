@@ -10,7 +10,7 @@ import logging
 import calendar
 
 from app.models import Transaction, Account, Bank, db
-from app.models.analysis_models import ComprehensiveAnalysisData
+from app.services.analysis.analysis_models import ComprehensiveAnalysisData
 from app.services.analysis.analysis_factory import AnalyzerFactory, AnalyzerType
 from app.utils.query_builder import OptimizedQueryBuilder, AnalysisException
 from app.utils.cache_manager import optimized_cache
@@ -19,7 +19,7 @@ from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 
 # 导入分析结果类，避免在异常处理中重复导入
-from app.models.analysis_models import (
+from app.services.analysis.analysis_models import (
     IncomeExpenseAnalysis, IncomeStability, CashFlowHealth,
     IncomeDiversityMetrics, IncomeGrowthMetrics, FinancialResilience
 )
@@ -58,7 +58,7 @@ class ComprehensiveService:
             
             # 构建综合分析数据结构
             # 将IncomeExpenseAnalysis转换为IncomeExpenseBalance以保持模板兼容性
-            from app.models.analysis_models import IncomeExpenseBalance
+            from app.services.analysis.analysis_models import IncomeExpenseBalance
             income_expense_result = analysis_results[AnalyzerType.INCOME_EXPENSE]
             income_expense_balance = IncomeExpenseBalance(
                 overall_stats=income_expense_result.overall_stats,

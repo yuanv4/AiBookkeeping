@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
-from app.models.analysis_models import IncomeGrowth, GrowthMetrics
+from app.services.analysis.analysis_models import IncomeGrowth, GrowthMetrics
 from app.utils.cache_manager import optimized_cache
 from .base_analyzer import BaseAnalyzer
 from app.utils.performance_monitor import performance_monitor

@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, and_
 
 from app.models import Transaction, db
-from app.models.analysis_models import (
+from app.services.analysis.analysis_models import (
     IncomeExpenseAnalysis, OverallStats, MonthlyData,
     IncomeStability, StabilityMetrics,
     IncomeDiversity, DiversityMetrics

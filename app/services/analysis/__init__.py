@@ -5,22 +5,17 @@ Includes analyzers for income, cash flow, diversity, growth, and resilience anal
 """
 
 from .analyzers.base_analyzer import BaseAnalyzer
-from .analyzers.income_analyzer import IncomeExpenseAnalyzer, IncomeStabilityAnalyzer
-from .analyzers.cash_flow_analyzer import CashFlowAnalyzer
-from .analyzers.diversity_analyzer import IncomeDiversityAnalyzer
+from .analyzers.comprehensive_income_analyzer import ComprehensiveIncomeAnalyzer
+from .analyzers.financial_health_analyzer import FinancialHealthAnalyzer
 from .analyzers.growth_analyzer import IncomeGrowthAnalyzer
-from .analyzers.resilience_analyzer import FinancialResilienceAnalyzer
 from .analysis_factory import AnalyzerFactory, AnalyzerType
 from .analysis_service import ComprehensiveService
 
 __all__ = [
     'BaseAnalyzer',
-    'IncomeExpenseAnalyzer',
-    'IncomeStabilityAnalyzer',
-    'CashFlowAnalyzer',
-    'IncomeDiversityAnalyzer',
+    'ComprehensiveIncomeAnalyzer',
+    'FinancialHealthAnalyzer',
     'IncomeGrowthAnalyzer',
-    'FinancialResilienceAnalyzer',
     'AnalyzerFactory',
     'AnalyzerType',
     'ComprehensiveService'

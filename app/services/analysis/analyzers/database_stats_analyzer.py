@@ -7,7 +7,7 @@ from typing import Dict, Any
 import logging
 
 from app.models import Bank, Account, Transaction, db
-from app.models.analysis_models import DatabaseStats, DatabaseMetrics
+from app.services.analysis.analysis_models import DatabaseStats, DatabaseMetrics
 from app.utils.cache_manager import optimized_cache
 from .base_analyzer import BaseAnalyzer
 from app.utils.performance_monitor import performance_monitor

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func
 
 from app.models import Transaction, Account, db
-from app.models.analysis_models import (
+from app.services.analysis.analysis_models import (
     CashFlowHealth, CashFlowMetrics,
     FinancialResilience, ResilienceMetrics
 )
