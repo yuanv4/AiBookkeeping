@@ -155,7 +155,7 @@ def create_app():
     # 数据库统计信息检查
     try:
         with app.app_context():
-            from app.services.analysis.analysis_factory import AnalyzerFactory, AnalyzerType
+            from app.services.analysis import LegacyAnalyzerFactory as AnalyzerFactory, AnalyzerType
             from datetime import date
             today = date.today()
             analyzer = AnalyzerFactory.create_analyzer(AnalyzerType.DATABASE_STATS, today, today)

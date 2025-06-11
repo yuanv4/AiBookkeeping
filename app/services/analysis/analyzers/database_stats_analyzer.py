@@ -3,15 +3,13 @@
 包含数据库统计分析器，提供数据库实体统计和健康状况分析功能。
 """
 
-from typing import Dict, Any
-import logging
+from datetime import date, datetime
+from typing import Dict, List, Optional, Any, Union
+from decimal import Decimal
 
 from app.models import Bank, Account, Transaction, db
 from app.services.analysis.analysis_models import DatabaseStats, DatabaseMetrics
 from .base_analyzer import BaseAnalyzer
-# 缓存和性能监控功能已移除
-
-logger = logging.getLogger(__name__)
 
 
 class DatabaseStatsAnalyzer(BaseAnalyzer):
@@ -35,7 +33,7 @@ class DatabaseStatsAnalyzer(BaseAnalyzer):
                 health_score=self._calculate_health_score(basic_stats)
             )
         except Exception as e:
-            logger.error(f"数据库统计分析失败: {e}")
+            self.logger.error(f"数据库统计分析失败: {e}")
             return DatabaseStats()
     
     def get_database_stats(self) -> Dict[str, Any]:
@@ -75,7 +73,7 @@ class DatabaseStatsAnalyzer(BaseAnalyzer):
             
             return stats
         except Exception as e:
-            logger.error(f"获取数据库统计失败: {e}")
+            self.logger.error(f"获取数据库统计失败: {e}")
             return {}
     
     def _build_database_metrics(self, basic_stats: Dict[str, Any]) -> DatabaseMetrics:
@@ -95,7 +93,7 @@ class DatabaseStatsAnalyzer(BaseAnalyzer):
                 expense_ratio=basic_stats.get('expense_ratio', 0.0)
             )
         except Exception as e:
-            logger.error(f"构建数据库指标失败: {e}")
+            self.logger.error(f"构建数据库指标失败: {e}")
             return DatabaseMetrics()
     
     def _calculate_health_score(self, basic_stats: Dict[str, Any]) -> float:
@@ -133,7 +131,7 @@ class DatabaseStatsAnalyzer(BaseAnalyzer):
             return min(max_score, score)
             
         except Exception as e:
-            logger.error(f"计算健康分数失败: {e}")
+            self.logger.error(f"计算健康分数失败: {e}")
             return 0.0
     
     def check_data_integrity(self) -> Dict[str, Any]:
@@ -167,7 +165,7 @@ class DatabaseStatsAnalyzer(BaseAnalyzer):
             }
             
         except Exception as e:
-            logger.error(f"数据完整性检查失败: {e}")
+            self.logger.error(f"数据完整性检查失败: {e}")
             return {
                 'has_issues': True,
                 'issues_count': 1,

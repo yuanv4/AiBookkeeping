@@ -1,7 +1,7 @@
 # app/main/routes.py
 from flask import redirect, url_for, render_template, flash, current_app, request, g
 from datetime import datetime, date # dashboard 中使用
-from app.services.analysis.analysis_factory import AnalyzerFactory, AnalyzerType
+from app.services.analysis import LegacyAnalyzerFactory as AnalyzerFactory, AnalyzerType
 from app.services.core.transaction_service import TransactionService
 from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService
 # from scripts.analyzers.transaction_analyzer import TransactionAnalyzer # 将在需要时实例化

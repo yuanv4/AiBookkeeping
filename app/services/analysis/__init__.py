@@ -8,15 +8,22 @@ from .analyzers.base_analyzer import BaseAnalyzer
 from .analyzers.comprehensive_income_analyzer import ComprehensiveIncomeAnalyzer
 from .analyzers.financial_health_analyzer import FinancialHealthAnalyzer
 from .analyzers.growth_analyzer import GrowthAnalyzer
-from .analysis_factory import AnalyzerFactory, AnalyzerType
+from .analyzers.analyzer_context import AnalyzerContext
+from .analyzers.analyzer_factory import AnalyzerFactory
 from .analysis_service import ComprehensiveService
+
+# 保留旧的工厂以确保向后兼容性
+from .analysis_factory import AnalyzerFactory as LegacyAnalyzerFactory, AnalyzerType
 
 __all__ = [
     'BaseAnalyzer',
     'ComprehensiveIncomeAnalyzer',
     'FinancialHealthAnalyzer',
     'GrowthAnalyzer',
+    'AnalyzerContext',
     'AnalyzerFactory',
-    'AnalyzerType',
-    'ComprehensiveService'
+    'ComprehensiveService',
+    # 向后兼容
+    'LegacyAnalyzerFactory',
+    'AnalyzerType'
 ]

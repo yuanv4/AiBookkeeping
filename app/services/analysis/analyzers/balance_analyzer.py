@@ -3,20 +3,15 @@
 包含账户余额分析器，提供余额范围、历史记录和汇总分析功能。
 """
 
-from typing import Dict, List, Any, Optional
+from datetime import date, datetime
+from typing import Dict, List, Optional, Any, Union
 from decimal import Decimal
-from datetime import datetime, timedelta
-import logging
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import func
 
 from app.models import Bank, Account, Transaction, db
 from app.services.analysis.analysis_models import BalanceAnalysis, BalanceMetrics
-# 查询构建器功能已移除，直接使用 SQLAlchemy 查询
 from .base_analyzer import BaseAnalyzer
-# 缓存和性能监控功能已移除
-
-logger = logging.getLogger(__name__)
 
 
 class BalanceAnalyzer(BaseAnalyzer):
@@ -47,7 +42,7 @@ class BalanceAnalyzer(BaseAnalyzer):
                 balance_summary=balance_summary
             )
         except Exception as e:
-            logger.error(f"余额分析失败: {e}")
+            self.logger.error(f"余额分析失败: {e}")
             return BalanceAnalysis()
     
     def get_balance_range(self) -> Dict[str, Any]:
@@ -68,7 +63,7 @@ class BalanceAnalyzer(BaseAnalyzer):
             }
             
         except Exception as e:
-            logger.error(f"获取余额范围失败: {e}")
+            self.logger.error(f"获取余额范围失败: {e}")
             return {'min_balance': 0, 'max_balance': 0, 'range': 0}
     
     def get_monthly_history(self, months: int = 12) -> List[Dict[str, Any]]:
@@ -116,7 +111,7 @@ class BalanceAnalyzer(BaseAnalyzer):
             return history
             
         except Exception as e:
-            logger.error(f"获取月度余额历史失败: {e}")
+            self.logger.error(f"获取月度余额历史失败: {e}")
             return []
     
     def get_balance_summary(self) -> Dict[str, Any]:
@@ -169,7 +164,7 @@ class BalanceAnalyzer(BaseAnalyzer):
             return summary
             
         except Exception as e:
-            logger.error(f"获取余额汇总失败: {e}")
+            self.logger.error(f"获取余额汇总失败: {e}")
             return {
                 'total_accounts': 0,
                 'total_balance': 0,
@@ -199,7 +194,7 @@ class BalanceAnalyzer(BaseAnalyzer):
                 balance_stability=stability
             )
         except Exception as e:
-            logger.error(f"构建余额指标失败: {e}")
+            self.logger.error(f"构建余额指标失败: {e}")
             return BalanceMetrics()
     
     def _calculate_balance_trend(self, monthly_history: List[Dict[str, Any]]) -> str:
@@ -234,7 +229,7 @@ class BalanceAnalyzer(BaseAnalyzer):
                 return "稳定"
                 
         except Exception as e:
-            logger.error(f"计算余额趋势失败: {e}")
+            self.logger.error(f"计算余额趋势失败: {e}")
             return "稳定"
     
     def _calculate_balance_stability(self, monthly_history: List[Dict[str, Any]]) -> float:
@@ -262,5 +257,5 @@ class BalanceAnalyzer(BaseAnalyzer):
             return stability
             
         except Exception as e:
-            logger.error(f"计算余额稳定性失败: {e}")
+            self.logger.error(f"计算余额稳定性失败: {e}")
             return 1.0

@@ -4,16 +4,13 @@
 优化版本：使用新的基类和缓存策略，减少代码重复。
 """
 
-from typing import Dict, List, Any
-import logging
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
+from datetime import date, datetime
+from typing import Dict, List, Optional, Any, Union
+from decimal import Decimal
 
+from app.models import Bank, Account, Transaction, db
 from app.services.analysis.analysis_models import IncomeGrowth, GrowthMetrics
 from .base_analyzer import BaseAnalyzer
-# 缓存和性能监控功能已移除
-
-logger = logging.getLogger(__name__)
 
 
 class GrowthAnalyzer(BaseAnalyzer):
@@ -43,7 +40,7 @@ class GrowthAnalyzer(BaseAnalyzer):
                 ]
             )
         except Exception as e:
-            logger.error(f"收入增长分析失败: {e}")
+            self.logger.error(f"收入增长分析失败: {e}")
             return IncomeGrowth()
     
     def _calculate_comprehensive_growth_metrics(self, monthly_data: List[Dict[str, Any]]) -> GrowthMetrics:
@@ -86,7 +83,7 @@ class GrowthAnalyzer(BaseAnalyzer):
             )
             
         except Exception as e:
-            logger.error(f"计算综合增长指标失败: {e}")
+            self.logger.error(f"计算综合增长指标失败: {e}")
             return GrowthMetrics()
     
     def _calculate_quarterly_growth(self, monthly_data: List[Dict[str, Any]]) -> float:
@@ -104,7 +101,7 @@ class GrowthAnalyzer(BaseAnalyzer):
             return sum(growth_rates) / len(growth_rates) if growth_rates else 0.0
             
         except Exception as e:
-            logger.error(f"计算季度增长率失败: {e}")
+            self.logger.error(f"计算季度增长率失败: {e}")
             return 0.0
     
     def _calculate_yearly_growth(self, monthly_data: List[Dict[str, Any]]) -> float:
@@ -122,7 +119,7 @@ class GrowthAnalyzer(BaseAnalyzer):
             return sum(growth_rates) / len(growth_rates) if growth_rates else 0.0
             
         except Exception as e:
-            logger.error(f"计算年度增长率失败: {e}")
+            self.logger.error(f"计算年度增长率失败: {e}")
             return 0.0
     
     def _determine_growth_trend(self, growth_rates: List[float]) -> str:
@@ -142,7 +139,7 @@ class GrowthAnalyzer(BaseAnalyzer):
                 return "稳定"
                 
         except Exception as e:
-            logger.error(f"确定增长趋势失败: {e}")
+            self.logger.error(f"确定增长趋势失败: {e}")
             return "稳定"
     
     def _build_historical_growth_data(self, monthly_data: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -167,7 +164,7 @@ class GrowthAnalyzer(BaseAnalyzer):
             }
             
         except Exception as e:
-            logger.error(f"构建历史增长数据失败: {e}")
+            self.logger.error(f"构建历史增长数据失败: {e}")
             return {}
     
     def _calculate_growth_rates(self, values: List[float]) -> List[float]:
