@@ -3,7 +3,7 @@
 from typing import Dict, List, Any
 from datetime import datetime, timedelta
 from app.services.analysis.analyzers.base_analyzer import BaseAnalyzer
-from app.services.analysis.analyzers.cash_flow_analyzer import CashFlowAnalyzer
+from app.services.analysis.analyzers.single_cash_flow_analyzer import CashFlowAnalyzer
 from app.services.analysis.analysis_models import (
     CashFlowHealth, CashFlowMetrics,
     FinancialResilience, ResilienceMetrics

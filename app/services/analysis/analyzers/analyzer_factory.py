@@ -8,14 +8,14 @@ from .analyzer_context import AnalyzerContext
 from .base_analyzer import BaseAnalyzer
 
 # 单一职责分析器
-from .income_expense_analyzer import IncomeExpenseAnalyzer
-from .income_stability_analyzer import IncomeStabilityAnalyzer
-from .cash_flow_analyzer import CashFlowAnalyzer
-from .expense_pattern_analyzer import ExpensePatternAnalyzer
+from .single_income_expense_analyzer import IncomeExpenseAnalyzer
+from .single_income_stability_analyzer import IncomeStabilityAnalyzer
+from .single_cash_flow_analyzer import CashFlowAnalyzer
+from .single_expense_pattern_analyzer import ExpensePatternAnalyzer
 
 # 综合分析器
-from .comprehensive_income_analyzer import ComprehensiveIncomeAnalyzer
-from .financial_health_analyzer import FinancialHealthAnalyzer
+from .composite_income_analyzer import ComprehensiveIncomeAnalyzer
+from .composite_financial_health_analyzer import FinancialHealthAnalyzer
 
 # 类型变量
 T = TypeVar('T', bound=BaseAnalyzer)

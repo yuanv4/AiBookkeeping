@@ -8,8 +8,8 @@
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
 from app.services.analysis.analyzers.base_analyzer import BaseAnalyzer
-from app.services.analysis.analyzers.income_expense_analyzer import IncomeExpenseAnalyzer
-from app.services.analysis.analyzers.income_stability_analyzer import IncomeStabilityAnalyzer
+from app.services.analysis.analyzers.single_income_expense_analyzer import IncomeExpenseAnalyzer
+from app.services.analysis.analyzers.single_income_stability_analyzer import IncomeStabilityAnalyzer
 from app.services.analysis.analysis_models import (
     IncomeExpenseAnalysis, IncomeStability, IncomeDiversity,
     IncomeExpenseMetrics, StabilityMetrics, DiversityMetrics,
