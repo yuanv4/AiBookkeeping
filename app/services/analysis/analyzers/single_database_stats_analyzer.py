@@ -18,19 +18,28 @@ class DatabaseStatsAnalyzer(BaseAnalyzer):
     提供数据库实体统计、数据健康状况和完整性分析功能。
     """
     
+    def _perform_analysis(self) -> Dict[str, Any]:
+        """执行数据库统计分析的具体逻辑。"""
+        # 获取基础统计信息
+        basic_stats = self.get_database_stats()
+        
+        # 构建数据库指标
+        metrics = self._build_database_metrics(basic_stats)
+        
+        return {
+            'metrics': metrics,
+            'basic_stats': basic_stats,
+            'health_score': self._calculate_health_score(basic_stats)
+        }
+    
     def analyze(self) -> DatabaseStats:
         """分析数据库统计信息。"""
         try:
-            # 获取基础统计信息
-            basic_stats = self.get_database_stats()
-            
-            # 构建数据库指标
-            metrics = self._build_database_metrics(basic_stats)
-            
+            result = super().analyze()
             return DatabaseStats(
-                metrics=metrics,
-                basic_stats=basic_stats,
-                health_score=self._calculate_health_score(basic_stats)
+                metrics=result.get('metrics'),
+                basic_stats=result.get('basic_stats', {}),
+                health_score=result.get('health_score', 0.0)
             )
         except Exception as e:
             self.logger.error(f"数据库统计分析失败: {e}")

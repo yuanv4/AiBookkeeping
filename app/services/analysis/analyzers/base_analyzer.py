@@ -9,6 +9,7 @@ Refactored: 2024-12-19
 """
 
 import time
+import logging
 from abc import ABC, abstractmethod
 from datetime import date, datetime
 from typing import Dict, List, Optional, Any, Union

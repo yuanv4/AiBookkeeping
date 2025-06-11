@@ -37,6 +37,11 @@ class AnalyzerContext:
         self._start_date = start_date
         self._end_date = end_date
         self._config = config or {}
+        
+        # 初始化服务属性为None，实际使用时需要设置
+        self.data_service = None
+        self.calculation_service = None
+        self.cache_service = None
     
     @property
     def db_session(self) -> Session:

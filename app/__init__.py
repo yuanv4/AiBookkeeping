@@ -155,10 +155,23 @@ def create_app():
     # 数据库统计信息检查
     try:
         with app.app_context():
-            from app.services.analysis import LegacyAnalyzerFactory as AnalyzerFactory, AnalyzerType
-            from datetime import date
+            from app.services.analysis import AnalyzerFactory
+            from app.services.analysis.analyzers.analyzer_context import AnalyzerContext
+            from app.services.analysis.analyzers.single_database_stats_analyzer import DatabaseStatsAnalyzer
+            from datetime import date, datetime
             today = date.today()
-            analyzer = AnalyzerFactory.create_analyzer(AnalyzerType.DATABASE_STATS, today, today)
+            context = AnalyzerContext(
+                db_session=db.session,
+                user_id=1,  # 默认用户ID
+                start_date=datetime.combine(today, datetime.min.time()),
+                end_date=datetime.combine(today, datetime.max.time())
+            )
+            factory = AnalyzerFactory(context)
+            analyzer = factory.create_typed_analyzer(
+                DatabaseStatsAnalyzer,
+                start_date=today,
+                end_date=today
+            )
             stats = analyzer.get_database_stats()
             total_transactions = stats.get('transactions_count', 0)
             if total_transactions > 0:
