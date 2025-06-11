@@ -13,16 +13,16 @@ from app.services.analysis.analysis_models import ComprehensiveAnalysisData
 from app.services.analysis.analyzers import AnalyzerFactory, AnalyzerContext
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
-from app.core.logging import get_logger
+import logging
 
 # 导入分析结果类，避免在异常处理中重复导入
 from app.services.analysis.analysis_models import (
     IncomeExpenseAnalysis, IncomeStability, CashFlowHealth,
-    BalanceAnalysis, ExpensePatterns, IncomeGrowth, DatabaseStats
+    BalanceAnalysis, IncomeGrowth, DatabaseStats
 )
-from app.services.financial_report_service import FinancialReportService
+from app.services.report import FinancialReportService
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 class ComprehensiveService:
     """优化的综合分析服务。"""

@@ -14,7 +14,7 @@ from datetime import date, datetime
 from typing import Dict, List, Optional, Any, Union
 from decimal import Decimal
 
-from ..analyzer_context import AnalyzerContext
+from .analyzer_context import AnalyzerContext
 
 
 

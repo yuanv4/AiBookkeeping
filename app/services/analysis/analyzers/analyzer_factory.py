@@ -105,13 +105,9 @@ class AnalyzerFactory:
         """创建现金流分析器"""
         return self.create_typed_analyzer(CashFlowAnalyzer, **kwargs)
     
-    def create_spending_pattern_analyzer(self, **kwargs) -> SpendingPatternAnalyzer:
+    def create_expense_pattern_analyzer(self, **kwargs) -> ExpensePatternAnalyzer:
         """创建支出模式分析器"""
-        return self.create_typed_analyzer(SpendingPatternAnalyzer, **kwargs)
-    
-    def create_budget_variance_analyzer(self, **kwargs) -> BudgetVarianceAnalyzer:
-        """创建预算差异分析器"""
-        return self.create_typed_analyzer(BudgetVarianceAnalyzer, **kwargs)
+        return self.create_typed_analyzer(ExpensePatternAnalyzer, **kwargs)
     
     # 便捷方法：综合分析器
     def create_comprehensive_income_analyzer(self, **kwargs) -> ComprehensiveIncomeAnalyzer:
@@ -133,8 +129,7 @@ class AnalyzerFactory:
             'income_expense',
             'income_stability', 
             'cash_flow',
-            'spending_pattern',
-            'budget_variance'
+            'expense_pattern'
         ]
         
         return {

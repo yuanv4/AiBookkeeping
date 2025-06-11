@@ -12,8 +12,8 @@ from app.services.analysis.analyzers.single_income_expense_analyzer import Incom
 from app.services.analysis.analyzers.single_income_stability_analyzer import IncomeStabilityAnalyzer
 from app.services.analysis.analysis_models import (
     IncomeExpenseAnalysis, IncomeStability, IncomeDiversity,
-    IncomeExpenseMetrics, StabilityMetrics, DiversityMetrics,
-    MonthlyIncomeExpense, OverallStats
+    StabilityMetrics, DiversityMetrics,
+    MonthlyData, OverallStats
 )
 
 

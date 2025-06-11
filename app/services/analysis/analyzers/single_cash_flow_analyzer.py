@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from decimal import Decimal
 
 from .base_analyzer import BaseAnalyzer
-from ..analyzer_context import AnalyzerContext
+from .analyzer_context import AnalyzerContext
 
 
 class CashFlowAnalyzer(BaseAnalyzer):

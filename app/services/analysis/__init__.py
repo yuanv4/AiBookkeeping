@@ -5,15 +5,16 @@ Includes analyzers for income, cash flow, diversity, growth, and resilience anal
 """
 
 from .analyzers.base_analyzer import BaseAnalyzer
-from .analyzers.comprehensive_income_analyzer import ComprehensiveIncomeAnalyzer
-from .analyzers.financial_health_analyzer import FinancialHealthAnalyzer
-from .analyzers.growth_analyzer import GrowthAnalyzer
 from .analyzers.analyzer_context import AnalyzerContext
 from .analyzers.analyzer_factory import AnalyzerFactory
 from .analysis_service import ComprehensiveService
 
-# 保留旧的工厂以确保向后兼容性
-from .analysis_factory import AnalyzerFactory as LegacyAnalyzerFactory, AnalyzerType
+# 导入实际存在的综合分析器
+from .analyzers.composite_income_analyzer import ComprehensiveIncomeAnalyzer
+from .analyzers.composite_financial_health_analyzer import FinancialHealthAnalyzer
+
+# 导入单一职责分析器
+from .analyzers.single_growth_analyzer import GrowthAnalyzer
 
 __all__ = [
     'BaseAnalyzer',
@@ -22,8 +23,5 @@ __all__ = [
     'GrowthAnalyzer',
     'AnalyzerContext',
     'AnalyzerFactory',
-    'ComprehensiveService',
-    # 向后兼容
-    'LegacyAnalyzerFactory',
-    'AnalyzerType'
+    'ComprehensiveService'
 ]

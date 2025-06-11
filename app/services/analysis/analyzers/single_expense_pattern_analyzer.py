@@ -13,7 +13,7 @@ from decimal import Decimal
 from collections import defaultdict
 
 from .base_analyzer import BaseAnalyzer
-from ..analyzer_context import AnalyzerContext
+from .analyzer_context import AnalyzerContext
 
 
 class ExpensePatternAnalyzer(BaseAnalyzer):
