@@ -8,6 +8,8 @@ from app.services.analysis.analyzers.single_balance_analyzer import BalanceAnaly
 from app.services.core.transaction_service import TransactionService
 from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService
 # from scripts.analyzers.transaction_analyzer import TransactionAnalyzer # 将在需要时实例化
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 
 from . import main # 从同级 __init__.py 导入 main 蓝图实例
 
@@ -40,14 +42,23 @@ def dashboard():
             end_date=datetime.combine(today, datetime.max.time())
         )
         factory = AnalyzerFactory(context)
-        balance_analyzer = factory.create_typed_analyzer(BalanceAnalyzer)
+        # 计算分析日期范围（最近12个月）
+        end_date = date.today()
+        start_date = end_date - relativedelta(months=12)
+        balance_analyzer = factory.create_typed_analyzer(BalanceAnalyzer, start_date=start_date, end_date=end_date)
         summary_data = balance_analyzer.get_balance_summary()
         
         # 检查 summary_data 是否为 None 或空，以避免后续错误
         if not summary_data:
             current_app.logger.warning("获取余额汇总数据失败。")
             # 提供默认值或重定向到错误页面
-            summary_data = {'net_balance': 0.0, 'account_balances': {}}
+            summary_data = {
+                'net_balance': 0.0, 
+                'account_balances': {},
+                'net_amount': 0.0,
+                'account_balance': 0.0,
+                'account_balance_list': []
+            }
 
         total_balance = summary_data.get('net_balance', 0.0)
         
@@ -62,6 +73,11 @@ def dashboard():
                 'balance': float(acc_data.get('balance', 0) or 0),
                 'update_date': acc_data.get('balance_date', 'N/A') # Assuming balance_date might be added to acc_data in future or fetched separately
             })
+        
+        # 更新summary_data以包含模板需要的字段
+        summary_data['account_balance'] = total_balance
+        summary_data['account_balance_list'] = account_balances
+        summary_data['net_amount'] = total_balance
 
         # 获取最近交易记录（最多10条）
         recent_transactions_data = TransactionService.get_transactions(limit=10)
@@ -77,7 +93,6 @@ def dashboard():
             })
         
         # 获取月度统计数据
-        from datetime import date
         current_date = date.today()
         start_of_month = current_date.replace(day=1)
         
@@ -113,19 +128,6 @@ def dashboard():
         net_income = all_time_report['summary'].get('net_amount', 0)
         
         # 获取余额范围和历史数据
-        # 重用之前创建的balance_analyzer或创建新的
-        if 'balance_analyzer' not in locals():
-            today = date.today()
-            # 创建分析器上下文和余额分析器
-            from app.models import db
-            context = AnalyzerContext(
-                db_session=db.session,
-                user_id=1,  # 默认用户ID
-                start_date=datetime.combine(today, datetime.min.time()),
-                end_date=datetime.combine(today, datetime.max.time())
-            )
-            factory = AnalyzerFactory(context)
-            balance_analyzer = factory.create_typed_analyzer(BalanceAnalyzer)
         balance_range = balance_analyzer.get_balance_range()
         monthly_balance_history = balance_analyzer.get_monthly_history(months=12)
         
@@ -153,7 +155,7 @@ def dashboard():
         
         # 准备图表数据
         chart_data = {
-            'balance_range': balance_range,
+            'balance_history': monthly_balance_history,  # 添加balance_history字段供模板使用
             'monthly_balance_history': monthly_balance_history,
             'income_expense': {
                 'income': float(income),
@@ -175,25 +177,24 @@ def dashboard():
     except Exception as e:
         current_app.logger.error(f"仪表盘页面加载失败: {e}")
         flash(f"加载仪表盘时发生错误: {str(e)}", 'error')
+        # 提供默认的数据结构以避免模板错误
+        default_chart_data = {
+            'balance_history': [],
+            'monthly_balance_history': [],
+            'income_expense': {'income': 0.0, 'expense': 0.0, 'net': 0.0},
+            'monthly_averages': {'income': 0.0, 'expense': 0.0, 'net': 0.0}
+        }
+        default_summary_data = {
+            'net_balance': 0.0, 
+            'account_balances': {},
+            'account_balance_list': [],
+            'net_amount': 0.0
+        }
         return render_template('dashboard.html', 
-                             summary_data={'net_balance': 0.0, 'account_balances': {}},
-                             chart_data={},
+                             summary_data=default_summary_data,
+                             chart_data=default_chart_data,
                              all_time_report={'summary': {}})
 
-        if recent_transactions:
-            current_app.logger.info(f"仪表盘显示 {len(recent_transactions)} 条近期交易")
-        else:
-            current_app.logger.warning("没有近期交易数据可显示")
-            
-        current_app.logger.info(f"仪表盘总余额: {total_balance}")
-        current_app.logger.info(f"余额范围: 最高 = {data['max_balance']}, 最低 = {data['min_balance']}")
-        
-        return render_template('dashboard.html', data=data)
-        
-    except Exception as e:
-        current_app.logger.error(f"仪表盘加载出错: {e}", exc_info=True)
-        flash(f'加载仪表盘数据时出错: {str(e)}')
-        # 依赖全局错误处理器处理模板渲染和状态码
         # 为了确保至少有一个响应，这里可以简单地重新抛出，让全局处理器捕获
         # 或者，如果全局处理器不能很好地处理这种情况（例如，它只渲染500页面而不带flash消息）
         # 可以在这里渲染一个带有错误消息的dashboard，或者重定向

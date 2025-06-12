@@ -87,7 +87,7 @@
 <div style="display: none;">
     <!-- 余额历史数据 -->
     <div id="balance-history-data" 
-         data-chart='{"labels": {{ data.charts.balance_history|map(attribute="month")|list|tojson }}, "values": {{ data.charts.balance_history|map(attribute="balance")|list|tojson }} }'>
+         data-chart='{"labels": {{ chart_data.balance_history|map(attribute="month")|list|tojson }}, "values": {{ chart_data.balance_history|map(attribute="balance")|list|tojson }} }'>
     </div>
 </div>
 
@@ -110,10 +110,10 @@
                             {{ icon("savings", "sm", "text-success me-1") }}
                         </div>
                     </div>
-                    <div class="metric-value text-success">¥{{ "%.2f"|format(data.summary.account_balance or 0) }}</div>
+                    <div class="metric-value text-success">¥{{ "%.2f"|format(summary_data.account_balance or 0) }}</div>
                 </div>
                 
-                {% if data.summary.account_balance_list and data.summary.account_balance_list|length > 0 %}
+                {% if summary_data.account_balance_list and summary_data.account_balance_list|length > 0 %}
                 <div class="mt-2">
                     <div class="accordion" id="accountBalanceAccordion">
                         <div class="accordion-item border-0 bg-transparent">
@@ -121,14 +121,14 @@
                                 <button class="accordion-button collapsed p-2 ps-1 small bg-transparent shadow-none" type="button" 
                                         data-bs-toggle="collapse" data-bs-target="#collapseAccounts" 
                                         aria-expanded="false" aria-controls="collapseAccounts">
-                                    查看所有账户余额 ({{ data.summary.account_balance_list|length }}个账户)
+                                    查看所有账户余额 ({{ summary_data.account_balance_list|length }}个账户)
                                 </button>
                             </h2>
                             <div id="collapseAccounts" class="accordion-collapse collapse" 
                                  aria-labelledby="headingAccounts" data-bs-parent="#accountBalanceAccordion">
                                 <div class="accordion-body p-1 ps-3">
                                     <ul class="list-unstyled small mb-0">
-                                        {% for account in data.summary.account_balance_list %}
+                                        {% for account in summary_data.account_balance_list %}
                                         <li class="mb-2 p-2 rounded" style="background-color: rgba(0,0,0,0.02);">
                                             <div class="d-flex justify-content-between">
                                                 <span class="text-muted">{{ account.bank }} ({{ (account.account|string)[-4:] if (account.account|string)|length >= 4 else account.account|string }})</span>
@@ -149,11 +149,11 @@
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-muted small">总净收支</div>
                         <div class="d-flex align-items-center">
-                            {{ icon("account_balance", "sm", "{% if data.summary.net_amount >= 0 %}text-success{% else %}text-danger{% endif %} me-1") }}
+                            {{ icon("account_balance", "sm", "{% if summary_data.net_amount >= 0 %}text-success{% else %}text-danger{% endif %} me-1") }}
                         </div>
                     </div>
-                    <div class="metric-value {% if data.summary.net_amount >= 0 %}text-success{% else %}text-danger{% endif %}">
-                        ¥{{ "%.2f"|format(data.summary.net_amount or 0) }}
+                    <div class="metric-value {% if summary_data.net_amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        ¥{{ "%.2f"|format(summary_data.net_amount or 0) }}
                     </div>
                 </div>
             </div>
@@ -161,7 +161,7 @@
             <!-- 资金余额趋势图 -->
             <div class="col-12 mt-4">
             {% call chart_container("可用资金趋势 (最近12个月)", "balanceHistoryChart") %}
-                    {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
+                    {% if chart_data.balance_history and chart_data.balance_history|length > 0 %}
                 <div class="chart-legend">
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: rgba(70, 99, 172, 1);"></div>
@@ -174,12 +174,12 @@
                 </div>
 
                 <!-- 余额趋势分析 -->
-                {% if data.charts.balance_history|length > 1 %}
+                {% if chart_data.balance_history|length > 1 %}
                 <div class="trend-analysis mt-3 p-3">
                     <div class="row align-items-center">
                     <div class="col-md-6">
-                            {% set first_balance = data.charts.balance_history[0].balance %}
-                            {% set last_balance = data.charts.balance_history[-1].balance %}
+                            {% set first_balance = chart_data.balance_history[0].balance %}
+                        {% set last_balance = chart_data.balance_history[-1].balance %}
                             {% set change = last_balance - first_balance %}
                             {% set change_percent = (change / first_balance * 100) if first_balance != 0 else 0 %}
                             
@@ -191,7 +191,7 @@
                                     <div class="fw-bold {% if change >= 0 %}text-success{% else %}text-danger{% endif %}">
                                         {{ "%.2f"|format(change) }} ({{ "%.1f"|format(change_percent) }}%)
                                     </div>
-                                    <div class="small text-muted">从 {{ data.charts.balance_history[0].month }} 到 {{ data.charts.balance_history[-1].month }}</div>
+                                    <div class="small text-muted">从 {{ chart_data.balance_history[0].month }} 到 {{ chart_data.balance_history[-1].month }}</div>
                                 </div>
                             </div>
                         </div>
@@ -201,8 +201,8 @@
                                     <div class="small text-muted">最高余额</div>
                                     <div class="fw-bold">
                                         {% set max_balance = 0 %}
-                                        {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
-                                            {% for item in data.charts.balance_history %}
+                                        {% if chart_data.balance_history and chart_data.balance_history|length > 0 %}
+                                            {% for item in chart_data.balance_history %}
                                                 {% if loop.first or item.balance > max_balance %}
                                                     {% set max_balance = item.balance %}
                                                 {% endif %}
@@ -215,8 +215,8 @@
                                     <div class="small text-muted">最低余额</div>
                                     <div class="fw-bold">
                                         {% set min_balance = None %}
-                                        {% if data.charts.balance_history and data.charts.balance_history|length > 0 %}
-                                            {% for item in data.charts.balance_history %}
+                                        {% if chart_data.balance_history and chart_data.balance_history|length > 0 %}
+                                            {% for item in chart_data.balance_history %}
                                                 {% if min_balance is none or item.balance < min_balance %}
                                                     {% set min_balance = item.balance %}
                                                 {% endif %}
@@ -238,4 +238,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

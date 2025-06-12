@@ -20,6 +20,55 @@ class BalanceAnalyzer(BaseAnalyzer):
     提供余额范围分析、月度历史记录和详细余额汇总功能。
     """
     
+    def _perform_analysis(self) -> Dict[str, Any]:
+        """执行余额分析的具体逻辑。
+        
+        Returns:
+            包含余额分析结果的字典
+        """
+        try:
+            # 获取余额范围
+            balance_range = self.get_balance_range()
+            
+            # 获取月度历史
+            monthly_history = self.get_monthly_history()
+            
+            # 获取余额汇总
+            balance_summary = self.get_balance_summary()
+            
+            # 构建余额指标
+            metrics = self._build_balance_metrics(balance_range, monthly_history, balance_summary)
+            
+            # 返回分析结果字典
+            return {
+                'metrics': {
+                    'total_balance': metrics.total_balance,
+                    'min_balance': metrics.min_balance,
+                    'max_balance': metrics.max_balance,
+                    'balance_range': metrics.balance_range,
+                    'account_count': metrics.account_count,
+                    'balance_trend': metrics.balance_trend,
+                    'balance_stability': metrics.balance_stability
+                },
+                'balance_range': balance_range,
+                'monthly_history': monthly_history,
+                'balance_summary': balance_summary
+            }
+        except Exception as e:
+            self.logger.error(f"余额分析失败: {e}")
+            return {
+                'metrics': {},
+                'balance_range': {'min_balance': 0, 'max_balance': 0, 'range': 0},
+                'monthly_history': [],
+                'balance_summary': {
+                    'total_accounts': 0,
+                    'total_balance': 0,
+                    'accounts': [],
+                    'by_bank': {},
+                    'by_currency': {}
+                }
+            }
+    
     def analyze(self) -> BalanceAnalysis:
         """分析账户余额状况。"""
         try:
