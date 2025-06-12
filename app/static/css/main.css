@@ -23,6 +23,118 @@
     --warning: #FF9500;          /* iOS 橙色 */
     --info: #5AC8FA;             /* iOS 青色 */
     
+    /* 图表专用颜色 */
+    --chart-income: var(--success);     /* 收入：绿色 */
+    --chart-expense: var(--danger);     /* 支出：红色 */
+    --chart-savings: var(--warning);    /* 储蓄：橙色 */
+    --chart-balance: var(--primary);    /* 余额：蓝色 */
+    --chart-neutral: var(--info);       /* 中性：青色 */
+    
+    /* 颜色透明度变体 - 多级透明度 */
+    --primary-10: rgba(0, 122, 255, 0.1);        /* 主色 10% 透明度 */
+    --primary-20: rgba(0, 122, 255, 0.2);        /* 主色 20% 透明度 */
+    --primary-30: rgba(0, 122, 255, 0.3);        /* 主色 30% 透明度 */
+    --primary-light: rgba(0, 122, 255, 0.1);     /* 主色浅色版（向后兼容） */
+    
+    --success-10: rgba(52, 199, 89, 0.1);        /* 成功色 10% 透明度 */
+    --success-20: rgba(52, 199, 89, 0.2);        /* 成功色 20% 透明度 */
+    --success-30: rgba(52, 199, 89, 0.3);        /* 成功色 30% 透明度 */
+    --success-light: rgba(52, 199, 89, 0.1);     /* 成功色浅色版（向后兼容） */
+    
+    --danger-10: rgba(255, 59, 48, 0.1);         /* 危险色 10% 透明度 */
+    --danger-20: rgba(255, 59, 48, 0.2);         /* 危险色 20% 透明度 */
+    --danger-30: rgba(255, 59, 48, 0.3);         /* 危险色 30% 透明度 */
+    --danger-light: rgba(255, 59, 48, 0.1);      /* 危险色浅色版（向后兼容） */
+    
+    --warning-10: rgba(255, 149, 0, 0.1);        /* 警告色 10% 透明度 */
+    --warning-20: rgba(255, 149, 0, 0.2);        /* 警告色 20% 透明度 */
+    --warning-30: rgba(255, 149, 0, 0.3);        /* 警告色 30% 透明度 */
+    --warning-light: rgba(255, 149, 0, 0.1);     /* 警告色浅色版（向后兼容） */
+    
+    --info-10: rgba(90, 200, 250, 0.1);          /* 信息色 10% 透明度 */
+    --info-20: rgba(90, 200, 250, 0.2);          /* 信息色 20% 透明度 */
+    --info-30: rgba(90, 200, 250, 0.3);          /* 信息色 30% 透明度 */
+    --info-light: rgba(90, 200, 250, 0.1);       /* 信息色浅色版（向后兼容） */
+    
+    /* Hover 状态颜色变体 */
+    --primary-hover: #0051D5;                     /* 主色 hover 状态 */
+    --success-hover: #30B877;                     /* 成功色 hover 状态 */
+    --danger-hover: #D70015;                      /* 危险色 hover 状态 */
+    --warning-hover: #FF8F00;                     /* 警告色 hover 状态 */
+    --info-hover: #40A9FF;                        /* 信息色 hover 状态 */
+    
+    /* Disabled 状态颜色变体 */
+    --primary-disabled: rgba(0, 122, 255, 0.3);   /* 主色 disabled 状态 */
+    --success-disabled: rgba(52, 199, 89, 0.3);   /* 成功色 disabled 状态 */
+    --danger-disabled: rgba(255, 59, 48, 0.3);    /* 危险色 disabled 状态 */
+    --warning-disabled: rgba(255, 149, 0, 0.3);   /* 警告色 disabled 状态 */
+    --info-disabled: rgba(90, 200, 250, 0.3);     /* 信息色 disabled 状态 */
+    
+    /* 图表分类颜色 - 默认主题（财务专业版） */
+    --chart-category-1: #1A3A5F;  /* 深海军蓝 */
+    --chart-category-2: #2D5F5D;  /* 专业墨绿色 */
+    --chart-category-3: #8B2635;  /* 深酒红色 */
+    --chart-category-4: #BFA46F;  /* 优雅金褐色 */
+    --chart-category-5: #4A6FA5;  /* 淡蓝色 */
+    --chart-category-6: #5D4A6F;  /* 深紫色 */
+    --chart-category-7: #5F4B2D;  /* 深棕色 */
+    --chart-category-8: #63455E;  /* 深紫灰 */
+    
+    /* 图表中性色系列（蓝色系渐变） */
+    --chart-neutral-1: #1A3A5F;
+    --chart-neutral-2: #2F5377;
+    --chart-neutral-3: #446B8F;
+    --chart-neutral-4: #5984A7;
+    --chart-neutral-5: #6E9CBF;
+    --chart-neutral-6: #83B5D7;
+    
+    /* 图表单色系列 */
+    --chart-monochrome-1: #1A3A5F;
+    --chart-monochrome-2: #234567;
+    --chart-monochrome-3: #2C5170;
+    --chart-monochrome-4: #355D7A;
+    --chart-monochrome-5: #3E6985;
+    --chart-monochrome-6: #47758F;
+    --chart-monochrome-7: #508199;
+    
+
+    
+    /* 图表字体配置 */
+    --chart-font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --chart-font-size: 12px;
+    --chart-font-color: #2C3E50;
+    
+    /* 图表网格配置 */
+    --chart-grid-color: #E5E8ED;
+    --chart-grid-border-color: #E5E8ED;
+    --chart-grid-tick-color: #C5CDD7;
+    
+    /* 图表工具提示配置 */
+    --chart-tooltip-bg: rgba(44, 62, 80, 0.85);
+    --chart-tooltip-title-color: #fff;
+    --chart-tooltip-body-color: #F9F9F7;
+    --chart-tooltip-border-color: rgba(255, 255, 255, 0.1);
+    
+    /* 图表元素配置 */
+    --chart-line-tension: 0.2;
+    --chart-line-border-width: 2px;
+    --chart-point-radius: 3px;
+    --chart-point-hover-radius: 5px;
+    --chart-bar-border-radius: 2px;
+    --chart-bar-max-thickness: 45px;
+    
+    /* 图表动画配置 */
+    --chart-animation-duration: 800ms;
+    --chart-animation-easing: ease-out-quad;
+    
+    /* 图表颜色透明度变体 */
+    --chart-income-10: rgba(70, 99, 172, 0.1);   /* 收入色 10% 透明度 */
+    --chart-income-20: rgba(70, 99, 172, 0.2);   /* 收入色 20% 透明度 */
+    --chart-income-30: rgba(70, 99, 172, 0.3);   /* 收入色 30% 透明度 */
+    --chart-expense-10: rgba(236, 76, 71, 0.1);  /* 支出色 10% 透明度 */
+    --chart-expense-20: rgba(236, 76, 71, 0.2);  /* 支出色 20% 透明度 */
+    --chart-expense-30: rgba(236, 76, 71, 0.3);  /* 支出色 30% 透明度 */
+    
     /* Apple 灰度系统 */
     --gray-50: #FAFAFA;
     --gray-100: #F5F5F7;

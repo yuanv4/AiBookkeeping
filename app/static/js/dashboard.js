@@ -24,7 +24,7 @@ function applyDynamicStyles() {
     const netIconInner = document.getElementById('netIconInner');
     
     if (netIcon && netIconInner) {
-        netIcon.style.backgroundColor = netAmount >= 0 ? 'rgba(71, 184, 129, 0.1)' : 'rgba(236, 76, 71, 0.1)';
+        netIcon.style.backgroundColor = netAmount >= 0 ? 'var(--success-10)' : 'var(--danger-10)';
         netIconInner.style.color = netAmount >= 0 ? 'var(--success)' : 'var(--danger)';
     }
     
@@ -35,7 +35,7 @@ function applyDynamicStyles() {
     
     if (cashFlowValue && cashFlowIcon && cashFlowIconInner) {
         const cashFlowAmount = parseFloat(cashFlowValue.textContent || '0');
-        cashFlowIcon.style.backgroundColor = cashFlowAmount >= 0 ? 'rgba(71, 184, 129, 0.1)' : 'rgba(236, 76, 71, 0.1)';
+        cashFlowIcon.style.backgroundColor = cashFlowAmount >= 0 ? 'var(--success-10)' : 'var(--danger-10)';
         cashFlowIconInner.style.color = cashFlowAmount >= 0 ? 'var(--success)' : 'var(--danger)';
     }
     
@@ -233,10 +233,8 @@ function initBalanceHistoryChart() {
         const chartData = JSON.parse(chartDataElement.getAttribute('data-chart'));
         if (!chartData || !chartData.labels || !chartData.values) return;
         
-        // 创建半透明的背景色版本
-        const balanceFill = window.defaultColors.balance.startsWith('#') 
-            ? `rgba(${parseInt(window.defaultColors.balance.slice(1, 3), 16)}, ${parseInt(window.defaultColors.balance.slice(3, 5), 16)}, ${parseInt(window.defaultColors.balance.slice(5, 7), 16)}, 0.1)` 
-            : 'rgba(26, 58, 95, 0.1)';
+        // 使用CSS变量的透明度版本
+        const balanceFill = 'var(--primary-10)';
         
         new Chart(balanceHistoryCanvas, {
             type: 'line',
@@ -262,7 +260,7 @@ function initBalanceHistoryChart() {
                         beginAtZero: false,
                         grid: {
                             display: true,
-                            color: 'rgba(0,0,0,0.05)'
+                            color: 'var(--gray-100)'
                         }
                     },
                     x: {
@@ -276,7 +274,7 @@ function initBalanceHistoryChart() {
                         display: false
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        backgroundColor: 'var(--gray-800)',
                         padding: 10,
                         cornerRadius: 4,
                         callbacks: {
@@ -312,14 +310,9 @@ function initIncomeExpenseChart() {
         const chartData = JSON.parse(chartDataElement.getAttribute('data-chart'));
         if (!chartData || !chartData.labels || !chartData.income || !chartData.expense) return;
         
-        // 创建半透明版本
-        const incomeColor = window.defaultColors.income.startsWith('#') 
-            ? `rgba(${parseInt(window.defaultColors.income.slice(1, 3), 16)}, ${parseInt(window.defaultColors.income.slice(3, 5), 16)}, ${parseInt(window.defaultColors.income.slice(5, 7), 16)}, 0.7)` 
-            : 'rgba(45, 95, 93, 0.7)';
-        
-        const expenseColor = window.defaultColors.expense.startsWith('#') 
-            ? `rgba(${parseInt(window.defaultColors.expense.slice(1, 3), 16)}, ${parseInt(window.defaultColors.expense.slice(3, 5), 16)}, ${parseInt(window.defaultColors.expense.slice(5, 7), 16)}, 0.7)` 
-            : 'rgba(139, 38, 53, 0.7)';
+        // 使用CSS变量的透明度版本
+        const incomeColor = 'var(--chart-income-30)';
+        const expenseColor = 'var(--chart-expense-30)';
         
         new Chart(incomeExpenseCanvas, {
             type: 'bar',
@@ -350,7 +343,7 @@ function initIncomeExpenseChart() {
                         beginAtZero: true,
                         grid: {
                             display: true,
-                            color: 'rgba(0,0,0,0.05)'
+                            color: 'var(--gray-100)'
                         }
                     },
                     x: {
@@ -365,7 +358,7 @@ function initIncomeExpenseChart() {
                         position: 'top'
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        backgroundColor: 'var(--gray-800)',
                         padding: 10,
                         cornerRadius: 4,
                         callbacks: {
@@ -416,7 +409,7 @@ function initIncomeSourceChart() {
                 datasets: [{
                     data: chartData.values,
                     backgroundColor: backgroundColors,
-                    borderColor: 'rgba(255, 255, 255, 0.8)',
+                    borderColor: 'var(--gray-200)',
                     borderWidth: 1
                 }]
             },
@@ -433,7 +426,7 @@ function initIncomeSourceChart() {
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        backgroundColor: 'var(--gray-800)',
                         padding: 10,
                         cornerRadius: 4,
                         callbacks: {
@@ -469,13 +462,10 @@ function initExpenseCategoryChart() {
         const chartData = JSON.parse(chartDataElement.getAttribute('data-chart'));
         if (!chartData || !chartData.labels || !chartData.values) return;
         
-        // 生成随机颜色数组，但支出相关的颜色应该是红色系
-        const backgroundColors = chartData.labels.map(() => {
-            // 红色系随机颜色
-            const r = Math.floor(Math.random() * 100) + 150;
-            const g = Math.floor(Math.random() * 100) + 50;
-            const b = Math.floor(Math.random() * 100) + 50;
-            return `rgba(${r}, ${g}, ${b}, 0.7)`;
+        // 根据数据数量选择适当数量的颜色
+        const backgroundColors = chartData.labels.map((_, index) => {
+            // 循环使用category中的颜色
+            return window.defaultColors.category[index % window.defaultColors.category.length];
         });
         
         new Chart(expenseCategoryCanvas, {
@@ -485,7 +475,7 @@ function initExpenseCategoryChart() {
                 datasets: [{
                     data: chartData.values.map(val => Math.abs(val)), // 取绝对值，使支出显示为正数
                     backgroundColor: backgroundColors,
-                    borderColor: 'rgba(255, 255, 255, 0.8)',
+                    borderColor: 'var(--gray-200)',
                     borderWidth: 1
                 }]
             },
@@ -502,7 +492,7 @@ function initExpenseCategoryChart() {
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        backgroundColor: 'var(--gray-800)',
                         padding: 10,
                         cornerRadius: 4,
                         callbacks: {
@@ -546,33 +536,33 @@ function initMonthlyTrendChart() {
                     {
                         label: '净收支',
                         data: chartData.net,
-                        borderColor: '#4663ac',
-                        backgroundColor: 'rgba(70, 99, 172, 0.1)',
+                        borderColor: getCSSColor('--chart-category-1'),
+                        backgroundColor: getCSSColor('--chart-category-1').replace('rgb', 'rgba').replace(')', ', 0.1)'),
                         borderWidth: 2,
                         pointRadius: 3,
-                        pointBackgroundColor: '#4663ac',
+                        pointBackgroundColor: getCSSColor('--chart-category-1'),
                         tension: 0.4,
                         fill: false
                     },
                     {
                         label: '收入',
                         data: chartData.income,
-                        borderColor: 'rgba(71, 184, 129, 1)',
-                        backgroundColor: 'rgba(71, 184, 129, 0.1)',
+                        borderColor: getCSSColor('--success'),
+                        backgroundColor: getCSSColor('--success').replace('rgb', 'rgba').replace(')', ', 0.1)'),
                         borderWidth: 2,
                         pointRadius: 3,
-                        pointBackgroundColor: 'rgba(71, 184, 129, 1)',
+                        pointBackgroundColor: getCSSColor('--success'),
                         tension: 0.4,
                         fill: false
                     },
                     {
                         label: '支出',
                         data: chartData.expense.map(val => Math.abs(val)), // 取绝对值，使支出显示为正数
-                        borderColor: 'rgba(236, 76, 71, 1)',
-                        backgroundColor: 'rgba(236, 76, 71, 0.1)',
+                        borderColor: 'var(--danger)',
+                        backgroundColor: 'var(--danger-10)',
                         borderWidth: 2,
                         pointRadius: 3,
-                        pointBackgroundColor: 'rgba(236, 76, 71, 1)',
+                        pointBackgroundColor: 'var(--danger)',
                         tension: 0.4,
                         fill: false
                     }
@@ -586,7 +576,7 @@ function initMonthlyTrendChart() {
                         beginAtZero: false,
                         grid: {
                             display: true,
-                            color: 'rgba(0,0,0,0.05)'
+                            color: 'var(--gray-100)'
                         }
                     },
                     x: {
@@ -601,7 +591,7 @@ function initMonthlyTrendChart() {
                         position: 'top'
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        backgroundColor: 'var(--gray-800)',
                         padding: 10,
                         cornerRadius: 4,
                         callbacks: {
@@ -622,4 +612,4 @@ function initMonthlyTrendChart() {
     } catch (error) {
         console.error('初始化月度趋势图失败:', error);
     }
-} 
+}

@@ -127,16 +127,16 @@ function initIncomeAnalysisCharts() {
             return color;
         }
     } : {
-        // 保留原有颜色作为后备方案
-        income: 'rgba(70, 99, 172, 0.8)',
-        expense: 'rgba(236, 76, 71, 0.8)',
-        savings: 'rgba(71, 184, 129, 0.8)',
-        ratio: 'rgba(255, 171, 0, 0.8)',
-        primary: '#4663ac',
-        danger: '#ec4c47',
-        success: '#47b881',
-        warning: '#ffab00',
-        info: '#1070ca'
+        // 使用CSS变量作为后备方案
+        income: 'var(--chart-income)',
+        expense: 'var(--chart-expense)',
+        savings: 'var(--success)',
+        ratio: 'var(--warning)',
+        primary: 'var(--primary)',
+        danger: 'var(--danger)',
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        info: 'var(--info)'
     };
     
     /**
@@ -727,7 +727,7 @@ function initIncomeAnalysisCharts() {
                         label: '净现金流',
                         data: netFlowData,
                         borderColor: colors.success,
-                        backgroundColor: 'rgba(71, 184, 129, 0.1)',
+                        backgroundColor: 'var(--success-10)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4,
@@ -1194,24 +1194,48 @@ function initIncomeAnalysisCharts() {
     /**
      * 生成随机颜色数组
      */
-    function generateColors(count) {
-        const baseColors = [
-            '#4663ac', '#ec4c47', '#47b881', '#ffab00', '#1070ca',
-            '#735dd0', '#00b8d9', '#ff5630', '#36b37e', '#00a3bf'
-        ];
+    function generateColors(count, theme = 'default') {
+        // 使用CSS变量获取主题颜色
+        const themeConfig = typeof getChartTheme === 'function' ? getChartTheme(theme) : null;
+        
+        let baseColors;
+        if (themeConfig && themeConfig.colors && themeConfig.colors.category) {
+            baseColors = themeConfig.colors.category;
+        } else {
+            // 降级到CSS变量
+            baseColors = [
+                getCSSColor('--chart-category-1') || '#4663ac',
+                getCSSColor('--chart-category-2') || '#ec4c47',
+                getCSSColor('--chart-category-3') || '#47b881',
+                getCSSColor('--chart-category-4') || '#ffab00',
+                getCSSColor('--chart-category-5') || '#1070ca',
+                getCSSColor('--chart-category-6') || '#735dd0',
+                getCSSColor('--chart-category-7') || '#00b8d9',
+                getCSSColor('--chart-category-8') || '#ff5630'
+            ];
+        }
         
         // 如果数量小于基础颜色数量，直接返回部分基础颜色
         if (count <= baseColors.length) {
             return baseColors.slice(0, count);
         }
         
-        // 否则生成随机颜色
+        // 否则添加中性色和生成扩展颜色
         const result = [...baseColors];
         
-        for (let i = baseColors.length; i < count; i++) {
-            const hue = Math.floor(Math.random() * 360);
-            const saturation = 70 + Math.floor(Math.random() * 30);
-            const lightness = 50 + Math.floor(Math.random() * 10);
+        // 添加中性色
+        if (themeConfig && themeConfig.colors && themeConfig.colors.neutral) {
+            const neutralColors = themeConfig.colors.neutral;
+            for (let i = 0; i < neutralColors.length && result.length < count; i++) {
+                result.push(neutralColors[i]);
+            }
+        }
+        
+        // 如果还需要更多颜色，生成基于主题的颜色
+        for (let i = result.length; i < count; i++) {
+            const hue = (i * 137.508) % 360; // 使用黄金角度分布
+            const saturation = 60 + Math.floor(Math.random() * 20);
+            const lightness = 55 + Math.floor(Math.random() * 10);
             
             result.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
         }

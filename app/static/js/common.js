@@ -407,37 +407,465 @@ function initTooltips() {
 }
 
 /**
- * 在全局应用财务专业版主题到所有图表
+ * 从CSS变量获取颜色值
+ * @param {string} cssVar CSS变量名（包含--前缀）
+ * @returns {string} 颜色值
  */
-function applyFinanceThemeToAllCharts() {
-    // 确保Chart.js和主题文件已加载
-    if (typeof Chart === 'undefined' || typeof ChartThemes === 'undefined') {
-        console.warn('Chart.js或图表主题未加载，无法应用财务专业主题');
+function getCSSColor(cssVar) {
+    try {
+        const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+        return value || '#000000'; // 默认黑色
+    } catch (error) {
+        console.warn(`无法获取CSS变量 ${cssVar}:`, error);
+        return '#000000';
+    }
+}
+
+/**
+ * 获取图表主题配色方案
+ * @param {string} theme 主题名称，目前仅支持 'default'
+ * @returns {object} 主题配色对象
+ */
+function getChartTheme(theme = 'default') {
+    const themes = {
+        default: {
+            colors: {
+                primary: getCSSColor('--primary'),
+                secondary: getCSSColor('--secondary'),
+                success: getCSSColor('--success'),
+                danger: getCSSColor('--danger'),
+                warning: getCSSColor('--warning'),
+                info: getCSSColor('--info'),
+                category: [
+                    getCSSColor('--chart-category-1'),
+                    getCSSColor('--chart-category-2'),
+                    getCSSColor('--chart-category-3'),
+                    getCSSColor('--chart-category-4'),
+                    getCSSColor('--chart-category-5'),
+                    getCSSColor('--chart-category-6'),
+                    getCSSColor('--chart-category-7'),
+                    getCSSColor('--chart-category-8')
+                ],
+                neutral: [
+                    getCSSColor('--chart-neutral-1'),
+                    getCSSColor('--chart-neutral-2'),
+                    getCSSColor('--chart-neutral-3'),
+                    getCSSColor('--chart-neutral-4'),
+                    getCSSColor('--chart-neutral-5'),
+                    getCSSColor('--chart-neutral-6')
+                ],
+                monochrome: [
+                    getCSSColor('--chart-monochrome-1'),
+                    getCSSColor('--chart-monochrome-2'),
+                    getCSSColor('--chart-monochrome-3'),
+                    getCSSColor('--chart-monochrome-4'),
+                    getCSSColor('--chart-monochrome-5'),
+                    getCSSColor('--chart-monochrome-6'),
+                    getCSSColor('--chart-monochrome-7')
+                ]
+            },
+            fonts: {
+                family: getCSSColor('--chart-font-family'),
+                size: parseInt(getCSSColor('--chart-font-size')) || 12,
+                color: getCSSColor('--chart-font-color')
+            },
+            elements: {
+                line: {
+                    tension: parseFloat(getCSSColor('--chart-line-tension')) || 0.2,
+                    borderWidth: parseInt(getCSSColor('--chart-line-border-width')) || 2,
+                    fill: true,
+                    borderJoinStyle: 'round'
+                },
+                point: {
+                    radius: parseInt(getCSSColor('--chart-point-radius')) || 3,
+                    hoverRadius: parseInt(getCSSColor('--chart-point-hover-radius')) || 5,
+                    borderWidth: 2,
+                    hoverBorderWidth: 2,
+                    hitRadius: 8
+                },
+                bar: {
+                    borderRadius: parseInt(getCSSColor('--chart-bar-border-radius')) || 2,
+                    borderWidth: 0,
+                    borderSkipped: false,
+                    maxBarThickness: parseInt(getCSSColor('--chart-bar-max-thickness')) || 45
+                },
+                arc: {
+                    borderWidth: 1,
+                    borderColor: getCSSColor('--background')
+                }
+            },
+            grid: {
+                color: getCSSColor('--chart-grid-color'),
+                borderColor: getCSSColor('--chart-grid-border-color'),
+                tickColor: getCSSColor('--chart-grid-tick-color')
+            },
+            tooltip: {
+                backgroundColor: getCSSColor('--chart-tooltip-bg'),
+                titleColor: getCSSColor('--chart-tooltip-title-color'),
+                bodyColor: getCSSColor('--chart-tooltip-body-color'),
+                borderColor: getCSSColor('--chart-tooltip-border-color'),
+                borderWidth: 1
+            },
+            animation: {
+                duration: parseInt(getCSSColor('--chart-animation-duration')) || 800,
+                easing: 'easeOutQuad'
+            }
+        }
+    };
+    
+    return themes[theme] || themes.default;
+}
+
+/**
+ * 应用图表主题
+ * @param {object} chartInstance Chart.js实例
+ * @param {string} theme 主题名称
+ */
+function applyChartTheme(chartInstance, theme = 'default') {
+    if (!chartInstance || typeof Chart === 'undefined') {
+        console.warn('Chart.js实例或Chart.js库不可用');
+        return;
+    }
+    
+    const themeConfig = getChartTheme(theme);
+    
+    // 应用主题到图表配置
+    if (chartInstance.options) {
+        // 字体配置
+        if (themeConfig.fonts) {
+            chartInstance.options.font = {
+                family: themeConfig.fonts.family,
+                size: themeConfig.fonts.size
+            };
+        }
+        
+        // 网格配置
+        if (themeConfig.grid && chartInstance.options.scales) {
+            Object.keys(chartInstance.options.scales).forEach(scaleKey => {
+                const scale = chartInstance.options.scales[scaleKey];
+                if (scale.grid) {
+                    scale.grid.color = themeConfig.grid.color;
+                    scale.grid.borderColor = themeConfig.grid.borderColor;
+                }
+                if (scale.ticks) {
+                    scale.ticks.color = themeConfig.grid.tickColor;
+                }
+            });
+        }
+        
+        // 工具提示配置
+        if (themeConfig.tooltip && chartInstance.options.plugins && chartInstance.options.plugins.tooltip) {
+            Object.assign(chartInstance.options.plugins.tooltip, themeConfig.tooltip);
+        }
+        
+        // 动画配置
+        if (themeConfig.animation) {
+            chartInstance.options.animation = themeConfig.animation;
+        }
+    }
+    
+    // 更新图表
+    chartInstance.update();
+}
+
+/**
+ * 应用统一颜色主题到所有图表
+ * 使用CSS变量替代chart-themes.js
+ */
+function applyUnifiedColorTheme() {
+    // 确保Chart.js已加载
+    if (typeof Chart === 'undefined') {
+        console.warn('Chart.js未加载，无法应用图表主题');
         return;
     }
     
     try {
+        // 应用基础样式（从CSS变量获取）
+        Chart.defaults.color = getCSSColor('--text-secondary');
+        Chart.defaults.font.family = getCSSColor('--font-family-system');
+        Chart.defaults.font.size = 12;
+        
+        // 应用元素样式
+        Chart.defaults.elements.line.borderWidth = 2;
+        Chart.defaults.elements.line.tension = 0.4;
+        Chart.defaults.elements.point.radius = 4;
+        Chart.defaults.elements.point.hoverRadius = 6;
+        Chart.defaults.elements.bar.borderRadius = 4;
+        Chart.defaults.elements.arc.borderWidth = 0;
+        
+        // 应用网格样式
+        Chart.defaults.scale.grid.color = getCSSColor('--gray-200');
+        Chart.defaults.scale.grid.borderColor = getCSSColor('--gray-300');
+        Chart.defaults.scale.ticks.color = getCSSColor('--text-secondary');
+        
+        // 应用工具提示样式
+        Object.assign(Chart.defaults.plugins.tooltip, {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
+            borderColor: getCSSColor('--gray-300'),
+            borderWidth: 1,
+            cornerRadius: 8,
+            caretSize: 6
+        });
+        
+        // 应用动画设置
+        Chart.defaults.animation = {
+            duration: 750,
+            easing: 'easeOutQuart'
+        };
+        
+        // 创建统一的颜色配置对象，从CSS变量获取
+        window.defaultColors = {
+            // 基础颜色系统
+            primary: getCSSColor('--primary'),
+            secondary: getCSSColor('--secondary'),
+            success: getCSSColor('--success'),
+            danger: getCSSColor('--danger'),
+            warning: getCSSColor('--warning'),
+            info: getCSSColor('--info'),
+            
+            // 图表专用颜色
+            income: getCSSColor('--chart-income'),
+            expense: getCSSColor('--chart-expense'),
+            savings: getCSSColor('--chart-savings'),
+            balance: getCSSColor('--chart-balance'),
+            neutral: getCSSColor('--chart-neutral'),
+            
+            // 图表分类颜色
+            category: [
+                getCSSColor('--chart-category-1'),
+                getCSSColor('--chart-category-2'),
+                getCSSColor('--chart-category-3'),
+                getCSSColor('--chart-category-4'),
+                getCSSColor('--chart-category-5'),
+                getCSSColor('--chart-category-6')
+            ],
+            
+            // 透明度变体
+            primaryLight: getCSSColor('--primary-10'),
+            successLight: getCSSColor('--success-10'),
+            dangerLight: getCSSColor('--danger-10'),
+            warningLight: getCSSColor('--warning-10'),
+            infoLight: getCSSColor('--info-10'),
+            
+            // Hover状态颜色
+            primaryHover: getCSSColor('--primary-hover'),
+            successHover: getCSSColor('--success-hover'),
+            dangerHover: getCSSColor('--danger-hover'),
+            warningHover: getCSSColor('--warning-hover'),
+            infoHover: getCSSColor('--info-hover'),
+            
+            // 单色系列（用于渐变图表）
+            monochrome: [
+                getCSSColor('--primary'),
+                getCSSColor('--primary-600'),
+                getCSSColor('--primary-700'),
+                getCSSColor('--gray-600'),
+                getCSSColor('--gray-700')
+            ]
+        };
+        
+        console.log('已成功应用统一颜色主题到所有图表');
+        return true;
+    } catch (error) {
+        console.error('应用统一颜色主题失败:', error);
+        
+        // 降级处理：如果CSS变量获取失败，尝试使用ChartThemes（向后兼容）
+        if (typeof ChartThemes !== 'undefined') {
+            console.log('降级使用ChartThemes配置');
+            return applyLegacyTheme();
+        }
+        
+        return false;
+    }
+}
+
+/**
+ * 图表交互功能对象
+ * 替代chart-themes.js中的ChartInteractions
+ */
+const ChartInteractions = {
+    /**
+     * 下载图表为图片
+     */
+    downloadChart: function(chartInstance, filename = 'chart') {
+        if (!chartInstance) return;
+        
+        const url = chartInstance.toBase64Image();
+        const link = document.createElement('a');
+        link.download = `${filename}.png`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+    
+    /**
+     * 全屏显示图表
+     */
+    toggleFullscreen: function(chartContainer) {
+        if (!chartContainer) return;
+        
+        if (!document.fullscreenElement) {
+            chartContainer.requestFullscreen().catch(err => {
+                console.warn('无法进入全屏模式:', err);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    },
+    
+    /**
+     * 重置图表缩放
+     */
+    resetZoom: function(chartInstance) {
+        if (chartInstance && chartInstance.resetZoom) {
+            chartInstance.resetZoom();
+        }
+    },
+    
+    /**
+     * 图例交互增强
+     */
+    enhanceLegendInteraction: function(chartInstance) {
+        if (!chartInstance) return;
+        
+        const originalLegendClickHandler = chartInstance.options.plugins.legend.onClick;
+        
+        chartInstance.options.plugins.legend.onClick = function(e, legendItem, legend) {
+            // 调用原始处理器
+            if (originalLegendClickHandler) {
+                originalLegendClickHandler.call(this, e, legendItem, legend);
+            }
+            
+            // 添加自定义交互效果
+            const chart = legend.chart;
+            const datasets = chart.data.datasets;
+            
+            // 双击图例项时，只显示该项，隐藏其他项
+            if (e.detail === 2) {
+                datasets.forEach((dataset, index) => {
+                    dataset.hidden = index !== legendItem.datasetIndex;
+                });
+                chart.update();
+            }
+        };
+    },
+    
+    /**
+     * 数据点高亮
+     */
+    highlightDataPoint: function(chartInstance, datasetIndex, pointIndex) {
+        if (!chartInstance || !chartInstance.data.datasets[datasetIndex]) return;
+        
+        const dataset = chartInstance.data.datasets[datasetIndex];
+        const meta = chartInstance.getDatasetMeta(datasetIndex);
+        
+        // 重置所有点的样式
+        meta.data.forEach(point => {
+            point.options.backgroundColor = dataset.backgroundColor;
+            point.options.borderColor = dataset.borderColor;
+            point.options.radius = 3;
+        });
+        
+        // 高亮指定点
+        if (meta.data[pointIndex]) {
+            meta.data[pointIndex].options.backgroundColor = getCSSColor('--warning');
+            meta.data[pointIndex].options.borderColor = getCSSColor('--warning');
+            meta.data[pointIndex].options.radius = 6;
+        }
+        
+        chartInstance.update('none');
+    },
+    
+    /**
+     * 初始化图表工具栏
+     */
+    initializeToolbar: function(chartContainer, chartInstance) {
+        if (!chartContainer || !chartInstance) return;
+        
+        // 检查是否已存在工具栏
+        if (chartContainer.querySelector('.chart-toolbar')) return;
+        
+        const toolbar = document.createElement('div');
+        toolbar.className = 'chart-toolbar';
+        toolbar.innerHTML = `
+            <button class="btn btn-sm btn-outline-secondary" data-action="download" title="下载图表">
+                <i class="fas fa-download"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" data-action="fullscreen" title="全屏">
+                <i class="fas fa-expand"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" data-action="reset" title="重置缩放">
+                <i class="fas fa-undo"></i>
+            </button>
+        `;
+        
+        // 添加工具栏样式
+        toolbar.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        
+        // 事件监听
+        toolbar.addEventListener('click', (e) => {
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            switch (action) {
+                case 'download':
+                    this.downloadChart(chartInstance, 'chart');
+                    break;
+                case 'fullscreen':
+                    this.toggleFullscreen(chartContainer);
+                    break;
+                case 'reset':
+                    this.resetZoom(chartInstance);
+                    break;
+            }
+        });
+        
+        // 鼠标悬停显示工具栏
+        chartContainer.addEventListener('mouseenter', () => {
+            toolbar.style.opacity = '1';
+        });
+        
+        chartContainer.addEventListener('mouseleave', () => {
+            toolbar.style.opacity = '0';
+        });
+        
+        chartContainer.style.position = 'relative';
+        chartContainer.appendChild(toolbar);
+    }
+};
+
+/**
+ * 降级主题应用函数（向后兼容）
+ * 当CSS变量不可用时使用ChartThemes
+ */
+function applyLegacyTheme() {
+    try {
         const theme = ChartThemes.default;
         
-        // 应用颜色
+        // 应用ChartThemes配置
         Chart.defaults.color = theme.fonts.color;
-        
-        // 应用字体
         Chart.defaults.font.family = theme.fonts.family;
         Chart.defaults.font.size = theme.fonts.size;
         
-        // 应用元素样式
         Object.assign(Chart.defaults.elements.line, theme.elements.line);
         Object.assign(Chart.defaults.elements.point, theme.elements.point);
         Object.assign(Chart.defaults.elements.bar, theme.elements.bar);
         Object.assign(Chart.defaults.elements.arc, theme.elements.arc);
         
-        // 应用网格样式
         Chart.defaults.scale.grid.color = theme.grid.color;
         Chart.defaults.scale.grid.borderColor = theme.grid.borderColor;
         Chart.defaults.scale.ticks.color = theme.fonts.color;
         
-        // 应用工具提示样式
         Object.assign(Chart.defaults.plugins.tooltip, {
             backgroundColor: theme.tooltip.backgroundColor,
             titleColor: theme.tooltip.titleColor,
@@ -446,13 +874,8 @@ function applyFinanceThemeToAllCharts() {
             borderWidth: theme.tooltip.borderWidth
         });
         
-        // 应用动画设置
         Chart.defaults.animation = theme.animation;
         
-        // 为内容的图表应用新主题样式
-        console.log('已成功应用财务专业版主题到所有图表');
-        
-        // 定义新的财务专业版颜色变量，供各个图表使用
         window.defaultColors = {
             primary: theme.colors.primary,
             secondary: theme.colors.secondary,
@@ -469,17 +892,21 @@ function applyFinanceThemeToAllCharts() {
             balance: theme.colors.primary
         };
         
+        console.log('已成功应用降级主题配置');
         return true;
     } catch (error) {
-        console.error('应用财务专业版主题失败:', error);
+        console.error('降级主题应用失败:', error);
         return false;
     }
 }
 
-// 在文档加载完成后自动应用财务专业版主题
+// 保持向后兼容的别名
+const applyFinanceThemeToAllCharts = applyUnifiedColorTheme;
+
+// 在文档加载完成后自动应用统一颜色主题
 document.addEventListener('DOMContentLoaded', function() {
-    // 立即应用财务专业版主题
-    applyFinanceThemeToAllCharts();
+    // 立即应用统一颜色主题
+    applyUnifiedColorTheme();
     
     // 更新所有Chart实例以应用新主题
     setTimeout(function() {
