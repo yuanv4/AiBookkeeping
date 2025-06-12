@@ -5,11 +5,15 @@
 :root {
     /* Primary Colors */
     --primary: #007AFF;
+    --primary-50: #eff6ff;
+    --primary-100: #dbeafe;
+    --primary-200: #bfdbfe;
     --primary-500: #3b82f6;
     --primary-600: #2563eb;
     --primary-700: #1d4ed8;
     --primary-800: #1e40af;
     --primary-900: #1e3a8a;
+    --primary-light: #f0f9ff;
     
     /* Secondary Colors */
     --secondary: #5856D6;
@@ -21,6 +25,7 @@
     --danger: #FF3B30;
     --danger-500: #ef4444;
     --danger-600: #dc2626;
+    --danger-light: #fef2f2;
     --warning: #FF9500;
     --warning-500: #f59e0b;
     --warning-600: #d97706;
@@ -51,8 +56,7 @@
     --text-tertiary: #94a3b8;
     
     /* Legacy Text Colors */
-    --text-primary-legacy: #1d1d1f;
-    --text-secondary-legacy: #86868b;
+    /* Legacy text colors removed - use standard --text-primary and --text-secondary */
     
     /* Background Colors */
     --background-primary: #ffffff;
@@ -60,25 +64,39 @@
     
     /* Border Colors */
     --border-color: #d2d2d7;
+    --border-color-light: #f3f4f6;
+    --border-color-alpha: rgba(0, 0, 0, 0.1);
+    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.1);
     
     /* Spacing */
-    --spacing-xs: 0.25rem;
-    --spacing-sm: 0.5rem;
-    --spacing-md: 1rem;
-    --spacing-lg: 1.5rem;
-    --spacing-xl: 2rem;
-    --spacing-2xl: 3rem;
+    --spacing-3xs: 0.125rem;  /* 2px */
+    --spacing-2xs: 0.1875rem; /* 3px */
+    --spacing-xs: 0.25rem;    /* 4px */
+    --spacing-sm: 0.5rem;     /* 8px */
+    --spacing-md: 1rem;       /* 16px */
+    --spacing-lg: 1.5rem;     /* 24px */
+    --spacing-xl: 2rem;       /* 32px */
+    --spacing-2xl: 3rem;      /* 48px */
+    --spacing-3xl: 4rem;      /* 64px */
+    --spacing-4: 1rem;        /* 16px - alias for --spacing-md */
+    --spacing-6: 1.5rem;      /* 24px - alias for --spacing-lg */
     
     /* Border Radius */
+    --radius-none: 0;
     --radius-sm: 4px;
     --radius-md: 6px;
     --radius-lg: 8px;
     --radius-xl: 12px;
-    --border-radius: 8px;
+    --radius-2xl: 16px;
+    --border-radius-sm: 4px;   /* alias for --radius-sm */
+    --radius-full: 9999px;
+    --border-radius: 8px; /* Legacy support */
+    --border-radius-lg: 16px;
     
     /* Shadows and Effects */
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.1);
     --box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     --box-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --box-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -90,26 +108,33 @@
     /* Typography */
     --font-family-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     
+    /* Font Sizes */
+    --text-xs: 0.75rem;     /* 12px */
+    --text-sm: 0.875rem;    /* 14px */
+    --text-base: 1rem;      /* 16px */
+    --text-lg: 1.125rem;    /* 18px */
+    --text-xl: 1.25rem;     /* 20px */
+    --text-2xl: 1.5rem;     /* 24px */
+    --text-3xl: 1.875rem;   /* 30px */
+    
     /* Transitions */
-    --transition: 0.2s ease;
+    --transition: 0.2s ease; /* Legacy support */
     --transition-fast: all 0.15s ease-in-out;
+    --transition-normal: all 0.2s ease-in-out;
     --transition-slow: all 0.3s ease-in-out;
+    --transition-slower: all 0.5s ease-in-out;
+    --transition-medium: 0.3s;
+    
+    /* Transition Timing Functions */
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
     
     /* base.html 特有变量（从内联样式迁移） */
     --sidebar-collapsed-width: 70px;
-    --card-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.05);
-    --card-shadow-hover: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.09);
-    --transition-speed: 0.25s;
+    --shadow-hover: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.09); /* 替代旧的--card-shadow-hover */
     
-    /* 向后兼容的间距和圆角系统 */
-    --spacing-xs-legacy: 0.25rem;
-    --spacing-sm-legacy: 0.5rem;
-    --spacing-md-legacy: 1rem;
-    --spacing-lg-legacy: 1.5rem;
-    --spacing-xl-legacy: 2rem;
-    --border-radius-sm-legacy: 4px;
-    --border-radius-legacy: 8px;
-    --border-radius-lg-legacy: 12px;
+    /* Legacy spacing and border-radius variables removed - use standard variables */
 }
 
 /* 基础样式 */
@@ -122,7 +147,7 @@ body {
     line-height: 1.5;
     font-size: 16px;
     margin: 0;
-    transition: background-color var(--transition-speed) ease;
+    transition: background-color var(--transition-fast) ease;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -151,9 +176,9 @@ body {
     background-color: var(--background-primary);
     height: 100vh;
     position: fixed;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--box-shadow);
     z-index: 1030;
-    transition: all var(--transition-speed) ease;
+    transition: all var(--transition-fast) ease;
     overflow-y: auto;
     border-right: 1px solid var(--gray-200);
     display: flex;
@@ -162,7 +187,7 @@ body {
 }
 
 .sidebar-header {
-    padding: var(--spacing-xs-legacy) 0;
+    padding: var(--spacing-xs) 0;
 }
 
 .sidebar-brand-icon {
@@ -186,7 +211,7 @@ body {
 .sidebar-divider {
     height: 1px;
     background-color: var(--gray-200);
-    margin: 0 var(--spacing-md-legacy);
+    margin: 0 var(--spacing-md);
 }
 
 .sidebar-footer {
@@ -205,8 +230,8 @@ body {
 
 .nav-sidebar .nav-item .nav-link {
     color: var(--gray-700);
-    padding: var(--spacing-sm-legacy) var(--spacing-md-legacy);
-    transition: all var(--transition-speed) ease;
+    padding: var(--spacing-sm) var(--spacing-md);
+    transition: all var(--transition-fast) ease;
     border-radius: 8px;
     font-weight: 400;
     font-size: 15px;
@@ -235,12 +260,12 @@ body {
 .header {
     height: var(--header-height);
     background-color: var(--surface-primary);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-    padding: 0 var(--spacing-xl-legacy);
+    box-shadow: var(--box-shadow);
+    padding: 0 var(--spacing-xl);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    transition: box-shadow var(--transition-speed) ease;
+    transition: box-shadow var(--transition-fast) ease;
     border-bottom: 1px solid var(--gray-200);
     backdrop-filter: blur(20px);
 }
@@ -259,7 +284,7 @@ body {
     color: var(--text-secondary);
     padding: 8px;
     border-radius: 6px;
-    transition: all var(--transition-speed) ease;
+    transition: all var(--transition-fast) ease;
 }
 
 .mobile-nav-toggle:hover {
@@ -267,53 +292,7 @@ body {
     color: var(--text-primary);
 }
 
-/* 卡片样式增强 */
-.card {
-    border: none;
-    border-radius: var(--border-radius-legacy);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-    transition: box-shadow var(--transition-speed) ease, transform var(--transition-speed) ease;
-    overflow: hidden;
-    background-color: var(--surface-primary);
-    border: 1px solid var(--gray-200);
-}
-
-.card:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-    transform: translateY(-1px);
-}
-
-.card-header {
-    background-color: var(--surface-primary);
-    border-bottom: 1px solid var(--gray-200);
-    padding: var(--spacing-md-legacy) var(--spacing-lg-legacy);
-}
-
-/* 按钮样式增强 */
-.btn {
-    border-radius: var(--border-radius-legacy);
-    padding: 0.5rem 1rem;
-    transition: all var(--transition-speed) ease;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-}
-
-.btn-primary {
-    background-color: var(--primary);
-    border-color: var(--primary);
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-600);
-    border-color: var(--primary-600);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 122, 255, 0.25);
-}
+/* 移除重复的卡片和按钮样式 - 已统一到components.css */
 
 /* 提示样式 */
 .alert {
@@ -328,25 +307,7 @@ body {
     margin-right: var(--spacing-sm);
 }
 
-/* 响应式设计 */
-@media (max-width: 992px) {
-    .sidebar {
-        transform: translateX(-100%);
-        z-index: 1040;
-    }
-    
-    .main-content {
-        margin-left: 0;
-    }
-    
-    .sidebar.show {
-        transform: translateX(0);
-    }
-    
-    .mobile-nav-toggle {
-        display: flex;
-    }
-}
+/* 重复的响应式设计规则已删除 - 合并到下方的媒体查询中 */
 
 /* 添加侧边栏折叠功能的样式 */
 .sidebar-collapsed {
@@ -466,50 +427,7 @@ body {
     cursor: pointer;
 }
 
-/* 卡片样式 */
-.card {
-    background-color: var(--background-primary);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border-color);
-    overflow: hidden;
-}
-
-.card-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    background-color: var(--background-primary);
-}
-
-.card-body {
-    padding: 1.5rem;
-}
-
-/* 按钮样式 */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 500;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    transition: var(--transition);
-    font-size: 14px;
-}
-
-.btn-primary {
-    background-color: var(--primary);
-    color: white;
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-600);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 122, 255, 0.25);
-}
+/* 重复的卡片和按钮样式已移除 - 统一使用components.css中的基类 */
 
 /* 提示样式 */
 .alert {
