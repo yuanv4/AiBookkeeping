@@ -115,7 +115,9 @@
                     <p class="text-muted mb-0">此操作将永久删除所有交易数据和分析结果，且无法恢复。请确保您已经备份了重要数据。</p>
                 </div>
                 <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                    <button class="btn btn-danger" onclick="confirmDeleteDatabase()">
+                    <button class="btn btn-danger" 
+                            data-delete-url="{{ url_for('settings_bp.delete_database') }}"
+                            data-dashboard-url="{{ url_for('main.dashboard') }}">
                         {{ icon("delete_forever", "sm", "", "me-2") }}
                         删除所有数据
                     </button>
@@ -128,15 +130,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
-<script>
-function confirmDeleteDatabase() {
-    if (confirm('警告：此操作将删除所有交易数据和分析结果，且无法恢复！\n\n确定要继续吗？')) {
-        if (confirm('最后确认：您真的要删除所有数据吗？此操作不可逆！')) {
-            // 这里可以添加实际的删除数据库操作
-            alert('数据库删除功能尚未实现，请联系开发人员。');
-        }
-    }
-}
-</script>
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
 {% endblock %}

@@ -5,7 +5,7 @@
   {%- if extra_classes %} {{ extra_classes }}{% endif %}">{{ name }}</i><span class="icon-text position-absolute" style="clip: rect(0,0,0,0); width: 1px; height: 1px; overflow: hidden;">{{ name }}</span>
 {% endmacro %}
 
-{% macro card(title="", icon_name="", header_class="", body_class="p-0") %}
+{% macro card(title="", icon_name="", header_class="", body_class="p-6") %}
 <div class="card h-100 dashboard-card">
   {% if title %}
   <div class="card-header d-flex align-items-center justify-content-between {% if header_class %}{{ header_class }}{% endif %}">

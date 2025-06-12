@@ -1,4 +1,5 @@
-from flask import request, redirect, url_for, flash, render_template, current_app
+from flask import request, redirect, url_for, flash, render_template, current_app, jsonify
+from app.models.base import db
 
 from . import settings_bp
 
@@ -6,6 +7,35 @@ from . import settings_bp
 def settings_index():
     """设置页面主页"""
     return render_template('settings.html')
+
+@settings_bp.route('/delete_database', methods=['POST'])
+def delete_database():
+    """删除数据库中的所有数据"""
+    try:
+        # 记录操作日志
+        current_app.logger.warning("开始执行数据库删除操作")
+        
+        # 删除所有表
+        db.drop_all()
+        current_app.logger.info("所有数据表已删除")
+        
+        # 重新创建表结构
+        db.create_all()
+        current_app.logger.info("数据表结构已重新创建")
+        
+        current_app.logger.warning("数据库删除操作完成")
+        
+        return jsonify({
+            'success': True,
+            'message': '数据库已成功清空，所有数据已删除！'
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"数据库删除操作失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'数据库删除失败: {str(e)}'
+        }), 500
 
 @settings_bp.route('/upload', methods=['GET', 'POST'])
 def upload_file_route():
