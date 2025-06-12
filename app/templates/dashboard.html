@@ -2,68 +2,9 @@
 {% from "macros.html" import icon, card, chart_container, section_header, stat_card, page_header %}
 
 {% block page_css %}
-<link href="{{ url_for('static', filename='css/page-header.css') }}" rel="stylesheet">
-<link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
-<style>
-    .dashboard-card {
-        transition: all var(--transition-speed) ease;
-    }
-    
-    .dashboard-card:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--card-shadow-hover);
-    }
-    
-    .metric-value {
-        font-size: 1.75rem;
-        font-weight: 700;
-    }
-    
-    .chart-legend {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 1rem;
-        margin-top: 1rem;
-    }
-    
-    .legend-item {
-        display: flex;
-        align-items: center;
-        font-size: 0.85rem;
-    }
-    
-    .legend-color {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin-right: 0.5rem;
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: var(--primary-light);
-        cursor: pointer;
-    }
-    
-    .trend-analysis {
-        background-color: var(--gray-100);
-        border-radius: var(--border-radius);
-    }
-    
-    .trend-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-    }
-    
-    .trend-icon-success {
-        background-color: var(--success-light);
-    }
-    
-    .trend-icon-danger {
-        background-color: var(--danger-light);
-    }
-</style>
+<link href="{{ url_for('static', filename='css/components.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/pages.css') }}" rel="stylesheet">
+<!-- 内联CSS样式已迁移到pages.css -->
 {% endblock %}
 
 {% block page_scripts %}

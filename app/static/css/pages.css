@@ -1,0 +1,642 @@
+/*
+ * AiBookkeeping - 页面特定样式
+ * 整合所有页面特定的CSS样式，包括仪表盘、收入分析、交易记录和上传页面
+ * 从 dashboard.css、income_analysis.css、transactions.css、upload.css 整合
+ */
+
+/* ==========================================================================
+   仪表盘页面样式 (从 dashboard.css 整合)
+   ========================================================================== */
+
+/* Apple Design 仪表盘样式 */
+.dashboard-section {
+    margin-bottom: var(--spacing-2xl);
+}
+
+.dashboard-section-header {
+    margin-bottom: var(--spacing-xl);
+}
+
+.dashboard-section-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.028em;
+    margin-bottom: var(--spacing-sm);
+}
+
+.dashboard-section-header p {
+    font-size: 17px;
+    color: var(--text-secondary);
+    letter-spacing: -0.022em;
+    margin: 0;
+}
+
+.dashboard-card {
+    transition: all var(--transition-speed) ease;
+    box-shadow: var(--shadow-sm);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background-color: var(--surface-primary);
+    border: 1px solid var(--gray-200);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.dashboard-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--primary-200);
+}
+
+.dashboard-card .card-body {
+    padding: var(--spacing-lg);
+}
+
+/* 仪表盘指标样式 */
+.metric-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--primary-50);
+    cursor: pointer;
+}
+
+.trend-analysis {
+    background-color: var(--gray-100);
+    border-radius: var(--border-radius);
+}
+
+.trend-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
+.trend-icon-success {
+    background-color: var(--success-500);
+}
+
+.trend-icon-danger {
+    background-color: var(--danger-500);
+}
+
+/* ==========================================================================
+   收入分析页面样式 (从 income_analysis.css 整合)
+   ========================================================================== */
+
+/* Apple Design 指标卡片样式 */
+.metric-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    box-shadow: var(--card-shadow);
+    transition: all var(--transition-speed) ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    min-height: 130px;
+    position: relative;
+    border: 1px solid var(--gray-200);
+}
+
+.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.metric-label {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--gray-800);
+    letter-spacing: -0.02em;
+}
+
+.metric-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 50rem;
+    display: inline-block;
+    margin-top: auto;
+    align-self: center;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+}
+
+.metric-status.good {
+    background-color: var(--success-500);
+    color: var(--success);
+}
+
+.metric-status.moderate {
+    background-color: var(--warning-500);
+    color: var(--warning);
+}
+
+.metric-status.poor {
+    background-color: var(--danger-500);
+    color: var(--danger);
+}
+
+/* 图表容器样式 */
+.chart-container {
+    position: relative;
+    height: 280px;
+}
+
+/* 统计容器样式 */
+.stat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: center;
+}
+
+.stat-item {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    background-color: var(--gray-100);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.stat-description {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-top: 0.25rem;
+}
+
+.stats-container.horizontal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.stats-container.horizontal .stat-item {
+    flex: 1;
+    min-width: 200px;
+    text-align: center;
+}
+
+/* 收入分析页面卡片样式 */
+.income-analysis .card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    transition: all var(--transition-speed) ease;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.income-analysis .card:hover {
+    box-shadow: var(--card-shadow-hover);
+}
+
+.income-analysis .card-header {
+    background-color: white;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.income-analysis .card-title {
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.income-analysis .card-subtitle {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   交易记录页面样式 (从 transactions.css 整合)
+   ========================================================================== */
+
+/* Apple Design 筛选表单样式 */
+.filter-form-container {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    transition: all var(--transition-speed) ease;
+    border: none;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+    background-color: var(--surface-primary);
+    padding: var(--spacing-lg);
+}
+
+.filter-form-container:hover {
+    box-shadow: var(--card-shadow-hover);
+}
+
+.filter-form-container .card-header {
+    cursor: pointer;
+}
+
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--gray-100);
+    border-radius: 50rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    user-select: none;
+}
+
+.filter-badge .close-icon {
+    cursor: pointer;
+    margin-left: 0.5rem;
+    opacity: 0.6;
+}
+
+.filter-badge .close-icon:hover {
+    opacity: 1;
+}
+
+.active-filters {
+    padding: 0.5rem 1rem;
+    background-color: var(--gray-100);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+}
+
+.filter-input-group {
+    position: relative;
+}
+
+.filter-input-group .clear-input {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    opacity: 0.5;
+    z-index: 5;
+    display: none;
+}
+
+.filter-input-group .clear-input:hover {
+    opacity: 1;
+}
+
+.filter-input-group input:not(:placeholder-shown) ~ .clear-input,
+.filter-input-group select:not([value=""]) ~ .clear-input {
+    display: block;
+}
+
+.daterange-picker-container {
+    display: flex;
+    position: relative;
+}
+
+.amount-range-slider {
+    margin-top: 0.5rem;
+}
+
+.table-container {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    transition: all var(--transition-speed) ease;
+}
+
+.transaction-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 50rem;
+}
+
+.transaction-amount {
+    font-weight: 600;
+}
+
+.transaction-amount.positive {
+    color: var(--success);
+}
+
+.transaction-amount.negative {
+    color: var(--danger);
+}
+
+.collapse-toggle[aria-expanded="true"] .material-icons-round.expand-icon {
+    transform: rotate(180deg);
+    transition: transform 0.2s ease;
+}
+
+.collapse-toggle .material-icons-round.expand-icon {
+    transition: transform 0.2s ease;
+}
+
+/* 自定义滑块样式 */
+.range-slider {
+    width: 100%;
+    margin: 1rem 0;
+}
+
+.range-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.filter-quick-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.filter-quick-actions button {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Apple Design 表格样式 */
+.transactions-table {
+    margin-bottom: 0;
+    background-color: var(--surface-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.transactions-table th {
+    font-weight: 600;
+    white-space: nowrap;
+    background-color: var(--gray-50);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    letter-spacing: -0.01em;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.transactions-table td {
+    vertical-align: middle;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--gray-100);
+}
+
+/* 错误页面样式 */
+.error-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 2rem 0;
+}
+
+.error-card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+}
+
+.error-header {
+    background-color: var(--danger-light);
+    color: var(--danger);
+    padding: 1.25rem;
+    font-weight: 600;
+}
+
+.error-icon-container {
+    width: 120px;
+    height: 120px;
+    background-color: var(--danger-light);
+    color: var(--danger);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+}
+
+.error-icon {
+    font-size: 64px;
+}
+
+.error-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--gray-800);
+}
+
+.error-message {
+    background-color: var(--danger-light);
+    border-left: 4px solid var(--danger);
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 2rem;
+    color: var(--gray-800);
+}
+
+.help-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    background-color: var(--gray-100);
+    transition: all var(--transition-speed) ease;
+}
+
+.help-item:hover {
+    background-color: var(--primary-light);
+    transform: translateY(-2px);
+}
+
+.help-icon {
+    width: 36px;
+    height: 36px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.help-text {
+    font-size: 0.95rem;
+}
+
+.error-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 1.25rem;
+    background-color: var(--gray-100);
+}
+
+.error-details {
+    margin-top: 2rem;
+}
+
+.details-content {
+    background-color: var(--gray-100);
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--danger);
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+/* ==========================================================================
+   上传页面样式 (从 upload.css 整合)
+   ========================================================================== */
+
+/* Apple Design 风格的上传表单样式 */
+.upload-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* 拖拽区域样式 */
+.drop-zone {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 2px dashed #d1d5db;
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.drop-zone:hover {
+    border-color: #007aff;
+    background: rgba(0, 122, 255, 0.02);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 122, 255, 0.1);
+}
+
+.drop-zone.drag-over {
+    border-color: #007aff;
+    background: rgba(0, 122, 255, 0.05);
+    transform: scale(1.02);
+    box-shadow: 0 12px 40px rgba(0, 122, 255, 0.15);
+}
+
+.drop-zone-content {
+    pointer-events: none;
+}
+
+/* 文件列表容器样式 */
+.file-list-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* ==========================================================================
+   通用页面组件样式
+   ========================================================================== */
+
+/* 页面容器 */
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-6);
+}
+
+/* 页面标题 */
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-6);
+    letter-spacing: -0.02em;
+}
+
+/* 页面副标题 */
+.page-subtitle {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-4);
+    letter-spacing: -0.01em;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .page-container {
+        padding: var(--spacing-4);
+    }
+    
+    .page-title {
+        font-size: 1.75rem;
+    }
+    
+    .dashboard-card {
+        margin-bottom: var(--spacing-4);
+    }
+    
+    .metric-card {
+        min-height: 100px;
+        padding: var(--spacing-lg);
+    }
+    
+    .upload-container {
+        max-width: 100%;
+        padding: 0 var(--spacing-4);
+    }
+    
+    .drop-zone {
+        padding: 2rem 1rem;
+    }
+}
