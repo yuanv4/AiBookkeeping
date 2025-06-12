@@ -1,79 +1,103 @@
 /* 收入分析页面样式 */
 
-/* 指标卡片样式 */
+/* Apple Design 指标卡片样式 */
 .metric-card {
-    background-color: #fff;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
     text-align: center;
     display: flex;
     flex-direction: column;
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-xl);
     height: 100%;
     min-height: 130px;
     position: relative;
+    border: 1px solid var(--gray-200);
+    transition: all 0.15s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .metric-label {
-    font-size: 14px;
-    color: #6c757d;
-    margin-bottom: 8px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+    letter-spacing: -0.01em;
 }
 
 .metric-value {
-    font-size: 28px;
-    font-weight: 600;
-    color: #334152;
-    margin-bottom: 10px;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    letter-spacing: -0.02em;
 }
 
 .metric-status {
-    font-size: 12px;
-    font-weight: 500;
-    padding: 4px 8px;
-    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
     margin-top: auto;
     display: inline-block;
     align-self: center;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
 }
 
 .metric-status.good {
-    background-color: rgba(71, 184, 129, 0.15);
-    color: #47b881;
+    background-color: rgba(52, 199, 89, 0.1);
+    color: var(--success);
 }
 
 .metric-status.moderate {
-    background-color: rgba(255, 171, 0, 0.15);
-    color: #ffab00;
+    background-color: rgba(255, 149, 0, 0.1);
+    color: var(--warning);
 }
 
 .metric-status.poor {
-    background-color: rgba(236, 76, 71, 0.15);
-    color: #ec4c47;
+    background-color: rgba(255, 59, 48, 0.1);
+    color: var(--danger);
 }
 
-/* 图表容器样式 */
+/* Apple Design 图表容器样式 */
 .chart-container {
-    background-color: #fff;
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
     height: 300px;
     position: relative;
+    border: 1px solid var(--gray-200);
+    transition: all 0.15s ease;
 }
 
-/* 统计数据容器样式 */
+.chart-container:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Apple Design 统计数据容器样式 */
 .stats-container {
-    background-color: #fff;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
     height: 100%;
     min-height: 300px;
     display: flex;
     flex-direction: column;
     justify-content: space-around;
+    border: 1px solid var(--gray-200);
+    transition: all 0.15s ease;
+}
+
+.stats-container:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .stats-container.horizontal {
@@ -84,7 +108,7 @@
 }
 
 .stat-item {
-    margin-bottom: 15px;
+    margin-bottom: var(--spacing-lg);
     display: flex;
     flex-direction: column;
 }
@@ -92,51 +116,63 @@
 .stats-container.horizontal .stat-item {
     flex: 1;
     min-width: 150px;
-    padding: 0 10px;
+    padding: 0 var(--spacing-sm);
     margin-bottom: 0;
 }
 
 .stat-label {
-    font-size: 13px;
-    color: #6c757d;
-    margin-bottom: 5px;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+    font-weight: 500;
+    letter-spacing: -0.01em;
 }
 
 .stat-value {
-    font-size: 24px;
-    font-weight: 600;
-    color: #334152;
-    margin-bottom: 5px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+    letter-spacing: -0.02em;
 }
 
 .stat-description {
-    font-size: 12px;
-    color: #8492a6;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    letter-spacing: -0.01em;
 }
 
-/* 卡片头部样式 */
+/* Apple Design 卡片头部样式 */
 .card-header {
-    background-color: #fff;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    padding-bottom: 15px;
+    background-color: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .card-title {
-    margin-bottom: 5px;
+    margin-bottom: var(--spacing-xs);
     font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    font-size: 1.125rem;
 }
 
 .card-subtitle {
-    color: #6c757d;
-    font-size: 14px;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
     margin-bottom: 0;
+    font-weight: 500;
+    letter-spacing: -0.01em;
 }
 
-/* 表格样式 */
+/* Apple Design 表格样式 */
 .table-responsive {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
 }
 
 /* 响应式调整 */
@@ -152,4 +188,4 @@
     .metric-card {
         min-height: 110px;
     }
-} 
+}

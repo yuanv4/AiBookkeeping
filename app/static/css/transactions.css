@@ -3,9 +3,14 @@
  * 包含交易记录页面特定的样式
  */
 
-/* 筛选表单样式 */
+/* Apple Design 筛选表单样式 */
 .filter-form-container {
     margin-bottom: 1.5rem;
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--gray-200);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .filter-form .input-group {
@@ -13,63 +18,129 @@
 }
 
 .filter-form .input-group-text {
-    background-color: var(--primary-light);
+    background-color: var(--primary-50);
     color: var(--primary);
-    border-color: var(--primary-light);
+    border-color: var(--gray-300);
+    font-weight: 500;
+    letter-spacing: -0.01em;
 }
 
-/* 表格样式 */
+/* Apple Design 表格样式 */
 .transactions-table {
     margin-bottom: 0;
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .transactions-table th {
     font-weight: 600;
     white-space: nowrap;
+    background-color: var(--gray-50);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    letter-spacing: -0.01em;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .transactions-table td {
     vertical-align: middle;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--gray-100);
 }
 
-/* 分页控件 */
+.transactions-table tbody tr:hover {
+    background-color: var(--gray-50);
+    transition: background-color 0.15s ease;
+}
+
+/* Apple Design 分页控件 */
 .pagination-container {
     padding: 1rem;
     display: flex;
     justify-content: center;
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    margin-top: var(--spacing-md);
 }
 
 .pagination .page-item .page-link {
     color: var(--primary);
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     margin: 0 2px;
+    border: 1px solid var(--gray-300);
+    font-weight: 500;
+    transition: all 0.15s ease;
+}
+
+.pagination .page-item .page-link:hover {
+    background-color: var(--primary-50);
+    border-color: var(--primary);
+    transform: translateY(-1px);
 }
 
 .pagination .page-item.active .page-link {
     background-color: var(--primary);
     border-color: var(--primary);
+    box-shadow: 0 2px 4px rgba(0, 122, 255, 0.25);
 }
 
-/* 空状态 */
+/* Apple Design 空状态 */
 .no-data-container {
     padding: 3rem 1rem;
     text-align: center;
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    margin: var(--spacing-lg) 0;
 }
 
 .no-data-container i {
     font-size: 48px;
-    color: rgba(0,0,0,0.15);
+    color: var(--gray-400);
     margin-bottom: 1rem;
 }
 
-/* 导出按钮 */
+.no-data-container h3 {
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+    letter-spacing: -0.01em;
+}
+
+.no-data-container p {
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* Apple Design 导出按钮 */
 .export-btn {
     display: flex;
     align-items: center;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 122, 255, 0.25);
+}
+
+.export-btn:hover {
+    background-color: var(--primary-600);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 122, 255, 0.25);
+    color: white;
 }
 
 .export-btn i {
     margin-right: 0.5rem;
+    font-size: 1rem;
 }
 
 /* 响应式调整 */
@@ -83,4 +154,4 @@
     .filter-actions {
         margin-top: 1rem;
     }
-} 
+}

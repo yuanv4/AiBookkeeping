@@ -6,35 +6,13 @@
 {% block page_css %}
 <style>
     .settings-header {
-        background: linear-gradient(to right, var(--primary-light), #f8f9fa);
-        border-radius: var(--border-radius-lg);
-        padding: var(--spacing-lg);
-        margin-bottom: var(--spacing-xl);
-    }
-    
-    .settings-card {
-        border: none;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        transition: all 0.15s ease-in-out;
-    }
-    
-    .settings-card:hover {
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        transform: translateY(-2px);
-    }
-    
-    .settings-icon {
-        width: 3rem;
-        height: 3rem;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 1rem;
-    }
-    
-    .settings-section {
-        margin-bottom: 2rem;
+        background: linear-gradient(135deg, var(--primary-50) 0%, var(--surface-secondary) 100%);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-6);
+        margin-bottom: var(--spacing-8);
+        border: 1px solid var(--primary-100);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
 </style>
 {% endblock %}
@@ -47,75 +25,64 @@
             <h1 class="fw-bold mb-1">系统设置</h1>
             <p class="text-muted mb-0">管理数据上传和数据库清理功能</p>
         </div>
-        <div class="col-md-5">
-            <div class="d-flex justify-content-md-end mt-3 mt-md-0">
-                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary btn-sm">
-                    {{ icon("dashboard", "sm", "", "me-1") }}
-                    返回仪表盘
-                </a>
-            </div>
-        </div>
     </div>
 </div>
 
-<!-- 设置选项 -->
-<div class="row g-4">
-    <!-- 数据管理 -->
-    <div class="col-lg-6">
-        <div class="settings-section">
-            <h5 class="fw-bold mb-3">数据管理</h5>
-            
-            <!-- 文件上传 -->
-            <div class="card settings-card mb-3">
-                <div class="card-body p-4">
-                    <div class="settings-icon bg-primary bg-opacity-10 mx-auto">
-                        {{ icon("cloud_upload", "lg", "text-primary") }}
+<!-- 文件上传卡片 -->
+<div class="row mb-4">
+    <div class="col-12">
+        {% call card("文件上传", "cloud_upload", "bg-white") %}
+            <div class="text-center py-4">
+                <div class="mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style="width: 4rem; height: 4rem;">
+                        {{ icon("file_upload", "xl", "text-primary") }}
                     </div>
-                    <h6 class="card-title text-center fw-bold mb-2">文件上传</h6>
-                    <p class="card-text text-center text-muted mb-3">上传银行账单Excel文件进行数据分析</p>
-                    
-                    <!-- 文件上传表单 -->
-                    <form action="{{ url_for('settings_bp.upload_file_route') }}" method="post" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <input type="file" class="form-control" name="file" id="fileInput" multiple accept=".xlsx,.xls" required>
-                            <div class="form-text">支持上传多个Excel文件（.xlsx, .xls格式）</div>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
-                                {{ icon("file_upload", "sm", "", "me-1") }}
-                                上传文件
-                            </button>
-                        </div>
-                    </form>
                 </div>
-            </div>
-            
-
-        </div>
-    </div>
-    
-    <!-- 数据库管理 -->
-    <div class="col-lg-6">
-        <div class="settings-section">
-            <h5 class="fw-bold mb-3">数据库管理</h5>
-            
-            <!-- 删除数据库 -->
-            <div class="card settings-card mb-3">
-                <div class="card-body p-4">
-                    <div class="settings-icon bg-danger bg-opacity-10 mx-auto">
-                        {{ icon("delete_forever", "lg", "text-danger") }}
+                <h5 class="fw-bold mb-3">上传银行账单文件</h5>
+                <p class="text-muted mb-4">支持上传Excel格式的银行账单文件进行数据分析</p>
+                
+                <!-- 文件上传表单 -->
+                <form action="{{ url_for('settings_bp.upload_file_route') }}" method="post" enctype="multipart/form-data" class="mx-auto" style="max-width: 500px;">
+                    <div class="mb-4">
+                        <input type="file" class="form-control form-control-lg" name="file" id="fileInput" multiple accept=".xlsx,.xls" required>
+                        <div class="form-text mt-2">支持上传多个Excel文件（.xlsx, .xls格式）</div>
                     </div>
-                    <h6 class="card-title text-center fw-bold mb-2">删除数据库</h6>
-                    <p class="card-text text-center text-muted mb-3">清空所有交易数据和分析结果</p>
                     <div class="d-grid">
-                        <button class="btn btn-danger" onclick="confirmDeleteDatabase()">
-                            {{ icon("delete", "sm", "", "me-1") }}
-                            删除所有数据
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            {{ icon("file_upload", "sm", "", "me-2") }}
+                            开始上传文件
                         </button>
                     </div>
+                </form>
+            </div>
+        {% endcall %}
+    </div>
+</div>
+
+<!-- 危险操作卡片 -->
+<div class="row">
+    <div class="col-12">
+        {% call card("危险操作", "warning", "bg-danger bg-opacity-10 border-danger") %}
+            <div class="alert alert-danger border-0 mb-3" role="alert">
+                <div class="d-flex align-items-center">
+                    {{ icon("warning", "sm", "text-danger me-2") }}
+                    <strong>警告：</strong>以下操作具有不可逆性，请谨慎操作！
                 </div>
             </div>
-        </div>
+            
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h6 class="fw-bold mb-2 text-danger">删除所有数据</h6>
+                    <p class="text-muted mb-0">此操作将永久删除所有交易数据和分析结果，且无法恢复。请确保您已经备份了重要数据。</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <button class="btn btn-danger" onclick="confirmDeleteDatabase()">
+                        {{ icon("delete_forever", "sm", "", "me-2") }}
+                        删除所有数据
+                    </button>
+                </div>
+            </div>
+        {% endcall %}
     </div>
 </div>
 
