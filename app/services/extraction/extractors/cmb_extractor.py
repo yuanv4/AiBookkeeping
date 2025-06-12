@@ -22,15 +22,6 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
     def get_extraction_config(self) -> ExtractionConfig:
         """获取招商银行特定的数据提取配置"""
         return ExtractionConfig(
-            date_column_keyword='记账日期',
-            column_mapping={
-                '记账日期': 'transaction_date',
-                '交易金额': 'amount',
-                '联机余额': 'balance_after',
-                '对手信息': 'counterparty',
-                '交易摘要': 'description',
-                '货币': 'currency',
-            },
             use_skiprows=True,
             account_name_pattern=AccountExtractionPattern(
                 keyword='户    名：',
@@ -44,5 +35,6 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
                 code='CMB',
                 name='招商银行',
                 keyword='招商银行'
-            )
+            ),
+            source_columns=['记账日期', '交易金额', '联机余额', '对手信息', '交易摘要', '货币']
         )

@@ -22,15 +22,6 @@ class CCBTransactionExtractor(BaseTransactionExtractor):
     def get_extraction_config(self) -> ExtractionConfig:
         """获取建设银行特定的数据提取配置"""
         return ExtractionConfig(
-            date_column_keyword='交易日期',
-            column_mapping={
-                '交易日期': 'transaction_date',
-                '交易金额': 'amount',
-                '账户余额': 'balance_after',
-                '对方账号与户名': 'counterparty',
-                '摘要': 'description',
-                '币别': 'currency',
-            },
             use_skiprows=False,
             account_name_pattern=AccountExtractionPattern(
                 keyword='客户名称:',
@@ -44,5 +35,6 @@ class CCBTransactionExtractor(BaseTransactionExtractor):
                 code='CCB',
                 name='建设银行',
                 keyword='建设银行'
-            )
+            ),
+            source_columns=['交易日期', '交易金额', '账户余额', '对方账号与户名', '摘要', '币别']
         )

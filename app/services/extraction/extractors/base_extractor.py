@@ -12,7 +12,7 @@ import re
 from datetime import datetime
 from typing import Dict, List, Type, Optional, Any, Union, Tuple
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.models import Bank, Account, Transaction, db
 from app.services.core.bank_service import BankService
@@ -37,13 +37,14 @@ class BankInfo:
 @dataclass
 class ExtractionConfig:
     """银行数据提取配置"""
-    date_column_keyword: str  # 日期列关键词，如'交易日期'、'记账日期'
-    column_mapping: Dict[str, str]  # 列名映射字典
     use_skiprows: bool = False  # 是否使用skiprows而不是header参数
     # 账户信息提取配置
     account_name_pattern: 'AccountExtractionPattern'  # 账户名称提取模式
     account_number_pattern: 'AccountExtractionPattern'  # 账户号码提取模式
     bank_info: Optional[BankInfo] = None
+    # 标准化字段配置
+    target_columns: List[str] = field(default_factory=lambda: ['transaction_date', 'amount', 'balance_after', 'counterparty', 'description', 'currency'])  # 目标映射值配置（固定值）
+    source_columns: List[str] = None  # 原始值配置：银行特定的原始列名
 
 class BankStatementExtractorInterface(ABC):
     """银行对账单提取器接口"""
@@ -204,53 +205,6 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
         config = self.get_extraction_config()
         return self._extract_transactions_with_config(file_path, config)
         
-    def _standardize_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """标准化DataFrame格式
-        
-        Args:
-            df: 原始DataFrame
-            
-        Returns:
-            DataFrame: 标准化后的DataFrame
-        """
-        # 标准化列名
-        standard_columns = {
-            'transaction_date': '交易日期',
-            'amount': '金额',
-            'balance_after': '余额',
-            'counterparty': '对方户名',
-            'description': '摘要',
-            'transaction_type': '交易类型',
-            'currency': '币种',
-        }
-        
-        # 重命名列
-        for std_col, orig_col in standard_columns.items():
-            if orig_col in df.columns:
-                df = df.rename(columns={orig_col: std_col})
-        
-        # 确保必要列存在
-        required_columns = ['transaction_date', 'amount', 'counterparty', 'description']
-        for col in required_columns:
-            if col not in df.columns:
-                df[col] = None
-                
-        # 数据类型转换
-        if 'transaction_date' in df.columns:
-            df['transaction_date'] = pd.to_datetime(df['transaction_date'].astype(str), format='%Y%m%d', errors='coerce')
-        
-        if 'amount' in df.columns:
-            # 清理amount列中的逗号和其他非数字字符
-            df['amount'] = df['amount'].astype(str).str.replace(',', '').str.replace('，', '')
-            df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
-            
-        if 'balance_after' in df.columns:
-            # 清理balance_after列中的逗号和其他非数字字符
-            df['balance_after'] = df['balance_after'].astype(str).str.replace(',', '').str.replace('，', '')
-            df['balance_after'] = pd.to_numeric(df['balance_after'], errors='coerce')
-        
-        return df
-    
     def _extract_transactions_with_config(self, file_path: str, config: ExtractionConfig) -> Optional[pd.DataFrame]:
         """使用配置提取交易数据的通用实现
         
@@ -269,7 +223,7 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
             header_row = None
             for i, row in df_raw.iterrows():
                 row_values = row.values
-                if any(config.date_column_keyword in str(val) for val in row_values):
+                if any(config.source_columns[1] in str(val) for val in row_values):
                     header_row = i
                     self.logger.info(f"找到表头行在第{i}行: {row_values}")
                     break
@@ -289,17 +243,26 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
             df.columns = df.columns.str.strip()
 
             # 过滤有效数据行（排除空的日期列）
-            if config.date_column_keyword in df.columns:
-                df = df.dropna(subset=[config.date_column_keyword], how='all')
+            if config.source_columns[1] in df.columns:
+                df = df.dropna(subset=[config.source_columns[1]], how='all')
                 # 进一步过滤：确保日期列不是字符串关键词本身
-                df = df[df[config.date_column_keyword] != config.date_column_keyword]
+                df = df[df[config.source_columns[1]] != config.source_columns[1]]
                 self.logger.info(f"过滤后数据行数: {len(df)}")
             else:
-                self.logger.error(f"未找到'{config.date_column_keyword}'列，可用列: {df.columns.tolist()}")
+                self.logger.error(f"未找到'{config.source_columns[1]}'列，可用列: {df.columns.tolist()}")
                 return None
             
-            # 重命名列以匹配标准格式
-            df = df.rename(columns=config.column_mapping)
+            # 使用target_columns和source_columns进行列名映射
+            if config.source_columns and config.target_columns:
+                # 确保source_columns和target_columns长度一致
+                if len(config.source_columns) == len(config.target_columns):
+                    column_mapping = dict(zip(config.source_columns, config.target_columns))
+                    df = df.rename(columns=column_mapping)
+                    self.logger.info(f"列名映射: {column_mapping}")
+                else:
+                    self.logger.warning(f"source_columns长度({len(config.source_columns)})与target_columns长度({len(config.target_columns)})不匹配")
+            else:
+                self.logger.warning("未配置source_columns或target_columns，跳过列名映射")
             return df
             
         except Exception as e:
@@ -330,10 +293,7 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     'record_count': 0,
                     'file_path': file_path
                 }
-            
-            # 标准化数据
-            df = self._standardize_dataframe(df)
-            
+                
             # 如果没有提供账户信息，则从原始文件提取
             if not account_name or not account_number:
                 # 使用原始文件数据提取账户信息
