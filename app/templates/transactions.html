@@ -62,82 +62,9 @@
     </div>
     <div class="collapse show" id="filterFormCollapse">
         <div class="card-body">
-            <!-- 快速筛选按钮 -->
-            <div class="filter-quick-actions">
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="today">
-                    {{ icon("today", "sm", "", "me-1") }}今天
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="last7days">
-                    {{ icon("date_range", "sm", "", "me-1") }}最近7天
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="thisMonth">
-                    {{ icon("calendar_month", "sm", "", "me-1") }}本月
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="income">
-                    {{ icon("trending_up", "sm", "", "me-1") }}收入
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm quick-filter" data-filter-type="expense">
-                    {{ icon("trending_down", "sm", "", "me-1") }}支出
-                </button>
-            </div>
-
             <form id="filter-form" class="row g-3 filter-form">
-                <!-- 第一行：交易类型、银行/卡号、关键词 -->
-                <div class="col-lg-4 col-md-6">
-                    <label for="category" class="form-label small fw-medium">交易类型</label>
-                    <div class="filter-input-group">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0">
-                                {{ icon("category", "sm", "text-muted") }}
-                            </span>
-                            <select class="form-select border-start-0 shadow-none" id="category" name="category">
-                                <option value="">全部交易类型</option>
-                                {% for category in data.categories %}
-                                <option value="{{ category }}">{{ category }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
-                    </div>
-                </div>
-
-                <div class="col-lg-4 col-md-6">
-                    <label for="bankAccount" class="form-label small fw-medium">银行/卡号</label>
-                    <div class="filter-input-group">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0">
-                                {{ icon("account_balance", "sm", "text-muted") }}
-                            </span>
-                            <select class="form-select border-start-0 shadow-none" id="bankAccount" name="bankAccount">
-                                <option value="">全部银行/卡号</option>
-                                {% for account in data.accounts %}
-                                {% if account is mapping %}
-                                <option value="{{ account.id }}">{{ account.bank_name }} ({{ account.account_number }})</option>
-                                {% else %}
-                                <option value="{{ account }}">{{ account }}</option>
-                                {% endif %}
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
-                    </div>
-                </div>
-
-                <div class="col-lg-4 col-md-12">
-                    <label for="search" class="form-label small fw-medium">关键词搜索</label>
-                    <div class="filter-input-group">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0">
-                                {{ icon("search", "sm", "text-muted") }}
-                            </span>
-                            <input type="text" class="form-control border-start-0 shadow-none" id="search" name="search" placeholder="输入交易对象、备注等...">
-                        </div>
-                        <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
-                    </div>
-                </div>
-
-                <!-- 第二行：日期范围 -->
-                <div class="col-md-8">
+                <!-- 日期范围 -->
+                <div class="col-md-12">
                     <label class="form-label small fw-medium">交易日期范围</label>
                     <div class="row g-2">
                         <div class="col-md-6">
@@ -158,35 +85,6 @@
                                         {{ icon("event", "sm", "text-muted") }}
                                     </span>
                                     <input type="date" class="form-control border-start-0 shadow-none" id="endDate" name="endDate" placeholder="结束日期">
-                                </div>
-                                <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 第二行：金额范围 -->
-                <div class="col-md-4">
-                    <label class="form-label small fw-medium">金额范围</label>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <div class="filter-input-group">
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-light border-end-0">
-                                        {{ icon("paid", "sm", "text-muted") }}
-                                    </span>
-                                    <input type="number" class="form-control border-start-0 shadow-none" id="minAmount" name="minAmount" placeholder="最小金额">
-                                </div>
-                                <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="filter-input-group">
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-light border-end-0">
-                                        {{ icon("paid", "sm", "text-muted") }}
-                                    </span>
-                                    <input type="number" class="form-control border-start-0 shadow-none" id="maxAmount" name="maxAmount" placeholder="最大金额">
                                 </div>
                                 <span class="clear-input">{{ icon("close", "sm", "text-muted") }}</span>
                             </div>

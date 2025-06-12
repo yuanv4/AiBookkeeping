@@ -10,6 +10,7 @@ import logging
 from collections import defaultdict
 
 from app.models import Transaction, Account, db
+
 from sqlalchemy import func, and_
 
 logger = logging.getLogger(__name__)
@@ -53,11 +54,9 @@ class TransactionService:
                 
                 # Transaction type filter
                 if 'transaction_type' in filters and filters['transaction_type']:
-                    # 如果过滤器中的transaction_type是字符串，尝试匹配枚举的display_name
+                    # 直接使用transaction_type进行过滤
                     filter_type = filters['transaction_type']
-                    matching_types = [t for t in TransactionTypeEnum if filter_type.lower() in t.display_name.lower()]
-                    if matching_types:
-                        query = query.filter(Transaction.transaction_type.in_(matching_types))
+                    query = query.filter(Transaction.transaction_type == filter_type)
                 
                 # Counterparty filter
                 if 'counterparty' in filters and filters['counterparty']:
@@ -117,11 +116,9 @@ class TransactionService:
                 
                 # Transaction type filter
                 if 'transaction_type' in filters and filters['transaction_type']:
-                    # 如果过滤器中的transaction_type是字符串，尝试匹配枚举的display_name
+                    # 直接使用transaction_type进行过滤
                     filter_type = filters['transaction_type']
-                    matching_types = [t for t in TransactionTypeEnum if filter_type.lower() in t.display_name.lower()]
-                    if matching_types:
-                        query = query.filter(Transaction.transaction_type.in_(matching_types))
+                    query = query.filter(Transaction.transaction_type == filter_type)
                 
                 # Counterparty filter
                 if 'counterparty' in filters and filters['counterparty']:
@@ -155,7 +152,7 @@ class TransactionService:
     
     # Database transaction operations (migrated from DatabaseService)
     @staticmethod
-    def create_transaction(account_id: int, transaction_type_id: int, date: date, 
+    def create_transaction(account_id: int, transaction_type: str, date: date, 
                          amount: Decimal, currency: str = 'CNY', description: str = None,
                          counterparty: str = None, notes: str = None, 
                          original_description: str = None, **kwargs) -> Transaction:
@@ -163,7 +160,7 @@ class TransactionService:
         try:
             return Transaction.create(
                 account_id=account_id,
-                transaction_type_id=transaction_type_id,
+                transaction_type=transaction_type,
                 date=date,
                 amount=amount,
                 currency=currency,
@@ -179,7 +176,7 @@ class TransactionService:
     
     @staticmethod
     def get_transactions(account_id: int = None, start_date: date = None, 
-                        end_date: date = None, transaction_type_id: int = None,
+                        end_date: date = None, transaction_type: str = None,
                         limit: int = None, offset: int = None) -> List[Transaction]:
         """Get transactions with filtering options."""
         if account_id:
@@ -197,8 +194,8 @@ class TransactionService:
             query = query.filter(Transaction.date >= start_date)
         if end_date:
             query = query.filter(Transaction.date <= end_date)
-        if transaction_type_id:
-            query = query.filter_by(transaction_type_id=transaction_type_id)
+        if transaction_type:
+            query = query.filter_by(transaction_type=transaction_type)
         
         query = query.order_by(Transaction.date.desc(), Transaction.created_at.desc())
         
