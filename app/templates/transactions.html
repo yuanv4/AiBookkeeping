@@ -1,15 +1,10 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, data_table, filter_form, filter_input %}
+{% from "macros.html" import icon, data_table, filter_form, filter_input, page_header %}
 
 {% block page_css %}
+<link href="{{ url_for('static', filename='css/page-header.css') }}" rel="stylesheet">
 <link href="{{ url_for('static', filename='css/transactions.css') }}" rel="stylesheet">
 <style>
-    .transactions-header {
-        background: linear-gradient(to right, var(--primary-light), #f8f9fa);
-        border-radius: var(--border-radius-lg);
-        padding: var(--spacing-lg);
-        margin-bottom: var(--spacing-xl);
-    }
     
     .filter-form-container {
         border-radius: var(--border-radius);
@@ -155,6 +150,9 @@
 {% endblock %}
 
 {% block content %}
+<!-- 交易记录页头 -->
+{{ page_header("交易记录", "查看和搜索您的所有交易记录，共 " + total_count|string + " 条", "receipt_long") }}
+
 <!-- 分页数据元素 -->
 <div id="current-page-data" 
      data-page="{{ data.pagination.page }}" 

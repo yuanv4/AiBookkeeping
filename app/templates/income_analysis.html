@@ -1,15 +1,10 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon %}
+{% from "macros.html" import icon, page_header %}
 
 {% block page_css %}
+<link href="{{ url_for('static', filename='css/page-header.css') }}" rel="stylesheet">
 <link href="{{ url_for('static', filename='css/income_analysis.css') }}" rel="stylesheet">
 <style>
-    .analysis-header {
-        background: linear-gradient(to right, var(--primary-light), #f8f9fa);
-        border-radius: var(--border-radius-lg);
-        padding: var(--spacing-lg);
-        margin-bottom: var(--spacing-xl);
-    }
     
     .metric-card {
         background-color: white;
@@ -146,6 +141,9 @@
 {% endblock %}
 
 {% block content %}
+<!-- 收入分析页头 -->
+{{ page_header("收入分析", "全方位分析您的收入情况和财务健康状况", "analytics") }}
+
 <div class="container-fluid px-0">
     <!-- 健康状况总览 -->
     <div class="row g-4 mb-4">

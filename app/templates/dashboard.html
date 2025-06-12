@@ -1,9 +1,8 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, card, chart_container, section_header, stat_card %}
-
-{% block title %}仪表盘 - 银行账单分析系统{% endblock %}
+{% from "macros.html" import icon, card, chart_container, section_header, stat_card, page_header %}
 
 {% block page_css %}
+<link href="{{ url_for('static', filename='css/page-header.css') }}" rel="stylesheet">
 <link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
 <style>
     .dashboard-card {
@@ -81,6 +80,9 @@
 {% endblock %}
 
 {% block content %}
+<!-- 仪表盘页头 -->
+{{ page_header("仪表盘", "全面掌握您的财务状况和资金流向", "dashboard", false) }}
+
 <!-- 图表数据元素 -->
 <div style="display: none;">
     <!-- 余额历史数据 -->

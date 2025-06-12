@@ -1,23 +1,14 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, card %}
-
-{% block title %}系统设置 - 银行账单分析系统{% endblock %}
+{% from "macros.html" import icon, card, page_header %}
 
 {% block page_css %}
-<style>
-    .settings-header {
-        background: linear-gradient(135deg, var(--primary-50) 0%, var(--surface-secondary) 100%);
-        border-radius: var(--radius-lg);
-        padding: var(--spacing-6);
-        margin-bottom: var(--spacing-8);
-        border: 1px solid var(--primary-100);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-    }
-</style>
+<link href="{{ url_for('static', filename='css/page-header.css') }}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
+<!-- 设置页头 -->
+{{ page_header("系统设置", "管理您的账户设置和数据导入", "settings") }}
+
 <!-- 文件上传卡片 -->
 <div class="row mb-4">
     <div class="col-12">
