@@ -148,3 +148,17 @@ class ComprehensiveIncomeAnalyzer(BaseAnalyzer):
         except Exception as e:
             self.logger.error(f"计算综合健康分数失败: {e}")
             return 0.0
+    
+    def _perform_analysis(self) -> Dict[str, Any]:
+        """执行综合收入分析。
+        
+        实现BaseAnalyzer要求的抽象方法。
+        
+        Returns:
+            综合分析结果字典
+        """
+        try:
+            return self.get_comprehensive_summary()
+        except Exception as e:
+            self.logger.error(f"执行综合收入分析失败: {e}")
+            return {}

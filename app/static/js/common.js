@@ -3,6 +3,133 @@
  * 包含所有页面共享的功能
  */
 
+// DOM加载完成后初始化通用功能
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[COMMON] DOM加载完成，初始化通用功能');
+    
+    // 初始化侧边栏切换功能
+    initSidebarToggle();
+    
+    // 初始化卡片悬停效果
+    initCardHoverEffects();
+    
+    // 初始化图标加载检测
+    initIconLoadingDetection();
+});
+
+/**
+ * 初始化侧边栏切换功能
+ */
+function initSidebarToggle() {
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('show');
+        });
+        console.log('[COMMON] 侧边栏切换功能已初始化');
+    }
+}
+
+/**
+ * 初始化卡片悬停效果
+ */
+function initCardHoverEffects() {
+    document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+    console.log('[COMMON] 卡片悬停效果已初始化');
+}
+
+/**
+ * 初始化图标加载检测功能
+ */
+function initIconLoadingDetection() {
+    // 检测Material Icons是否正常加载
+    function checkIconsLoaded() {
+        try {
+            const testIcon = document.createElement('span');
+            testIcon.className = 'material-icons-round';
+            testIcon.textContent = 'check';
+            testIcon.style.position = 'absolute';
+            testIcon.style.opacity = '0';
+            document.body.appendChild(testIcon);
+            
+            // 使用计算样式检查字体是否加载
+            const computedStyle = window.getComputedStyle(testIcon);
+            const fontFamily = computedStyle.getPropertyValue('font-family');
+            const iconWidth = testIcon.offsetWidth > 0;
+            
+            document.body.removeChild(testIcon);
+            
+            const iconLoaded = iconWidth && fontFamily.includes('Material Icons');
+            
+            console.log('图标字体加载状态:', iconLoaded ? '成功' : '失败');
+            
+            if (!iconLoaded) {
+                console.warn('Material Icons无法加载，使用备用图标');
+                // 添加备用图标策略
+                document.body.classList.add('icons-fallback');
+                
+                // 尝试多个备用图标源
+                const iconSources = [
+                    'https://cdn.jsdelivr.net/npm/@material-icons/font@1.0.29/material-icons-round.min.css',
+                    'https://fonts.googleapis.com/icon?family=Material+Icons+Round&display=swap',
+                    'https://fonts.loli.net/icon?family=Material+Icons+Round'
+                ];
+                
+                // 尝试加载备用图标源
+                loadBackupIcons(iconSources, 0);
+                
+                // 为所有图标添加文本备用方案
+                document.querySelectorAll('.material-icons-round').forEach(icon => {
+                    if (!icon.nextElementSibling || !icon.nextElementSibling.classList.contains('icon-text')) {
+                        const textSpan = document.createElement('span');
+                        textSpan.className = 'icon-text';
+                        textSpan.textContent = icon.textContent;
+                        icon.parentNode.insertBefore(textSpan, icon.nextSibling);
+                    }
+                });
+            }
+        } catch(err) {
+            console.error('图标加载检测失败:', err);
+            // 出错时也应用备用方案
+            document.body.classList.add('icons-fallback');
+        }
+    }
+    
+    // 加载备用图标源
+    function loadBackupIcons(sources, index) {
+        if (index >= sources.length) return;
+        
+        const iconLink = document.createElement('link');
+        iconLink.rel = 'stylesheet';
+        iconLink.href = sources[index];
+        
+        iconLink.onload = function() {
+            console.log('成功加载备用图标源:', sources[index]);
+        };
+        
+        iconLink.onerror = function() {
+            console.warn('备用图标源加载失败:', sources[index]);
+            // 尝试下一个源
+            loadBackupIcons(sources, index + 1);
+        };
+        
+        document.head.appendChild(iconLink);
+    }
+    
+    // 延迟执行检测，给图标字体加载留出时间
+    setTimeout(checkIconsLoaded, 500);
+    console.log('[COMMON] 图标加载检测功能已初始化');
+}
+
 // 图表默认配置
 function setupChartDefaults() {
     if (typeof Chart !== 'undefined') {
@@ -430,4 +557,4 @@ window.app = {
     chartConfig,
     createChart,
     updateButtonStates
-}; 
+};

@@ -142,6 +142,32 @@ class IncomeDiversity:
     metrics: DiversityMetrics = field(default_factory=DiversityMetrics)
     source_breakdown: List[Dict[str, Any]] = field(default_factory=list)
     
+    # 向后兼容的属性代理
+    @property
+    def concentration_risk(self) -> float:
+        """获取集中度风险（向后兼容）。"""
+        return getattr(self.metrics, 'concentration_risk', 0.0)
+    
+    @property
+    def source_count(self) -> int:
+        """获取收入来源数量（向后兼容）。"""
+        return getattr(self.metrics, 'source_count', 0)
+    
+    @property
+    def passive_income_ratio(self) -> float:
+        """获取被动收入比例（向后兼容）。"""
+        return getattr(self.metrics, 'passive_income_ratio', 0.0)
+    
+    @property
+    def diversity_score(self) -> float:
+        """获取多样性分数（向后兼容）。"""
+        return getattr(self.metrics, 'diversity_score', 0.0)
+    
+    @property
+    def primary_source_ratio(self) -> float:
+        """获取主要收入来源占比（向后兼容）。"""
+        return getattr(self.metrics, 'primary_source_percentage', 0.0) / 100.0
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for template compatibility."""
         result = {
@@ -150,12 +176,14 @@ class IncomeDiversity:
         }
         # Add backward compatibility for direct field access
         result.update({
-            'concentration': self.metrics.concentration,
-            'passive_income_ratio': self.metrics.passive_income_ratio,
-            'source_count': self.metrics.source_count,
-            'diversity_index': self.metrics.diversity_index,
-            'primary_source_percentage': self.metrics.primary_source_percentage,
-            'risk_level': self.metrics.risk_level
+            'concentration': getattr(self.metrics, 'concentration', 0.0),
+            'passive_income_ratio': self.passive_income_ratio,
+            'source_count': self.source_count,
+            'diversity_index': getattr(self.metrics, 'diversity_index', 0.0),
+            'primary_source_percentage': getattr(self.metrics, 'primary_source_percentage', 0.0),
+            'risk_level': getattr(self.metrics, 'risk_level', 'low'),
+            'concentration_risk': self.concentration_risk,
+            'diversity_score': self.diversity_score
         })
         return result
 

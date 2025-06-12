@@ -1,3 +1,83 @@
+// 收入分析页面的JavaScript逻辑
+
+// 等待DOM加载完成
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[INCOME_ANALYSIS] 页面已加载');
+    
+    // 初始化收入分析数据
+    initIncomeAnalysisData();
+});
+
+/**
+ * 初始化收入分析数据
+ * 从HTML模板中获取后端传递的数据并转换为JavaScript变量
+ */
+function initIncomeAnalysisData() {
+    // 获取页面中的数据元素
+    const balanceDataElement = document.getElementById('balance-data');
+    const stabilityDataElement = document.getElementById('stability-data');
+    const sourceDataElement = document.getElementById('source-data');
+    const cashflowDataElement = document.getElementById('cashflow-data');
+    const growthDataElement = document.getElementById('growth-data');
+    
+    // 解析收支平衡数据
+    if (balanceDataElement) {
+        try {
+            window.balanceData = JSON.parse(balanceDataElement.textContent);
+            console.log('[INCOME_ANALYSIS] 收支平衡数据已加载:', window.balanceData);
+        } catch (e) {
+            console.error('[INCOME_ANALYSIS] 解析收支平衡数据失败:', e);
+            window.balanceData = null;
+        }
+    }
+    
+    // 解析收入稳定性数据
+    if (stabilityDataElement) {
+        try {
+            window.stabilityData = JSON.parse(stabilityDataElement.textContent);
+            console.log('[INCOME_ANALYSIS] 收入稳定性数据已加载:', window.stabilityData);
+        } catch (e) {
+            console.error('[INCOME_ANALYSIS] 解析收入稳定性数据失败:', e);
+            window.stabilityData = null;
+        }
+    }
+    
+    // 解析收入来源分布数据
+    if (sourceDataElement) {
+        try {
+            window.sourceData = JSON.parse(sourceDataElement.textContent);
+            console.log('[INCOME_ANALYSIS] 收入来源分布数据已加载:', window.sourceData);
+        } catch (e) {
+            console.error('[INCOME_ANALYSIS] 解析收入来源分布数据失败:', e);
+            window.sourceData = null;
+        }
+    }
+    
+    // 解析现金流数据
+    if (cashflowDataElement) {
+        try {
+            window.cashflowData = JSON.parse(cashflowDataElement.textContent);
+            console.log('[INCOME_ANALYSIS] 现金流数据已加载:', window.cashflowData);
+        } catch (e) {
+            console.error('[INCOME_ANALYSIS] 解析现金流数据失败:', e);
+            window.cashflowData = null;
+        }
+    }
+    
+    // 解析收入增长数据
+    if (growthDataElement) {
+        try {
+            window.growthData = JSON.parse(growthDataElement.textContent);
+            console.log('[INCOME_ANALYSIS] 收入增长数据已加载:', window.growthData);
+        } catch (e) {
+            console.error('[INCOME_ANALYSIS] 解析收入增长数据失败:', e);
+            window.growthData = null;
+        }
+    }
+    
+    console.log('[INCOME_ANALYSIS] 所有数据初始化完成');
+}
+
 /**
  * 收入分析页面图表初始化脚本
  */
@@ -1165,4 +1245,4 @@ function initIncomeAnalysisCharts() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('初始化收入分析图表...');
     initIncomeAnalysisCharts();
-}); 
+});

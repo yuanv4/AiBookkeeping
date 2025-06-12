@@ -481,68 +481,11 @@
 <!-- 加载通用模块 -->
 <script src="{{ url_for('static', filename='js/common.js') }}"></script>
 
-<script>
-// 将后端数据转换为JavaScript变量，添加默认值和存在性检查
-// 收入支出平衡数据
-var incomeExpenseData = [];
-{% if data and data.income_expense_balance and data.income_expense_balance.monthly_data %}
-            incomeExpenseData = {{ data.income_expense_balance.monthly_data | tojson | safe }};
-{% endif %}
-
-// 收入稳定性数据
-var incomeStabilityData = [];
-{% if data and data.income_stability and data.income_stability.monthly_income %}
-            incomeStabilityData = {{ data.income_stability.monthly_income | tojson | safe }};
-{% endif %}
-
-// 收入来源分布数据
-var incomeSourcesData = [];
-{% if data and data.income_diversity and data.income_diversity.get('sources') %}
-    incomeSourcesData = {{ data.income_diversity.sources | tojson | safe }};
-{% endif %}
-
-// 月度收入来源数据
-var monthlySourcesData = [];
-{% if data and data.income_diversity and data.income_diversity.get('monthly_sources') %}
-    monthlySourcesData = {{ data.income_diversity.monthly_sources | tojson | safe }};
-{% endif %}
-
-// 现金流数据
-var cashFlowData = [];
-{% if data and data.cash_flow_health and data.cash_flow_health.get('monthly_cash_flow') %}
-    cashFlowData = {{ data.cash_flow_health.monthly_cash_flow | tojson | safe }};
-{% endif %}
-
-// 收入增长数据 - 使用yearly_income作为主要数据源
-var incomeGrowthData = {
-    yearly: []
-};
-{% if data and data.income_growth and data.income_growth.get('yearly_income') %}
-    incomeGrowthData.yearly = {{ data.income_growth.yearly_income | tojson | safe }};
-{% endif %}
-
-// 收入对比通胀数据
-var incomeVsInflationData = [];
-{% if data and data.income_growth and data.income_growth.get('income_vs_inflation') %}
-    incomeVsInflationData = {{ data.income_growth.income_vs_inflation | tojson | safe }};
-    // 添加到incomeGrowthData对象中，以便在图表中使用
-    incomeGrowthData.inflation = incomeVsInflationData;
-{% endif %}
-
-// 收支平衡点数据
-var breakEvenData = {};
-{% if data and data.financial_resilience and data.financial_resilience.break_even_analysis %}
-            breakEvenData = {{ data.financial_resilience.break_even_analysis | tojson | safe }};
-{% endif %}
-
-// 调试信息
-console.log('收入支出平衡数据:', incomeExpenseData);
-console.log('收入稳定性数据:', incomeStabilityData);
-console.log('收入来源分布数据:', incomeSourcesData);
-console.log('月度收入来源数据:', monthlySourcesData);
-console.log('现金流数据:', cashFlowData);
-console.log('收入增长数据:', incomeGrowthData);
-console.log('收入VS通胀数据:', incomeVsInflationData);
-</script>
+<!-- 数据传递给JavaScript -->
+<script type="application/json" id="balance-data">{{ (balance_data if balance_data is defined else {}) | tojson }}</script>
+<script type="application/json" id="stability-data">{{ (stability_data if stability_data is defined else {}) | tojson }}</script>
+<script type="application/json" id="source-data">{{ (source_data if source_data is defined else {}) | tojson }}</script>
+<script type="application/json" id="cashflow-data">{{ (cashflow_data if cashflow_data is defined else {}) | tojson }}</script>
+<script type="application/json" id="growth-data">{{ (growth_data if growth_data is defined else {}) | tojson }}</script>
 <script src="{{ url_for('static', filename='js/income_analysis.js') }}"></script>
 {% endblock %}

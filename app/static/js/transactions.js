@@ -50,6 +50,219 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化筛选表单
     initFilterForm();
     
+    // 初始化交易行格式化
+    initTransactionRowFormatting();
+    
+    // 初始化活跃筛选条件显示
+    initActiveFiltersDisplay();
+    
+    // 初始化快速筛选按钮
+    initQuickFilters();
+    
+    // 初始化清除筛选功能
+    initClearFilters();
+});
+
+/**
+ * 初始化交易行格式化功能
+ */
+function initTransactionRowFormatting() {
+    // 美化交易金额显示
+    function formatTransactionRows() {
+        const tbody = document.querySelector('#transactions-body');
+        if (tbody) {
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const amountCell = row.querySelector('td:nth-child(5)');
+                if (amountCell) {
+                    const amount = parseFloat(amountCell.textContent.replace(/[^\d.-]/g, ''));
+                    if (amount > 0) {
+                        amountCell.classList.add('transaction-amount', 'positive');
+                    } else if (amount < 0) {
+                        amountCell.classList.add('transaction-amount', 'negative');
+                    }
+                }
+                
+                const typeCell = row.querySelector('td:nth-child(3) .badge');
+                if (typeCell) {
+                    typeCell.classList.add('transaction-badge');
+                }
+            });
+        }
+    }
+    
+    // 监听表格变化
+    const observer = new MutationObserver(formatTransactionRows);
+    const target = document.querySelector('#transactions-body');
+    if (target) {
+        observer.observe(target, { childList: true, subtree: true });
+    }
+    
+    // 初始化时也执行一次
+    setTimeout(formatTransactionRows, 500);
+    console.log('[TRANSACTIONS] 交易行格式化功能已初始化');
+}
+
+/**
+ * 初始化筛选表单功能
+ */
+function initFilterForm() {
+    // 设置清除单个筛选条件的功能
+    function setupClearInputButtons() {
+        document.querySelectorAll('.clear-input').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const inputGroup = this.closest('.filter-input-group');
+                const input = inputGroup.querySelector('input, select');
+                if (input) {
+                    input.value = '';
+                    // 触发change事件以更新活跃筛选条件
+                    input.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+    }
+    
+    setupClearInputButtons();
+    console.log('[TRANSACTIONS] 筛选表单功能已初始化');
+}
+
+/**
+ * 初始化活跃筛选条件显示功能
+ */
+function initActiveFiltersDisplay() {
+    // 更新活跃筛选条件展示
+    function updateActiveFilters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const badgesContainer = document.getElementById('active-filters-badges');
+        const activeFiltersContainer = document.getElementById('active-filters-container');
+        
+        if (!badgesContainer || !activeFiltersContainer) return;
+        
+        badgesContainer.innerHTML = '';
+        
+        const filterLabels = {
+            'category': '交易类型',
+            'bankAccount': '银行/卡号',
+            'search': '关键词',
+            'startDate': '开始日期',
+            'endDate': '结束日期',
+            'minAmount': '最小金额',
+            'maxAmount': '最大金额'
+        };
+        
+        let hasActiveFilters = false;
+        
+        urlParams.forEach((value, key) => {
+            if (key !== 'page' && value) {
+                hasActiveFilters = true;
+                const label = filterLabels[key] || key;
+                
+                const badge = document.createElement('div');
+                badge.className = 'filter-badge';
+                badge.innerHTML = `
+                    <span>${label}: ${value}</span>
+                    <span class="close-icon" data-param="${key}">
+                        <i class="material-icons-round icon-sm text-muted">close</i>
+                    </span>
+                `;
+                badgesContainer.appendChild(badge);
+            }
+        });
+        
+        // 显示或隐藏筛选条件区域
+        activeFiltersContainer.style.display = hasActiveFilters ? 'block' : 'none';
+        
+        // 绑定移除筛选条件事件
+        document.querySelectorAll('.filter-badge .close-icon').forEach(icon => {
+            icon.addEventListener('click', function() {
+                const param = this.getAttribute('data-param');
+                const url = new URL(window.location.href);
+                url.searchParams.delete(param);
+                window.location.href = url.toString();
+            });
+        });
+    }
+    
+    updateActiveFilters();
+    console.log('[TRANSACTIONS] 活跃筛选条件显示功能已初始化');
+}
+
+/**
+ * 初始化快速筛选按钮功能
+ */
+function initQuickFilters() {
+    // 初始化快速筛选按钮
+    function setupQuickFilters() {
+        document.querySelectorAll('.quick-filter').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const filterType = this.getAttribute('data-filter-type');
+                const today = new Date();
+                
+                // 清除当前的日期和金额筛选
+                document.getElementById('startDate').value = '';
+                document.getElementById('endDate').value = '';
+                document.getElementById('minAmount').value = '';
+                document.getElementById('maxAmount').value = '';
+                
+                switch(filterType) {
+                    case 'today':
+                        const todayStr = today.toISOString().split('T')[0];
+                        document.getElementById('startDate').value = todayStr;
+                        document.getElementById('endDate').value = todayStr;
+                        break;
+                    case 'last7days':
+                        const last7days = new Date();
+                        last7days.setDate(today.getDate() - 6);
+                        document.getElementById('startDate').value = last7days.toISOString().split('T')[0];
+                        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+                        break;
+                    case 'thisMonth':
+                        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                        document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
+                        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+                        break;
+                    case 'income':
+                        document.getElementById('minAmount').value = '0.01';
+                        break;
+                    case 'expense':
+                        document.getElementById('maxAmount').value = '-0.01';
+                        break;
+                }
+                
+                // 自动应用筛选条件
+                document.getElementById('apply-filters').click();
+            });
+        });
+    }
+    
+    setupQuickFilters();
+    console.log('[TRANSACTIONS] 快速筛选按钮功能已初始化');
+}
+
+/**
+ * 初始化清除筛选功能
+ */
+function initClearFilters() {
+    // 绑定清除所有筛选条件按钮
+    function setupClearAllFilters() {
+        const clearAllBtn = document.getElementById('clear-all-filters');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', function() {
+                window.location.href = window.location.pathname;
+            });
+        }
+    }
+    
+    setupClearAllFilters();
+    console.log('[TRANSACTIONS] 清除筛选功能已初始化');
+}
+
+/**
+ * 原有的筛选表单初始化功能
+ */
+function initOriginalFilterForm() {
+    initFilterForm();
+    
     // 绑定事件处理
     bindEventHandlers();
     
@@ -708,4 +921,4 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-}); 
+}; 
