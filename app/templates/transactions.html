@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 {% from "macros.html" import icon, data_table, filter_form, filter_input %}
 
-{% block title %}交易记录 - 银行账单分析系统{% endblock %}
-
-{% block header_title %}交易记录{% endblock %}
-
 {% block page_css %}
 <link href="{{ url_for('static', filename='css/transactions.css') }}" rel="stylesheet">
 <style>
@@ -159,26 +155,6 @@
 {% endblock %}
 
 {% block content %}
-<!-- 交易记录页头 -->
-<div class="transactions-header">
-    <div class="row align-items-center">
-        <div class="col-md-7">
-            <h1 class="fw-bold mb-1">交易记录</h1>
-            <p class="text-muted mb-0">
-                查看和搜索您的所有交易记录，共 <span class="badge rounded-pill bg-primary" id="total-count">{{ total_count }}</span> 条
-            </p>
-        </div>
-        <div class="col-md-5">
-            <div class="d-flex justify-content-md-end mt-3 mt-md-0">
-                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary btn-sm me-2">
-                    {{ icon("dashboard", "sm", "", "me-1") }}
-                    返回仪表盘
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- 分页数据元素 -->
 <div id="current-page-data" 
      data-page="{{ data.pagination.page }}" 

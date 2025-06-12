@@ -472,15 +472,6 @@
 
     <!-- 主内容区 -->
     <div class="main-content">
-        <div class="header">
-            <div class="d-flex align-items-center">
-                <button class="mobile-nav-toggle btn btn-sm btn-light me-2" id="sidebarToggle" aria-label="切换菜单">
-                    {{ icon("menu", "sm", "") }}
-                </button>
-                <h4 class="header-title m-0">{% block header_title %}银行账单分析系统{% endblock %}</h4>
-            </div>
-        </div>
-        
         <div class="content">
             <!-- 消息提示 -->
             {% with messages = get_flashed_messages(with_categories=true) %}
