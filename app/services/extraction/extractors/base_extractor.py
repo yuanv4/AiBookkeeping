@@ -32,19 +32,23 @@ class BankInfo:
     """银行基本信息配置"""
     code: str          # 银行代码，如 'CMB', 'CCB'
     name: str          # 银行名称，如 '招商银行'
-    keyword: str       # 银行关键词，用于文件匹配
 
 @dataclass
 class ExtractionConfig:
     """银行数据提取配置"""
-    use_skiprows: bool = False  # 是否使用skiprows而不是header参数
-    # 账户信息提取配置
+    # 账户信息提取配置（必需字段，无默认值）
     account_name_pattern: 'AccountExtractionPattern'  # 账户名称提取模式
     account_number_pattern: 'AccountExtractionPattern'  # 账户号码提取模式
+    # 可选字段（有默认值）
+    use_skiprows: bool = False  # 是否使用skiprows而不是header参数
     bank_info: Optional[BankInfo] = None
     # 标准化字段配置
     target_columns: List[str] = field(default_factory=lambda: ['transaction_date', 'amount', 'balance_after', 'counterparty', 'description', 'currency'])  # 目标映射值配置（固定值）
     source_columns: List[str] = None  # 原始值配置：银行特定的原始列名
+    # 货币代码映射配置
+    currency_mapping: Dict[str, str] = field(default_factory=lambda: {
+        '人民币元': 'CNY',
+    })  # 货币代码映射表，将银行原始货币描述映射为标准3字符代码
 
 class BankStatementExtractorInterface(ABC):
     """银行对账单提取器接口"""
@@ -57,11 +61,6 @@ class BankStatementExtractorInterface(ABC):
     @abstractmethod
     def get_bank_name(self) -> str:
         """获取银行名称，如招商银行、建设银行等"""
-        pass
-
-    @abstractmethod
-    def get_bank_keyword(self) -> str:
-        """获取银行关键词，用于文件匹配"""
         pass
 
     def extract_account_info(self, df: pd.DataFrame) -> Tuple[str, str]:
@@ -189,7 +188,6 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
         Args:
             bank_code: 银行代码，如CMB、CCB等
         """
-        self.bank_code = bank_code
         self.logger = logging.getLogger(f'extractor_{bank_code.lower()}')
         self.transaction_service = TransactionService()
     
@@ -263,6 +261,71 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     self.logger.warning(f"source_columns长度({len(config.source_columns)})与target_columns长度({len(config.target_columns)})不匹配")
             else:
                 self.logger.warning("未配置source_columns或target_columns，跳过列名映射")
+            
+            # 处理金额列：移除逗号并转换为数值类型
+            if 'amount' in df.columns:
+                try:
+                    # 将金额列转换为字符串，移除逗号，然后转换为数值
+                    df['amount'] = pd.to_numeric(df['amount'].astype(str).str.replace(',', ''), errors='coerce')
+                    self.logger.info("金额列已转换为数值类型")
+                    
+                    # 检查是否有转换失败的数据
+                    invalid_count = df['amount'].isna().sum()
+                    if invalid_count > 0:
+                        self.logger.warning(f"有{invalid_count}行金额数据转换失败，将被跳过")
+                        # 移除转换失败的行
+                        df = df.dropna(subset=['amount'])
+                except Exception as e:
+                    self.logger.error(f"金额列转换失败: {e}")
+                    return None
+            else:
+                self.logger.warning("未找到'amount'列，无法进行数值转换")
+            
+            # 处理日期列：转换为标准日期格式
+            if 'transaction_date' in df.columns:
+                try:
+                    # 将日期列转换为字符串，处理多种日期格式
+                    df['transaction_date'] = df['transaction_date'].astype(str)
+                    
+                    # 定义日期转换函数
+                    def convert_date(date_str):
+                        if pd.isna(date_str) or date_str == 'nan':
+                            return None
+                        
+                        date_str = str(date_str).strip()
+                        
+                        # 处理8位数字格式：20230103
+                        if date_str.isdigit() and len(date_str) == 8:
+                            try:
+                                return pd.to_datetime(date_str, format='%Y%m%d')
+                            except:
+                                pass
+                        
+                        # 处理其他常见格式：1/1/2023, 2023-01-01等
+                        try:
+                            return pd.to_datetime(date_str, errors='raise')
+                        except:
+                            # 如果都失败，记录错误并返回None
+                            self.logger.warning(f"无法解析日期格式: {date_str}")
+                            return None
+                    
+                    # 应用日期转换
+                    df['transaction_date'] = df['transaction_date'].apply(convert_date)
+                    self.logger.info("日期列已转换为标准日期格式")
+                    
+                    # 检查是否有转换失败的数据
+                    invalid_date_count = df['transaction_date'].isna().sum()
+                    if invalid_date_count > 0:
+                        self.logger.warning(f"有{invalid_date_count}行日期数据转换失败，将被跳过")
+                        # 移除转换失败的行
+                        df = df.dropna(subset=['transaction_date'])
+                        
+                except Exception as e:
+                    self.logger.error(f"日期列转换失败: {e}")
+                    return None
+            else:
+                self.logger.warning("未找到'transaction_date'列，无法进行日期转换")
+            
             return df
             
         except Exception as e:
@@ -327,14 +390,14 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     transaction_data = {
                         'account_id': account.id,
                         'transaction_type': transaction_type,
-                        'amount': abs(row['amount']),  # 存储绝对值
+                        'amount': row['amount'],
                         'date': row['transaction_date'].date(),  # 修正参数名：transaction_date -> date
                         'counterparty': row.get('counterparty', ''),
                         'description': row.get('description', ''),
                         'original_description': row.get('original_description', ''),  # 添加缺失字段
                         'notes': row.get('notes', ''),  # 添加notes字段
                         'balance_after': row.get('balance_after'),
-                        'currency': row.get('currency', 'CNY')
+                        'currency': self._normalize_currency_code(row.get('currency', 'CNY'))
                     }
                     
                     # 检查是否已存在相同交易（直接使用transaction_data的相关字段）
@@ -409,6 +472,41 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                 return account_number
         return None
     
+    def _normalize_currency_code(self, currency_value: str) -> str:
+        """标准化货币代码
+        
+        将银行原始的货币描述转换为标准的3字符货币代码
+        
+        Args:
+            currency_value: 原始货币值，如"人民币元"、"美元"等
+            
+        Returns:
+            str: 标准化的3字符货币代码，如"CNY"、"USD"等
+        """
+        if not currency_value or pd.isna(currency_value):
+            return 'CNY'  # 默认为人民币
+        
+        # 转换为字符串并去除空白字符
+        currency_str = str(currency_value).strip()
+        
+        # 如果已经是3字符代码，直接返回（转为大写）
+        if len(currency_str) == 3 and currency_str.isalpha():
+            return currency_str.upper()
+        
+        # 获取配置中的货币映射表
+        config = self.get_extraction_config()
+        currency_mapping = config.currency_mapping
+        
+        # 查找映射
+        if currency_str in currency_mapping:
+            mapped_code = currency_mapping[currency_str]
+            self.logger.debug(f"货币代码映射: '{currency_str}' -> '{mapped_code}'")
+            return mapped_code
+        
+        # 如果没有找到映射，记录警告并返回默认值
+        self.logger.warning(f"未找到货币代码映射: '{currency_str}'，使用默认值 'CNY'")
+        return 'CNY'
+    
     def get_bank_code(self) -> str:
         """获取银行代码 - 通用实现"""
         config = self.get_extraction_config()
@@ -422,13 +520,5 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
         config = self.get_extraction_config()
         if config.bank_info:
             return config.bank_info.name
-        # 向后兼容：如果没有配置 bank_info，使用原有的抽象方法
-        raise NotImplementedError("bank_info not configured in ExtractionConfig")
-    
-    def get_bank_keyword(self) -> str:
-        """获取银行关键词 - 通用实现"""
-        config = self.get_extraction_config()
-        if config.bank_info:
-            return config.bank_info.keyword
         # 向后兼容：如果没有配置 bank_info，使用原有的抽象方法
         raise NotImplementedError("bank_info not configured in ExtractionConfig")

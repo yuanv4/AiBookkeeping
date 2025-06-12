@@ -33,8 +33,7 @@ class CCBTransactionExtractor(BaseTransactionExtractor):
             ),
             bank_info=BankInfo(
                 code='CCB',
-                name='建设银行',
-                keyword='建设银行'
+                name='建设银行'
             ),
             source_columns=['交易日期', '交易金额', '账户余额', '对方账号与户名', '摘要', '币别']
         )

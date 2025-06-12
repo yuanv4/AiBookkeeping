@@ -33,8 +33,7 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
             ),
             bank_info=BankInfo(
                 code='CMB',
-                name='招商银行',
-                keyword='招商银行'
+                name='招商银行'
             ),
             source_columns=['记账日期', '交易金额', '联机余额', '对手信息', '交易摘要', '货币']
         )

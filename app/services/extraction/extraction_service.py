@@ -68,8 +68,7 @@ class BankStatementExtractor:
             if extractor:
                 banks.append({
                     'code': extractor.get_bank_code(),
-                    'name': extractor.get_bank_name(),
-                    'keyword': extractor.get_bank_keyword()
+                    'name': extractor.get_bank_name()
                 })
         return banks
     
