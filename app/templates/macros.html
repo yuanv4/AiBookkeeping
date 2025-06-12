@@ -5,7 +5,7 @@
   {%- if extra_classes %} {{ extra_classes }}{% endif %}">{{ name }}</i><span class="icon-text position-absolute" style="clip: rect(0,0,0,0); width: 1px; height: 1px; overflow: hidden;">{{ name }}</span>
 {% endmacro %}
 
-{% macro page_header(title, subtitle="", icon_name="", show_back_button=true, extra_buttons=none, browser_title="") %}
+{% macro page_header(title, subtitle="", icon_name="", browser_title="") %}
 <!-- 设置浏览器标题 -->
 {% if browser_title %}
 {% set page_title = browser_title %}
@@ -29,19 +29,6 @@
                     <p class="text-muted mb-0">{{ subtitle }}</p>
                     {% endif %}
                 </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="d-flex justify-content-md-end mt-3 mt-md-0 gap-2">
-                {% if show_back_button %}
-                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary btn-sm">
-                    {{ icon("dashboard", "sm", "", "me-1") }}
-                    返回仪表盘
-                </a>
-                {% endif %}
-                {% if extra_buttons %}
-                    {{ extra_buttons }}
-                {% endif %}
             </div>
         </div>
     </div>
