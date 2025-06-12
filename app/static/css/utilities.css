@@ -1,26 +1,8 @@
-/* 
- * AiBookkeeping - 工具类样式
- * 包含通用工具类，用于替代内联样式
+/*
+ * AiBookkeeping - 简化的工具类样式
  */
 
-/* 图标对齐 */
-.icon-align-middle {
-    vertical-align: -4px !important;
-}
-
-.icon-align-top {
-    vertical-align: -6px !important;
-}
-
-.icon-align-bottom {
-    vertical-align: -2px !important;
-}
-
 /* 图标尺寸 */
-.icon-xs {
-    font-size: 14px !important;
-}
-
 .icon-sm {
     font-size: 16px !important;
 }
@@ -33,15 +15,7 @@
     font-size: 24px !important;
 }
 
-.icon-xl {
-    font-size: 32px !important;
-}
-
-.icon-xxl {
-    font-size: 48px !important;
-}
-
-/* Apple Design 图标颜色 */
+/* 图标颜色 */
 .icon-primary {
     color: var(--primary) !important;
 }
@@ -66,40 +40,28 @@
     color: var(--info) !important;
 }
 
-.icon-light {
-    color: var(--gray-400) !important;
-}
-
-.icon-muted {
-    color: var(--text-tertiary) !important;
-}
-
-/* 背景颜色透明度工具类 */
+/* 背景颜色 */
 .bg-primary-light {
-    background-color: var(--primary-light) !important;
+    background-color: rgba(0, 122, 255, 0.1) !important;
 }
 
 .bg-success-light {
-    background-color: var(--success-light) !important;
+    background-color: rgba(52, 199, 89, 0.1) !important;
 }
 
 .bg-danger-light {
-    background-color: var(--danger-light) !important;
+    background-color: rgba(255, 59, 48, 0.1) !important;
 }
 
 .bg-warning-light {
-    background-color: var(--warning-light) !important;
+    background-color: rgba(255, 149, 0, 0.1) !important;
 }
 
 .bg-info-light {
-    background-color: var(--info-light) !important;
+    background-color: rgba(90, 200, 250, 0.1) !important;
 }
 
 /* 间距工具类 */
-.spacer-xs {
-    margin-bottom: 0.5rem !important;
-}
-
 .spacer-sm {
     margin-bottom: 1rem !important;
 }
@@ -112,15 +74,7 @@
     margin-bottom: 2.5rem !important;
 }
 
-.spacer-xl {
-    margin-bottom: 4rem !important;
-}
-
 /* 文本工具类 */
-.text-primary-dark {
-    color: var(--primary-dark) !important;
-}
-
 .text-small {
     font-size: 0.875rem !important;
 }
@@ -144,24 +98,20 @@
     font-weight: 500 !important;
 }
 
-/* Apple Design 边框工具类 */
+/* 边框工具类 */
 .rounded-sm {
-    border-radius: var(--radius-sm) !important;
+    border-radius: 6px !important;
 }
 
 .rounded-md {
-    border-radius: var(--radius-md) !important;
+    border-radius: 8px !important;
 }
 
 .rounded-lg {
-    border-radius: var(--radius-lg) !important;
+    border-radius: 12px !important;
 }
 
-.rounded-xl {
-    border-radius: var(--radius-xl) !important;
-}
-
-/* Apple Design 显示工具类 */
+/* 布局工具类 */
 .flex-center {
     display: flex !important;
     align-items: center !important;
@@ -180,27 +130,13 @@
     justify-content: flex-start !important;
 }
 
-.flex-end {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-}
-
-/* Apple Design 交互效果 */
-.primary-hover:hover {
-    color: var(--primary) !important;
-}
-
-.no-border {
-    border: none !important;
-}
-
+/* 交互效果 */
 .hover-shadow {
     transition: all 0.15s ease;
 }
 
 .hover-shadow:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
 .hover-lift {
@@ -211,19 +147,7 @@
     transform: translateY(-1px) !important;
 }
 
-.hover-scale {
-    transition: all 0.15s ease;
-}
-
-.hover-scale:hover {
-    transform: scale(1.02) !important;
-}
-
 /* 高度工具类 */
-.h-200 {
-    height: 200px !important;
-}
-
 .h-300 {
     height: 300px !important;
 }
