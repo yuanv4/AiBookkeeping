@@ -41,19 +41,58 @@
                 <h5 class="fw-bold mb-3">上传银行账单文件</h5>
                 <p class="text-muted mb-4">支持上传Excel格式的银行账单文件进行数据分析</p>
                 
-                <!-- 文件上传表单 -->
-                <form action="{{ url_for('settings_bp.upload_file_route') }}" method="post" enctype="multipart/form-data" class="mx-auto" style="max-width: 500px;">
-                    <div class="mb-4">
-                        <input type="file" class="form-control form-control-lg" name="file" id="fileInput" multiple accept=".xlsx,.xls" required>
-                        <div class="form-text mt-2">支持上传多个Excel文件（.xlsx, .xls格式）</div>
+                <!-- 拖拽上传区域 -->
+                <div id="uploadContainer" class="upload-container">
+                    <!-- 拖拽区域 -->
+                    <div id="dropZone" class="drop-zone">
+                        <div class="drop-zone-content">
+                            <div class="mb-4">
+                                <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style="width: 4rem; height: 4rem;">
+                                    {{ icon("cloud_upload", "xl", "text-primary") }}
+                                </div>
+                            </div>
+                            <h6 class="fw-bold mb-2">拖拽文件到此处上传</h6>
+                            <p class="text-muted mb-3">或者 <span class="text-primary fw-semibold" style="cursor: pointer;" onclick="document.getElementById('fileInput').click()">点击选择文件</span></p>
+                            <div class="form-text">支持上传多个Excel文件（.xlsx, .xls格式）</div>
+                        </div>
                     </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            {{ icon("file_upload", "sm", "", "me-2") }}
-                            开始上传文件
-                        </button>
+                    
+                    <!-- 隐藏的文件输入 -->
+                    <input type="file" id="fileInput" name="file" multiple accept=".xlsx,.xls" style="display: none;">
+                    
+                    <!-- 文件列表容器 -->
+                    <div id="fileListContainer" class="file-list-container" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">选中的文件</h6>
+                            <button type="button" id="clearAllBtn" class="btn btn-outline-secondary btn-sm">
+                                {{ icon("clear_all", "sm", "", "me-1") }}
+                                清空全部
+                            </button>
+                        </div>
+                        <div id="fileList" class="file-list"></div>
+                        
+                        <!-- 上传按钮 -->
+                        <div class="d-grid mt-4">
+                            <button type="button" id="uploadBtn" class="btn btn-primary btn-lg">
+                                {{ icon("file_upload", "sm", "", "me-2") }}
+                                开始上传文件
+                            </button>
+                        </div>
                     </div>
-                </form>
+                    
+                    <!-- 上传进度容器 -->
+                    <div id="uploadProgressContainer" class="upload-progress-container" style="display: none;">
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">上传中...</span>
+                                </div>
+                            </div>
+                            <h6 class="fw-bold mb-2">正在上传文件</h6>
+                            <p class="text-muted mb-0">请稍候，正在处理您的文件...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         {% endcall %}
     </div>
@@ -86,6 +125,10 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
 <script>
 function confirmDeleteDatabase() {
     if (confirm('警告：此操作将删除所有交易数据和分析结果，且无法恢复！\n\n确定要继续吗？')) {
@@ -95,4 +138,5 @@ function confirmDeleteDatabase() {
         }
     }
 }
+</script>
 {% endblock %}
