@@ -1,5 +1,20 @@
 // 收入分析页面的JavaScript逻辑
 
+/**
+ * 从CSS变量获取颜色值
+ * @param {string} cssVar CSS变量名（包含--前缀）
+ * @returns {string} 颜色值
+ */
+function getCSSColor(cssVar) {
+    try {
+        const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+        return value || '#000000'; // 默认黑色
+    } catch (error) {
+        console.warn(`无法获取CSS变量 ${cssVar}:`, error);
+        return '#000000';
+    }
+}
+
 // 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[INCOME_ANALYSIS] 页面已加载');
@@ -88,25 +103,31 @@ function initIncomeAnalysisCharts() {
         Chart.register(ChartDataLabels);
     }
     
-    // 检查并使用全局财务主题颜色
-    const useFinanceTheme = typeof window.defaultColors !== 'undefined';
-    
-    // 定义常用颜色，优先使用全局财务主题颜色
-    const colors = useFinanceTheme ? {
+    // 定义常用颜色，直接从CSS变量获取
+    const colors = {
         // 使用财务专业版主题颜色
-        income: window.defaultColors.success,
-        expense: window.defaultColors.danger,
-        savings: window.defaultColors.warning,
-        ratio: window.defaultColors.info,
-        primary: window.defaultColors.primary,
-        secondary: window.defaultColors.secondary,
-        success: window.defaultColors.success,
-        danger: window.defaultColors.danger,
-        warning: window.defaultColors.warning,
-        info: window.defaultColors.info,
+        income: getCSSColor('--success'),
+        expense: getCSSColor('--danger'),
+        savings: getCSSColor('--warning'),
+        ratio: getCSSColor('--info'),
+        primary: getCSSColor('--primary'),
+        secondary: getCSSColor('--secondary'),
+        success: getCSSColor('--success'),
+        danger: getCSSColor('--danger'),
+        warning: getCSSColor('--warning'),
+        info: getCSSColor('--info'),
         // 图表分类颜色
-        category: window.defaultColors.category,
-        neutral: window.defaultColors.neutral,
+        category: [
+            getCSSColor('--chart-category-1'),
+            getCSSColor('--chart-category-2'),
+            getCSSColor('--chart-category-3'),
+            getCSSColor('--chart-category-4'),
+            getCSSColor('--chart-category-5'),
+            getCSSColor('--chart-category-6'),
+            getCSSColor('--chart-category-7'),
+            getCSSColor('--chart-category-8')
+        ],
+        neutral: getCSSColor('--secondary'),
         // 将颜色转换为半透明版本的辅助函数
         getAlpha: function(color, alpha = 0.8) {
             // 处理十六进制颜色
@@ -126,17 +147,6 @@ function initIncomeAnalysisCharts() {
             }
             return color;
         }
-    } : {
-        // 使用CSS变量作为后备方案
-        income: 'var(--chart-income)',
-        expense: 'var(--chart-expense)',
-        savings: 'var(--success)',
-        ratio: 'var(--warning)',
-        primary: 'var(--primary)',
-        danger: 'var(--danger)',
-        success: 'var(--success)',
-        warning: 'var(--warning)',
-        info: 'var(--info)'
     };
     
     /**
@@ -1195,25 +1205,17 @@ function initIncomeAnalysisCharts() {
      * 生成随机颜色数组
      */
     function generateColors(count, theme = 'default') {
-        // 使用CSS变量获取主题颜色
-        const themeConfig = typeof getChartTheme === 'function' ? getChartTheme(theme) : null;
-        
-        let baseColors;
-        if (themeConfig && themeConfig.colors && themeConfig.colors.category) {
-            baseColors = themeConfig.colors.category;
-        } else {
-            // 降级到CSS变量
-            baseColors = [
-                getCSSColor('--chart-category-1') || '#4663ac',
-                getCSSColor('--chart-category-2') || '#ec4c47',
-                getCSSColor('--chart-category-3') || '#47b881',
-                getCSSColor('--chart-category-4') || '#ffab00',
-                getCSSColor('--chart-category-5') || '#1070ca',
-                getCSSColor('--chart-category-6') || '#735dd0',
-                getCSSColor('--chart-category-7') || '#00b8d9',
-                getCSSColor('--chart-category-8') || '#ff5630'
-            ];
-        }
+        // 直接使用CSS变量获取主题颜色
+        const baseColors = [
+            getCSSColor('--chart-category-1') || '#4663ac',
+            getCSSColor('--chart-category-2') || '#ec4c47',
+            getCSSColor('--chart-category-3') || '#47b881',
+            getCSSColor('--chart-category-4') || '#ffab00',
+            getCSSColor('--chart-category-5') || '#1070ca',
+            getCSSColor('--chart-category-6') || '#735dd0',
+            getCSSColor('--chart-category-7') || '#00b8d9',
+            getCSSColor('--chart-category-8') || '#ff5630'
+        ];
         
         // 如果数量小于基础颜色数量，直接返回部分基础颜色
         if (count <= baseColors.length) {
@@ -1224,9 +1226,17 @@ function initIncomeAnalysisCharts() {
         const result = [...baseColors];
         
         // 添加中性色
-        if (themeConfig && themeConfig.colors && themeConfig.colors.neutral) {
-            const neutralColors = themeConfig.colors.neutral;
-            for (let i = 0; i < neutralColors.length && result.length < count; i++) {
+        const neutralColors = [
+            getCSSColor('--chart-neutral-1'),
+            getCSSColor('--chart-neutral-2'),
+            getCSSColor('--chart-neutral-3'),
+            getCSSColor('--chart-neutral-4'),
+            getCSSColor('--chart-neutral-5'),
+            getCSSColor('--chart-neutral-6')
+        ];
+        
+        for (let i = 0; i < neutralColors.length && result.length < count; i++) {
+            if (neutralColors[i]) {
                 result.push(neutralColors[i]);
             }
         }

@@ -3,6 +3,21 @@
  * 提供数据图表初始化和交互功能
  */
 
+/**
+ * 从CSS变量获取颜色值
+ * @param {string} cssVar CSS变量名（包含--前缀）
+ * @returns {string} 颜色值
+ */
+function getCSSColor(cssVar) {
+    try {
+        const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+        return value || '#000000'; // 默认黑色
+    } catch (error) {
+        console.warn(`无法获取CSS变量 ${cssVar}:`, error);
+        return '#000000';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化动态样式
     applyDynamicStyles();
@@ -243,11 +258,11 @@ function initBalanceHistoryChart() {
                 datasets: [{
                     label: '账户余额',
                     data: chartData.values,
-                    borderColor: window.defaultColors.balance,
+                    borderColor: getCSSColor('--chart-balance'),
                     backgroundColor: balanceFill,
                     borderWidth: 2,
                     pointRadius: 3,
-                    pointBackgroundColor: window.defaultColors.balance,
+                    pointBackgroundColor: getCSSColor('--chart-balance'),
                     tension: 0.4,
                     fill: true
                 }]
@@ -323,14 +338,14 @@ function initIncomeExpenseChart() {
                         label: '收入',
                         data: chartData.income,
                         backgroundColor: incomeColor,
-                        borderColor: window.defaultColors.income,
+                        borderColor: getCSSColor('--chart-income'),
                         borderWidth: 1
                     },
                     {
                         label: '支出',
                         data: chartData.expense.map(val => Math.abs(val)), // 取绝对值，使支出显示为正数
                         backgroundColor: expenseColor,
-                        borderColor: window.defaultColors.expense,
+                        borderColor: getCSSColor('--chart-expense'),
                         borderWidth: 1
                     }
                 ]
@@ -399,7 +414,7 @@ function initIncomeSourceChart() {
         // 根据数据数量选择适当数量的颜色
         const backgroundColors = chartData.labels.map((_, index) => {
             // 循环使用category中的颜色
-            return window.defaultColors.category[index % window.defaultColors.category.length];
+            return getCSSColor(`--chart-category-${(index % 8) + 1}`);
         });
         
         new Chart(incomeSourceCanvas, {
@@ -465,7 +480,7 @@ function initExpenseCategoryChart() {
         // 根据数据数量选择适当数量的颜色
         const backgroundColors = chartData.labels.map((_, index) => {
             // 循环使用category中的颜色
-            return window.defaultColors.category[index % window.defaultColors.category.length];
+            return getCSSColor(`--chart-category-${(index % 8) + 1}`);
         });
         
         new Chart(expenseCategoryCanvas, {

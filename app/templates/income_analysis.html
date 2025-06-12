@@ -454,8 +454,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <!-- 加载图表主题和交互模块 -->
 
-<!-- 加载通用模块 -->
-<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+<!-- 通用模块依赖已移除 -->
 
 <!-- 数据传递给JavaScript -->
 <script type="application/json" id="balance-data">{{ (balance_data if balance_data is defined else {}) | tojson }}</script>
