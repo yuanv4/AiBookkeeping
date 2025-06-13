@@ -15,7 +15,6 @@ from sqlalchemy import func, and_, or_, extract
 
 from app.models.transaction import Transaction
 from app.models.account import Account
-from app.models.category import Category
 from app.database import get_db
 
 

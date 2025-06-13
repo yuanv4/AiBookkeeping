@@ -5,7 +5,6 @@ This module contains the SQLAlchemy database instance and base model class.
 
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-import uuid
 
 # SQLAlchemy database instance
 db = SQLAlchemy()

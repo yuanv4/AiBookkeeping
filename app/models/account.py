@@ -116,7 +116,7 @@ class Account(BaseModel):
     def get_income_total(self, start_date=None, end_date=None):
         """Get total income for this account within date range."""
         from .transaction import Transaction
-        query = self.transactions.join(Transaction.transaction_type).filter(
+        query = self.transactions.filter(
             Transaction.amount > 0
         )
         if start_date:
@@ -130,7 +130,7 @@ class Account(BaseModel):
     def get_expense_total(self, start_date=None, end_date=None):
         """Get total expenses for this account within date range."""
         from .transaction import Transaction
-        query = self.transactions.join(Transaction.transaction_type).filter(
+        query = self.transactions.filter(
             Transaction.amount < 0
         )
         if start_date:

@@ -13,6 +13,5 @@ __all__ = [
     'BaseModel',
     'Bank',
     'Account',
-    'Transaction',
-    'AnalysisModels'
+    'Transaction'
 ]
