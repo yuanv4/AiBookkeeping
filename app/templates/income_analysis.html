@@ -198,9 +198,9 @@
         </div>
     </div>
 
-    <!-- 收入来源分析网格 -->
+    <!-- 收入来源分析 -->
     <div class="row g-4">
-        <div class="col-lg-6">
+        <div class="col-12">
             <!-- 收入来源分布 -->
             {% call chart_container("收入来源分布", "incomeSourceChart") %}
             {% if data and data.income_sources and data.income_sources|length > 0 %}
@@ -210,23 +210,6 @@
                     <div class="stat-label">{{ source.source_type }}</div>
                     <div class="stat-value">¥{{ "%.2f"|format(source.total_amount) }}</div>
                     <div class="stat-description">{{ "%.1f"|format(source.percentage) }}%</div>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% endcall %}
-        </div>
-
-        <div class="col-lg-6">
-            <!-- 支出类别占比 -->
-            {% call chart_container("主要支出类别", "expenseBreakdownChart") %}
-            {% if data and data.expense_breakdown and data.expense_breakdown|length > 0 %}
-            <div class="stats-container horizontal">
-                {% for expense in data.expense_breakdown[:4] %}
-                <div class="stat-item">
-                    <div class="stat-label">{{ expense.category }}</div>
-                    <div class="stat-value">¥{{ "%.2f"|format(expense.total_amount) }}</div>
-                    <div class="stat-description">{{ "%.1f"|format(expense.percentage) }}%</div>
                 </div>
                 {% endfor %}
             </div>
