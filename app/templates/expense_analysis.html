@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, card, chart_container, page_header %}
+
+{% block title %}支出分析 - {{ config.APP_NAME }}{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    {{ page_header("支出分析", "深入分析您的支出结构和消费模式", "analytics") }}
+    
+    <!-- 支出健康指标网格 -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-4 col-lg-6 col-md-6">
+            <!-- 平均月支出 -->
+            <div class="metric-card card-animate h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="metric-label">平均月支出</div>
+                    <div class="icon-circle">
+                        {{ icon("payments", "sm", "text-danger") }}
+                    </div>
+                </div>
+                <div class="metric-value">¥{% if data and data.spending_patterns and data.spending_patterns.average_monthly_expense %}{{ "%.2f"|format(data.spending_patterns.average_monthly_expense) }}{% else %}0.00{% endif %}</div>
+                <div class="metric-description">月度平均支出水平反映您的消费习惯</div>
+                <div class="metric-status {% if data and data.spending_patterns and data.spending_patterns.spending_consistency %}{% if data.spending_patterns.spending_consistency >= 0.8 %}good{% elif data.spending_patterns.spending_consistency >= 0.6 %}moderate{% else %}poor{% endif %}{% else %}poor{% endif %}">
+                    {% if data and data.spending_patterns and data.spending_patterns.spending_consistency %}{% if data.spending_patterns.spending_consistency >= 0.8 %}稳定{% elif data.spending_patterns.spending_consistency >= 0.6 %}一般{% else %}波动大{% endif %}{% else %}无数据{% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-lg-6 col-md-6">
+            <!-- 必要支出比率 -->
+            <div class="metric-card card-animate h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="metric-label">必要支出比率</div>
+                    <div class="icon-circle">
+                        {{ icon("home", "sm", "text-warning") }}
+                    </div>
+                </div>
+                <div class="metric-value">{% if data and data.expense_categories and data.expense_categories.necessary_expense_ratio %}{{ "%.1f"|format(data.expense_categories.necessary_expense_ratio * 100) }}%{% else %}0.0%{% endif %}</div>
+                <div class="metric-description">必要支出占总支出的比例</div>
+                <div class="metric-status {% if data and data.expense_categories and data.expense_categories.necessary_expense_ratio %}{% if data.expense_categories.necessary_expense_ratio <= 0.7 %}good{% elif data.expense_categories.necessary_expense_ratio <= 0.8 %}moderate{% else %}poor{% endif %}{% else %}poor{% endif %}">
+                    {% if data and data.expense_categories and data.expense_categories.necessary_expense_ratio %}{% if data.expense_categories.necessary_expense_ratio <= 0.7 %}健康{% elif data.expense_categories.necessary_expense_ratio <= 0.8 %}一般{% else %}偏高{% endif %}{% else %}无数据{% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-lg-12 col-md-12">
+            <!-- 支出控制率 -->
+            <div class="metric-card card-animate h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="metric-label">支出控制率</div>
+                    <div class="icon-circle">
+                        {{ icon("trending_down", "sm", "text-success") }}
+                    </div>
+                </div>
+                <div class="metric-value">{% if data and data.expense_trends and data.expense_trends.expense_control_rate %}{{ "%.1f"|format(data.expense_trends.expense_control_rate * 100) }}%{% else %}0.0%{% endif %}</div>
+                <div class="metric-description">支出增长控制在合理范围内的能力</div>
+                <div class="metric-status {% if data and data.expense_trends and data.expense_trends.expense_control_rate %}{% if data.expense_trends.expense_control_rate >= 0.8 %}good{% elif data.expense_trends.expense_control_rate >= 0.6 %}moderate{% else %}poor{% endif %}{% else %}poor{% endif %}">
+                    {% if data and data.expense_trends and data.expense_trends.expense_control_rate %}{% if data.expense_trends.expense_control_rate >= 0.8 %}良好{% elif data.expense_trends.expense_control_rate >= 0.6 %}一般{% else %}需改善{% endif %}{% else %}无数据{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分析图表网格 -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <!-- 支出分类分析 -->
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1">支出分类分析</h5>
+                        <p class="card-subtitle mb-0">分析各类别支出占比和分布情况</p>
+                    </div>
+                    <div class="icon-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem; border-radius: 50%;">
+                        {{ icon("pie_chart", "md", "text-danger") }}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-8 col-lg-12 col-md-8">
+                            <div class="chart-container">
+                                <canvas id="expenseCategoryChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-xl-4 col-lg-12 col-md-4">
+                            <div class="stat-container">
+                                <div class="stat-item">
+                                    <div class="stat-label">总支出</div>
+                                    <div class="stat-value">¥{% if data and data.expense_categories and data.expense_categories.total_expense %}{{ "%.2f"|format(data.expense_categories.total_expense) }}{% else %}0.00{% endif %}</div>
+                                    <div class="stat-description">分析期间的总支出金额</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">支出多样性</div>
+                                    <div class="stat-value">{% if data and data.expense_categories and data.expense_categories.diversity_index %}{{ "%.2f"|format(data.expense_categories.diversity_index) }}{% else %}0.00{% endif %}</div>
+                                    <div class="stat-description">支出分布的多样化程度</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">集中度比率</div>
+                                    <div class="stat-value">{% if data and data.expense_categories and data.expense_categories.concentration_ratio %}{{ "%.1f"|format(data.expense_categories.concentration_ratio * 100) }}%{% else %}0.0%{% endif %}</div>
+                                    <div class="stat-description">前三大类别的支出集中度</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <!-- 支出趋势分析 -->
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1">支出趋势分析</h5>
+                        <p class="card-subtitle mb-0">分析支出变化趋势和波动性</p>
+                    </div>
+                    <div class="icon-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem; border-radius: 50%;">
+                        {{ icon("trending_up", "md", "text-warning") }}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-8 col-lg-12 col-md-8">
+                            <div class="chart-container">
+                                <canvas id="expenseTrendChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-xl-4 col-lg-12 col-md-4">
+                            <div class="stat-container">
+                                <div class="stat-item">
+                                    <div class="stat-label">支出增长率</div>
+                                    <div class="stat-value">{% if data and data.expense_trends and data.expense_trends.growth_rate %}{{ "%.1f"|format(data.expense_trends.growth_rate * 100) }}%{% else %}0.0%{% endif %}</div>
+                                    <div class="stat-description">相比上期的支出增长幅度</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">支出波动性</div>
+                                    <div class="stat-value">{% if data and data.expense_trends and data.expense_trends.volatility %}{{ "%.3f"|format(data.expense_trends.volatility) }}{% else %}0.000{% endif %}</div>
+                                    <div class="stat-description">数值越小表示支出越稳定</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">趋势强度</div>
+                                    <div class="stat-value">{% if data and data.expense_trends and data.expense_trends.trend_strength %}{{ "%.2f"|format(data.expense_trends.trend_strength) }}{% else %}0.00{% endif %}</div>
+                                    <div class="stat-description">支出趋势的明确程度</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详细分析图表网格 -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+        <!-- 月度支出趋势分析 -->
+        {% call chart_container("月度支出趋势分析 (最近12个月)", "monthlyExpenseChart") %}
+        {% if data and data.expense_trends and data.expense_trends.monthly_data and data.expense_trends.monthly_data|length > 0 %}
+        <div class="chart-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(239, 68, 68, 1);"></div>
+                <span>总支出</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(245, 158, 11, 1);"></div>
+                <span>必要支出</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(168, 85, 247, 1);"></div>
+                <span>非必要支出</span>
+            </div>
+        </div>
+        
+        <!-- 支出趋势统计 -->
+        <div class="stats-container horizontal mt-3">
+            <div class="stat-item">
+                <div class="stat-label">平均月支出</div>
+                <div class="stat-value">¥{% if data and data.expense_trends and data.expense_trends.monthly_data %}{{ "%.2f"|format((data.expense_trends.monthly_data|sum(attribute='total_expense')) / (data.expense_trends.monthly_data|length)) }}{% else %}0.00{% endif %}</div>
+                <div class="stat-description">过去12个月的平均支出水平</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">支出增长率</div>
+                <div class="stat-value">{% if data and data.expense_trends and data.expense_trends.monthly_data and data.expense_trends.monthly_data|length >= 2 %}{{ "%.1f"|format(((data.expense_trends.monthly_data[-1].total_expense - data.expense_trends.monthly_data[0].total_expense) / data.expense_trends.monthly_data[0].total_expense * 100) if data.expense_trends.monthly_data[0].total_expense > 0 else 0) }}%{% else %}0.0%{% endif %}</div>
+                <div class="stat-description">相比首月的增长幅度</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">最高月支出</div>
+                <div class="stat-value">¥{% if data and data.expense_trends and data.expense_trends.monthly_data %}{{ "%.2f"|format(data.expense_trends.monthly_data|max(attribute='total_expense')|attr('total_expense')) }}{% else %}0.00{% endif %}</div>
+                <div class="stat-description">过去12个月的支出峰值</div>
+            </div>
+        </div>
+        {% endif %}
+        {% endcall %}
+        </div>
+    </div>
+
+    <!-- 异常支出检测 -->
+    <div class="row g-4">
+        <div class="col-12">
+            <!-- 异常支出分析 -->
+            {% call chart_container("异常支出检测", "anomalyDetectionChart") %}
+            {% if data and data.anomaly_detection and data.anomaly_detection.anomalies and data.anomaly_detection.anomalies|length > 0 %}
+            <div class="stats-container horizontal">
+                {% for anomaly in data.anomaly_detection.anomalies[:4] %}
+                <div class="stat-item">
+                    <div class="stat-label">{{ anomaly.category }}</div>
+                    <div class="stat-value">¥{{ "%.2f"|format(anomaly.amount) }}</div>
+                    <div class="stat-description">{{ anomaly.date }} - {{ anomaly.description }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <div class="text-muted">未检测到异常支出</div>
+            </div>
+            {% endif %}
+            {% endcall %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- 隐藏的数据传递元素 -->
+<script type="application/json" id="expense-category-data" style="display: none;">
+{% if data and data.expense_categories %}
+{{ data.expense_categories | tojson }}
+{% else %}
+{}
+{% endif %}
+</script>
+
+<script type="application/json" id="expense-trend-data" style="display: none;">
+{% if data and data.expense_trends %}
+{{ data.expense_trends | tojson }}
+{% else %}
+{}
+{% endif %}
+</script>
+
+<script type="application/json" id="spending-pattern-data" style="display: none;">
+{% if data and data.spending_patterns %}
+{{ data.spending_patterns | tojson }}
+{% else %}
+{}
+{% endif %}
+</script>
+
+<script type="application/json" id="anomaly-data" style="display: none;">
+{% if data and data.anomaly_detection %}
+{{ data.anomaly_detection | tojson }}
+{% else %}
+{}
+{% endif %}
+</script>
+
+<script src="{{ url_for('static', filename='js/expense_analysis.js') }}"></script>
+{% endblock %}

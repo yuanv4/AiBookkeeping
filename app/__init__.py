@@ -121,6 +121,10 @@ def create_app():
     app.register_blueprint(income_analysis_bp, url_prefix='/income-analysis')
     app.logger.info("已注册 income_analysis_bp, 前缀 /income-analysis")
     
+    from .blueprints.expense_analysis.routes import expense_analysis_bp
+    app.register_blueprint(expense_analysis_bp, url_prefix='/expense-analysis')
+    app.logger.info("已注册 expense_analysis_bp, 前缀 /expense-analysis")
+    
     from .blueprints.settings.routes import settings_bp
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.logger.info("已注册 settings_bp, 前缀 /settings")

@@ -93,6 +93,68 @@ class ComprehensiveService:
             # 返回默认对象以防止模板错误
             return ComprehensiveAnalysisData()
     
+    @staticmethod
+    def get_comprehensive_expense_analysis(account_id: Optional[int] = None) -> Dict[str, Any]:
+        """获取综合支出分析数据，返回模板所需的完整data结构
+        
+        Args:
+            account_id: 可选的账户ID，用于分析特定账户
+            
+        Returns:
+            Dict[str, Any]: 包含所有支出分析模块数据的字典
+        """
+        try:
+            # 获取基础数据
+            today = date.today()
+            start_date = today.replace(year=today.year - 1, month=1, day=1)  # 过去一年
+            end_date = today
+            
+            # 创建分析器上下文
+            context = AnalyzerContext(
+                db_session=db.session,
+                user_id=account_id or 1,  # 如果没有指定账户ID，使用默认值
+                start_date=datetime.combine(start_date, datetime.min.time()),
+                end_date=datetime.combine(end_date, datetime.min.time())
+            )
+            
+            # 创建分析器工厂
+            factory = AnalyzerFactory(context)
+            
+            # 创建支出分析器
+            expense_pattern_analyzer = factory.create_expense_pattern_analyzer()
+            financial_health_analyzer = factory.create_financial_health_analyzer()
+            
+            # 执行支出分析
+            expense_categories_result = expense_pattern_analyzer.analyze_expense_categories()
+            expense_trends_result = expense_pattern_analyzer.analyze_expense_trends()
+            spending_patterns_result = expense_pattern_analyzer.identify_spending_patterns()
+            anomaly_detection_result = expense_pattern_analyzer.detect_anomalies()
+            cash_flow_result = financial_health_analyzer.analyze_cash_flow()
+            
+            # 获取综合摘要
+            comprehensive_summary = expense_pattern_analyzer.get_comprehensive_summary()
+            
+            # 构建综合支出分析数据结构
+            from app.services.analysis.analysis_models import ComprehensiveExpenseData
+            
+            comprehensive_data = ComprehensiveExpenseData(
+                expense_categories=expense_categories_result,
+                expense_trends=expense_trends_result,
+                spending_patterns=spending_patterns_result,
+                anomaly_detection=anomaly_detection_result,
+                cash_flow_health=cash_flow_result,
+                comprehensive_summary=comprehensive_summary
+            )
+            
+            # 返回对象以支持属性访问
+            return comprehensive_data
+            
+        except Exception as e:
+            logger.error(f"Error getting comprehensive expense analysis: {e}")
+            # 返回默认对象以防止模板错误
+            from app.services.analysis.analysis_models import ComprehensiveExpenseData
+            return ComprehensiveExpenseData()
+    
     # 旧的方法已移除，现在使用新的AnalyzerFactory和AnalyzerContext架构
     
     @staticmethod

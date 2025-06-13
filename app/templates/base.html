@@ -80,6 +80,14 @@
                 </a>
             </li>
             <li class="nav-item mb-1">
+                <a class="nav-link rounded {% if request.path == url_for('expense_analysis_bp.expense_analysis') %}active{% endif %}" href="{{ url_for('expense_analysis_bp.expense_analysis') }}">
+                    <div class="nav-icon-round d-flex align-items-center">
+                        {{ icon("trending_down", "sm", "", "me-3") }}
+                        <span>支出分析</span>
+                    </div>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
                 <a class="nav-link rounded {% if request.path == url_for('transactions_bp.transactions_list_route') %}active{% endif %}" href="{{ url_for('transactions_bp.transactions_list_route') }}">
                     <div class="nav-icon-round d-flex align-items-center">
                         {{ icon("receipt_long", "sm", "", "me-3") }}

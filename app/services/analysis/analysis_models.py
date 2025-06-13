@@ -480,3 +480,25 @@ class ComprehensiveAnalysisData:
             'income_growth': self.income_growth.to_dict(),
             'financial_resilience': self.financial_resilience.to_dict()
         }
+
+
+@dataclass
+class ComprehensiveExpenseData:
+    """Comprehensive expense analysis data structure."""
+    expense_categories: Dict[str, Any] = field(default_factory=dict)
+    expense_trends: Dict[str, Any] = field(default_factory=dict)
+    spending_patterns: Dict[str, Any] = field(default_factory=dict)
+    anomaly_detection: Dict[str, Any] = field(default_factory=dict)
+    cash_flow_health: CashFlowHealth = field(default_factory=CashFlowHealth)
+    comprehensive_summary: Dict[str, Any] = field(default_factory=dict)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for template compatibility."""
+        return {
+            'expense_categories': self.expense_categories,
+            'expense_trends': self.expense_trends,
+            'spending_patterns': self.spending_patterns,
+            'anomaly_detection': self.anomaly_detection,
+            'cash_flow_health': self.cash_flow_health.to_dict() if hasattr(self.cash_flow_health, 'to_dict') else self.cash_flow_health,
+            'comprehensive_summary': self.comprehensive_summary
+        }
