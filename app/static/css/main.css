@@ -251,8 +251,9 @@ body {
     font-weight: 500;
 }
 
-.nav-sidebar .material-icons-round {
-    font-size: 20px;
+.nav-sidebar .lucide-icon {
+    width: 20px;
+    height: 20px;
     margin-right: 0.75rem;
 }
 
@@ -303,7 +304,7 @@ body {
     padding: var(--spacing-md) var(--spacing-lg);
 }
 
-.alert .material-icons-round {
+.alert .lucide-icon {
     margin-right: var(--spacing-sm);
 }
 
@@ -328,7 +329,7 @@ body {
     padding: var(--spacing-sm);
 }
 
-.sidebar-collapsed .nav-sidebar .material-icons-round {
+.sidebar-collapsed .nav-sidebar .lucide-icon {
     margin: 0 auto;
 }
 
@@ -336,21 +337,30 @@ body {
     margin-left: var(--sidebar-collapsed-width);
 }
 
-/* 确保Material Icons正确显示 */
-.material-icons-round {
-    font-family: 'Material Icons Round', sans-serif;
-    font-weight: normal;
-    font-style: normal;
-    font-size: 24px;
-    line-height: 1;
-    letter-spacing: normal;
-    text-transform: none;
+/* Lucide Icons 基础样式 */
+.lucide-icon {
+    width: 1em;
+    height: 1em;
     display: inline-block;
-    white-space: nowrap;
-    word-wrap: normal;
-    direction: ltr;
-    -webkit-font-feature-settings: 'liga';
-    -webkit-font-smoothing: antialiased;
+    vertical-align: middle;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+}
+
+/* Lucide Icons 尺寸类 */
+.lucide-icon-sm { width: 0.875rem; height: 0.875rem; }
+.lucide-icon-md { width: 1.25rem; height: 1.25rem; }
+.lucide-icon-lg { width: 1.5rem; height: 1.5rem; }
+.lucide-icon-xl { width: 2rem; height: 2rem; }
+
+/* 图标加载失败时的备用样式 */
+.lucide-icon:not([data-lucide]) {
+    background-color: var(--text-muted);
+    border-radius: 2px;
+    opacity: 0.5;
 }
 
 /* 降级使用文本图标 */
@@ -358,38 +368,20 @@ body {
     display: none;
 }
 
-/* 如果图标字体加载失败，显示文本图标 */
-.material-icons-round:empty ~ .icon-text {
+/* 如果图标加载失败，显示文本图标 */
+.lucide-icon:empty ~ .icon-text {
     display: inline;
     font-size: 12px;
     font-weight: bold;
 }
 
-/* 图标字体失败时的备用样式 */
-.icons-fallback .material-icons-round {
+/* Lucide Icons 备用样式 */
+.icons-fallback .lucide-icon {
     display: inline-block;
-    width: 24px;
-    height: 24px;
     background-color: currentColor;
     -webkit-mask-size: cover;
     mask-size: cover;
     vertical-align: middle;
-}
-
-/* 一些常用图标的备用样式 */
-.icons-fallback .material-icons-round:contains('dashboard') {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z'/%3E%3C/svg%3E");
-}
-
-.icons-fallback .material-icons-round:contains('receipt_long') {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.5 3.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2v14H3v3c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3V2l-1.5 1.5zM19 19c0 .55-.45 1-1 1s-1-.45-1-1v-3H8V5h11v14z'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19.5 3.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2v14H3v3c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3V2l-1.5 1.5zM19 19c0 .55-.45 1-1 1s-1-.45-1-1v-3H8V5h11v14z'/%3E%3C/svg%3E");
-}
-
-.icons-fallback .material-icons-round:contains('trending_up') {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z'/%3E%3C/svg%3E");
 }
 
 .nav-icon-round {
@@ -398,104 +390,39 @@ body {
     width: 100%;
 }
 
-/* 头部样式 */
-.header {
-    height: var(--header-height);
-    background-color: var(--background-primary);
-    box-shadow: var(--shadow);
-    padding: 0 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.header-title {
-    font-size: 24px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-}
-
-/* 移动端导航切换 */
-.mobile-nav-toggle {
-    display: none;
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: var(--text-primary);
-    cursor: pointer;
-}
-
-/* 重复的卡片和按钮样式已移除 - 统一使用components.css中的基类 */
-
-/* 提示样式 */
-.alert {
-    border: none;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    padding: 1rem 1.5rem;
-}
-
-.alert .material-icons-round {
-    margin-right: 0.5rem;
-}
-
 /* 响应式设计 */
 @media (max-width: 992px) {
     .sidebar {
         transform: translateX(-100%);
-        z-index: 1040;
-    }
-    
-    .main-content {
-        margin-left: 0;
+        transition: transform 0.3s ease;
     }
     
     .sidebar.show {
         transform: translateX(0);
     }
     
+    .main-content {
+        margin-left: 0;
+    }
+    
     .mobile-nav-toggle {
-        display: flex;
+        display: block;
     }
 }
 
-/* 侧边栏折叠功能 */
-.sidebar-collapsed {
-    width: 70px;
-}
 
-.sidebar-collapsed .sidebar-brand-text,
-.sidebar-collapsed .nav-sidebar .nav-link span {
-    display: none;
-}
 
-.sidebar-collapsed .sidebar-brand-icon {
-    margin: 0 auto;
-}
-
-.sidebar-collapsed .nav-sidebar .nav-link {
-    text-align: center;
-    padding: 0.5rem;
-}
-
-.sidebar-collapsed .nav-sidebar .material-icons-round {
-    margin: 0 auto;
-}
-
-.sidebar-collapsed ~ .main-content {
-    margin-left: 70px;
-}
-
-/* Amount Styles - 金额样式 (从 utilities.css 合并) */
-.positive {
-    color: var(--success) !important;
+/* Amount Styles - 金额样式 */
+.amount {
     font-weight: 600;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.negative {
-    color: var(--danger) !important;
-    font-weight: 600;
-}
+.amount-positive { color: var(--success-color); }
+.amount-negative { color: var(--danger-color); }
+.amount-neutral { color: var(--text-primary); }
+
+/* 金额大小变体 */
+.amount-sm { font-size: var(--font-size-sm); }
+.amount-lg { font-size: var(--font-size-lg); }
+.amount-xl { font-size: var(--font-size-xl); font-weight: 700; }

@@ -16,7 +16,7 @@
             <div class="text-center py-4">
                 <div class="mb-4">
                     <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style="width: 4rem; height: 4rem;">
-                        {{ icon("file_upload", "xl", "text-primary") }}
+                        {{ icon("upload", "xl", "text-primary") }}
                     </div>
                 </div>
                 <h5 class="fw-bold mb-3">上传银行账单文件</h5>
@@ -29,7 +29,7 @@
                         <div class="drop-zone-content">
                             <div class="mb-4">
                                 <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style="width: 4rem; height: 4rem;">
-                                    {{ icon("cloud_upload", "xl", "text-primary") }}
+                                    {{ icon("cloud-upload", "xl", "text-primary") }}
                                 </div>
                             </div>
                             <h6 class="fw-bold mb-2">拖拽文件到此处上传</h6>
@@ -46,7 +46,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="fw-bold mb-0">选中的文件</h6>
                             <button type="button" id="clearAllBtn" class="btn btn-outline-secondary btn-sm">
-                                {{ icon("clear_all", "sm", "", "me-1") }}
+                                {{ icon("x", "sm", "", "me-1") }}
                                 清空全部
                             </button>
                         </div>
@@ -55,7 +55,7 @@
                         <!-- 上传按钮 -->
                         <div class="d-grid mt-4">
                             <button type="button" id="uploadBtn" class="btn btn-primary btn-lg">
-                                {{ icon("file_upload", "sm", "", "me-2") }}
+                                {{ icon("upload", "sm", "", "me-2") }}
                                 开始上传文件
                             </button>
                         </div>
@@ -85,7 +85,7 @@
         {% call card("危险操作", "warning", "bg-danger bg-opacity-10 border-danger") %}
             <div class="alert alert-danger border-0 mb-3" role="alert">
                 <div class="d-flex align-items-center">
-                    {{ icon("warning", "sm", "text-danger me-2") }}
+                    {{ icon("alert-triangle", "sm", "text-danger me-2") }}
                     <strong>警告：</strong>以下操作具有不可逆性，请谨慎操作！
                 </div>
             </div>
@@ -99,7 +99,7 @@
                     <button class="btn btn-danger" 
                             data-delete-url="{{ url_for('settings_bp.delete_database') }}"
                             data-dashboard-url="{{ url_for('main.dashboard') }}">
-                        {{ icon("delete_forever", "sm", "", "me-2") }}
+                        {{ icon("trash-2", "sm", "", "me-2") }}
                         删除所有数据
                     </button>
                 </div>

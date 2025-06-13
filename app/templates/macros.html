@@ -1,8 +1,8 @@
 {% macro icon(name, size="md", color_class="", extra_classes="") %}
-<i class="material-icons-round 
-  {%- if size == "sm" %} icon-sm{% elif size == "md" %} icon-md{% elif size == "lg" %} icon-lg{% elif size == "xl" %} icon-xl{% elif size == "xxl" %} icon-xxl{% endif %} 
-  {%- if color_class %} {{ color_class }}{% endif %} 
-  {%- if extra_classes %} {{ extra_classes }}{% endif %}">{{ name }}</i><span class="icon-text position-absolute" style="clip: rect(0,0,0,0); width: 1px; height: 1px; overflow: hidden;">{{ name }}</span>
+<i data-lucide="{{ name }}" class="lucide-icon
+  {%- if size == "sm" %} icon-sm{% elif size == "md" %} icon-md{% elif size == "lg" %} icon-lg{% elif size == "xl" %} icon-xl{% elif size == "xxl" %} icon-xxl{% endif %}
+  {%- if color_class %} {{ color_class }}{% endif %}
+  {%- if extra_classes %} {{ extra_classes }}{% endif %}"></i><span class="icon-text position-absolute" style="clip: rect(0,0,0,0); width: 1px; height: 1px; overflow: hidden;">{{ name }}</span>
 {% endmacro %}
 
 {% macro page_header(title, subtitle="", icon_name="", browser_title="") %}
@@ -70,7 +70,7 @@
   <div class="card-header d-flex justify-content-between align-items-center bg-white py-3">
     <div class="d-flex align-items-center">
       <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
-        {{ icon("receipt_long", "sm", "text-primary") }}
+        {{ icon("receipt", "sm", "text-primary") }}
       </div>
       <h6 class="card-title fw-bold mb-0">数据明细</h6>
     </div>
@@ -117,10 +117,10 @@
     
     <!-- 无数据提示 -->
     <div id="no-data" class="no-data-container d-flex flex-column align-items-center justify-content-center py-5" style="display: none !important; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 10;">
-      {{ icon("search_off", "xxl", "text-muted mb-3") }}
+      {{ icon("search-x", "xxl", "text-muted mb-3") }}
       <p class="mb-3 text-muted">没有找到匹配的记录</p>
       <button id="reset-all" class="btn btn-sm btn-outline-primary">
-        {{ icon("refresh", "sm", "", "me-1") }}
+        {{ icon("refresh-cw", "sm", "", "me-1") }}
         <span>重置筛选条件</span>
       </button>
     </div>
@@ -137,12 +137,12 @@
         <div class="input-group input-group-sm">
           {% if field.type == 'date' %}
             <span class="input-group-text bg-light border-end-0" style="min-width: 40px; justify-content: center;">
-              {{ icon("calendar_today", "sm", "text-muted") }}
+              {{ icon("calendar", "sm", "text-muted") }}
             </span>
             <input type="date" class="form-control border-start-0 shadow-none" id="{{ field.name }}" name="{{ field.name }}" value="{{ field.value }}" placeholder="{{ field.placeholder }}" style="flex: 1;">
           {% elif field.type == 'select' %}
             <span class="input-group-text bg-light border-end-0" style="min-width: 40px; justify-content: center;">
-              {{ icon("arrow_drop_down", "sm", "text-muted") }}
+              {{ icon("chevron-down", "sm", "text-muted") }}
             </span>
             <select class="form-select border-start-0 shadow-none" id="{{ field.name }}" name="{{ field.name }}" style="flex: 1;">
               <option value="">全部{{ field.label }}</option>
@@ -160,7 +160,7 @@
             </select>
           {% elif field.type == 'number' %}
             <span class="input-group-text bg-light border-end-0" style="min-width: 40px; justify-content: center;">
-              {{ icon("attach_money", "sm", "text-muted") }}
+              {{ icon("dollar-sign", "sm", "text-muted") }}
             </span>
             <input type="number" class="form-control border-start-0 shadow-none" id="{{ field.name }}" name="{{ field.name }}" value="{{ field.value }}" placeholder="{{ field.placeholder }}" style="flex: 1;">
           {% else %}
@@ -250,7 +250,7 @@
   <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
       <div class="icon-circle me-2 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem; border-radius: 50%;">
-        {{ icon("trending_up", "sm", "text-primary") }}
+        {{ icon("trending-up", "sm", "text-primary") }}
       </div>
       <h6 class="mb-0 fw-bold">{{ title }}</h6>
     </div>

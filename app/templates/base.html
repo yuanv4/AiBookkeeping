@@ -9,7 +9,7 @@
     
     <!-- 预加载关键资源 - Apple Design -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style">
-    <link rel="preload" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" as="style">
+    <link rel="preload" href="https://unpkg.com/lucide@latest/dist/umd/lucide.js" as="script">
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style">
     <link rel="preload" href="{{ url_for('static', filename='css/main.css') }}" as="style">
     
@@ -17,10 +17,8 @@
     
     <!-- Apple Design 字体加载优化 -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- 主要图标加载 -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <!-- 添加CDN备选方案 -->
-    <link href="https://fonts.gstatic.com/s/materialiconsround/v107/LDItaoyNOAY6Uewc665JcIzCKsKc_M9flwmP.woff2" rel="stylesheet" media="none" onload="if(media!='all')media='all'">
+    <!-- Lucide Icons 图标库 -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     
     <!-- 非关键CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -56,7 +54,7 @@
         <div class="sidebar-header">
             <div class="d-flex align-items-center p-3">
                 <div class="sidebar-logo-container me-2">
-                    {{ icon("account_balance", "md", "", "sidebar-brand-icon") }}
+                    {{ icon("landmark", "md", "", "sidebar-brand-icon") }}
                 </div>
                 <h5 class="mb-0 sidebar-brand-text">{{ config.APP_NAME }}</h5>
             </div>
@@ -66,7 +64,7 @@
             <li class="nav-item mb-1">
                 <a class="nav-link rounded {% if request.path == url_for('main.dashboard') %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
                     <div class="nav-icon-round d-flex align-items-center">
-                        {{ icon("dashboard", "sm", "", "me-3") }}
+                        {{ icon("layout-dashboard", "sm", "", "me-3") }}
                         <span>仪表盘</span>
                     </div>
                 </a>
@@ -74,7 +72,7 @@
             <li class="nav-item mb-1">
                 <a class="nav-link rounded {% if request.path == url_for('income_analysis_bp.income_analysis') %}active{% endif %}" href="{{ url_for('income_analysis_bp.income_analysis') }}">
                     <div class="nav-icon-round d-flex align-items-center">
-                        {{ icon("trending_up", "sm", "", "me-3") }}
+                        {{ icon("trending-up", "sm", "", "me-3") }}
                         <span>收入分析</span>
                     </div>
                 </a>
@@ -82,7 +80,7 @@
             <li class="nav-item mb-1">
                 <a class="nav-link rounded {% if request.path == url_for('expense_analysis_bp.expense_analysis') %}active{% endif %}" href="{{ url_for('expense_analysis_bp.expense_analysis') }}">
                     <div class="nav-icon-round d-flex align-items-center">
-                        {{ icon("trending_down", "sm", "", "me-3") }}
+                        {{ icon("trending-down", "sm", "", "me-3") }}
                         <span>支出分析</span>
                     </div>
                 </a>
@@ -90,7 +88,7 @@
             <li class="nav-item mb-1">
                 <a class="nav-link rounded {% if request.path == url_for('transactions_bp.transactions_list_route') %}active{% endif %}" href="{{ url_for('transactions_bp.transactions_list_route') }}">
                     <div class="nav-icon-round d-flex align-items-center">
-                        {{ icon("receipt_long", "sm", "", "me-3") }}
+                        {{ icon("receipt", "sm", "", "me-3") }}
                         <span>交易记录</span>
                     </div>
                 </a>
@@ -117,11 +115,11 @@
                     {% for category, message in messages %}
                         <div class="alert alert-{{ category if category != '_' else 'info' }} alert-dismissible fade show">
                             {% if category == 'success' %}
-                                {{ icon("check_circle", "sm", "") }}
+                                {{ icon("check-circle", "sm", "") }}
                             {% elif category == 'danger' %}
-                                {{ icon("error", "sm", "") }}
+                                {{ icon("x-circle", "sm", "") }}
                             {% elif category == 'warning' %}
-                                {{ icon("warning", "sm", "") }}
+                                {{ icon("alert-triangle", "sm", "") }}
                             {% else %}
                                 {{ icon("info", "sm", "") }}
                             {% endif %}
@@ -140,16 +138,19 @@
     <!-- JavaScript - 延迟加载，不阻塞渲染 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
     
-    <!-- 通用JavaScript功能 -->
-    <!-- common.js 依赖已移除 -->
-    
+    <!-- Lucide Icons 初始化 -->
+    <script>
+        // 初始化 Lucide Icons
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                console.warn('Lucide Icons 未能正确加载');
+            }
+        });
+    </script>
     <!-- 页面特定脚本 -->
     {% block page_scripts %}{% endblock %}
-
-
-    
     {% block scripts %}{% endblock %}
-    
-
 </body>
 </html>

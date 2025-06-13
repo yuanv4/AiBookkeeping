@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="page-container">
-    {{ page_header("财务概览", "查看您的财务状况和趋势分析", "dashboard") }}
+    {{ page_header("财务概览", "查看您的财务状况和趋势分析", "layout-dashboard") }}
     
     <!-- 财务概览卡片网格 -->
     <div class="cards-grid cols-2">
@@ -23,7 +23,7 @@
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-muted small">账户总余额</div>
                         <div class="d-flex align-items-center">
-                            {{ icon("account_balance_wallet", "sm", "text-primary me-1") }}
+                            {{ icon("wallet", "sm", "text-primary me-1") }}
                         </div>
                     </div>
                     <div class="metric-value text-success">¥{{ "%.2f"|format(summary_data.account_balance or 0) }}</div>
@@ -65,7 +65,7 @@
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="text-muted small">总净收支</div>
                         <div class="d-flex align-items-center">
-                            {{ icon("account_balance", "sm", "{% if summary_data.net_amount >= 0 %}text-success{% else %}text-danger{% endif %} me-1") }}
+                            {{ icon("landmark", "sm", "{% if summary_data.net_amount >= 0 %}text-success{% else %}text-danger{% endif %} me-1") }}
                         </div>
                     </div>
                     <div class="metric-value {% if summary_data.net_amount >= 0 %}text-success{% else %}text-danger{% endif %}">
@@ -102,7 +102,7 @@
                     
                     <div class="d-flex align-items-center">
                         <div class="trend-icon d-flex align-items-center justify-content-center me-2 {% if change >= 0 %}trend-icon-success{% else %}trend-icon-danger{% endif %}">
-                            {{ icon("trending_" + ("up" if change >= 0 else "down"), "sm", "text-" + ("success" if change >= 0 else "danger")) }}
+                            {{ icon("trending-" + ("up" if change >= 0 else "down"), "sm", "text-" + ("success" if change >= 0 else "danger")) }}
                         </div>
                         <div>
                             <div class="fw-bold {% if change >= 0 %}text-success{% else %}text-danger{% endif %}">

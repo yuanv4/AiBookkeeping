@@ -162,12 +162,17 @@ function initActiveFiltersDisplay() {
                 badge.innerHTML = `
                     <span>${label}: ${value}</span>
                     <span class="close-icon" data-param="${key}">
-                        <i class="material-icons-round icon-sm text-muted">close</i>
+                        <i data-lucide="x" class="lucide-icon lucide-icon-sm text-muted"></i>
                     </span>
                 `;
                 badgesContainer.appendChild(badge);
             }
         });
+        
+        // 初始化新添加的 Lucide Icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
         
         // 显示或隐藏筛选条件区域
         activeFiltersContainer.style.display = hasActiveFilters ? 'block' : 'none';
@@ -903,12 +908,17 @@ function initOriginalFilterForm() {
                 badge.innerHTML = `
                     <span>${label}: ${value}</span>
                     <span class="close-icon" data-param="${key}">
-                        <i class="material-icons-round icon-sm">close</i>
+                        <i data-lucide="x" class="lucide-icon lucide-icon-sm"></i>
                     </span>
                 `;
                 badgesContainer.appendChild(badge);
             }
         });
+        
+        // 初始化新添加的 Lucide Icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
         
         // 显示或隐藏筛选条件区域
         activeFiltersContainer.style.display = hasActiveFilters ? 'block' : 'none';
@@ -921,4 +931,4 @@ function initOriginalFilterForm() {
             });
         });
     }
-}; 
+};
