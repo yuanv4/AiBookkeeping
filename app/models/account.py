@@ -75,8 +75,6 @@ class Account(BaseModel):
             return None
         return cls.query.filter_by(bank_id=bank_id, account_number=account_number.strip()).first()
     
-    
-    
     @classmethod
     def get_or_create(cls, bank_id, account_number, account_name=None, currency='CNY', account_type='checking'):
         """Get existing account or create new one."""

@@ -274,8 +274,6 @@ class Transaction(BaseModel):
             return []
         return [tag.strip() for tag in self.tags.split(',') if tag.strip()]
     
-
-    
     def is_income(self):
         """Check if this is an income transaction."""
         return self.amount > 0
