@@ -1,10 +1,10 @@
 /*
  * AiBookkeeping - 组件样式文件
- * 整合页头组件和图表组件样式，统一使用CSS变量
+ * 统一的组件样式库，使用CSS变量实现主题一致性
  */
 
 /* ========================================
-   页头组件样式 (从 page-header.css 整合)
+   页头组件样式
    ======================================== */
 
 .page-header {
@@ -55,10 +55,9 @@
 }
 
 /* ========================================
-   图表组件样式 (从 chart-components.css 整合)
+   图表组件样式
    ======================================== */
 
-/* 基本图表容器 */
 .chart-wrapper {
     background: var(--background-primary);
     border-radius: var(--radius-lg);
@@ -83,7 +82,6 @@
     padding: var(--spacing-md);
 }
 
-/* 图表标题 */
 .chart-title {
     font-size: 1.125rem;
     font-weight: 600;
@@ -99,14 +97,9 @@
 }
 
 /* ========================================
-   通用组件基类
+   卡片组件样式
    ======================================== */
 
-/* ========================================
-   统一的卡片组件样式
-   ======================================== */
-
-/* 基础卡片样式 */
 .card {
     background-color: var(--background-primary);
     border-radius: var(--radius-lg);
@@ -124,18 +117,23 @@
 .card-header {
     padding: var(--spacing-lg);
     border-bottom: 1px solid var(--border-color);
-    background-color: var(--background-primary);
+    background-color: var(--surface-secondary);
 }
 
 .card-body {
     padding: var(--spacing-lg);
 }
 
+.card-footer {
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+    background-color: var(--surface-secondary);
+}
+
 /* ========================================
-   统一的按钮组件样式
+   按钮组件样式
    ======================================== */
 
-/* 基础按钮样式 */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -168,7 +166,6 @@
     transform: none;
 }
 
-/* 主要按钮样式 */
 .btn-primary {
     background-color: var(--primary);
     color: white;
@@ -181,7 +178,6 @@
     box-shadow: var(--shadow-md);
 }
 
-/* 次要按钮样式 */
 .btn-secondary {
     background-color: var(--gray-100);
     color: var(--text-primary);
@@ -193,7 +189,10 @@
     border-color: var(--gray-400);
 }
 
-/* 基础Flex容器样式 - 可复用的布局基类 */
+/* ========================================
+   布局工具类
+   ======================================== */
+
 .flex-container {
     display: flex;
     gap: var(--spacing-md);
@@ -223,7 +222,10 @@
     justify-content: space-around;
 }
 
-/* 基础输入框样式 - 可复用的表单基类 */
+/* ========================================
+   表单组件样式
+   ======================================== */
+
 .input-base {
     display: block;
     width: 100%;
@@ -251,39 +253,6 @@
 
 .input-base::placeholder {
     color: var(--text-tertiary);
-}
-
-/* 通用卡片基类 - 使用标准CSS变量 */
-.component-card {
-    /* 基础卡片样式 */
-    background-color: var(--surface-primary);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border-color);
-    padding: var(--spacing-lg);
-    transition: var(--transition-fast);
-    overflow: hidden;
-}
-
-.component-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
-}
-
-.component-card-header {
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--border-color);
-    background-color: var(--surface-secondary);
-}
-
-.component-card-body {
-    padding: var(--spacing-lg);
-}
-
-.component-card-footer {
-    padding: var(--spacing-lg);
-    border-top: 1px solid var(--border-color);
-    background-color: var(--surface-secondary);
 }
 
 /* ========================================
@@ -324,9 +293,9 @@
         min-height: 150px;
     }
     
-    .component-card-header,
-    .component-card-body,
-    .component-card-footer {
+    .card-header,
+    .card-body,
+    .card-footer {
         padding: var(--spacing-md);
     }
 }
@@ -349,9 +318,9 @@
         font-size: 0.8rem;
     }
     
-    .component-card-header,
-    .component-card-body,
-    .component-card-footer {
+    .card-header,
+    .card-body,
+    .card-footer {
         padding: var(--spacing-sm);
     }
 }
