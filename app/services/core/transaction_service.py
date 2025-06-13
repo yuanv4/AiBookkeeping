@@ -54,9 +54,13 @@ class TransactionService:
                 
                 # Transaction type filter
                 if 'transaction_type' in filters and filters['transaction_type']:
-                    # 直接使用transaction_type进行过滤
                     filter_type = filters['transaction_type']
-                    query = query.filter(Transaction.transaction_type == filter_type)
+                    if filter_type == 'income':
+                        query = query.filter(Transaction.amount > 0)
+                    elif filter_type == 'expense':
+                        query = query.filter(Transaction.amount < 0)
+                    elif filter_type == 'transfer':
+                        query = query.filter(Transaction.amount == 0)
                 
                 # Counterparty filter
                 if 'counterparty' in filters and filters['counterparty']:
@@ -116,9 +120,13 @@ class TransactionService:
                 
                 # Transaction type filter
                 if 'transaction_type' in filters and filters['transaction_type']:
-                    # 直接使用transaction_type进行过滤
                     filter_type = filters['transaction_type']
-                    query = query.filter(Transaction.transaction_type == filter_type)
+                    if filter_type == 'income':
+                        query = query.filter(Transaction.amount > 0)
+                    elif filter_type == 'expense':
+                        query = query.filter(Transaction.amount < 0)
+                    elif filter_type == 'transfer':
+                        query = query.filter(Transaction.amount == 0)
                 
                 # Counterparty filter
                 if 'counterparty' in filters and filters['counterparty']:
@@ -152,14 +160,13 @@ class TransactionService:
     
     # Database transaction operations (migrated from DatabaseService)
     @staticmethod
-    def create_transaction(account_id: int, transaction_type: str, date: date, 
+    def create_transaction(account_id: int, date: date, 
                          amount: Decimal, currency: str = 'CNY', description: str = None,
                          counterparty: str = None, **kwargs) -> Transaction:
         """Create a new transaction."""
         try:
             return Transaction.create(
                 account_id=account_id,
-                transaction_type=transaction_type,
                 date=date,
                 amount=amount,
                 currency=currency,
@@ -242,21 +249,9 @@ class TransactionService:
     
     @staticmethod
     def get_all_transaction_types() -> List[str]:
-        """Get all distinct transaction types from transactions."""
-        try:
-            # Get transaction types from transactions
-            transaction_types = db.session.query(Transaction.transaction_type).distinct().all()
-            
-            # Filter out None and empty values, then convert to set for deduplication
-            all_types = set()
-            for (transaction_type,) in transaction_types:
-                if transaction_type and transaction_type.strip():
-                    all_types.add(transaction_type.strip())
-            
-            # Convert to sorted list
-            return sorted(list(all_types))
-            
-        except Exception as e:
-            logger.error(f"Error getting all transaction types: {e}")
-            # Return empty list if error occurs
-            return []
+        """Get all transaction types.
+        
+        Returns:
+            List[str]: List of available transaction types ['income', 'expense', 'transfer']
+        """
+        return ['income', 'expense', 'transfer']

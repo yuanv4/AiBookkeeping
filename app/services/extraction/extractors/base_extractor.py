@@ -63,6 +63,18 @@ class BankStatementExtractorInterface(ABC):
         """获取银行名称，如招商银行、建设银行等"""
         pass
 
+    @abstractmethod
+    def _convert_date(self, date_str: str) -> Optional[datetime]:
+        """将银行特定的日期字符串转换为标准datetime对象
+        
+        Args:
+            date_str: 银行特定的日期字符串
+            
+        Returns:
+            datetime: 转换后的标准日期时间对象，转换失败返回None
+        """
+        pass
+
     def extract_account_info(self, df: pd.DataFrame) -> Tuple[str, str]:
         """模板方法：提取账户信息
         
@@ -243,7 +255,6 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
             # 过滤有效数据行（排除空的日期列）
             if config.source_columns[1] in df.columns:
                 df = df.dropna(subset=[config.source_columns[1]], how='all')
-                # 进一步过滤：确保日期列不是字符串关键词本身
                 df = df[df[config.source_columns[1]] != config.source_columns[1]]
                 self.logger.info(f"过滤后数据行数: {len(df)}")
             else:
@@ -251,59 +262,18 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                 return None
             
             # 使用target_columns和source_columns进行列名映射
-            if config.source_columns and config.target_columns:
-                # 确保source_columns和target_columns长度一致
-                if len(config.source_columns) == len(config.target_columns):
-                    column_mapping = dict(zip(config.source_columns, config.target_columns))
-                    df = df.rename(columns=column_mapping)
-                    self.logger.info(f"列名映射: {column_mapping}")
-                else:
-                    self.logger.warning(f"source_columns长度({len(config.source_columns)})与target_columns长度({len(config.target_columns)})不匹配")
-            else:
-                self.logger.warning("未配置source_columns或target_columns，跳过列名映射")
+            if config.source_columns and config.target_columns and len(config.source_columns) == len(config.target_columns):
+                column_mapping = dict(zip(config.source_columns, config.target_columns))
+                df = df.rename(columns=column_mapping)
+                self.logger.info(f"列名映射: {column_mapping}")
             
-            # 处理日期列：转换为标准日期格式
+            # 处理日期列：使用子类的日期转换方法
             if 'transaction_date' in df.columns:
-                try:
-                    # 将日期列转换为字符串，处理多种日期格式
-                    df['transaction_date'] = df['transaction_date'].astype(str)
-                    
-                    # 定义日期转换函数
-                    def convert_date(date_str):
-                        if pd.isna(date_str) or date_str == 'nan':
-                            return None
-                        
-                        date_str = str(date_str).strip()
-                        
-                        # 处理8位数字格式：20230103
-                        if date_str.isdigit() and len(date_str) == 8:
-                            try:
-                                return pd.to_datetime(date_str, format='%Y%m%d')
-                            except:
-                                pass
-                        
-                        # 处理其他常见格式：1/1/2023, 2023-01-01等
-                        try:
-                            return pd.to_datetime(date_str, errors='raise')
-                        except:
-                            # 如果都失败，记录错误并返回None
-                            self.logger.warning(f"无法解析日期格式: {date_str}")
-                            return None
-                    
-                    # 应用日期转换
-                    df['transaction_date'] = df['transaction_date'].apply(convert_date)
-                    self.logger.info("日期列已转换为标准日期格式")
-                    
-                    # 检查是否有转换失败的数据
-                    invalid_date_count = df['transaction_date'].isna().sum()
-                    if invalid_date_count > 0:
-                        self.logger.warning(f"有{invalid_date_count}行日期数据转换失败，将被跳过")
-                        # 移除转换失败的行
-                        df = df.dropna(subset=['transaction_date'])
-                        
-                except Exception as e:
-                    self.logger.error(f"日期列转换失败: {e}")
-                    return None
+                df['transaction_date'] = df['transaction_date'].astype(str).apply(self._convert_date)
+                invalid_count = df['transaction_date'].isna().sum()
+                if invalid_count > 0:
+                    self.logger.warning(f"有{invalid_count}行日期数据转换失败，将被跳过")
+                df = df.dropna(subset=['transaction_date'])
             else:
                 self.logger.warning("未找到'transaction_date'列，无法进行日期转换")
             
@@ -361,22 +331,14 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
             processed_count = 0
             for _, row in df.iterrows():
                 try:
-                    # 确定交易类型
-                    if row['amount'] > 0:
-                        transaction_type = 'income'
-                    else:
-                        transaction_type = 'expense'
-                    
                     # 创建交易记录
                     transaction_data = {
                         'account_id': account.id,
-                        'transaction_type': transaction_type,
+                        'date': row['transaction_date'].date(),
                         'amount': row['amount'],
-                        'date': row['transaction_date'].date(),  # 修正参数名：transaction_date -> date
-                        'counterparty': row.get('counterparty', ''),
+                        'currency': self._normalize_currency_code(row.get('currency', 'CNY')),
                         'description': row.get('description', ''),
-                        'balance_after': row.get('balance_after'),
-                        'currency': self._normalize_currency_code(row.get('currency', 'CNY'))
+                        'counterparty': row.get('counterparty', ''),
                     }
                     
                     # 检查是否已存在相同交易（直接使用transaction_data的相关字段）

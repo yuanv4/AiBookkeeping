@@ -17,7 +17,6 @@ class Transaction(BaseModel):
     __tablename__ = 'transactions'
     
     account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False, index=True)
-    transaction_type = db.Column(db.String(50), nullable=False, index=True)
     date = db.Column(db.Date, nullable=False, index=True)
     amount = db.Column(db.Numeric(15, 2), nullable=False, index=True)
     currency = db.Column(db.String(3), default='CNY', nullable=False)
@@ -34,7 +33,6 @@ class Transaction(BaseModel):
     __table_args__ = (
         db.Index('idx_account_date', 'account_id', 'date'),
         db.Index('idx_date_amount', 'date', 'amount'),
-        db.Index('idx_type_date', 'transaction_type', 'date'),
     )
     
     @staticmethod
@@ -188,10 +186,39 @@ class Transaction(BaseModel):
         
         return query.all()
     
+    def get_transaction_type(self) -> str:
+        """Get transaction type based on amount.
+        
+        Returns:
+            str: 'income' for positive amounts, 'expense' for negative amounts, 'transfer' for zero
+        """
+        if self.amount > 0:
+            return 'income'
+        elif self.amount < 0:
+            return 'expense'
+        else:
+            return 'transfer'
+    
     @classmethod
-    def get_by_type(cls, transaction_type, start_date=None, end_date=None):
-        """Get transactions by type with optional date filtering."""
-        query = cls.query.filter_by(transaction_type=transaction_type)
+    def get_by_type(cls, transaction_type: str, start_date=None, end_date=None):
+        """Get transactions by type with optional date filtering.
+        
+        Args:
+            transaction_type: 'income', 'expense', or 'transfer'
+            start_date: Optional start date
+            end_date: Optional end date
+            
+        Returns:
+            List[Transaction]: List of transactions matching the type
+        """
+        if transaction_type == 'income':
+            query = cls.query.filter(cls.amount > 0)
+        elif transaction_type == 'expense':
+            query = cls.query.filter(cls.amount < 0)
+        elif transaction_type == 'transfer':
+            query = cls.query.filter(cls.amount == 0)
+        else:
+            raise ValueError(f"Invalid transaction type: {transaction_type}")
         
         if start_date:
             query = query.filter(cls.date >= start_date)
@@ -253,29 +280,43 @@ class Transaction(BaseModel):
     @classmethod
     def get_summary_by_type(cls, account_id=None, start_date=None, end_date=None):
         """Get transaction summary grouped by type."""
-        query = db.session.query(
-            cls.transaction_type,
+        # 使用子查询获取每种类型的统计
+        income_query = db.session.query(
+            db.literal('income').label('type'),
             db.func.count(cls.id).label('count'),
             db.func.sum(cls.amount).label('total')
-        )
+        ).filter(cls.amount > 0)
         
-        if account_id:
-            query = query.filter(cls.account_id == account_id)
-        if start_date:
-            query = query.filter(cls.date >= start_date)
-        if end_date:
-            query = query.filter(cls.date <= end_date)
+        expense_query = db.session.query(
+            db.literal('expense').label('type'),
+            db.func.count(cls.id).label('count'),
+            db.func.sum(cls.amount).label('total')
+        ).filter(cls.amount < 0)
         
-        results = query.group_by(cls.transaction_type).all()
+        transfer_query = db.session.query(
+            db.literal('transfer').label('type'),
+            db.func.count(cls.id).label('count'),
+            db.func.sum(cls.amount).label('total')
+        ).filter(cls.amount == 0)
         
-        # 转换结果格式以保持向后兼容
+        # 应用通用过滤条件
+        for query in [income_query, expense_query, transfer_query]:
+            if account_id:
+                query = query.filter(cls.account_id == account_id)
+            if start_date:
+                query = query.filter(cls.date >= start_date)
+            if end_date:
+                query = query.filter(cls.date <= end_date)
+        
+        # 合并结果
+        results = income_query.union_all(expense_query).union_all(transfer_query).all()
+        
+        # 转换结果格式
         formatted_results = []
-        for transaction_type, count, total in results:
-            # 简单判断收入/支出类型（基于金额正负）
-            is_income = total > 0 if total else False
+        for type_name, count, total in results:
             formatted_results.append({
-                'name': transaction_type,
-                'is_income': is_income,
+                'name': type_name,
+                'is_income': type_name == 'income',
                 'count': count,
                 'total': total
             })
@@ -340,8 +381,7 @@ class Transaction(BaseModel):
         result['tags_list'] = self.get_tags_list()
         result['account_name'] = self.account.account_name if self.account else None
         result['bank_name'] = self.account.bank.name if self.account and self.account.bank else None
-        result['transaction_type_name'] = self.transaction_type if self.transaction_type else None
-        result['transaction_type_is_income'] = self.is_income() if self.transaction_type else None
+        result['transaction_type'] = self.get_transaction_type()
         return result
     
     def __repr__(self):

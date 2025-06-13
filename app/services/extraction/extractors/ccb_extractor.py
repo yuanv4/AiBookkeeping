@@ -9,6 +9,7 @@
 import os
 import re
 import pandas as pd
+from datetime import datetime
 from typing import Optional, Tuple
 
 from .base_extractor import BaseTransactionExtractor, ExtractionConfig, AccountExtractionPattern, BankInfo
@@ -18,6 +19,23 @@ class CCBTransactionExtractor(BaseTransactionExtractor):
     
     def __init__(self):
         super().__init__('CCB')
+    
+    def _convert_date(self, date_str: str) -> Optional[datetime]:
+        """将建设银行日期字符串转换为标准datetime对象
+        
+        Args:
+            date_str: 建设银行日期字符串，格式为"YYYYMMDD"，如"20230103"
+            
+        Returns:
+            datetime: 转换后的标准日期时间对象，转换失败返回None
+        """
+        if pd.isna(date_str) or not str(date_str).strip().isdigit():
+            return None
+        try:
+            return pd.to_datetime(str(date_str).strip(), format='%Y%m%d')
+        except:
+            self.logger.warning(f"无法解析建设银行日期格式: {date_str}")
+            return None
     
     def get_extraction_config(self) -> ExtractionConfig:
         """获取建设银行特定的数据提取配置"""
