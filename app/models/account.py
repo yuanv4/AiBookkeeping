@@ -75,10 +75,7 @@ class Account(BaseModel):
             return None
         return cls.query.filter_by(bank_id=bank_id, account_number=account_number.strip()).first()
     
-    @classmethod
-    def get_by_bank_id(cls, bank_id):
-        """Get all accounts for a specific bank."""
-        return cls.query.filter_by(bank_id=bank_id).order_by(cls.account_number).all()
+    
     
     @classmethod
     def get_or_create(cls, bank_id, account_number, account_name=None, currency='CNY', account_type='checking'):

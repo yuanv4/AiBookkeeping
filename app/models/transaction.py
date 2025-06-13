@@ -274,23 +274,7 @@ class Transaction(BaseModel):
             return []
         return [tag.strip() for tag in self.tags.split(',') if tag.strip()]
     
-    def add_tag(self, tag):
-        """Add a tag to the transaction."""
-        tags_list = self.get_tags_list()
-        tag = tag.strip()
-        if tag and tag not in tags_list:
-            tags_list.append(tag)
-            self.tags = ','.join(tags_list)
-            self.save()
-    
-    def remove_tag(self, tag):
-        """Remove a tag from the transaction."""
-        tags_list = self.get_tags_list()
-        tag = tag.strip()
-        if tag in tags_list:
-            tags_list.remove(tag)
-            self.tags = ','.join(tags_list) if tags_list else None
-            self.save()
+
     
     def is_income(self):
         """Check if this is an income transaction."""
