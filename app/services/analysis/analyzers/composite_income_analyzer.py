@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from app.services.analysis.analyzers.base_analyzer import BaseAnalyzer
 from app.services.analysis.analyzers.single_income_expense_analyzer import IncomeExpenseAnalyzer
 from app.services.analysis.analyzers.single_income_stability_analyzer import IncomeStabilityAnalyzer
-from app.services.analysis.analysis_models import (
+from app.services.analysis.models import (
     IncomeExpenseAnalysis, IncomeStability, IncomeDiversity,
     StabilityMetrics, DiversityMetrics,
     MonthlyData, OverallStats

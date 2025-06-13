@@ -10,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import func
 
 from app.models import Bank, Account, Transaction, db
-from app.services.analysis.analysis_models import BalanceAnalysis, BalanceMetrics
+from app.services.analysis.models import BalanceAnalysis, BalanceMetrics
 from .base_analyzer import BaseAnalyzer
 
 

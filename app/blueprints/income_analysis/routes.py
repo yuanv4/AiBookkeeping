@@ -1,7 +1,7 @@
 from flask import render_template, current_app
 
 # 使用新的服务层
-from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService
+from app.services.analysis.service import ComprehensiveService
 
 from . import income_analysis_bp
 
@@ -10,7 +10,7 @@ def income_analysis():
     """收入分析页面"""
     try:
         # 使用新的服务层
-        analysis_service = AnalysisService()
+        analysis_service = ComprehensiveService()
         
         # 获取综合收入分析数据（包含模板所需的data结构）
         data = analysis_service.get_comprehensive_income_analysis()

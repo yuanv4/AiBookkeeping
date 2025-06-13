@@ -2,7 +2,7 @@ from flask import request, jsonify, current_app
 from datetime import datetime, timedelta
 
 # 使用新的分析服务
-from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService
+from app.services.analysis.service import ComprehensiveService
 
 from . import api_bp
 
@@ -11,7 +11,7 @@ def api_data_route(): #重命名函数
     """API接口获取分析数据"""
     try:
         # 使用新的分析服务
-        analysis_service = AnalysisService()
+        analysis_service = ComprehensiveService()
 
         start_date = request.args.get('start_date', None)
         end_date = request.args.get('end_date', None)

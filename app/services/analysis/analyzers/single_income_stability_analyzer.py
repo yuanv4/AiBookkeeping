@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Any, Union
 from decimal import Decimal
 
 from app.models import Bank, Account, Transaction, db
-from app.services.analysis.analysis_models import IncomeStability, StabilityMetrics
+from app.services.analysis.models import IncomeStability, StabilityMetrics
 from .analyzer_context import AnalyzerContext
 from .base_analyzer import BaseAnalyzer
 

@@ -7,7 +7,7 @@ Includes analyzers for income, cash flow, diversity, growth, and resilience anal
 from .analyzers.base_analyzer import BaseAnalyzer
 from .analyzers.analyzer_context import AnalyzerContext
 from .analyzers.analyzer_factory import AnalyzerFactory
-from .analysis_service import ComprehensiveService
+from .service import ComprehensiveService
 
 # 导入实际存在的综合分析器
 from .analyzers.composite_income_analyzer import ComprehensiveIncomeAnalyzer

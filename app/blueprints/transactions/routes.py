@@ -131,7 +131,7 @@ def transactions_list_route(): # 重命名函数
                 'account_number': trans.account.account_number if trans.account else 'N/A',
                 'account_name': trans.account.account_name if trans.account else 'N/A',
                 'bank_name': trans.account.bank.name if trans.account and trans.account.bank else 'N/A',
-                'transaction_type': trans.transaction_type.name if trans.transaction_type else 'N/A',
+                'transaction_type': trans.get_transaction_type() if trans.get_transaction_type() else 'N/A',
                 'currency': trans.currency,
                 'balance': float(trans.balance_after) if trans.balance_after else 0.0
             })

@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Any, Union
 from decimal import Decimal
 
 from app.models import Bank, Account, Transaction, db
-from app.services.analysis.analysis_models import IncomeGrowth, GrowthMetrics
+from app.services.analysis.models import IncomeGrowth, GrowthMetrics
 from .base_analyzer import BaseAnalyzer
 
 

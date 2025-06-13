@@ -6,7 +6,7 @@ from app.services.analysis import AnalyzerFactory
 from app.services.analysis.analyzers.analyzer_context import AnalyzerContext
 from app.services.analysis.analyzers.single_balance_analyzer import BalanceAnalyzer
 from app.services.core.transaction_service import TransactionService
-from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService
+from app.services.analysis.service import ComprehensiveService
 
 from . import main # 从同级 __init__.py 导入 main 蓝图实例
 
@@ -100,7 +100,7 @@ def dashboard():
         current_date = date.today()
         start_of_month = current_date.replace(day=1)
         
-        analysis_service = AnalysisService()
+        analysis_service = ComprehensiveService()
         monthly_report = analysis_service.generate_financial_report(
             start_date=start_of_month,
             end_date=current_date

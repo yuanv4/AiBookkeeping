@@ -8,7 +8,7 @@ from .core.transaction_service import TransactionService
 from .core.file_processor_service import FileProcessorService
 
 # Analysis services
-from .analysis.analysis_service import ComprehensiveService as AnalysisService
+from .analysis.service import ComprehensiveService as AnalysisService
 from .analysis import ComprehensiveService
 
 # Reporting services

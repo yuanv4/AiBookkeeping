@@ -5,8 +5,9 @@ Includes base extractors, specific bank extractors, factory patterns, and compre
 """
 
 from .extractors.base_extractor import BankStatementExtractorInterface, BaseTransactionExtractor
-from .extraction_factory import ExtractorFactory
-from .extraction_service import BankStatementExtractor, get_extractor_service
+from .factory import ExtractorFactory
+from .service import BankStatementExtractor, get_extractor_service
+from .models import ExtractionResult
 # 文件验证功能已移除
 from .extractors import *
 
@@ -15,5 +16,6 @@ __all__ = [
     'BaseTransactionExtractor', 
     'ExtractorFactory',
     'BankStatementExtractor', 
-    'get_extractor_service'
+    'get_extractor_service',
+    'ExtractionResult'
 ]

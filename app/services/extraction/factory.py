@@ -7,7 +7,8 @@
 """
 
 import logging
-from typing import Dict, List, Type, Optional
+from typing import Dict, List, Type, Optional, Tuple
+import pandas as pd
 
 from .extractors.base_extractor import BankStatementExtractorInterface
 from .extractors import CMBTransactionExtractor, CCBTransactionExtractor
@@ -16,7 +17,7 @@ class ExtractorFactory:
     """银行提取器工厂"""
     
     def __init__(self):
-        self.extractors: Dict[str, Type[BankStatementExtractorInterface]] = {}
+        self._extractors: Dict[str, Type[BankStatementExtractorInterface]] = {}
         self.logger = logging.getLogger('extraction_factory')
         self._register_default_extractors()
     
@@ -27,28 +28,31 @@ class ExtractorFactory:
     
     def register(self, bank_code: str, extractor_class: Type[BankStatementExtractorInterface]):
         """注册银行提取器"""
-        self.extractors[bank_code] = extractor_class
+        self._extractors[bank_code] = extractor_class
         self.logger.info(f"注册提取器: {bank_code} -> {extractor_class.__name__}")
     
     def create(self, bank_code: str) -> Optional[BankStatementExtractorInterface]:
         """创建指定银行的提取器实例"""
-        if bank_code in self.extractors:
-            return self.extractors[bank_code]()
+        if bank_code in self._extractors:
+            return self._extractors[bank_code]()
         return None
     
     def get_available_banks(self) -> List[str]:
         """获取可用的银行代码列表"""
-        return list(self.extractors.keys())
+        return list(self._extractors.keys())
     
-    def find_suitable_extractor(self, file_path: str) -> Optional[tuple]:
+    def find_suitable_extractor(self, file_path: str) -> Optional[Tuple[BankStatementExtractorInterface, str, str]]:
         """根据文件找到合适的提取器
         
+        Args:
+            file_path: 文件路径
+            
         Returns:
-            tuple: (extractor, account_name, account_number) 或 None
+            Optional[Tuple[BankStatementExtractorInterface, str, str]]: 
+                如果找到合适的提取器，返回 (extractor, account_name, account_number) 元组
+                否则返回 None
         """
-        import pandas as pd
-        
-        for bank_code in self.extractors:
+        for bank_code in self._extractors:
             extractor = self.create(bank_code)
             if extractor:
                 try:

@@ -9,17 +9,16 @@ from datetime import date, datetime, timedelta
 import calendar
 
 from app.models import Transaction, Account, Bank, db
-from app.services.analysis.analysis_models import ComprehensiveAnalysisData
+from app.services.analysis.models import (
+    ComprehensiveAnalysisData, IncomeExpenseAnalysis, IncomeStability, 
+    CashFlowHealth, BalanceAnalysis, IncomeGrowth, DatabaseStats,
+    IncomeExpenseBalance, ComprehensiveExpenseData
+)
 from app.services.analysis.analyzers import AnalyzerFactory, AnalyzerContext
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 import logging
 
-# 导入分析结果类，避免在异常处理中重复导入
-from app.services.analysis.analysis_models import (
-    IncomeExpenseAnalysis, IncomeStability, CashFlowHealth,
-    BalanceAnalysis, IncomeGrowth, DatabaseStats
-)
 from app.services.report import FinancialReportService
 
 logger = logging.getLogger(__name__)
@@ -70,7 +69,6 @@ class ComprehensiveService:
             
             # 构建综合分析数据结构
             # 将IncomeExpenseAnalysis转换为IncomeExpenseBalance以保持模板兼容性
-            from app.services.analysis.analysis_models import IncomeExpenseBalance
             income_expense_balance = IncomeExpenseBalance(
                 overall_stats=getattr(income_expense_result, 'overall_stats', {}),
                 monthly_data=getattr(income_expense_result, 'monthly_data', [])
@@ -135,8 +133,6 @@ class ComprehensiveService:
             comprehensive_summary = expense_pattern_analyzer.get_comprehensive_summary()
             
             # 构建综合支出分析数据结构
-            from app.services.analysis.analysis_models import ComprehensiveExpenseData
-            
             comprehensive_data = ComprehensiveExpenseData(
                 expense_categories=expense_categories_result,
                 expense_trends=expense_trends_result,
@@ -152,7 +148,6 @@ class ComprehensiveService:
         except Exception as e:
             logger.error(f"Error getting comprehensive expense analysis: {e}")
             # 返回默认对象以防止模板错误
-            from app.services.analysis.analysis_models import ComprehensiveExpenseData
             return ComprehensiveExpenseData()
     
     # 旧的方法已移除，现在使用新的AnalyzerFactory和AnalyzerContext架构
