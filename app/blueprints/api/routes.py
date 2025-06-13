@@ -1,6 +1,5 @@
-from flask import request, jsonify, send_file, current_app
+from flask import request, jsonify, current_app
 from datetime import datetime, timedelta
-import os # For send_file basename
 
 # 使用新的分析服务
 from app.services.analysis.analysis_service import ComprehensiveService as AnalysisService

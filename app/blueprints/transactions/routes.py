@@ -1,5 +1,3 @@
-from flask import request, render_template, current_app
-
 # 使用新的服务层
 from flask import request, render_template, redirect, url_for, flash, current_app
 from app.services.core.account_service import AccountService
@@ -100,18 +98,6 @@ def transactions_list_route(): # 重命名函数
             offset=offset
         )
         
-        count_query_params = {
-            'account_number_filter': account_number_req,
-            'start_date': start_date_req,
-            'end_date': end_date_req,
-            'min_amount': min_amount_req,
-            'max_amount': max_amount_req,
-            'transaction_type_filter': transaction_type_req, 
-            'counterparty_filter': counterparty_req, 
-            'currency_filter': currency_req,
-            'account_name_filter': account_name_req,
-            'distinct': distinct_req
-        }
         total_transactions = transaction_service.count_transactions_with_filters(filters)
 
         accounts = AccountService.get_all_accounts()
@@ -132,8 +118,6 @@ def transactions_list_route(): # 重命名函数
             'account_name_filter': account_name_req,
             'distinct': distinct_req
         }
-
-        total_pages = (total_transactions + limit - 1) // limit if total_transactions > 0 else 1
 
         # 转换交易记录为模板需要的格式
         transactions_data = []
