@@ -355,3 +355,193 @@
         padding: var(--spacing-sm);
     }
 }
+
+/* ========================================
+   文件上传组件样式
+   ======================================== */
+
+/* 主上传容器 */
+.upload-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* 拖拽区域基础样式 */
+.drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    background-color: var(--background-primary);
+    transition: var(--transition-fast);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.drop-zone:hover {
+    border-color: var(--primary-400);
+    background-color: var(--primary-50);
+    transform: translateY(-1px);
+}
+
+.drop-zone.drag-over {
+    border-color: var(--primary-500);
+    background-color: var(--primary-100);
+    box-shadow: var(--shadow-md);
+}
+
+.drop-zone-content {
+    text-align: center;
+    pointer-events: none;
+}
+
+/* 文件列表容器 */
+.file-list-container {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background-color: var(--surface-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+/* 文件列表样式 */
+.file-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    background-color: var(--background-primary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    transition: var(--transition-fast);
+}
+
+.file-item:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+}
+
+.file-item:last-child {
+    margin-bottom: 0;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.file-icon {
+    margin-right: var(--spacing-sm);
+    color: var(--primary-500);
+}
+
+.file-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    word-break: break-all;
+}
+
+.file-size {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.file-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* 上传进度容器 */
+.upload-progress-container {
+    padding: var(--spacing-xl);
+    text-align: center;
+}
+
+.upload-progress-container .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* 上传状态样式 */
+.upload-success {
+    color: var(--success-600);
+    background-color: var(--success-50);
+    border-color: var(--success-200);
+}
+
+.upload-error {
+    color: var(--danger-600);
+    background-color: var(--danger-50);
+    border-color: var(--danger-200);
+}
+
+.upload-warning {
+    color: var(--warning-600);
+    background-color: var(--warning-50);
+    border-color: var(--warning-200);
+}
+
+/* 响应式设计 - 上传组件 */
+@media (max-width: 768px) {
+    .drop-zone {
+        padding: var(--spacing-lg);
+    }
+    
+    .file-list-container {
+        padding: var(--spacing-md);
+    }
+    
+    .file-item {
+        padding: var(--spacing-sm);
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
+    }
+    
+    .file-info {
+        width: 100%;
+    }
+    
+    .file-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 576px) {
+    .drop-zone {
+        padding: var(--spacing-md);
+    }
+    
+    .upload-progress-container {
+        padding: var(--spacing-lg);
+    }
+    
+    .upload-progress-container .spinner-border {
+        width: 2rem;
+        height: 2rem;
+    }
+    
+    .file-name {
+        font-size: var(--text-sm);
+    }
+    
+    .file-size {
+        font-size: 0.75rem;
+    }
+}
