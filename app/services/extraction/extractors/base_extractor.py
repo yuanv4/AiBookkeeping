@@ -262,25 +262,6 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
             else:
                 self.logger.warning("未配置source_columns或target_columns，跳过列名映射")
             
-            # 处理金额列：移除逗号并转换为数值类型
-            if 'amount' in df.columns:
-                try:
-                    # 将金额列转换为字符串，移除逗号，然后转换为数值
-                    df['amount'] = pd.to_numeric(df['amount'].astype(str).str.replace(',', ''), errors='coerce')
-                    self.logger.info("金额列已转换为数值类型")
-                    
-                    # 检查是否有转换失败的数据
-                    invalid_count = df['amount'].isna().sum()
-                    if invalid_count > 0:
-                        self.logger.warning(f"有{invalid_count}行金额数据转换失败，将被跳过")
-                        # 移除转换失败的行
-                        df = df.dropna(subset=['amount'])
-                except Exception as e:
-                    self.logger.error(f"金额列转换失败: {e}")
-                    return None
-            else:
-                self.logger.warning("未找到'amount'列，无法进行数值转换")
-            
             # 处理日期列：转换为标准日期格式
             if 'transaction_date' in df.columns:
                 try:
@@ -394,8 +375,6 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                         'date': row['transaction_date'].date(),  # 修正参数名：transaction_date -> date
                         'counterparty': row.get('counterparty', ''),
                         'description': row.get('description', ''),
-                        'original_description': row.get('original_description', ''),  # 添加缺失字段
-                        'notes': row.get('notes', ''),  # 添加notes字段
                         'balance_after': row.get('balance_after'),
                         'currency': self._normalize_currency_code(row.get('currency', 'CNY'))
                     }

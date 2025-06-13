@@ -154,8 +154,7 @@ class TransactionService:
     @staticmethod
     def create_transaction(account_id: int, transaction_type: str, date: date, 
                          amount: Decimal, currency: str = 'CNY', description: str = None,
-                         counterparty: str = None, notes: str = None, 
-                         original_description: str = None, **kwargs) -> Transaction:
+                         counterparty: str = None, **kwargs) -> Transaction:
         """Create a new transaction."""
         try:
             return Transaction.create(
@@ -166,8 +165,6 @@ class TransactionService:
                 currency=currency,
                 description=description,
                 counterparty=counterparty,
-                notes=notes,
-                original_description=original_description,
                 **kwargs
             )
         except Exception as e:

@@ -361,7 +361,7 @@
 
 .drop-zone-content {
     text-align: center;
-    pointer-events: none;
+    pointer-events: auto;
 }
 
 /* 文件列表容器 */

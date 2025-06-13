@@ -8,6 +8,8 @@ from sqlalchemy.orm import validates
 from decimal import Decimal
 from datetime import datetime, date
 import re
+import decimal
+from typing import Any
 
 class Transaction(BaseModel):
     """Transaction model representing financial transactions."""
@@ -21,8 +23,6 @@ class Transaction(BaseModel):
     currency = db.Column(db.String(3), default='CNY', nullable=False)
     description = db.Column(db.String(200))
     counterparty = db.Column(db.String(100), index=True)  # 交易对方
-    notes = db.Column(db.Text)  # 备注
-    original_description = db.Column(db.Text)  # 原始描述（从银行流水导入时保留）
     reference_number = db.Column(db.String(50), index=True)  # 交易参考号
     balance_after = db.Column(db.Numeric(15, 2))  # 交易后余额
     is_verified = db.Column(db.Boolean, default=False)  # 是否已核实
@@ -37,25 +37,59 @@ class Transaction(BaseModel):
         db.Index('idx_type_date', 'transaction_type', 'date'),
     )
     
+    @staticmethod
+    def _normalize_decimal(value: Any) -> Decimal:
+        """通用金额标准化和转换方法
+        
+        Args:
+            value: 任意类型的金额值（字符串、数字、Decimal等）
+            
+        Returns:
+            Decimal: 标准化后的Decimal金额
+            
+        Raises:
+            ValueError: 当金额格式无效时
+        """
+        if value is None:
+            return None
+            
+        try:
+            # 如果是字符串类型，进行标准化处理
+            if isinstance(value, str):
+                # 移除所有非数字字符（保留小数点和负号）
+                value = re.sub(r'[^\d.-]', '', value.strip())
+            
+            # 转换为Decimal
+            if isinstance(value, (int, float)):
+                decimal_value = Decimal(str(value))
+            elif not isinstance(value, Decimal):
+                decimal_value = Decimal(str(value))
+            else:
+                decimal_value = value
+                
+            # 验证精度
+            if decimal_value.as_tuple().exponent < -2:
+                raise ValueError('金额最多支持2位小数')
+                
+            return decimal_value
+            
+        except (ValueError, TypeError, decimal.InvalidOperation) as e:
+            raise ValueError(f'无效的金额格式: {value} - {str(e)}')
+    
     @validates('amount')
     def validate_amount(self, key, amount):
-        """Validate transaction amount."""
+        """验证交易金额"""
         if amount is None:
-            raise ValueError('Transaction amount cannot be None')
-        
-        if isinstance(amount, (int, float)):
-            amount = Decimal(str(amount))
-        elif not isinstance(amount, Decimal):
-            try:
-                amount = Decimal(str(amount))
-            except (ValueError, TypeError):
-                raise ValueError('Invalid amount format')
-        
-        # 检查精度
-        if amount.as_tuple().exponent < -2:
-            raise ValueError('Amount cannot have more than 2 decimal places')
-        
-        return amount
+            raise ValueError('交易金额不能为空')
+        return self._normalize_decimal(amount)
+    
+    @validates('balance_after')
+    def validate_balance_after(self, key, balance):
+        """验证交易后余额"""
+        # balance_after 可以为空
+        if balance is None:
+            return None
+        return self._normalize_decimal(balance)
     
     @validates('date')
     def validate_date(self, key, transaction_date):
@@ -168,7 +202,7 @@ class Transaction(BaseModel):
     
     @classmethod
     def search(cls, keyword, account_id=None, start_date=None, end_date=None):
-        """Search transactions by keyword in description, counterparty, or notes."""
+        """Search transactions by keyword in description or counterparty."""
         query = cls.query
         
         if account_id:
@@ -182,9 +216,7 @@ class Transaction(BaseModel):
         # 搜索关键词
         search_filter = db.or_(
             cls.description.ilike(f'%{keyword}%'),
-            cls.counterparty.ilike(f'%{keyword}%'),
-            cls.notes.ilike(f'%{keyword}%'),
-            cls.original_description.ilike(f'%{keyword}%')
+            cls.counterparty.ilike(f'%{keyword}%')
         )
         query = query.filter(search_filter)
         
