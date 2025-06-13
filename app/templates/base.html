@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}银行账单分析系统{% endblock %}</title>
+    <title>{% block title %}{{ config.APP_NAME }}{% endblock %}</title>
     
     {% from "macros.html" import icon %}
     
@@ -58,7 +58,7 @@
                 <div class="sidebar-logo-container me-2">
                     {{ icon("account_balance", "md", "", "sidebar-brand-icon") }}
                 </div>
-                <h5 class="mb-0 sidebar-brand-text">账单分析系统</h5>
+                <h5 class="mb-0 sidebar-brand-text">{{ config.APP_NAME }}</h5>
             </div>
         </div>
         <div class="sidebar-divider my-1"></div>

@@ -1,12 +1,12 @@
-import os
 import logging
+import os
 import sys
 from logging.handlers import RotatingFileHandler
 from flask import Flask, request, render_template, jsonify
 from flask_migrate import Migrate
 
-# 从同一目录的 config 模块导入配置函数
-from .config import get_config
+# 从同一目录的 config 模块导入配置类
+from .config import Config
 from .template_filters import register_template_filters
 from .models import db
 
@@ -58,11 +58,9 @@ def configure_logging(app):
 def create_app():
     app = Flask(__name__)
     
-    # Load configuration
-    config_obj = get_config()
-    
-    # Initialize configuration
-    config_obj.init_app(app)
+    # 直接实例化配置类
+    config = Config()
+    config.init_app(app)
     
     # Initialize extensions
     db.init_app(app)

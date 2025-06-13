@@ -1,222 +1,152 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, page_header %}
+{% from "macros.html" import icon, card, chart_container, page_header %}
+
+{% block title %}收入分析 - {{ config.APP_NAME }}{% endblock %}
 
 {% block page_css %}
-<link href="{{ url_for('static', filename='css/components.css') }}" rel="stylesheet">
-<link href="{{ url_for('static', filename='css/pages.css') }}" rel="stylesheet">
-<!-- 内联CSS样式已迁移到pages.css -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
 {% endblock %}
 
 {% block content %}
-<!-- 收入分析页头 -->
-{{ page_header("收入分析", "全方位分析您的收入情况和财务健康状况", "analytics") }}
-
-<div class="container-fluid px-0">
-    <!-- 健康状况总览 -->
+<div class="page-container">
+    {{ page_header("收入分析", "深入分析您的收入结构和财务健康状况", "analytics") }}
+    
+    <!-- 财务健康指标网格 -->
     <div class="row g-4 mb-4">
-        <!-- 收入与支出平衡 -->
-        <div class="col-md-4">
-            <div class="metric-card">
-                <span class="metric-label">月均储蓄率</span>
-                {% if data and data.income_expense_balance and data.income_expense_balance.overall_stats %}
-                <span class="metric-value">{{ "%.1f"|format(data.income_expense_balance.overall_stats.avg_monthly_saving_rate * 100) }}%</span>
-                {% if data.income_expense_balance.overall_stats.avg_monthly_saving_rate >= 0.2 %}
-                <span class="metric-status good">良好</span>
-                {% elif data.income_expense_balance.overall_stats.avg_monthly_saving_rate >= 0.1 %}
-                <span class="metric-status moderate">一般</span>
-                {% else %}
-                <span class="metric-status poor">需改善</span>
-                {% endif %}
-                {% else %}
-                <span class="metric-value">0.0%</span>
-                <span class="metric-status poor">无数据</span>
-                {% endif %}
-                <div class="mt-2 small text-muted">
-                    储蓄率表示您每月收入中存下来的比例，专家建议应保持在10%-20%之间
+        <div class="col-xl-4 col-lg-6 col-md-6">
+            <!-- 平均月储蓄率 -->
+            <div class="metric-card card-animate h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="metric-label">平均月储蓄率</div>
+                    <div class="icon-circle">
+                        {{ icon("savings", "sm", "text-primary") }}
+                    </div>
+                </div>
+                <div class="metric-value">{% if data and data.financial_health and data.financial_health.avg_monthly_saving_rate %}{{ "%.1f"|format(data.financial_health.avg_monthly_saving_rate * 100) }}%{% else %}0.0%{% endif %}</div>
+                <div class="metric-description">储蓄率反映您的财务纪律和未来规划能力</div>
+                <div class="metric-status {% if data and data.financial_health and data.financial_health.avg_monthly_saving_rate %}{% if data.financial_health.avg_monthly_saving_rate >= 0.2 %}good{% elif data.financial_health.avg_monthly_saving_rate >= 0.1 %}moderate{% else %}poor{% endif %}{% else %}poor{% endif %}">
+                    {% if data and data.financial_health and data.financial_health.avg_monthly_saving_rate %}{% if data.financial_health.avg_monthly_saving_rate >= 0.2 %}优秀{% elif data.financial_health.avg_monthly_saving_rate >= 0.1 %}良好{% else %}需改善{% endif %}{% else %}无数据{% endif %}
                 </div>
             </div>
         </div>
         
-        <!-- 收入稳定性 -->
-        <div class="col-md-4">
-            <div class="metric-card">
-                <span class="metric-label">工资收入占比</span>
-                {% if data and data.income_stability and data.income_stability.metrics %}
-                <span class="metric-value">{{ "%.1f"|format(data.income_stability.metrics.stability_score) }}%</span>
-                {% if data.income_stability.metrics.stability_score >= 70 %}
-                <span class="metric-status good">稳定</span>
-                {% elif data.income_stability.metrics.stability_score >= 50 %}
-                <span class="metric-status moderate">一般</span>
-                {% else %}
-                <span class="metric-status poor">不稳定</span>
-                {% endif %}
-                {% else %}
-                <span class="metric-value">0.0%</span>
-                <span class="metric-status poor">无数据</span>
-                {% endif %}
-                <div class="mt-2 small text-muted">
-                    工资收入占比反映您的收入稳定性，比例越高表示收入来源越稳定
+        <div class="col-xl-4 col-lg-6 col-md-6">
+            <!-- 收入稳定性 -->
+            <div class="metric-card card-animate h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="metric-label">收入稳定性</div>
+                    <div class="icon-circle">
+                        {{ icon("trending_up", "sm", "text-primary") }}
+                    </div>
+                </div>
+                <div class="metric-value">{% if data and data.financial_health and data.financial_health.income_stability %}{{ "%.1f"|format(data.financial_health.income_stability * 100) }}%{% else %}0.0%{% endif %}</div>
+                <div class="metric-description">稳定的收入是财务安全的基础</div>
+                <div class="metric-status {% if data and data.financial_health and data.financial_health.income_stability %}{% if data.financial_health.income_stability >= 0.8 %}good{% elif data.financial_health.income_stability >= 0.6 %}moderate{% else %}poor{% endif %}{% else %}poor{% endif %}">
+                    {% if data and data.financial_health and data.financial_health.income_stability %}{% if data.financial_health.income_stability >= 0.8 %}稳定{% elif data.financial_health.income_stability >= 0.6 %}一般{% else %}波动大{% endif %}{% else %}无数据{% endif %}
                 </div>
             </div>
         </div>
         
-        <!-- 现金流健康度 -->
-        <div class="col-md-4">
-            <div class="metric-card">
-                <span class="metric-label">紧急备用金覆盖月数</span>
-                {% if data and data.financial_resilience and data.financial_resilience.metrics %}
-                <span class="metric-value">{{ "%.1f"|format(data.financial_resilience.metrics.emergency_fund_months) }}个月</span>
-                {% if data.financial_resilience.metrics.emergency_fund_months >= 6 %}
-                <span class="metric-status good">充足</span>
-                {% elif data.financial_resilience.metrics.emergency_fund_months >= 3 %}
-                <span class="metric-status moderate">一般</span>
-                {% else %}
-                <span class="metric-status poor">不足</span>
-                {% endif %}
-                {% else %}
-                <span class="metric-value">0.0个月</span>
-                <span class="metric-status poor">无数据</span>
-                {% endif %}
-                <div class="mt-2 small text-muted">
-                    紧急备用金应覆盖3-6个月的基本生活支出，以应对突发情况
+        <div class="col-xl-4 col-lg-12 col-md-12">
+            <!-- 紧急备用金覆盖月数 -->
+            <div class="metric-card card-animate h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="metric-label">紧急备用金</div>
+                    <div class="icon-circle">
+                        {{ icon("security", "sm", "text-primary") }}
+                    </div>
+                </div>
+                <div class="metric-value">{% if data and data.financial_health and data.financial_health.emergency_fund_months %}{{ "%.1f"|format(data.financial_health.emergency_fund_months) }}月{% else %}0.0月{% endif %}</div>
+                <div class="metric-description">紧急备用金应覆盖3-6个月的基本生活支出，以应对突发情况</div>
+                <div class="metric-status {% if data and data.financial_health and data.financial_health.emergency_fund_months %}{% if data.financial_health.emergency_fund_months >= 6 %}good{% elif data.financial_health.emergency_fund_months >= 3 %}moderate{% else %}poor{% endif %}{% else %}poor{% endif %}">
+                    {% if data and data.financial_health and data.financial_health.emergency_fund_months %}{% if data.financial_health.emergency_fund_months >= 6 %}充足{% elif data.financial_health.emergency_fund_months >= 3 %}基本够用{% else %}不足{% endif %}{% else %}无数据{% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 收入与支出平衡分析 -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-start">
-            <div>
-                <h5 class="card-title">收入与支出平衡分析</h5>
-                <p class="card-subtitle">分析收支差额比率、必要支出覆盖率和储蓄率</p>
-            </div>
-            <div class="d-flex align-items-center">
-                <div class="icon-circle bg-light d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                    {{ icon("balance", "md", "text-primary") }}
+    <!-- 分析图表网格 -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <!-- 收入与支出平衡分析 -->
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1">收入与支出平衡分析</h5>
+                        <p class="card-subtitle mb-0">分析收支差额比率、必要支出覆盖率和储蓄率</p>
+                    </div>
+                    <div class="icon-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem; border-radius: 50%;">
+                        {{ icon("balance", "md", "text-primary") }}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-8 col-lg-12 col-md-8">
+                            <div class="chart-container">
+                                <canvas id="incomeExpenseChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-xl-4 col-lg-12 col-md-4">
+                            <div class="stat-container">
+                                <div class="stat-item">
+                                    <div class="stat-label">平均收支比率</div>
+                                    <div class="stat-value">{% if data and data.income_expense_balance and data.income_expense_balance.overall_stats %}{{ "%.2f"|format(data.income_expense_balance.overall_stats.avg_monthly_ratio) }}{% else %}0.00{% endif %}</div>
+                                    <div class="stat-description">比值大于1表示收入大于支出</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">平均储蓄率</div>
+                                    <div class="stat-value">{% if data and data.income_expense_balance and data.income_expense_balance.overall_stats %}{{ "%.1f"|format(data.income_expense_balance.overall_stats.avg_monthly_saving_rate * 100) }}%{% else %}0.0%{% endif %}</div>
+                                    <div class="stat-description">收入中节省的比例</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">必要支出覆盖率</div>
+                                    <div class="stat-value">{% if data and data.income_expense_balance and data.income_expense_balance.overall_stats %}{{ "%.2f"|format(data.income_expense_balance.overall_stats.avg_necessary_expense_coverage) }}{% else %}0.00{% endif %}</div>
+                                    <div class="stat-description">收入对必要生活支出的覆盖倍数</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="chart-container">
-                        <canvas id="incomeExpenseChart"></canvas>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-container">
-                        <div class="stat-item">
-                            <div class="stat-label">平均收支比率</div>
-                            <div class="stat-value">{% if data and data.income_expense_balance and data.income_expense_balance.overall_stats %}{{ "%.2f"|format(data.income_expense_balance.overall_stats.avg_monthly_ratio) }}{% else %}0.00{% endif %}</div>
-                            <div class="stat-description">比值大于1表示收入大于支出</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">平均储蓄率</div>
-                            <div class="stat-value">{% if data and data.income_expense_balance and data.income_expense_balance.overall_stats %}{{ "%.1f"|format(data.income_expense_balance.overall_stats.avg_monthly_saving_rate * 100) }}%{% else %}0.0%{% endif %}</div>
-                            <div class="stat-description">收入中节省的比例</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">必要支出覆盖率</div>
-                            <div class="stat-value">{% if data and data.income_expense_balance and data.income_expense_balance.overall_stats %}{{ "%.2f"|format(data.income_expense_balance.overall_stats.avg_necessary_expense_coverage) }}{% else %}0.00{% endif %}</div>
-                            <div class="stat-description">收入对必要生活支出的覆盖倍数</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- 收入稳定性分析 -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-start">
-            <div>
-                <h5 class="card-title">收入稳定性分析</h5>
-                <p class="card-subtitle">分析固定收入占比、收入波动和收入周期</p>
-            </div>
-            <div class="d-flex align-items-center">
-                <div class="icon-circle bg-light d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                    {{ icon("trending_up", "md", "text-primary") }}
-                </div>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="chart-container">
-                        <canvas id="incomeStabilityChart"></canvas>
+        <div class="col-lg-6">
+            <!-- 收入稳定性分析 -->
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1">收入稳定性分析</h5>
+                        <p class="card-subtitle mb-0">分析固定收入占比、收入波动和收入周期</p>
+                    </div>
+                    <div class="icon-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem; border-radius: 50%;">
+                        {{ icon("trending_up", "md", "text-primary") }}
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="stat-container">
-                        <div class="stat-item">
-                            <div class="stat-label">工资收入占比</div>
-                            <div class="stat-value">{% if data and data.income_stability and data.income_stability.metrics %}{{ "%.1f"|format(data.income_stability.metrics.stability_score) }}%{% else %}0.0%{% endif %}</div>
-                            <div class="stat-description">工资类收入占总收入比例</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-8 col-lg-12 col-md-8">
+                            <div class="chart-container">
+                                <canvas id="incomeStabilityChart"></canvas>
+                            </div>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-label">收入波动系数</div>
-                            <div class="stat-value">{% if data and data.income_stability and data.income_stability.metrics %}{{ "%.2f"|format(data.income_stability.metrics.coefficient_of_variation) }}{% else %}0.00{% endif %}</div>
-                            <div class="stat-description">值越小表示收入越稳定</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">平均月收入</div>
-                            <div class="stat-value">¥{% if data and data.income_expense_balance and data.income_expense_balance.overall_stats %}{{ "%.2f"|format(data.income_expense_balance.overall_stats.avg_monthly_income) }}{% else %}0.00{% endif %}</div>
-                        </div>
-                        {# 最长无收入周期功能暂时移除，等待后续实现 #}
-                        {# {% if data.income_stability.max_no_income_period.days > 0 %}
-                        <div class="stat-item">
-                            <div class="stat-label">最长无收入周期</div>
-                            <div class="stat-value">{{ data.income_stability.max_no_income_period.days }}天</div>
-                            <div class="stat-description">{{ data.income_stability.max_no_income_period.start }} 至 {{ data.income_stability.max_no_income_period.end }}</div>
-                        </div>
-                        {% endif %} #}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 收入多样性评估 -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-start">
-            <div>
-                <h5 class="card-title">收入多样性评估</h5>
-                <p class="card-subtitle">分析收入来源分布、集中度和被动收入占比</p>
-            </div>
-            <div class="d-flex align-items-center">
-                <div class="icon-circle bg-light d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                    {{ icon("pie_chart", "md", "text-primary") }}
-                </div>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="chart-container">
-                        <canvas id="incomeSourcesPieChart"></canvas>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="chart-container">
-                        <canvas id="monthlySourcesChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="row mt-4">
-                <div class="col-md-12">
-                    <div class="stats-container horizontal">
-                        <div class="stat-item">
-                            <div class="stat-label">收入来源数量</div>
-                            <div class="stat-value">{% if data and data.income_diversity %}{{ data.income_diversity.source_count }}{% else %}0{% endif %}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">主要收入来源占比</div>
-                            <div class="stat-value">{% if data and data.income_diversity %}{{ "%.1f"|format(data.income_diversity.concentration_risk * 100) }}%{% else %}0.0%{% endif %}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">被动收入占比</div>
-                            <div class="stat-value">{% if data and data.income_diversity %}{{ "%.1f"|format(data.income_diversity.passive_income_ratio * 100) }}%{% else %}0.0%{% endif %}</div>
+                        <div class="col-xl-4 col-lg-12 col-md-4">
+                            <div class="stat-container">
+                                <div class="stat-item">
+                                    <div class="stat-label">固定收入占比</div>
+                                    <div class="stat-value">{% if data and data.income_stability and data.income_stability.overall_stats %}{{ "%.1f"|format(data.income_stability.overall_stats.fixed_income_ratio * 100) }}%{% else %}0.0%{% endif %}</div>
+                                    <div class="stat-description">固定收入提供稳定的财务基础</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">收入变异系数</div>
+                                    <div class="stat-value">{% if data and data.income_stability and data.income_stability.overall_stats %}{{ "%.3f"|format(data.income_stability.overall_stats.income_coefficient_variation) }}{% else %}0.000{% endif %}</div>
+                                    <div class="stat-description">数值越小表示收入越稳定</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">收入趋势</div>
+                                    <div class="stat-value">{% if data and data.income_stability and data.income_stability.overall_stats %}{{ "%.1f"|format(data.income_stability.overall_stats.income_trend_slope) }}%{% else %}0.0%{% endif %}</div>
+                                    <div class="stat-description">正值表示收入呈上升趋势</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -224,110 +154,89 @@
         </div>
     </div>
 
-    <!-- 现金流健康度 -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-start">
-            <div>
-                <h5 class="card-title">现金流健康度</h5>
-                <p class="card-subtitle">分析月度现金流趋势、紧急备用金和资金缺口</p>
+    <!-- 详细分析图表网格 -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+        <!-- 月度收入趋势分析 -->
+        {% call chart_container("月度收入趋势分析 (最近12个月)", "monthlyIncomeChart") %}
+        {% if data and data.monthly_income_trend and data.monthly_income_trend|length > 0 %}
+        <div class="chart-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(34, 197, 94, 1);"></div>
+                <span>总收入</span>
             </div>
-            <div class="d-flex align-items-center">
-                <div class="icon-circle bg-light d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                    {{ icon("account_balance_wallet", "md", "text-primary") }}
-                </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(59, 130, 246, 1);"></div>
+                <span>固定收入</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(168, 85, 247, 1);"></div>
+                <span>变动收入</span>
             </div>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="chart-container">
-                        <canvas id="cashFlowChart"></canvas>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-container">
-                        <div class="stat-item">
-                            <div class="stat-label">紧急备用金覆盖月数</div>
-                            <div class="stat-value">{% if data and data.financial_resilience and data.financial_resilience.metrics %}{{ "%.1f"|format(data.financial_resilience.metrics.emergency_fund_months) }}个月{% else %}0.0个月{% endif %}</div>
-                            <div class="stat-description">当前余额可以覆盖的月度支出数量</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">资金缺口频率</div>
-                            <div class="stat-value">{% if data and data.cash_flow_health %}{{ "%.1f"|format(data.cash_flow_health.gap_frequency * 100) }}%{% else %}0.0%{% endif %}</div>
-                            <div class="stat-description">月度收支为负的频率</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">平均资金缺口</div>
-                            <div class="stat-value">¥{% if data and data.cash_flow_health %}{{ "%.2f"|format(data.cash_flow_health.avg_gap) }}{% else %}0.00{% endif %}</div>
-                            <div class="stat-description">当月收支为负时的平均缺口金额</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">当前总余额</div>
-                            <div class="stat-value">¥{% if data and data.cash_flow_health %}{{ "%.2f"|format(data.cash_flow_health.total_balance) }}{% else %}0.00{% endif %}</div>
-                        </div>
-                    </div>
-                </div>
+        
+        <!-- 收入趋势统计 -->
+        <div class="stats-container horizontal mt-3">
+            <div class="stat-item">
+                <div class="stat-label">平均月收入</div>
+                <div class="stat-value">¥{% if data and data.monthly_income_trend %}{{ "%.2f"|format((data.monthly_income_trend|sum(attribute='total_income')) / (data.monthly_income_trend|length)) }}{% else %}0.00{% endif %}</div>
+                <div class="stat-description">过去12个月的平均收入水平</div>
             </div>
+            <div class="stat-item">
+                <div class="stat-label">收入增长率</div>
+                <div class="stat-value">{% if data and data.monthly_income_trend and data.monthly_income_trend|length >= 2 %}{{ "%.1f"|format(((data.monthly_income_trend[-1].total_income - data.monthly_income_trend[0].total_income) / data.monthly_income_trend[0].total_income * 100) if data.monthly_income_trend[0].total_income > 0 else 0) }}%{% else %}0.0%{% endif %}</div>
+                <div class="stat-description">相比首月的增长幅度</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">最高月收入</div>
+                <div class="stat-value">¥{% if data and data.monthly_income_trend %}{{ "%.2f"|format(data.monthly_income_trend|max(attribute='total_income')|attr('total_income')) }}{% else %}0.00{% endif %}</div>
+                <div class="stat-description">过去12个月的收入峰值</div>
+            </div>
+        </div>
+        {% endif %}
+        {% endcall %}
         </div>
     </div>
 
-    <!-- 收入增长评估 -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-start">
-            <div>
-                <h5 class="card-title">收入增长评估</h5>
-                <p class="card-subtitle">分析收入长期增长趋势和波动</p>
-            </div>
-            <div class="d-flex align-items-center">
-                <div class="icon-circle bg-light d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                    {{ icon("show_chart", "md", "text-primary") }}
+    <!-- 收入来源分析网格 -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <!-- 收入来源分布 -->
+            {% call chart_container("收入来源分布", "incomeSourceChart") %}
+            {% if data and data.income_sources and data.income_sources|length > 0 %}
+            <div class="stats-container horizontal">
+                {% for source in data.income_sources[:4] %}
+                <div class="stat-item">
+                    <div class="stat-label">{{ source.source_type }}</div>
+                    <div class="stat-value">¥{{ "%.2f"|format(source.total_amount) }}</div>
+                    <div class="stat-description">{{ "%.1f"|format(source.percentage) }}%</div>
                 </div>
+                {% endfor %}
             </div>
+            {% endif %}
+            {% endcall %}
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="chart-container">
-                        <canvas id="incomeGrowthChart"></canvas>
-                    </div>
+
+        <div class="col-lg-6">
+            <!-- 支出类别占比 -->
+            {% call chart_container("主要支出类别", "expenseBreakdownChart") %}
+            {% if data and data.expense_breakdown and data.expense_breakdown|length > 0 %}
+            <div class="stats-container horizontal">
+                {% for expense in data.expense_breakdown[:4] %}
+                <div class="stat-item">
+                    <div class="stat-label">{{ expense.category }}</div>
+                    <div class="stat-value">¥{{ "%.2f"|format(expense.total_amount) }}</div>
+                    <div class="stat-description">{{ "%.1f"|format(expense.percentage) }}%</div>
                 </div>
-                <div class="col-md-4">
-                    <div class="stat-container">
-                        <div class="stat-item">
-                            <div class="stat-label">年化增长率</div>
-                            <div class="stat-value">{% if data and data.income_growth %}{{ "%.1f"|format(data.income_growth.get('annual_growth_rate', 0) * 100) }}%{% else %}0.0%{% endif %}</div>
-                            <div class="stat-description">按年计算的收入增长率</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">年度峰值月</div>
-                            <div class="stat-value">{% if data and data.income_growth %}{{ data.income_growth.get('peak_month', '未知') }}{% else %}未知{% endif %}</div>
-                            <div class="stat-description">年度收入通常达到最高的月份</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">预计年收入增长</div>
-                            <div class="stat-value">¥{% if data and data.income_growth %}{{ "%.2f"|format(data.income_growth.get('projected_annual_increase', 0)) }}{% else %}0.00{% endif %}</div>
-                            <div class="stat-description">基于历史数据预测的年度增长额</div>
-                        </div>
-                    </div>
-                </div>
+                {% endfor %}
             </div>
+            {% endif %}
+            {% endcall %}
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block page_scripts %}
-<!-- 加载基础图表库 -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<!-- 加载图表主题和交互模块 -->
-
-<!-- 通用模块依赖已移除 -->
-
-<!-- 数据传递给JavaScript -->
-<script type="application/json" id="balance-data">{{ (balance_data if balance_data is defined else {}) | tojson }}</script>
-<script type="application/json" id="stability-data">{{ (stability_data if stability_data is defined else {}) | tojson }}</script>
-<script type="application/json" id="source-data">{{ (source_data if source_data is defined else {}) | tojson }}</script>
-<script type="application/json" id="cashflow-data">{{ (cashflow_data if cashflow_data is defined else {}) | tojson }}</script>
-<script type="application/json" id="growth-data">{{ (growth_data if growth_data is defined else {}) | tojson }}</script>
+{% block scripts %}
 <script src="{{ url_for('static', filename='js/income_analysis.js') }}"></script>
 {% endblock %}

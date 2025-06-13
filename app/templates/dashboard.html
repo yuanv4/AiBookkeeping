@@ -1,53 +1,29 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, card, chart_container, section_header, stat_card, page_header %}
+{% from "macros.html" import icon, card, chart_container, page_header, stat_card %}
 
-{% block page_css %}
-<link href="{{ url_for('static', filename='css/components.css') }}" rel="stylesheet">
-<link href="{{ url_for('static', filename='css/pages.css') }}" rel="stylesheet">
-<!-- 内联CSS样式已迁移到pages.css -->
-{% endblock %}
+{% block title %}仪表盘 - {{ config.APP_NAME }}{% endblock %}
 
-{% block page_scripts %}
-<!-- 仅在仪表盘页面加载Chart.js及其插件 -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<!-- 加载图表主题和交互模块 -->
-
-<!-- 通用模块依赖已移除 -->
-<!-- 加载仪表盘特定脚本 -->
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 
 {% block content %}
-<!-- 仪表盘页头 -->
-{{ page_header("仪表盘", "全面掌握您的财务状况和资金流向", "dashboard") }}
-
-<!-- 图表数据元素 -->
-<div style="display: none;">
-    <!-- 余额历史数据 -->
-    <div id="balance-history-data" 
-         data-chart='{"labels": {{ chart_data.balance_history|map(attribute="month")|list|tojson }}, "values": {{ chart_data.balance_history|map(attribute="balance")|list|tojson }} }'>
-    </div>
-</div>
-
-<!-- 资金状况卡片 -->
-<div class="card dashboard-card card-base mb-4">
-    <div class="card-header bg-white d-flex align-items-center">
-        <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
-            {{ icon("account_balance_wallet", "sm", "text-primary") }}
-        </div>
-        <h6 class="card-title mb-0 fw-bold">当前资金状况</h6>
-    </div>
-    <div class="card-body">
-        <div class="row gy-4">
-            <!-- 当前余额和总净收支 -->
+<div class="page-container">
+    {{ page_header("财务概览", "查看您的财务状况和趋势分析", "dashboard") }}
+    
+    <!-- 财务概览卡片网格 -->
+    <div class="cards-grid cols-2">
+        <!-- 当前财务状况卡片 -->
+        {% call card("当前财务状况", "account_balance") %}
+        <div class="row g-3">
             <div class="col-md-6">
-                <div class="p-3 rounded bg-light mb-3">
+                <div class="p-3 rounded bg-light">
                     <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="text-muted small">当前可用资金</div>
+                        <div class="text-muted small">账户总余额</div>
                         <div class="d-flex align-items-center">
-                            {{ icon("savings", "sm", "text-success me-1") }}
+                            {{ icon("account_balance_wallet", "sm", "text-primary me-1") }}
                         </div>
                     </div>
                     <div class="metric-value text-success">¥{{ "%.2f"|format(summary_data.account_balance or 0) }}</div>
@@ -97,85 +73,134 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- 资金余额趋势图 -->
-            <div class="col-12 mt-4">
-            {% call chart_container("可用资金趋势 (最近12个月)", "balanceHistoryChart") %}
-                    {% if chart_data.balance_history and chart_data.balance_history|length > 0 %}
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: rgba(70, 99, 172, 1);"></div>
-                        <span>账户余额</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: rgba(70, 99, 172, 0.1); border-radius: 0;"></div>
-                        <span>趋势区域</span>
-                    </div>
-                </div>
+        </div>
+        {% endcall %}
 
-                <!-- 余额趋势分析 -->
-                {% if chart_data.balance_history|length > 1 %}
-                <div class="trend-analysis mt-3 p-3">
-                    <div class="row align-items-center">
-                    <div class="col-md-6">
-                            {% set first_balance = chart_data.balance_history[0].balance %}
-                        {% set last_balance = chart_data.balance_history[-1].balance %}
-                            {% set change = last_balance - first_balance %}
-                            {% set change_percent = (change / first_balance * 100) if first_balance != 0 else 0 %}
-                            
-                            <div class="d-flex align-items-center">
-                                <div class="trend-icon d-flex align-items-center justify-content-center me-2 {% if change >= 0 %}trend-icon-success{% else %}trend-icon-danger{% endif %}">
-                                    {{ icon("trending_" + ("up" if change >= 0 else "down"), "sm", "text-" + ("success" if change >= 0 else "danger")) }}
-                                </div>
-                                <div>
-                                    <div class="fw-bold {% if change >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                        {{ "%.2f"|format(change) }} ({{ "%.1f"|format(change_percent) }}%)
-                                    </div>
-                                    <div class="small text-muted">从 {{ chart_data.balance_history[0].month }} 到 {{ chart_data.balance_history[-1].month }}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mt-3 mt-md-0">
-                            <div class="d-flex flex-wrap justify-content-md-end">
-                                <div class="me-4 text-center">
-                                    <div class="small text-muted">最高余额</div>
-                                    <div class="fw-bold">
-                                        {% set max_balance = 0 %}
-                                        {% if chart_data.balance_history and chart_data.balance_history|length > 0 %}
-                                            {% for item in chart_data.balance_history %}
-                                                {% if loop.first or item.balance > max_balance %}
-                                                    {% set max_balance = item.balance %}
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-                                        {{ "%.2f"|format(max_balance) }}
-                                    </div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="small text-muted">最低余额</div>
-                                    <div class="fw-bold">
-                                        {% set min_balance = None %}
-                                        {% if chart_data.balance_history and chart_data.balance_history|length > 0 %}
-                                            {% for item in chart_data.balance_history %}
-                                                {% if min_balance is none or item.balance < min_balance %}
-                                                    {% set min_balance = item.balance %}
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% else %}
-                                            {% set min_balance = 0 %}
-                                        {% endif %}
-                                        {{ "%.2f"|format(min_balance or 0) }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-                {% endif %}
-            {% endcall %}
+        <!-- 资金余额趋势图 -->
+        {% call chart_container("可用资金趋势 (最近12个月)", "balanceHistoryChart") %}
+        {% if chart_data.balance_history and chart_data.balance_history|length > 0 %}
+        <div class="chart-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(70, 99, 172, 1);"></div>
+                <span>账户余额</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(70, 99, 172, 0.1); border-radius: 0;"></div>
+                <span>趋势区域</span>
             </div>
         </div>
+
+        <!-- 余额趋势分析 -->
+        {% if chart_data.balance_history|length > 1 %}
+        <div class="trend-analysis mt-3 p-3">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    {% set first_balance = chart_data.balance_history[0].balance %}
+                    {% set last_balance = chart_data.balance_history[-1].balance %}
+                    {% set change = last_balance - first_balance %}
+                    {% set change_percent = (change / first_balance * 100) if first_balance != 0 else 0 %}
+                    
+                    <div class="d-flex align-items-center">
+                        <div class="trend-icon d-flex align-items-center justify-content-center me-2 {% if change >= 0 %}trend-icon-success{% else %}trend-icon-danger{% endif %}">
+                            {{ icon("trending_" + ("up" if change >= 0 else "down"), "sm", "text-" + ("success" if change >= 0 else "danger")) }}
+                        </div>
+                        <div>
+                            <div class="fw-bold {% if change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "%.2f"|format(change) }} ({{ "%.1f"|format(change_percent) }}%)
+                            </div>
+                            <div class="small text-muted">从 {{ chart_data.balance_history[0].month }} 到 {{ chart_data.balance_history[-1].month }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mt-3 mt-md-0">
+                    <div class="d-flex flex-wrap justify-content-md-end">
+                        <div class="me-4 text-center">
+                            <div class="small text-muted">最高余额</div>
+                            <div class="fw-bold">
+                                {% set max_balance = 0 %}
+                                {% if chart_data.balance_history and chart_data.balance_history|length > 0 %}
+                                    {% for item in chart_data.balance_history %}
+                                        {% if loop.first or item.balance > max_balance %}
+                                            {% set max_balance = item.balance %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                                {{ "%.2f"|format(max_balance) }}
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="small text-muted">最低余额</div>
+                            <div class="fw-bold">
+                                {% set min_balance = None %}
+                                {% if chart_data.balance_history and chart_data.balance_history|length > 0 %}
+                                    {% for item in chart_data.balance_history %}
+                                        {% if min_balance is none or item.balance < min_balance %}
+                                            {% set min_balance = item.balance %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    {% set min_balance = 0 %}
+                                {% endif %}
+                                {{ "%.2f"|format(min_balance or 0) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+        {% endcall %}
+    </div>
+
+    <!-- 月度统计卡片网格 -->
+    <div class="cards-grid cols-4">
+        {{ stat_card("trending_up", "¥" + "%.2f"|format(summary_data.monthly_income or 0), "本月收入", "success", "success") }}
+        {{ stat_card("trending_down", "¥" + "%.2f"|format(summary_data.monthly_expense or 0), "本月支出", "danger", "danger") }}
+        {{ stat_card("account_balance", "¥" + "%.2f"|format(summary_data.monthly_net or 0), "本月净收支", "primary", ("success" if summary_data.monthly_net >= 0 else "danger")) }}
+        {{ stat_card("receipt_long", summary_data.transaction_count or 0, "交易笔数", "info") }}
+    </div>
+
+    <!-- 收支分析图表网格 -->
+    <div class="cards-grid cols-2">
+        <!-- 月度收支趋势 -->
+        {% call chart_container("月度收支趋势 (最近12个月)", "monthlyTrendChart") %}
+        {% if chart_data.monthly_trend and chart_data.monthly_trend|length > 0 %}
+        <div class="chart-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(34, 197, 94, 1);"></div>
+                <span>收入</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(239, 68, 68, 1);"></div>
+                <span>支出</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(59, 130, 246, 1);"></div>
+                <span>净收支</span>
+            </div>
+        </div>
+        {% endif %}
+        {% endcall %}
+
+        <!-- 支出分类分析 -->
+        {% call chart_container("支出分类分析 (本月)", "expenseCategoryChart") %}
+        {% if chart_data.expense_categories and chart_data.expense_categories|length > 0 %}
+        <div class="stats-container horizontal">
+            {% for category in chart_data.expense_categories[:3] %}
+            <div class="stat-item">
+                <div class="stat-label">{{ category.category }}</div>
+                <div class="stat-value">¥{{ "%.2f"|format(category.amount) }}</div>
+                <div class="stat-description">{{ "%.1f"|format(category.percentage) }}%</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endcall %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

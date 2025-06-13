@@ -57,7 +57,11 @@ def dashboard():
                 'account_balances': {},
                 'net_amount': 0.0,
                 'account_balance': 0.0,
-                'account_balance_list': []
+                'account_balance_list': [],
+                'monthly_income': 0.0,
+                'monthly_expense': 0.0,
+                'monthly_net': 0.0,
+                'transaction_count': 0
             }
 
         total_balance = summary_data.get('net_balance', 0.0)
@@ -82,6 +86,9 @@ def dashboard():
         # 获取最近交易记录（最多10条）
         recent_transactions_data = TransactionService.get_transactions(limit=10)
         
+        # 获取交易总数
+        transaction_count = len(recent_transactions_data) if recent_transactions_data else 0
+        
         recent_transactions = []
         for trans in recent_transactions_data:
             recent_transactions.append({
@@ -105,6 +112,12 @@ def dashboard():
         monthly_income = float(monthly_report['summary'].get('total_income', 0))
         monthly_expense = float(monthly_report['summary'].get('total_expense', 0))
         monthly_net = monthly_income - monthly_expense
+        
+        # 将月度统计数据添加到summary_data中
+        summary_data['monthly_income'] = monthly_income
+        summary_data['monthly_expense'] = monthly_expense
+        summary_data['monthly_net'] = monthly_net
+        summary_data['transaction_count'] = transaction_count
         
         # 获取总体统计数据
         all_time_report = analysis_service.generate_financial_report()
@@ -188,7 +201,11 @@ def dashboard():
             'net_balance': 0.0, 
             'account_balances': {},
             'account_balance_list': [],
-            'net_amount': 0.0
+            'net_amount': 0.0,
+            'monthly_income': 0.0,
+            'monthly_expense': 0.0,
+            'monthly_net': 0.0,
+            'transaction_count': 0
         }
         return render_template('dashboard.html', 
                              summary_data=default_summary_data,

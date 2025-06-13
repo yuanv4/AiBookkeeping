@@ -6,9 +6,10 @@ class Config:
     
     def __init__(self):
         # 基础配置
+        self.APP_NAME = '银行账单分析系统'
         self.SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
         self.DEBUG = self._get_bool('DEBUG', False)
-        
+
         # 环境配置
         self.FLASK_ENV = os.environ.get('FLASK_CONFIG', 'development')
         

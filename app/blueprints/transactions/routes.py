@@ -1,10 +1,53 @@
 from flask import request, render_template, current_app
 
 # 使用新的服务层
+from flask import request, render_template, redirect, url_for, flash, current_app
 from app.services.core.account_service import AccountService
 from app.services.core.transaction_service import TransactionService
 
 from . import transactions_bp
+
+class Pagination:
+    """简单的分页对象，模拟Flask-SQLAlchemy的分页功能"""
+    def __init__(self, page, per_page, total, items=None):
+        self.page = page
+        self.per_page = per_page
+        self.total = total
+        self.items = items or []
+        
+    @property
+    def pages(self):
+        """总页数"""
+        return (self.total + self.per_page - 1) // self.per_page
+    
+    @property
+    def has_prev(self):
+        """是否有上一页"""
+        return self.page > 1
+    
+    @property
+    def has_next(self):
+        """是否有下一页"""
+        return self.page < self.pages
+    
+    @property
+    def prev_num(self):
+        """上一页页码"""
+        return self.page - 1 if self.has_prev else None
+    
+    @property
+    def next_num(self):
+        """下一页页码"""
+        return self.page + 1 if self.has_next else None
+    
+    def iter_pages(self, left_edge=2, left_current=2, right_current=3, right_edge=2):
+        """生成页码迭代器"""
+        last = self.pages
+        for num in range(1, last + 1):
+            if num <= left_edge or \
+               (self.page - left_current - 1 < num < self.page + right_current) or \
+               num > last - right_edge:
+                yield num
 
 @transactions_bp.route('/') # 蓝图根路径对应 /transactions/
 def transactions_list_route(): # 重命名函数
@@ -109,14 +152,16 @@ def transactions_list_route(): # 重命名函数
                 'balance': float(trans.balance_after) if trans.balance_after else 0.0
             })
 
+        # 创建分页对象
+        pagination = Pagination(
+            page=page,
+            per_page=limit,
+            total=total_transactions,
+            items=transactions_data
+        )
+        
         data_for_template = {
             'transactions': transactions_data,
-            'pagination': {
-                'page': page,
-                'limit': limit,
-                'total_items': total_transactions,
-                'totalPages': total_pages
-            },
             'accounts': accounts,
             'transaction_types': transaction_types_for_filter,
             'currencies': currencies_for_filter,
@@ -126,9 +171,38 @@ def transactions_list_route(): # 重命名函数
         return render_template(
             'transactions.html', 
             data=data_for_template,
+            pagination=pagination,
             total_count=total_transactions
         )
     except Exception as e:
         current_app.logger.error(f"Error in /transactions route: {e}", exc_info=True)
         # 依赖全局错误处理器
         raise # 或者 return render_template('errors/500.html', error_message="无法加载交易记录。 " + str(e)), 500
+
+@transactions_bp.route('/add')
+def add_transaction():
+    """添加交易页面"""
+    # TODO: 实现添加交易功能
+    flash('添加交易功能正在开发中', 'info')
+    return redirect(url_for('transactions_bp.transactions_list_route'))
+
+@transactions_bp.route('/import')
+def import_transactions():
+    """导入交易页面"""
+    # TODO: 实现导入交易功能
+    flash('导入交易功能正在开发中', 'info')
+    return redirect(url_for('transactions_bp.transactions_list_route'))
+
+@transactions_bp.route('/export')
+def export_transactions():
+    """导出交易"""
+    # TODO: 实现导出交易功能
+    flash('导出交易功能正在开发中', 'info')
+    return redirect(url_for('transactions_bp.transactions_list_route'))
+
+@transactions_bp.route('/edit/<int:id>')
+def edit_transaction(id):
+    """编辑交易页面"""
+    # TODO: 实现编辑交易功能
+    flash(f'编辑交易 {id} 功能正在开发中', 'info')
+    return redirect(url_for('transactions_bp.transactions_list_route'))

@@ -33,116 +33,131 @@
 }
 
 .dashboard-card {
-    /* 继承通用.card样式，仅添加特殊效果 */
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: var(--radius-xl); /* 仪表盘使用更大的圆角 */
+    /* 基础卡片样式优化 */
+    background: var(--surface-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    transition: var(--transition-fast);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
 }
 
 .dashboard-card:hover {
-    transform: translateY(-3px); /* 仪表盘卡片悬停效果更明显 */
-    border-color: var(--gray-300);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
-/* 仪表盘指标样式 */
-/* .metric-value 定义已合并到下方更完整的版本 */
-
-.chart-legend {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    font-size: 0.85rem;
-}
-
-.legend-color {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 0.5rem;
-}
-
-.table-hover tbody tr:hover {
-    background-color: var(--primary-50);
-    cursor: pointer;
-}
-
-.trend-analysis {
-    background-color: var(--gray-100);
-    border-radius: var(--border-radius);
-}
-
-.trend-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-}
-
-.trend-icon-success {
-    background-color: var(--success-500);
-}
-
-.trend-icon-danger {
-    background-color: var(--danger-500);
-}
-
-/* ==========================================================================
-   收入分析页面样式 (从 income_analysis.css 整合)
-   ========================================================================== */
-
-/* Apple Design 指标卡片样式 */
+/* 度量卡片样式优化 */
 .metric-card {
-    /* 使用新的CSS变量系统 */
-    background-color: var(--background-primary);
+    background: var(--surface-primary);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
+    padding: 1.5rem;
     box-shadow: var(--shadow);
     transition: var(--transition-fast);
-    height: 100%;
+    margin-bottom: 1.5rem;
+    min-height: 140px;
     display: flex;
     flex-direction: column;
-    text-align: center;
-    margin-bottom: var(--spacing-xl);
-    min-height: 130px;
-    position: relative;
-    border: 1px solid var(--border-color);
+    justify-content: space-between;
 }
 
 .metric-card:hover {
-    transform: translateY(-1px);
     box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
-.metric-label {
-    color: var(--gray-600);
-    font-size: var(--text-sm);
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    letter-spacing: -0.01em;
+/* 卡片网格布局优化 */
+.cards-grid {
+    display: grid;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
+/* 响应式网格布局 */
+.cards-grid.cols-1 {
+    grid-template-columns: 1fr;
+}
+
+.cards-grid.cols-2 {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.cards-grid.cols-3 {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.cards-grid.cols-4 {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+/* 卡片头部样式优化 */
+.card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--surface-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.card-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0 0;
+    line-height: 1.4;
+}
+
+/* 卡片主体样式优化 */
+.card-body {
+    padding: 1.5rem;
+    flex: 1;
+}
+
+/* 度量值样式优化 */
 .metric-value {
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
     color: var(--gray-800);
     letter-spacing: -0.02em;
+    line-height: 1.2;
 }
 
+.metric-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metric-description {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: 0.5rem;
+    line-height: 1.4;
+}
+
+/* 度量状态样式 */
 .metric-status {
     font-size: var(--text-xs);
     font-weight: 600;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 50rem;
     display: inline-block;
     margin-top: auto;
-    align-self: center;
+    align-self: flex-start;
     letter-spacing: 0.025em;
     text-transform: uppercase;
 }
@@ -162,61 +177,101 @@
     color: var(--danger);
 }
 
-/* 图表容器样式 */
+/* 统计卡片样式 */
+.stat-card {
+    background: var(--surface-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+    transition: var(--transition-fast);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* 图表容器样式优化 */
 .chart-container {
     position: relative;
     height: 280px;
+    margin: 1rem 0;
 }
 
-/* 统计容器样式 */
+/* 统计容器样式优化 */
 .stat-container {
     display: flex;
     flex-direction: column;
     height: 100%;
-    justify-content: center;
+    justify-content: space-between;
+    gap: 1rem;
 }
 
 .stat-item {
-    margin-bottom: 1rem;
     padding: 1rem;
     border-radius: var(--border-radius);
     background-color: var(--gray-100);
+    border: 1px solid var(--border-color);
+    transition: var(--transition-fast);
+}
+
+.stat-item:hover {
+    background-color: var(--gray-50);
+    border-color: var(--primary-200);
 }
 
 .stat-label {
     font-size: var(--text-sm);
     color: var(--gray-600);
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
 }
 
 .stat-value {
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--primary);
+    line-height: 1.2;
 }
 
 .stat-description {
     font-size: var(--text-xs);
     color: var(--gray-500);
-    margin-top: 0.25rem;
+    margin-top: 0.5rem;
+    line-height: 1.4;
 }
 
+/* 水平统计容器 */
 .stats-container.horizontal {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
-    justify-content: space-between;
+    margin-bottom: 1.5rem;
 }
 
 .stats-container.horizontal .stat-item {
-    flex: 1;
-    min-width: 200px;
     text-align: center;
+    margin-bottom: 0;
 }
 
-/* 收入分析页面卡片样式 - 使用通用.card样式 */
+/* 收入分析页面卡片样式 */
 .income-analysis .card {
-    margin-bottom: 1.5rem; /* 仅保留页面特定的间距 */
+    margin-bottom: 2rem;
 }
 
 .income-analysis .card-title {
@@ -229,384 +284,290 @@
     font-size: var(--text-sm);
 }
 
+/* 图表图例样式优化 */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: var(--gray-50);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+/* 趋势分析样式优化 */
+.trend-analysis {
+    background-color: var(--gray-50);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+}
+
 /* ==========================================================================
    交易记录页面样式 (从 transactions.css 整合)
    ========================================================================== */
 
 /* Apple Design 筛选表单样式 */
 .filter-form-container {
-    /* 使用新的CSS变量系统 */
     border-radius: var(--radius-lg);
     overflow: hidden;
     transition: var(--transition-fast);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow);
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: 2rem;
     background-color: var(--surface-primary);
-    padding: var(--spacing-lg);
+    padding: 1.5rem;
 }
 
 .filter-form-container:hover {
     box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
 }
 
-.filter-form-container .card-header {
-    cursor: pointer;
-}
-
-.filter-badge {
-    display: inline-flex;
-    align-items: center;
-    background-color: var(--gray-100);
-    border-radius: 50rem;
-    padding: 0.25rem 0.75rem;
-    font-size: var(--text-xs);
-    margin-right: 0.5rem;
-    margin-bottom: 0.5rem;
-    user-select: none;
-}
-
-.filter-badge .close-icon {
-    cursor: pointer;
-    margin-left: 0.5rem;
-    opacity: 0.6;
-}
-
-.filter-badge .close-icon:hover {
-    opacity: 1;
-}
-
-.active-filters {
-    padding: 0.5rem 1rem;
-    background-color: var(--gray-100);
-    border-radius: var(--border-radius);
-    margin-bottom: 1rem;
-}
-
-.filter-input-group {
-    position: relative;
-}
-
-.filter-input-group .clear-input {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    opacity: 0.5;
-    z-index: 5;
-    display: none;
-}
-
-.filter-input-group .clear-input:hover {
-    opacity: 1;
-}
-
-.filter-input-group input:not(:placeholder-shown) ~ .clear-input,
-.filter-input-group select:not([value=""]) ~ .clear-input {
-    display: block;
-}
-
-.daterange-picker-container {
-    display: flex;
-    position: relative;
-}
-
-.amount-range-slider {
-    margin-top: 0.5rem;
-}
-
-.table-container {
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    transition: var(--transition-fast);
-}
-
-.transaction-badge {
-    font-size: var(--text-xs);
-    padding: 0.25rem 0.5rem;
-    border-radius: 50rem;
-}
-
-.transaction-amount {
-    font-weight: 600;
-}
-
-/* transaction-amount的正负样式已统一到main.css的.positive和.negative类 */
-
-.collapse-toggle[aria-expanded="true"] .material-icons-round.expand-icon {
-    transform: rotate(180deg);
-    transition: transform 0.2s ease;
-}
-
-.collapse-toggle .material-icons-round.expand-icon {
-    transition: transform 0.2s ease;
-}
-
-/* 自定义滑块样式 */
-.range-slider {
-    width: 100%;
-    margin: 1rem 0;
-}
-
-.range-slider-labels {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 0.5rem;
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-}
-
-.filter-quick-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.filter-quick-actions button {
-    font-size: var(--text-xs);
-    padding: 0.25rem 0.5rem;
-}
-
-/* Apple Design 表格样式 */
-.transactions-table {
-    margin-bottom: 0;
-    background-color: var(--surface-primary);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    box-shadow: var(--box-shadow);
-}
-
-.transactions-table th {
-    font-weight: 600;
-    white-space: nowrap;
-    background-color: var(--gray-50);
-    color: var(--text-secondary);
-    font-size: var(--text-sm);
-    letter-spacing: -0.01em;
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.transactions-table td {
-    vertical-align: middle;
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--gray-100);
-}
-
-/* 错误页面样式 */
-.error-container {
-    max-width: 700px;
-    margin: 0 auto;
-    padding: 2rem 0;
-}
-
-.error-card {
-    border: none;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-}
-
-.error-header {
-    background-color: var(--danger-light);
-    color: var(--danger);
-    padding: 1.25rem;
-    font-weight: 600;
-}
-
-.error-icon-container {
-    width: 120px;
-    height: 120px;
-    background-color: var(--danger-light);
-    color: var(--danger);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.5rem;
-}
-
-.error-icon {
-    font-size: 4rem; /* 64px - 特殊大图标尺寸 */
-}
-
-.error-title {
-    font-size: 1.75rem;
-    font-weight: 700;
-    margin-bottom: 1.5rem;
-    color: var(--gray-800);
-}
-
-.error-message {
-    background-color: var(--danger-light);
-    border-left: 4px solid var(--danger);
-    padding: 1rem;
-    border-radius: var(--border-radius-sm);
-    margin-bottom: 2rem;
-    color: var(--gray-800);
-}
-
-.help-item {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-    padding: 1rem;
-    border-radius: var(--border-radius-sm);
-    background-color: var(--gray-100);
-    transition: var(--transition-fast);
-}
-
-.help-item:hover {
-    background-color: var(--primary-light);
-    transform: translateY(-2px);
-}
-
-.help-icon {
-    width: 36px;
-    height: 36px;
-    background-color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 1rem;
-    flex-shrink: 0;
-}
-
-.help-text {
-    font-size: var(--text-base);
-}
-
-.error-footer {
-    display: flex;
-    justify-content: space-between;
-    padding: 1.25rem;
-    background-color: var(--gray-100);
-}
-
-.error-details {
-    margin-top: 2rem;
-}
-
-.details-content {
-    background-color: var(--gray-100);
-    padding: 1rem;
-    border-radius: var(--border-radius-sm);
-    font-family: monospace;
-    font-size: var(--text-sm);
-    color: var(--danger);
-    max-height: 300px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-}
-
-/* ==========================================================================
-   上传页面样式 (从 upload.css 整合)
-   ========================================================================== */
-
-/* Apple Design 风格的上传表单样式 */
-.upload-container {
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-/* 拖拽区域样式 */
-.drop-zone {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border: 2px dashed #d1d5db;
-    border-radius: var(--border-radius-lg);
-    padding: 3rem 2rem;
-    text-align: center;
-    transition: all var(--transition-medium) ease;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-}
-
-.drop-zone:hover {
-    border-color: var(--primary);
-    background: var(--primary-50);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 32px var(--primary-100);
-}
-
-.drop-zone.drag-over {
-    border-color: var(--primary);
-    background: var(--primary-100);
-    transform: scale(1.02);
-    box-shadow: 0 12px 40px var(--primary-200);
-}
-
-.drop-zone-content {
-    pointer-events: none;
-}
-
-/* 文件列表容器样式 */
-.file-list-container {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: var(--border-radius-lg);
-    border: 1px solid var(--border-color-alpha);
-    margin-top: 1.5rem;
-    padding: 1.5rem;
-    box-shadow: var(--shadow-card);
-}
-
-/* ==========================================================================
-   通用页面组件样式
-   ========================================================================== */
-
-/* 页面容器 */
+/* 页面容器样式优化 */
 .page-container {
-    max-width: 1200px;
+    padding: 2rem;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: var(--spacing-6);
 }
 
-/* 页面标题 */
+.page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
 .page-title {
     font-size: 2rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: var(--spacing-6);
-    letter-spacing: -0.02em;
-}
-
-/* 页面副标题 */
-.page-subtitle {
-    font-size: 1.125rem;
-    color: var(--text-secondary);
-    margin-bottom: var(--spacing-4);
+    margin-bottom: 0.5rem;
     letter-spacing: -0.01em;
 }
 
-/* 响应式设计 */
+/* 图标圆圈样式优化 */
+.icon-circle {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-50);
+    border: 1px solid var(--primary-100);
+}
+
+/* 响应式设计优化 */
+@media (max-width: 1200px) {
+    .cards-grid.cols-4 {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    
+    .cards-grid.cols-3 {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+}
+
+@media (max-width: 992px) {
+    .page-container {
+        padding: 1.5rem;
+    }
+    
+    .cards-grid {
+        gap: 1.25rem;
+    }
+    
+    .cards-grid.cols-3,
+    .cards-grid.cols-4 {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    
+    .stat-container {
+        gap: 0.75rem;
+    }
+}
+
 @media (max-width: 768px) {
     .page-container {
-        padding: var(--spacing-4);
+        padding: 1rem;
     }
     
     .page-title {
         font-size: 1.75rem;
     }
     
-    .dashboard-card {
-        margin-bottom: var(--spacing-md); /* 响应式设计中的间距调整 */
+    .cards-grid {
+        gap: 1rem;
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-card,
+    .metric-card {
+        margin-bottom: 1rem;
+    }
+    
+    .metric-card {
+        min-height: 120px;
+        padding: 1.25rem;
+    }
+    
+    .card-header {
+        padding: 1rem 1.25rem;
+    }
+    
+    .card-body {
+        padding: 1.25rem;
+    }
+    
+    .metric-value {
+        font-size: 1.75rem;
+    }
+    
+    .stats-container.horizontal {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .chart-container {
+        height: 240px;
+    }
+    
+    .filter-form-container {
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .page-container {
+        padding: 0.75rem;
     }
     
     .metric-card {
         min-height: 100px;
-        padding: var(--spacing-lg);
+        padding: 1rem;
     }
     
-    .upload-container {
-        max-width: 100%;
-        padding: 0 var(--spacing-4);
+    .card-header {
+        padding: 0.75rem 1rem;
     }
     
-    .drop-zone {
-        padding: 2rem 1rem;
+    .card-body {
+        padding: 1rem;
     }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .chart-container {
+        height: 200px;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+    }
+    
+    .filter-form-container {
+        padding: 1rem;
+    }
+}
+
+/* 卡片动画效果 */
+@keyframes cardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card-animate {
+    animation: cardFadeIn 0.3s ease-out;
+}
+
+/* 卡片加载状态 */
+.card-loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.card-loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* 卡片焦点状态 */
+.card:focus-within {
+    outline: 2px solid var(--primary-300);
+    outline-offset: 2px;
+}
+
+/* 卡片禁用状态 */
+.card.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* 卡片成功/警告/错误状态 */
+.card.card-success {
+    border-left: 4px solid var(--success);
+}
+
+.card.card-warning {
+    border-left: 4px solid var(--warning);
+}
+
+.card.card-danger {
+    border-left: 4px solid var(--danger);
+}
+
+/* 紧凑型卡片 */
+.card.card-compact .card-header {
+    padding: 0.75rem 1rem;
+}
+
+.card.card-compact .card-body {
+    padding: 1rem;
+}
+
+.card.card-compact .metric-card {
+    padding: 1rem;
+    min-height: 100px;
 }
