@@ -4,7 +4,7 @@ from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from app.services.analysis import SimplifiedFinancialAnalyzer
 from app.services.core.transaction_service import TransactionService
-from app.services.analysis import ComprehensiveService
+from app.services.report import FinancialReportService
 
 from . import main # 从同级 __init__.py 导入 main 蓝图实例
 
@@ -101,8 +101,7 @@ def dashboard():
         current_date = date.today()
         start_of_month = current_date.replace(day=1)
         
-        analysis_service = ComprehensiveService()
-        monthly_report = analysis_service.generate_financial_report(
+        monthly_report = FinancialReportService.generate_financial_report(
             start_date=start_of_month,
             end_date=current_date
         )
@@ -118,7 +117,7 @@ def dashboard():
         summary_data['transaction_count'] = transaction_count
         
         # 获取总体统计数据
-        all_time_report = analysis_service.generate_financial_report()
+        all_time_report = FinancialReportService.generate_financial_report()
         
         # 检查 all_time_report 是否为 None 或空
         if not all_time_report or 'summary' not in all_time_report:

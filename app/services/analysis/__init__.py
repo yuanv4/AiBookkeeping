@@ -148,19 +148,7 @@ class ComprehensiveService:
         """
         return self.analyzer.calculate_health_metrics(user_id, months)
     
-    def generate_financial_report(self, account_id: int = None, start_date=None, end_date=None) -> dict:
-        """生成财务报告
-        
-        Args:
-            account_id: 账户ID，可选
-            start_date: 开始日期，可选
-            end_date: 结束日期，可选
-            
-        Returns:
-            财务报告字典
-        """
-        from ..report.report_service import FinancialReportService
-        return FinancialReportService.generate_financial_report(account_id, start_date, end_date)
+
 
 
 # ==================== 便捷函数 ====================

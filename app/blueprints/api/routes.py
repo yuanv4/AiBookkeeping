@@ -2,7 +2,7 @@ from flask import request, jsonify, current_app
 from datetime import datetime, timedelta
 
 # 使用新的分析服务
-from app.services.analysis import ComprehensiveService
+from app.services.report import FinancialReportService
 
 from . import api_bp
 
@@ -11,7 +11,6 @@ def api_data_route(): #重命名函数
     """API接口获取分析数据"""
     try:
         # 使用新的分析服务
-        analysis_service = ComprehensiveService()
 
         start_date = request.args.get('start_date', None)
         end_date = request.args.get('end_date', None)
@@ -39,7 +38,7 @@ def api_data_route(): #重命名函数
                 account_id = account.id
 
         # 获取分析数据
-        data = analysis_service.generate_financial_report(
+        data = FinancialReportService.generate_financial_report(
             account_id=account_id,
             start_date=start_date,
             end_date=end_date
