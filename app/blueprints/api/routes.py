@@ -2,7 +2,7 @@ from flask import request, jsonify, current_app
 from datetime import datetime, timedelta
 
 # 使用新的分析服务
-from app.services.analysis.service import ComprehensiveService
+from app.services.analysis import ComprehensiveService
 
 from . import api_bp
 

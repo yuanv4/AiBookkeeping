@@ -2,11 +2,9 @@
 from flask import redirect, url_for, render_template, flash, current_app
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from app.services.analysis import AnalyzerFactory
-from app.services.analysis.analyzers.analyzer_context import AnalyzerContext
-from app.services.analysis.analyzers.single_balance_analyzer import BalanceAnalyzer
+from app.services.analysis import SimplifiedFinancialAnalyzer
 from app.services.core.transaction_service import TransactionService
-from app.services.analysis.service import ComprehensiveService
+from app.services.analysis import ComprehensiveService
 
 from . import main # 从同级 __init__.py 导入 main 蓝图实例
 
@@ -29,21 +27,24 @@ def dashboard():
     try:
         # 使用专门的服务类获取数据
         # 获取账户余额
-        today = date.today()
-        # 创建分析器上下文和余额分析器
-        from app.models import db
-        context = AnalyzerContext(
-            db_session=db.session,
-            user_id=1,  # 默认用户ID
-            start_date=datetime.combine(today, datetime.min.time()),
-            end_date=datetime.combine(today, datetime.max.time())
-        )
-        factory = AnalyzerFactory(context)
-        # 计算分析日期范围（最近12个月）
-        end_date = date.today()
-        start_date = end_date - relativedelta(months=12)
-        balance_analyzer = factory.create_typed_analyzer(BalanceAnalyzer, start_date=start_date, end_date=end_date)
-        summary_data = balance_analyzer.get_balance_summary()
+        # 使用新的 SimplifiedFinancialAnalyzer 获取综合分析数据
+        analyzer = SimplifiedFinancialAnalyzer()
+        analysis_result = analyzer.get_comprehensive_analysis(12)
+        
+        # 从综合分析结果中提取余额汇总数据
+        if analysis_result and 'account_balances' in analysis_result:
+            summary_data = {
+                'net_balance': analysis_result.get('overall_stats', {}).get('net_balance', 0.0),
+                'account_balances': analysis_result.get('account_balances', {}),
+                'net_amount': analysis_result.get('overall_stats', {}).get('net_amount', 0.0),
+                'account_balance': analysis_result.get('overall_stats', {}).get('total_balance', 0.0),
+                'account_balance_list': list(analysis_result.get('account_balances', {}).items()),
+                'monthly_income': analysis_result.get('overall_stats', {}).get('total_income', 0.0),
+                'monthly_expense': analysis_result.get('overall_stats', {}).get('total_expense', 0.0),
+                'monthly_net': analysis_result.get('overall_stats', {}).get('net_amount', 0.0),
+            }
+        else:
+            summary_data = None
         
         # 检查 summary_data 是否为 None 或空，以避免后续错误
         if not summary_data:

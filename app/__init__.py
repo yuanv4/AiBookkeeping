@@ -11,7 +11,7 @@ from .template_filters import register_template_filters
 from .models import db
 
 from .services.core.transaction_service import TransactionService
-from .services.analysis.service import ComprehensiveService as AnalysisService
+from .services.analysis import ComprehensiveService as AnalysisService
 from .services.extraction.service import BankStatementExtractor
 from .services.core.file_processor_service import FileProcessorService
 
@@ -157,29 +157,22 @@ def create_app():
     # 数据库统计信息检查
     try:
         with app.app_context():
-            from app.services.analysis import AnalyzerFactory
-            from app.services.analysis.analyzers.analyzer_context import AnalyzerContext
-            from app.services.analysis.analyzers.single_database_stats_analyzer import DatabaseStatsAnalyzer
+            from app.services.analysis import SimplifiedFinancialAnalyzer
             from datetime import date, datetime
-            today = date.today()
-            context = AnalyzerContext(
-                db_session=db.session,
-                user_id=1,  # 默认用户ID
-                start_date=datetime.combine(today, datetime.min.time()),
-                end_date=datetime.combine(today, datetime.max.time())
-            )
-            factory = AnalyzerFactory(context)
-            analyzer = factory.create_typed_analyzer(
-                DatabaseStatsAnalyzer,
-                start_date=today,
-                end_date=today
-            )
-            stats = analyzer.get_database_stats()
-            total_transactions = stats.get('transactions_count', 0)
-            if total_transactions > 0:
-                app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
+            
+            analyzer = SimplifiedFinancialAnalyzer()
+            # 使用新的分析器获取基本统计信息
+            analysis_result = analyzer.get_comprehensive_analysis(1)
+            
+            # 从分析结果中提取交易数量信息
+            if analysis_result and 'overall_stats' in analysis_result:
+                total_transactions = analysis_result['overall_stats'].get('total_transactions', 0)
+                if total_transactions > 0:
+                    app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
+                else:
+                    app.logger.info("数据库已连接但暂无交易记录")
             else:
-                app.logger.info("数据库为空或新创建")
+                app.logger.info("数据库已连接，统计信息获取中...")
     except Exception as e:
         app.logger.warning(f"获取数据库统计信息时出错: {e}")
         app.logger.info("数据库连接正常，但无法获取统计信息")
