@@ -49,108 +49,6 @@ from .analysis_utils import (
     validate_account_id
 )
 
-# 向后兼容性导入（保留原有接口）
-try:
-    # 导入原有的复杂接口以保持兼容性
-    from .financial_analyzer import FinancialAnalyzer
-    from .data_models import OverallStats, MonthlyData, AnalysisResult
-    
-    # 创建兼容性别名
-    LegacyFinancialAnalyzer = FinancialAnalyzer
-    LegacyOverallStats = OverallStats
-    LegacyMonthlyData = MonthlyData
-    LegacyAnalysisResult = AnalysisResult
-    
-except ImportError:
-    # 如果原有模块不存在，创建占位符
-    LegacyFinancialAnalyzer = None
-    LegacyOverallStats = None
-    LegacyMonthlyData = None
-    LegacyAnalysisResult = None
-
-
-# ==================== 兼容性服务类 ====================
-
-class ComprehensiveService:
-    """综合分析服务类 - 向后兼容接口
-    
-    这个类提供与原有 ComprehensiveService 兼容的接口，
-    内部使用简化的 SimplifiedFinancialAnalyzer 实现。
-    """
-    
-    def __init__(self, db_session=None):
-        """初始化综合分析服务
-        
-        Args:
-            db_session: 数据库会话，可选
-        """
-        self.analyzer = FinancialAnalyzer(db_session)
-        self.db_session = db_session
-    
-    def get_comprehensive_analysis(self, user_id: int, months: int = 12) -> dict:
-        """获取综合分析报告
-        
-        Args:
-            user_id: 用户ID
-            months: 分析月份数，默认12个月
-            
-        Returns:
-            综合分析结果字典
-        """
-        return self.analyzer.get_comprehensive_analysis(user_id, months)
-    
-    def analyze_income(self, user_id: int, start_date, end_date) -> AnalysisResult:
-        """分析收入情况
-        
-        Args:
-            user_id: 用户ID
-            start_date: 开始日期
-            end_date: 结束日期
-            
-        Returns:
-            收入分析结果
-        """
-        return self.analyzer.analyze_income(user_id, start_date, end_date)
-    
-    def analyze_expenses(self, user_id: int, start_date, end_date) -> AnalysisResult:
-        """分析支出情况
-        
-        Args:
-            user_id: 用户ID
-            start_date: 开始日期
-            end_date: 结束日期
-            
-        Returns:
-            支出分析结果
-        """
-        return self.analyzer.analyze_expenses(user_id, start_date, end_date)
-    
-    def generate_summary(self, user_id: int) -> FinancialSummary:
-        """生成财务总览
-        
-        Args:
-            user_id: 用户ID
-            
-        Returns:
-            财务总览对象
-        """
-        return self.analyzer.generate_summary(user_id)
-    
-    def calculate_health_metrics(self, user_id: int, months: int = 12) -> FinancialHealthMetrics:
-        """计算财务健康指标
-        
-        Args:
-            user_id: 用户ID
-            months: 分析月份数，默认12个月
-            
-        Returns:
-            财务健康指标
-        """
-        return self.analyzer.calculate_health_metrics(user_id, months)
-    
-
-
-
 # ==================== 便捷函数 ====================
 
 def create_analyzer(db_session=None) -> FinancialAnalyzer:
@@ -202,7 +100,6 @@ __description__ = 'Simplified Financial Analysis Services'
 __all__ = [
     # 核心类
     'FinancialAnalyzer',
-    'ComprehensiveService',  # 兼容性服务类
     
     # 数据模型
     'AnalysisResult',
@@ -225,65 +122,9 @@ __all__ = [
     'quick_analysis',
     'quick_summary',
     
-    # 向后兼容
-    'LegacyFinancialAnalyzer',
-    'LegacyOverallStats',
-    'LegacyMonthlyData',
-    'LegacyAnalysisResult',
-    
     # 异常类
     'AnalysisError',
     'DataValidationError',
     'CalculationError',
     'InsufficientDataError'
 ]
-
-
-# ==================== 向后兼容别名 ====================
-
-# 为了保持向后兼容性，提供旧类名的别名
-SimplifiedFinancialAnalyzer = FinancialAnalyzer
-SimpleAnalysisResult = AnalysisResult
-SimpleMonthlyData = MonthlyData
-SimpleFinancialSummary = FinancialSummary
-
-# 将别名添加到导出列表
-__all__.extend([
-    'SimplifiedFinancialAnalyzer',
-    'SimpleAnalysisResult', 
-    'SimpleMonthlyData',
-    'SimpleFinancialSummary'
-])
-
-# ==================== 使用示例 ====================
-
-"""
-使用示例：
-
-# 1. 基本使用（推荐新接口）
-from app.services.analysis import create_analyzer
-
-analyzer = create_analyzer()
-result = analyzer.get_comprehensive_analysis(12)
-
-# 2. 快速分析
-from app.services.analysis import quick_analysis, quick_summary
-
-analysis = quick_analysis(6)  # 分析最近6个月
-summary = quick_summary()     # 生成财务总览
-
-# 3. 具体分析（新接口）
-from datetime import date
-from app.services.analysis import FinancialAnalyzer
-
-analyzer = FinancialAnalyzer()
-income = analyzer.analyze_income(date(2024, 1, 1), date(2024, 12, 31))
-expense = analyzer.analyze_expenses(date(2024, 1, 1), date(2024, 12, 31))
-health = analyzer.analyze_financial_health(12)
-
-# 4. 向后兼容使用（仍然支持旧接口）
-from app.services.analysis import SimplifiedFinancialAnalyzer
-
-analyzer = SimplifiedFinancialAnalyzer()  # 实际上是FinancialAnalyzer的别名
-# 使用原有接口...
-"""

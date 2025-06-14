@@ -13,12 +13,10 @@ import calendar
 from app.models import Transaction, Account, Bank, db
 # 查询构建器功能已移除，直接使用 SQLAlchemy 查询
 
-class AnalysisException(Exception):
-    """分析服务自定义异常类"""
-    pass
 # 缓存和性能监控功能已移除
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
+from app.services.analysis.analysis_utils import AnalysisError
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +72,9 @@ class FinancialReportService:
             # 直接使用 SQLAlchemy 查询替代查询构建器
             # 简单的参数验证
             if account_id and (not isinstance(account_id, int) or account_id <= 0):
-                raise AnalysisException("无效的账户ID")
+                raise AnalysisError("无效的账户ID")
             if start_date and end_date and start_date > end_date:
-                raise AnalysisException("开始日期不能晚于结束日期")
+                raise AnalysisError("开始日期不能晚于结束日期")
             
             # 使用聚合查询替代加载所有交易记录
             query = db.session.query(
@@ -101,7 +99,7 @@ class FinancialReportService:
                 result = query.first()
             except Exception as e:
                 logger.error(f"期间汇总查询执行失败: {e}")
-                raise AnalysisException(f"期间汇总查询执行失败: {str(e)}")
+                raise AnalysisError(f"期间汇总查询执行失败: {str(e)}")
             
             if not result:
                 return {
@@ -127,7 +125,7 @@ class FinancialReportService:
                 'expense_transactions': result.expense_count or 0
             }
             
-        except AnalysisException as e:
+        except AnalysisError as e:
             logger.error(f"期间汇总分析失败: {e}")
             return {
                 'total_transactions': 0,
@@ -147,9 +145,9 @@ class FinancialReportService:
             # 直接使用 SQLAlchemy 查询替代查询构建器
             # 简单的参数验证
             if account_id and (not isinstance(account_id, int) or account_id <= 0):
-                raise AnalysisException("无效的账户ID")
+                raise AnalysisError("无效的账户ID")
             if start_date and end_date and start_date > end_date:
-                raise AnalysisException("开始日期不能晚于结束日期")
+                raise AnalysisError("开始日期不能晚于结束日期")
             
             # 构建收入分析查询
             query = db.session.query(
@@ -182,7 +180,7 @@ class FinancialReportService:
                 results = query.all()
             except Exception as e:
                 logger.error(f"收入分析查询执行失败: {e}")
-                raise AnalysisException(f"收入分析查询执行失败: {str(e)}")
+                raise AnalysisError(f"收入分析查询执行失败: {str(e)}")
             
             # 格式化结果
             income_sources = []
@@ -209,7 +207,7 @@ class FinancialReportService:
                 'source_diversity': len(income_sources)
             }
             
-        except AnalysisException as e:
+        except AnalysisError as e:
             logger.error(f"收入分析失败: {e}")
             return {
                 'total_income': 0,
@@ -226,9 +224,9 @@ class FinancialReportService:
             # 直接使用 SQLAlchemy 查询替代查询构建器
             # 简单的参数验证
             if account_id and (not isinstance(account_id, int) or account_id <= 0):
-                raise AnalysisException("无效的账户ID")
+                raise AnalysisError("无效的账户ID")
             if start_date and end_date and start_date > end_date:
-                raise AnalysisException("开始日期不能晚于结束日期")
+                raise AnalysisError("开始日期不能晚于结束日期")
             
             # 构建支出分析查询
             query = db.session.query(
@@ -261,7 +259,7 @@ class FinancialReportService:
                 results = query.all()
             except Exception as e:
                 logger.error(f"支出分析查询执行失败: {e}")
-                raise AnalysisException(f"支出分析查询执行失败: {str(e)}")
+                raise AnalysisError(f"支出分析查询执行失败: {str(e)}")
             
             # 格式化结果（支出金额取绝对值）
             expense_categories = []
@@ -289,7 +287,7 @@ class FinancialReportService:
                 'category_count': len(expense_categories)
             }
             
-        except AnalysisException as e:
+        except AnalysisError as e:
             logger.error(f"支出分析失败: {e}")
             return {
                 'total_expense': 0,
@@ -306,9 +304,9 @@ class FinancialReportService:
             # 直接使用 SQLAlchemy 查询替代查询构建器
             # 简单的参数验证
             if account_id and (not isinstance(account_id, int) or account_id <= 0):
-                raise AnalysisException("无效的账户ID")
+                raise AnalysisError("无效的账户ID")
             if start_date and end_date and start_date > end_date:
-                raise AnalysisException("开始日期不能晚于结束日期")
+                raise AnalysisError("开始日期不能晚于结束日期")
             
             # 构建类别分析查询
             query = db.session.query(
@@ -340,7 +338,7 @@ class FinancialReportService:
                 results = query.all()
             except Exception as e:
                 logger.error(f"类别分析查询执行失败: {e}")
-                raise AnalysisException(f"类别分析查询执行失败: {str(e)}")
+                raise AnalysisError(f"类别分析查询执行失败: {str(e)}")
             
             # 格式化结果
             categories = []
@@ -360,11 +358,11 @@ class FinancialReportService:
                 'total_categories': len(categories)
             }
             
-        except AnalysisException:
+        except AnalysisError:
             raise
         except Exception as e:
             logger.error(f"类别分析失败: {e}")
-            raise AnalysisException(f"类别分析失败: {str(e)}")
+            raise AnalysisError(f"类别分析失败: {str(e)}")
     
     @staticmethod
     def _get_trend_analysis(account_id: int = None, start_date: date = None, 
@@ -374,9 +372,9 @@ class FinancialReportService:
             # 直接使用 SQLAlchemy 查询替代查询构建器
             # 简单的参数验证
             if account_id and (not isinstance(account_id, int) or account_id <= 0):
-                raise AnalysisException("无效的账户ID")
+                raise AnalysisError("无效的账户ID")
             if start_date and end_date and start_date > end_date:
-                raise AnalysisException("开始日期不能晚于结束日期")
+                raise AnalysisError("开始日期不能晚于结束日期")
             
             # 构建日趋势分析查询
             daily_query = db.session.query(
@@ -402,7 +400,7 @@ class FinancialReportService:
                 daily_results = daily_query.all()
             except Exception as e:
                 logger.error(f"日趋势分析查询执行失败: {e}")
-                raise AnalysisException(f"日趋势分析查询执行失败: {str(e)}")
+                raise AnalysisError(f"日趋势分析查询执行失败: {str(e)}")
             
             # 格式化日趋势数据
             daily_trends = []
@@ -425,11 +423,11 @@ class FinancialReportService:
                 'monthly': monthly_trends
             }
             
-        except AnalysisException:
+        except AnalysisError:
             raise
         except Exception as e:
             logger.error(f"趋势分析失败: {e}")
-            raise AnalysisException(f"趋势分析失败: {str(e)}")
+            raise AnalysisError(f"趋势分析失败: {str(e)}")
     
     @staticmethod
     def _aggregate_by_week(daily_trends: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

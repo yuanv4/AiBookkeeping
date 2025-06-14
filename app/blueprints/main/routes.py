@@ -2,7 +2,7 @@
 from flask import redirect, url_for, render_template, flash, current_app
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from app.services.analysis import SimplifiedFinancialAnalyzer
+from app.services.analysis import FinancialAnalyzer
 from app.services.core.transaction_service import TransactionService
 from app.services.report import FinancialReportService
 
@@ -27,8 +27,8 @@ def dashboard():
     try:
         # 使用专门的服务类获取数据
         # 获取账户余额
-        # 使用新的 SimplifiedFinancialAnalyzer 获取综合分析数据
-        analyzer = SimplifiedFinancialAnalyzer()
+        # 获取综合分析数据
+        analyzer = FinancialAnalyzer()
         analysis_result = analyzer.get_comprehensive_analysis(12)
         
         # 从综合分析结果中提取余额汇总数据

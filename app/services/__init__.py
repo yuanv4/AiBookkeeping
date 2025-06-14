@@ -8,8 +8,7 @@ from .core.transaction_service import TransactionService
 from .core.file_processor_service import FileProcessorService
 
 # Analysis services
-from .analysis import ComprehensiveService as AnalysisService
-from .analysis import ComprehensiveService
+from .analysis import FinancialAnalyzer as AnalysisService
 
 # Reporting services
 from .report import FinancialReportService
@@ -24,7 +23,6 @@ __all__ = [
     
     # Analysis services
     'AnalysisService',
-    'ComprehensiveService',
     
     # Reporting services
     'FinancialReportService',

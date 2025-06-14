@@ -163,30 +163,8 @@ def transactions_list_route(): # 重命名函数
         # 依赖全局错误处理器
         raise # 或者 return render_template('errors/500.html', error_message="无法加载交易记录。 " + str(e)), 500
 
-@transactions_bp.route('/add')
-def add_transaction():
-    """添加交易页面"""
-    # TODO: 实现添加交易功能
-    flash('添加交易功能正在开发中', 'info')
-    return redirect(url_for('transactions_bp.transactions_list_route'))
-
-@transactions_bp.route('/import')
-def import_transactions():
-    """导入交易页面"""
-    # TODO: 实现导入交易功能
-    flash('导入交易功能正在开发中', 'info')
-    return redirect(url_for('transactions_bp.transactions_list_route'))
-
-@transactions_bp.route('/export')
-def export_transactions():
-    """导出交易"""
-    # TODO: 实现导出交易功能
-    flash('导出交易功能正在开发中', 'info')
-    return redirect(url_for('transactions_bp.transactions_list_route'))
-
-@transactions_bp.route('/edit/<int:id>')
-def edit_transaction(id):
-    """编辑交易页面"""
-    # TODO: 实现编辑交易功能
-    flash(f'编辑交易 {id} 功能正在开发中', 'info')
-    return redirect(url_for('transactions_bp.transactions_list_route'))
+# TODO: 以下功能待实现
+# - 添加交易
+# - 导入交易
+# - 导出交易
+# - 编辑交易
