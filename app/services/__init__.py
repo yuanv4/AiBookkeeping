@@ -3,17 +3,23 @@
 This package contains business logic and service layer functionality.
 """
 
-# Core services
-from .core.transaction_service import TransactionService
-from .core.file_processor_service import FileProcessorService
+# 核心服务
+from .core import TransactionService, FileProcessorService
 
-# Analysis services
-from .analysis import FinancialAnalyzer as AnalysisService
+# 统一财务服务（替代原有的分析和报告服务）
+from .financial_service import FinancialService
 
-# Reporting services
-from .report import FinancialReportService
+# 分析服务（保持向后兼容，但建议使用FinancialService）
+from .analysis import (
+    FinancialAnalyzer,
+    AnalysisResult, MonthlyData, FinancialSummary, 
+    FinancialHealthMetrics, ComprehensiveReport,
+    cache_result, handle_analysis_errors, AnalysisError
+)
 
-# Extraction services
+# 报告服务功能已合并到FinancialService中
+
+# 提取服务
 from .extraction import BankStatementExtractor
 
 __all__ = [
@@ -24,8 +30,8 @@ __all__ = [
     # Analysis services
     'AnalysisService',
     
-    # Reporting services
-    'FinancialReportService',
+    # Unified financial service
+    'FinancialService',
     
     # Extraction services
     'BankStatementExtractor',

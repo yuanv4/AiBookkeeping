@@ -1,8 +1,8 @@
 from flask import request, jsonify, current_app
 from datetime import datetime, timedelta
 
-# 使用新的分析服务
-from app.services.report import FinancialReportService
+# 使用统一的财务服务
+from app.services import FinancialService
 
 from . import api_bp
 
@@ -38,7 +38,8 @@ def api_data_route(): #重命名函数
                 account_id = account.id
 
         # 获取分析数据
-        data = FinancialReportService.generate_financial_report(
+        financial_service = FinancialService()
+        data = financial_service.generate_financial_report(
             account_id=account_id,
             start_date=start_date,
             end_date=end_date

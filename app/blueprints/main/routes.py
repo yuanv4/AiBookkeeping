@@ -2,9 +2,7 @@
 from flask import redirect, url_for, render_template, flash, current_app
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from app.services.analysis import FinancialAnalyzer
-from app.services.core.transaction_service import TransactionService
-from app.services.report import FinancialReportService
+from app.services import FinancialService, TransactionService
 
 from . import main # 从同级 __init__.py 导入 main 蓝图实例
 
@@ -25,23 +23,27 @@ def index():
 def dashboard():
     """仪表盘页面"""
     try:
-        # 使用专门的服务类获取数据
-        # 获取账户余额
-        # 获取综合分析数据
-        analyzer = FinancialAnalyzer()
-        analysis_result = analyzer.get_comprehensive_analysis(12)
+        # 使用统一的财务服务获取数据
+        financial_service = FinancialService()
         
-        # 从综合分析结果中提取余额汇总数据
-        if analysis_result and 'account_balances' in analysis_result:
+        # 获取综合分析数据
+        analysis_result = financial_service.get_comprehensive_analysis(12)
+        
+        # 从综合分析结果中提取数据
+        if analysis_result:
+            income_summary = analysis_result.get('income_summary', {})
+            expense_summary = analysis_result.get('expense_summary', {})
+            financial_health = analysis_result.get('financial_health', {})
+            
             summary_data = {
-                'net_balance': analysis_result.get('overall_stats', {}).get('net_balance', 0.0),
-                'account_balances': analysis_result.get('account_balances', {}),
-                'net_amount': analysis_result.get('overall_stats', {}).get('net_amount', 0.0),
-                'account_balance': analysis_result.get('overall_stats', {}).get('total_balance', 0.0),
-                'account_balance_list': list(analysis_result.get('account_balances', {}).items()),
-                'monthly_income': analysis_result.get('overall_stats', {}).get('total_income', 0.0),
-                'monthly_expense': analysis_result.get('overall_stats', {}).get('total_expense', 0.0),
-                'monthly_net': analysis_result.get('overall_stats', {}).get('net_amount', 0.0),
+                'net_balance': financial_health.get('net_saving', 0.0),
+                'account_balances': {},  # 暂时为空，后续可以从账户服务获取
+                'net_amount': financial_health.get('net_saving', 0.0),
+                'account_balance': financial_health.get('net_saving', 0.0),
+                'account_balance_list': [],  # 暂时为空
+                'monthly_income': income_summary.get('avg_monthly_income', 0.0),
+                'monthly_expense': expense_summary.get('avg_monthly_expense', 0.0),
+                'monthly_net': income_summary.get('avg_monthly_income', 0.0) - expense_summary.get('avg_monthly_expense', 0.0),
             }
         else:
             summary_data = None
@@ -101,7 +103,7 @@ def dashboard():
         current_date = date.today()
         start_of_month = current_date.replace(day=1)
         
-        monthly_report = FinancialReportService.generate_financial_report(
+        monthly_report = financial_service.generate_financial_report(
             start_date=start_of_month,
             end_date=current_date
         )
@@ -117,7 +119,7 @@ def dashboard():
         summary_data['transaction_count'] = transaction_count
         
         # 获取总体统计数据
-        all_time_report = FinancialReportService.generate_financial_report()
+        all_time_report = financial_service.generate_financial_report()
         
         # 检查 all_time_report 是否为 None 或空
         if not all_time_report or 'summary' not in all_time_report:
@@ -137,9 +139,12 @@ def dashboard():
         expense = all_time_report['summary'].get('total_expense', 0)
         net_income = all_time_report['summary'].get('net_amount', 0)
         
-        # 获取余额范围和历史数据
-        balance_range = balance_analyzer.get_balance_range()
-        monthly_balance_history = balance_analyzer.get_monthly_history(months=12)
+        # 获取余额范围和历史数据（使用财务服务的月度趋势数据）
+        monthly_trends = analysis_result.get('monthly_trends', [])
+        monthly_balance_history = [{
+            'month': f"{trend['year']}-{trend['month']:02d}",
+            'balance': trend['net_amount']
+        } for trend in monthly_trends]
         
         months_count = 1
         if all_time_report['summary'].get('start_date') and all_time_report['summary'].get('end_date'):

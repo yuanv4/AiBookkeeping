@@ -11,7 +11,7 @@ from .template_filters import register_template_filters
 from .models import db
 
 from .services.core.transaction_service import TransactionService
-from .services.analysis import FinancialAnalyzer as AnalysisService
+from .services import FinancialService as AnalysisService
 from .services.extraction.service import BankStatementExtractor
 from .services.core.file_processor_service import FileProcessorService
 
@@ -157,10 +157,10 @@ def create_app():
     # 数据库统计信息检查
     try:
         with app.app_context():
-            from app.services.analysis import FinancialAnalyzer
+            from app.services import FinancialService
             from datetime import date, datetime
             
-            analyzer = FinancialAnalyzer()
+            analyzer = FinancialService()
             # 使用新的分析器获取基本统计信息
             analysis_result = analyzer.get_comprehensive_analysis(1)
             
