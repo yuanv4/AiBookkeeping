@@ -117,13 +117,9 @@ def create_app():
     app.register_blueprint(api_bp, url_prefix='/api')
     app.logger.info(f"已注册 api_bp, 前缀 {'/api'}")
     
-    from .blueprints.income_analysis.routes import income_analysis_bp
-    app.register_blueprint(income_analysis_bp, url_prefix='/income-analysis')
-    app.logger.info("已注册 income_analysis_bp, 前缀 /income-analysis")
-    
-    from .blueprints.expense_analysis.routes import expense_analysis_bp
-    app.register_blueprint(expense_analysis_bp, url_prefix='/expense-analysis')
-    app.logger.info("已注册 expense_analysis_bp, 前缀 /expense-analysis")
+    from .blueprints.analysis.routes import analysis_bp
+    app.register_blueprint(analysis_bp, url_prefix='/analysis')
+    app.logger.info("已注册 analysis_bp, 前缀 /analysis")
     
     from .blueprints.settings.routes import settings_bp
     app.register_blueprint(settings_bp, url_prefix='/settings')
@@ -157,22 +153,14 @@ def create_app():
     # 数据库统计信息检查
     try:
         with app.app_context():
-            from app.services import FinancialService
-            from datetime import date, datetime
+            from app.models import Transaction
             
-            analyzer = FinancialService()
-            # 使用新的分析器获取基本统计信息
-            analysis_result = analyzer.get_comprehensive_analysis(1)
-            
-            # 从分析结果中提取交易数量信息
-            if analysis_result and 'overall_stats' in analysis_result:
-                total_transactions = analysis_result['overall_stats'].get('total_transactions', 0)
-                if total_transactions > 0:
-                    app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
-                else:
-                    app.logger.info("数据库已连接但暂无交易记录")
+            # 直接查询交易数量，避免复杂的分析调用
+            total_transactions = Transaction.query.count()
+            if total_transactions > 0:
+                app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
             else:
-                app.logger.info("数据库已连接，统计信息获取中...")
+                app.logger.info("数据库已连接但暂无交易记录")
     except Exception as e:
         app.logger.warning(f"获取数据库统计信息时出错: {e}")
         app.logger.info("数据库连接正常，但无法获取统计信息")

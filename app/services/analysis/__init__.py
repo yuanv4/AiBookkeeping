@@ -12,7 +12,7 @@ Author: AI Assistant
 """
 
 # 简化的核心接口（推荐使用）
-from .financial_analyzer import FinancialAnalyzer
+# FinancialAnalyzer已合并到FinancialService中
 from .data_models import (
     AnalysisResult,
     MonthlyData,
@@ -51,16 +51,20 @@ from .analysis_utils import (
 
 # ==================== 便捷函数 ====================
 
-def create_analyzer(db_session=None) -> FinancialAnalyzer:
-    """创建财务分析器实例
+def create_analyzer(db_session=None):
+    """创建财务分析器实例（已弃用）
+    
+    注意：FinancialAnalyzer已合并到FinancialService中，
+    请使用FinancialService替代。
     
     Args:
-        db_session: 数据库会话，可选
+        db_session: 数据库会话，如果为None则使用默认会话
         
     Returns:
-        FinancialAnalyzer实例
+        FinancialService实例
     """
-    return FinancialAnalyzer(db_session)
+    from ..financial_service import FinancialService
+    return FinancialService(db_session)
 
 
 def quick_analysis(months: int = 12, db_session=None) -> dict:
@@ -98,9 +102,6 @@ __description__ = 'Simplified Financial Analysis Services'
 
 # 导出的公共接口
 __all__ = [
-    # 核心类
-    'FinancialAnalyzer',
-    
     # 数据模型
     'AnalysisResult',
     'MonthlyData', 
@@ -111,14 +112,13 @@ __all__ = [
     # 工具函数
     'cache_result',
     'handle_analysis_errors',
-    'calculate_growth_rate',
     'calculate_percentage',
     'format_currency',
     'format_percentage',
     'validate_date_range',
     
     # 便捷函数
-    'create_analyzer',
+    'create_analyzer',  # 兼容性函数，返回FinancialService
     'quick_analysis',
     'quick_summary',
     

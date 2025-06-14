@@ -11,10 +11,10 @@ from .financial_service import FinancialService
 
 # 分析服务（保持向后兼容，但建议使用FinancialService）
 from .analysis import (
-    FinancialAnalyzer,
     AnalysisResult, MonthlyData, FinancialSummary, 
     FinancialHealthMetrics, ComprehensiveReport,
-    cache_result, handle_analysis_errors, AnalysisError
+    cache_result, handle_analysis_errors, AnalysisError,
+    create_analyzer
 )
 
 # 报告服务功能已合并到FinancialService中

@@ -18,6 +18,10 @@ from app.models import Transaction, Account, Bank, db
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from app.utils.db_utils import (
+    TransactionQueries, AccountQueries, BankQueries, 
+    AggregationQueries, safe_query_execute
+)
 
 # 导入分析相关的数据模型和工具
 try:
@@ -76,20 +80,18 @@ class FinancialService:
         Returns:
             交易记录列表
         """
-        query = self.db.query(Transaction).filter(
-            Transaction.date >= start_date,
-            Transaction.date <= end_date
-        )
-        
-        if account_id:
-            query = query.filter(Transaction.account_id == account_id)
-        
         if transaction_type == 'income':
-            query = query.filter(Transaction.amount > 0)
+            return TransactionQueries.get_income_transactions(
+                start_date, end_date, account_id
+            ).all()
         elif transaction_type == 'expense':
-            query = query.filter(Transaction.amount < 0)
-        
-        return query.all()
+            return TransactionQueries.get_expense_transactions(
+                start_date, end_date, account_id
+            ).all()
+        else:
+            return TransactionQueries.get_by_date_range(
+                start_date, end_date, account_id
+            ).all()
     
     def _validate_parameters(self, account_id: Optional[int] = None, 
                            start_date: Optional[date] = None, 
@@ -100,38 +102,47 @@ class FinancialService:
         if start_date and end_date and start_date > end_date:
             raise AnalysisError("开始日期不能晚于结束日期")
     
-    def _group_by_category(self, transactions: List, abs_amount: bool = False) -> Dict[str, float]:
+    def _group_by_category(self, start_date: date, end_date: date,
+                          account_id: Optional[int] = None, 
+                          abs_amount: bool = False) -> Dict[str, float]:
         """按类别分组交易
         
         Args:
-            transactions: 交易记录列表
+            start_date: 开始日期
+            end_date: 结束日期
+            account_id: 可选的账户ID
             abs_amount: 是否使用绝对值
             
         Returns:
             按类别分组的金额字典
         """
-        result = defaultdict(float)
-        for t in transactions:
-            amount = abs(t.amount) if abs_amount else float(t.amount)
-            result[t.category] += amount
-        return dict(result)
+        return safe_query_execute(
+            lambda: AggregationQueries.group_by_category(
+                start_date, end_date, account_id, abs_amount
+            ),
+            default_value={}
+        )
     
-    def _group_by_month(self, transactions: List, abs_amount: bool = False) -> Dict[str, float]:
+    def _group_by_month(self, start_date: date, end_date: date,
+                       account_id: Optional[int] = None, 
+                       abs_amount: bool = False) -> Dict[str, float]:
         """按月份分组交易
         
         Args:
-            transactions: 交易记录列表
+            start_date: 开始日期
+            end_date: 结束日期
+            account_id: 可选的账户ID
             abs_amount: 是否使用绝对值
             
         Returns:
             按月份分组的金额字典
         """
-        result = defaultdict(float)
-        for t in transactions:
-            month_key = f"{t.date.year}-{t.date.month:02d}"
-            amount = abs(t.amount) if abs_amount else float(t.amount)
-            result[month_key] += amount
-        return dict(result)
+        return safe_query_execute(
+            lambda: AggregationQueries.group_by_month(
+                start_date, end_date, account_id, abs_amount
+            ),
+            default_value={}
+        )
     
     # ==================== 分析方法 ====================
     
@@ -450,7 +461,10 @@ class FinancialService:
             }
             
             if account_id:
-                account = Account.query.get(account_id)
+                account = safe_query_execute(
+                    lambda: AccountQueries.get_by_id(account_id),
+                    default_value=None
+                )
                 if account:
                     report['account_info'] = {
                         'id': account.id,
@@ -472,52 +486,39 @@ class FinancialService:
         try:
             self._validate_parameters(account_id, start_date, end_date)
             
-            # 使用聚合查询替代加载所有交易记录
-            query = self.db.query(
-                func.count(Transaction.id).label('total_count'),
-                func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)).label('total_income'),
-                func.sum(case((Transaction.amount < 0, func.abs(Transaction.amount)), else_=0)).label('total_expense'),
-                func.count(case((Transaction.amount > 0, 1))).label('income_count'),
-                func.count(case((Transaction.amount < 0, 1))).label('expense_count'),
-                func.avg(func.abs(Transaction.amount)).label('avg_transaction')
+            # 使用工具类获取统计数据
+            total_income = TransactionQueries.get_total_amount(
+                start_date, end_date, account_id, 'income'
+            )
+            total_expense = abs(TransactionQueries.get_total_amount(
+                start_date, end_date, account_id, 'expense'
+            ))
+            
+            # 获取交易计数
+            income_transactions = TransactionQueries.get_income_transactions(
+                start_date, end_date, account_id
+            )
+            expense_transactions = TransactionQueries.get_expense_transactions(
+                start_date, end_date, account_id
             )
             
-            # 应用过滤条件
-            if account_id:
-                query = query.filter(Transaction.account_id == account_id)
-            if start_date:
-                query = query.filter(Transaction.date >= start_date)
-            if end_date:
-                query = query.filter(Transaction.date <= end_date)
+            income_count = income_transactions.count()
+            expense_count = expense_transactions.count()
+            total_count = income_count + expense_count
             
-            try:
-                result = query.first()
-            except Exception as e:
-                logger.error(f"期间汇总查询执行失败: {e}")
-                raise AnalysisError(f"期间汇总查询执行失败: {str(e)}")
-            
-            if not result:
-                return {
-                    'total_transactions': 0,
-                    'total_income': 0.0,
-                    'total_expense': 0.0,
-                    'net_income': 0.0,
-                    'average_transaction': 0.0,
-                    'income_transactions': 0,
-                    'expense_transactions': 0
-                }
-            
-            total_income = float(result.total_income or 0)
-            total_expense = float(result.total_expense or 0)
+            # 计算平均交易金额
+            avg_transaction = 0.0
+            if total_count > 0:
+                avg_transaction = (total_income + total_expense) / total_count
             
             return {
-                'total_transactions': result.total_count or 0,
+                'total_transactions': total_count,
                 'total_income': total_income,
                 'total_expense': total_expense,
                 'net_income': total_income - total_expense,
-                'average_transaction': float(result.avg_transaction or 0),
-                'income_transactions': result.income_count or 0,
-                'expense_transactions': result.expense_count or 0
+                'average_transaction': avg_transaction,
+                'income_transactions': income_count,
+                'expense_transactions': expense_count
             }
             
         except AnalysisError:
@@ -871,3 +872,9 @@ class FinancialService:
             'health_level': financial_health['health_level'],
             'health_score': financial_health['health_score']
         }
+    
+    # ==================== 兼容性方法（来自FinancialAnalyzer）====================
+    
+    def generate_financial_summary(self) -> Dict[str, Any]:
+        """生成财务总览（兼容FinancialAnalyzer接口）"""
+        return self.generate_summary()
