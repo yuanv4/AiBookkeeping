@@ -34,13 +34,17 @@ def dashboard():
     if analysis_result:
         income_summary = analysis_result.get('income_summary', {})
         expense_summary = analysis_result.get('expense_summary', {})
-        financial_health = analysis_result.get('financial_health', {})
+        
+        # 计算净储蓄
+        total_income = income_summary.get('total_income', 0.0)
+        total_expense = expense_summary.get('total_expense', 0.0)
+        net_saving = total_income - total_expense
         
         summary_data = {
-            'net_balance': financial_health.get('net_saving', 0.0),
+            'net_balance': net_saving,
             'account_balances': {},  # 暂时为空，后续可以从账户服务获取
-            'net_amount': financial_health.get('net_saving', 0.0),
-            'account_balance': financial_health.get('net_saving', 0.0),
+            'net_amount': net_saving,
+            'account_balance': net_saving,
             'account_balance_list': [],  # 暂时为空
             'monthly_income': income_summary.get('avg_monthly_income', 0.0),
             'monthly_expense': expense_summary.get('avg_monthly_expense', 0.0),
@@ -148,6 +152,23 @@ def dashboard():
     } for trend in monthly_trends]
     
     months_count = 1
+    
+    # 初始化默认的图表数据
+    chart_data = {
+        'balance_history': monthly_balance_history,
+        'monthly_balance_history': monthly_balance_history,
+        'income_expense': {
+            'income': float(income),
+            'expense': float(abs(expense)),
+            'net': float(net_income)
+        },
+        'monthly_averages': {
+            'income': 0.0,
+            'expense': 0.0,
+            'net': 0.0
+        }
+    }
+    
     if all_time_report['summary'].get('start_date') and all_time_report['summary'].get('end_date'):
         try:
             start_date_dt = all_time_report['summary']['start_date']
@@ -169,20 +190,11 @@ def dashboard():
         monthly_avg_expense = abs(expense) / months_count if months_count > 0 else 0
         monthly_avg_net = net_income / months_count if months_count > 0 else 0
         
-        # 准备图表数据
-        chart_data = {
-            'balance_history': monthly_balance_history,  # 添加balance_history字段供模板使用
-            'monthly_balance_history': monthly_balance_history,
-            'income_expense': {
-                'income': float(income),
-                'expense': float(abs(expense)),
-                'net': float(net_income)
-            },
-            'monthly_averages': {
-                'income': float(monthly_avg_income),
-                'expense': float(monthly_avg_expense),
-                'net': float(monthly_avg_net)
-            }
+        # 更新图表数据的月平均值
+        chart_data['monthly_averages'] = {
+            'income': float(monthly_avg_income),
+            'expense': float(monthly_avg_expense),
+            'net': float(monthly_avg_net)
         }
         
     return render_template('dashboard.html', 

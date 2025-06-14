@@ -27,7 +27,7 @@ from app.utils.db_utils import (
 try:
     from app.services.analysis.data_models import (
         AnalysisResult, MonthlyData, FinancialSummary, 
-        FinancialHealthMetrics, ComprehensiveReport
+        ComprehensiveReport
     )
     from app.services.analysis.analysis_utils import (
         cache_result, handle_analysis_errors, AnalysisError
@@ -298,132 +298,8 @@ class FinancialService:
             'average_amount': total_expense / sum(category['count'] for category in expense_categories) if expense_categories else 0
         }
     
-    @cache_result(ttl=300)
-    @handle_analysis_errors
-    def analyze_cash_flow(self, start_date: date, end_date: date, 
-                         account_id: Optional[int] = None) -> Dict[str, Any]:
-        """分析现金流情况"""
-        self._validate_parameters(account_id, start_date, end_date)
-        
-        # 构建日趋势分析查询
-        daily_query = self.db.query(
-            Transaction.date,
-            func.sum(Transaction.amount).label('net_amount'),
-            func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)).label('income'),
-            func.sum(case((Transaction.amount < 0, func.abs(Transaction.amount)), else_=0)).label('expense'),
-            func.count(Transaction.id).label('transaction_count')
-        )
-        
-        # 添加过滤条件
-        if account_id:
-            daily_query = daily_query.filter(Transaction.account_id == account_id)
-        if start_date:
-            daily_query = daily_query.filter(Transaction.date >= start_date)
-        if end_date:
-            daily_query = daily_query.filter(Transaction.date <= end_date)
-        
-        daily_query = daily_query.group_by(Transaction.date).order_by(Transaction.date.asc())
-        
-        try:
-            daily_results = daily_query.all()
-        except Exception as e:
-            logger.error(f"现金流分析查询执行失败: {e}")
-            raise AnalysisError(f"现金流分析查询执行失败: {str(e)}")
-        
-        # 按月计算现金流
-        monthly_flow = defaultdict(float)
-        daily_trends = []
-        
-        for result in daily_results:
-            daily_trends.append({
-                'date': result.date.isoformat(),
-                'net_amount': float(result.net_amount or 0),
-                'income': float(result.income or 0),
-                'expense': float(result.expense or 0),
-                'transaction_count': result.transaction_count
-            })
-            
-            month_key = f"{result.date.year}-{result.date.month:02d}"
-            monthly_flow[month_key] += float(result.net_amount or 0)
-        
-        # 计算现金流稳定性（正现金流月份比例）
-        positive_months = sum(1 for flow in monthly_flow.values() if flow > 0)
-        stability = positive_months / len(monthly_flow) if monthly_flow else 0
-        
-        return {
-            'monthly_cash_flow': dict(monthly_flow),
-            'daily_trends': daily_trends,
-            'total_cash_flow': sum(monthly_flow.values()),
-            'cash_flow_stability': stability,
-            'positive_months': positive_months,
-            'total_months': len(monthly_flow)
-        }
     
-    @cache_result(ttl=300)
-    @handle_analysis_errors
-    def analyze_financial_health(self, months: int = 12) -> Dict[str, Any]:
-        """分析财务健康状况"""
-        end_date = date.today()
-        start_date = end_date - timedelta(days=months * 30)
-        
-        income_result = self.analyze_income(start_date, end_date)
-        expense_result = self.analyze_expenses(start_date, end_date)
-        cash_flow_result = self.analyze_cash_flow(start_date, end_date)
-        
-        # 处理可能的AnalysisResult对象
-        if hasattr(income_result, 'to_dict'):
-            income_data = income_result.to_dict()
-        else:
-            income_data = income_result
-            
-        if hasattr(expense_result, 'to_dict'):
-            expense_data = expense_result.to_dict()
-        else:
-            expense_data = expense_result
-            
-        if hasattr(cash_flow_result, 'to_dict'):
-            cash_flow_data = cash_flow_result.to_dict()
-        else:
-            cash_flow_data = cash_flow_result
-        
-        # 计算关键指标
-        total_income = income_data.get('total_income', 0)
-        total_expense = expense_data.get('total_expense', 0)
-        
-        savings_rate = (total_income - total_expense) / total_income if total_income > 0 else 0
-        expense_ratio = total_expense / total_income if total_income > 0 else 0
-        
-        # 评估健康等级
-        health_score = 0
-        if savings_rate > 0.2: health_score += 30
-        elif savings_rate > 0.1: health_score += 20
-        elif savings_rate > 0: health_score += 10
-        
-        cash_flow_stability = cash_flow_data.get('cash_flow_stability', 0)
-        if cash_flow_stability > 0.8: health_score += 30
-        elif cash_flow_stability > 0.6: health_score += 20
-        elif cash_flow_stability > 0.4: health_score += 10
-        
-        if expense_ratio < 0.7: health_score += 25
-        elif expense_ratio < 0.8: health_score += 15
-        elif expense_ratio < 0.9: health_score += 10
-        
-        # 确定健康等级
-        if health_score >= 80: health_level = 'excellent'
-        elif health_score >= 60: health_level = 'good'
-        elif health_score >= 40: health_level = 'fair'
-        else: health_level = 'poor'
-        
-        return {
-            'health_score': health_score,
-            'health_level': health_level,
-            'savings_rate': savings_rate,
-            'expense_ratio': expense_ratio,
-            'cash_flow_stability': cash_flow_stability,
-            'total_income': total_income,
-            'total_expense': total_expense,
-            'net_saving': total_income - total_expense
-        }
+
     
     # ==================== 报告生成方法 ====================
     
@@ -440,7 +316,6 @@ class FinancialService:
             period_summary = self._get_period_summary(account_id, start_date, end_date)
             income_analysis = self.analyze_income(start_date, end_date, account_id)
             expense_analysis = self.analyze_expenses(start_date, end_date, account_id)
-            cash_flow_analysis = self.analyze_cash_flow(start_date, end_date, account_id)
             category_breakdown = self._get_category_breakdown(account_id, start_date, end_date)
             trends = self._get_trend_analysis(account_id, start_date, end_date)
             insights = self._generate_insights(account_id, start_date, end_date)
@@ -454,7 +329,6 @@ class FinancialService:
                 'summary': period_summary,
                 'income_analysis': income_analysis,
                 'expense_analysis': expense_analysis,
-                'cash_flow_analysis': cash_flow_analysis,
                 'category_breakdown': category_breakdown,
                 'trends': trends,
                 'insights': insights
@@ -741,7 +615,6 @@ class FinancialService:
         income_analysis = self.analyze_income(start_date, end_date)
         expense_analysis = self.analyze_expenses(start_date, end_date)
         cash_flow_analysis = self.analyze_cash_flow(start_date, end_date)
-        financial_health = self.analyze_financial_health(months)
         
         # 生成月度趋势数据
         monthly_trends = self._generate_monthly_trends(start_date, end_date)
@@ -776,9 +649,8 @@ class FinancialService:
                 )[:5]
             },
             'cash_flow_summary': cash_flow_analysis,
-            'financial_health': financial_health,
             'monthly_trends': monthly_trends,
-            'key_insights': self._generate_key_insights(income_data, expense_data, cash_flow_analysis, financial_health)
+            'key_insights': self._generate_key_insights(income_data, expense_data, cash_flow_analysis)
         }
     
     def _generate_monthly_trends(self, start_date: date, end_date: date) -> List[Dict[str, Any]]:
@@ -810,16 +682,11 @@ class FinancialService:
         
         return trends
     
-    def _generate_key_insights(self, income_analysis, expense_analysis, cash_flow_analysis, financial_health) -> List[str]:
+    def _generate_key_insights(self, income_analysis, expense_analysis, cash_flow_analysis) -> List[str]:
         """生成关键洞察"""
         insights = []
         
         # 处理可能的AnalysisResult对象
-        if hasattr(financial_health, 'to_dict'):
-            health_data = financial_health.to_dict()
-        else:
-            health_data = financial_health
-            
         if hasattr(cash_flow_analysis, 'to_dict'):
             cash_flow_data = cash_flow_analysis.to_dict()
         else:
@@ -837,13 +704,6 @@ class FinancialService:
             top_expense = expense_categories[0]
             insights.append(f"最大支出类别：{top_expense['category']}（{top_expense['percentage']:.1f}%）")
         
-        # 财务健康洞察
-        health_level = health_data.get('health_level', 'unknown')
-        if health_level == 'excellent':
-            insights.append("财务状况优秀，继续保持")
-        elif health_level == 'poor':
-            insights.append("财务状况需要改善，建议制定理财计划")
-        
         # 现金流洞察
         stability = cash_flow_data.get('cash_flow_stability', 0)
         if stability > 0.8:
@@ -859,18 +719,23 @@ class FinancialService:
         
         income_summary = analysis['income_summary']
         expense_summary = analysis['expense_summary']
-        financial_health = analysis['financial_health']
+        
+        total_income = income_summary['total_income']
+        total_expense = expense_summary['total_expense']
+        net_saving = total_income - total_expense
+        
+        # 计算储蓄率和支出比率
+        savings_rate = (net_saving / total_income * 100) if total_income > 0 else 0
+        expense_ratio = (total_expense / total_income * 100) if total_income > 0 else 0
         
         return {
-            'total_income': income_summary['total_income'],
-            'total_expense': expense_summary['total_expense'],
-            'net_saving': income_summary['total_income'] - expense_summary['total_expense'],
+            'total_income': total_income,
+            'total_expense': total_expense,
+            'net_saving': net_saving,
             'avg_monthly_income': income_summary['avg_monthly_income'],
             'avg_monthly_expense': expense_summary['avg_monthly_expense'],
-            'savings_rate': financial_health['savings_rate'],
-            'expense_ratio': financial_health['expense_ratio'],
-            'health_level': financial_health['health_level'],
-            'health_score': financial_health['health_score']
+            'savings_rate': savings_rate,
+            'expense_ratio': expense_ratio
         }
     
     # ==================== 兼容性方法（来自FinancialAnalyzer）====================

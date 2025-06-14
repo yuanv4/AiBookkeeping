@@ -85,22 +85,7 @@
                     </div>
                 </a>
             </li>
-            <li class="nav-item mb-1">
-                <a class="nav-link rounded {% if request.path.startswith('/analysis/cash-flow') %}active{% endif %}" href="{{ url_for('analysis_bp.cash_flow_analysis') }}">
-                    <div class="nav-icon-round d-flex align-items-center">
-                        {{ icon("droplets", "sm", "", "me-3") }}
-                        <span>现金流分析</span>
-                    </div>
-                </a>
-            </li>
-            <li class="nav-item mb-1">
-                <a class="nav-link rounded {% if request.path.startswith('/analysis/health') %}active{% endif %}" href="{{ url_for('analysis_bp.financial_health') }}">
-                    <div class="nav-icon-round d-flex align-items-center">
-                        {{ icon("heart-pulse", "sm", "", "me-3") }}
-                        <span>财务健康</span>
-                    </div>
-                </a>
-            </li>
+
             <li class="nav-item mb-1">
                 <a class="nav-link rounded {% if request.path == url_for('transactions_bp.transactions_list_route') %}active{% endif %}" href="{{ url_for('transactions_bp.transactions_list_route') }}">
                     <div class="nav-icon-round d-flex align-items-center">

@@ -98,45 +98,22 @@ class FinancialSummary:
         }
 
 
-@dataclass
-class FinancialHealthMetrics:
-    """财务健康指标"""
-    health_score: int = 0
-    health_level: str = 'unknown'  # excellent, good, fair, poor
-    savings_rate: float = 0.0
-    expense_ratio: float = 0.0
-    cash_flow_stability: float = 0.0
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """转换为字典"""
-        return {
-            'health_score': self.health_score,
-            'health_level': self.health_level,
-            'savings_rate': self.savings_rate,
-            'expense_ratio': self.expense_ratio,
-            'cash_flow_stability': self.cash_flow_stability
-        }
+
 
 
 @dataclass
 class ComprehensiveReport:
-    """综合财务报告"""
-    period_info: Dict[str, Any] = field(default_factory=dict)
-    income_summary: AnalysisResult = field(default_factory=AnalysisResult)
-    expense_summary: AnalysisResult = field(default_factory=AnalysisResult)
-    cash_flow_data: Dict[str, Any] = field(default_factory=dict)
-    financial_health: FinancialHealthMetrics = field(default_factory=FinancialHealthMetrics)
+    """综合报告"""
+    income_data: AnalysisResult = field(default_factory=AnalysisResult)
+    expense_data: AnalysisResult = field(default_factory=AnalysisResult)
     monthly_trends: List[MonthlyData] = field(default_factory=list)
     key_insights: List[str] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
         return {
-            'period_info': self.period_info,
-            'income_summary': self.income_summary.to_dict(),
-            'expense_summary': self.expense_summary.to_dict(),
-            'cash_flow_data': self.cash_flow_data,
-            'financial_health': self.financial_health.to_dict(),
+            'income_data': self.income_data.to_dict(),
+            'expense_data': self.expense_data.to_dict(),
             'monthly_trends': [trend.to_dict() for trend in self.monthly_trends],
             'key_insights': self.key_insights
         }

@@ -9,61 +9,7 @@
 
 {% block content %}
 <div class="page-container">
-    {{ page_header("收入分析", "深入分析您的收入结构和财务健康状况", "analytics") }}
-    
-    <!-- 财务健康指标网格 -->
-    <div class="row g-4 mb-4">
-        <div class="col-xl-4 col-lg-6 col-md-6">
-            <!-- 平均月储蓄率 -->
-            <div class="metric-card card-animate h-100">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="metric-label">平均月储蓄率</div>
-                    <div class="icon-circle">
-                        {{ icon("piggy-bank", "sm", "text-primary") }}
-                    </div>
-                </div>
-                <div class="metric-value">{% if data and data.financial_health and data.financial_health.avg_monthly_saving_rate %}{{ "%.1f"|format(data.financial_health.avg_monthly_saving_rate * 100) }}%{% else %}0.0%{% endif %}</div>
-                <div class="metric-description">储蓄率反映您的财务纪律和未来规划能力</div>
-                <div class="metric-status {% if data and data.financial_health and data.financial_health.avg_monthly_saving_rate %}{% if data.financial_health.avg_monthly_saving_rate >= 0.2 %}good{% elif data.financial_health.avg_monthly_saving_rate >= 0.1 %}moderate{% else %}poor{% endif %}{% else %}poor{% endif %}">
-                    {% if data and data.financial_health and data.financial_health.avg_monthly_saving_rate %}{% if data.financial_health.avg_monthly_saving_rate >= 0.2 %}优秀{% elif data.financial_health.avg_monthly_saving_rate >= 0.1 %}良好{% else %}需改善{% endif %}{% else %}无数据{% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-4 col-lg-6 col-md-6">
-            <!-- 收入稳定性 -->
-            <div class="metric-card card-animate h-100">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="metric-label">收入稳定性</div>
-                    <div class="icon-circle">
-                        {{ icon("trending-up", "sm", "text-primary") }}
-                    </div>
-                </div>
-                <div class="metric-value">{% if data and data.financial_health and data.financial_health.income_stability %}{{ "%.1f"|format(data.financial_health.income_stability * 100) }}%{% else %}0.0%{% endif %}</div>
-                <div class="metric-description">稳定的收入是财务安全的基础</div>
-                <div class="metric-status {% if data and data.financial_health and data.financial_health.income_stability %}{% if data.financial_health.income_stability >= 0.8 %}good{% elif data.financial_health.income_stability >= 0.6 %}moderate{% else %}poor{% endif %}{% else %}poor{% endif %}">
-                    {% if data and data.financial_health and data.financial_health.income_stability %}{% if data.financial_health.income_stability >= 0.8 %}稳定{% elif data.financial_health.income_stability >= 0.6 %}一般{% else %}波动大{% endif %}{% else %}无数据{% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-4 col-lg-12 col-md-12">
-            <!-- 紧急备用金覆盖月数 -->
-            <div class="metric-card card-animate h-100">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="metric-label">紧急备用金</div>
-                    <div class="icon-circle">
-                        {{ icon("shield", "sm", "text-primary") }}
-                    </div>
-                </div>
-                <div class="metric-value">{% if data and data.financial_health and data.financial_health.emergency_fund_months %}{{ "%.1f"|format(data.financial_health.emergency_fund_months) }}月{% else %}0.0月{% endif %}</div>
-                <div class="metric-description">紧急备用金应覆盖3-6个月的基本生活支出，以应对突发情况</div>
-                <div class="metric-status {% if data and data.financial_health and data.financial_health.emergency_fund_months %}{% if data.financial_health.emergency_fund_months >= 6 %}good{% elif data.financial_health.emergency_fund_months >= 3 %}moderate{% else %}poor{% endif %}{% else %}poor{% endif %}">
-                    {% if data and data.financial_health and data.financial_health.emergency_fund_months %}{% if data.financial_health.emergency_fund_months >= 6 %}充足{% elif data.financial_health.emergency_fund_months >= 3 %}基本够用{% else %}不足{% endif %}{% else %}无数据{% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
+    {{ page_header("收入分析", "深入分析您的收入结构", "analytics") }}
 
     <!-- 分析图表网格 -->
     <div class="row g-4 mb-4">

@@ -8,13 +8,15 @@ from flask import current_app, render_template, jsonify, request
 from typing import Callable, Any, Optional
 
 
-def handle_errors(template: Optional[str] = None, 
+def handle_errors(func_or_template=None, *,
+                 template: Optional[str] = None, 
                  error_key: str = 'error',
                  default_data: Optional[dict] = None,
                  log_prefix: str = ""):
     """通用错误处理装饰器
     
     Args:
+        func_or_template: 被装饰的函数或模板路径
         template: 错误时渲染的模板路径
         error_key: 错误信息在模板中的键名
         default_data: 错误时返回的默认数据
@@ -48,6 +50,12 @@ def handle_errors(template: Optional[str] = None,
                 raise
                 
         return wrapper
+    
+    # 如果直接使用 @handle_errors (不带括号)
+    if func_or_template is not None and callable(func_or_template):
+        return decorator(func_or_template)
+    
+    # 如果使用 @handle_errors() (带括号)
     return decorator
 
 

@@ -163,14 +163,7 @@ def _get_default_result(func: Callable) -> Any:
             }
     elif 'trends' in func_name or 'monthly' in func_name:
         return []
-    elif 'health' in func_name:
-        return {
-            'health_score': 0,
-            'health_level': 'unknown',
-            'savings_rate': 0.0,
-            'expense_ratio': 0.0,
-            'cash_flow_stability': 0.0
-        }
+
     else:
         return {}
 
