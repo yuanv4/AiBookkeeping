@@ -404,7 +404,7 @@ function initOriginalFilterForm() {
             
             // 日期列
             const dateCell = document.createElement('td');
-            dateCell.textContent = transaction['transaction_date'] || ''; // 直接使用新字段名
+            dateCell.textContent = transaction['date'] || ''; // 直接使用新字段名
             row.appendChild(dateCell);
             
             // 类型列

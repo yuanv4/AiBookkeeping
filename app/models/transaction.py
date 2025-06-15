@@ -19,13 +19,11 @@ class Transaction(BaseModel):
     account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False, index=True)
     date = db.Column(db.Date, nullable=False, index=True)
     amount = db.Column(db.Numeric(15, 2), nullable=False, index=True)
-    currency = db.Column(db.String(3), default='CNY', nullable=False)
-    description = db.Column(db.String(200))
-    counterparty = db.Column(db.String(100), index=True)  # 交易对方
+    balance_after = db.Column(db.Numeric(15, 2), nullable=False, index=True)  # 交易后余额
+    counterparty = db.Column(db.String(100), nullable=False, index=True)  # 交易对方
+    description = db.Column(db.String(200), nullable=False, index=True)  # 交易描述
+    currency = db.Column(db.String(3), default='CNY', nullable=False, index=True)
     reference_number = db.Column(db.String(50), index=True)  # 交易参考号
-    balance_after = db.Column(db.Numeric(15, 2))  # 交易后余额
-    is_verified = db.Column(db.Boolean, default=False)  # 是否已核实
-    is_reconciled = db.Column(db.Boolean, default=False)  # 是否已对账
     tags = db.Column(db.String(200))  # 标签，用逗号分隔
     location = db.Column(db.String(100))  # 交易地点
     
@@ -373,16 +371,6 @@ class Transaction(BaseModel):
     def get_absolute_amount(self):
         """Get absolute amount value."""
         return abs(self.amount)
-    
-    def mark_verified(self):
-        """Mark transaction as verified."""
-        self.is_verified = True
-        self.save()
-    
-    def mark_reconciled(self):
-        """Mark transaction as reconciled."""
-        self.is_reconciled = True
-        self.save()
     
     def to_dict(self):
         """Convert transaction instance to dictionary with additional info."""

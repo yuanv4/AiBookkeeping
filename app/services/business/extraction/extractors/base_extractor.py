@@ -43,7 +43,7 @@ class ExtractionConfig:
     use_skiprows: bool = False  # 是否使用skiprows而不是header参数
     bank_info: Optional[BankInfo] = None
     # 标准化字段配置
-    target_columns: List[str] = field(default_factory=lambda: ['transaction_date', 'amount', 'balance_after', 'counterparty', 'description', 'currency'])  # 目标映射值配置（固定值）
+    target_columns: List[str] = field(default_factory=lambda: ['date', 'amount', 'balance_after', 'counterparty', 'description', 'currency'])  # 目标映射值配置（固定值）
     source_columns: List[str] = None  # 原始值配置：银行特定的原始列名
     # 货币代码映射配置
     currency_mapping: Dict[str, str] = field(default_factory=lambda: {
@@ -268,14 +268,14 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                 self.logger.info(f"列名映射: {column_mapping}")
             
             # 处理日期列：使用子类的日期转换方法
-            if 'transaction_date' in df.columns:
-                df['transaction_date'] = df['transaction_date'].astype(str).apply(self._convert_date)
-                invalid_count = df['transaction_date'].isna().sum()
+            if 'date' in df.columns:
+                df['date'] = df['date'].astype(str).apply(self._convert_date)
+                invalid_count = df['date'].isna().sum()
                 if invalid_count > 0:
                     self.logger.warning(f"有{invalid_count}行日期数据转换失败，将被跳过")
-                df = df.dropna(subset=['transaction_date'])
+                df = df.dropna(subset=['date'])
             else:
-                self.logger.warning("未找到'transaction_date'列，无法进行日期转换")
+                self.logger.warning("未找到'date'列，无法进行日期转换")
             
             return df
             
@@ -334,7 +334,7 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     # 创建交易记录
                     transaction_data = {
                         'account_id': account.id,
-                        'date': row['transaction_date'].date(),
+                        'date': row['date'].date(),
                         'amount': row['amount'],
                         'currency': self._normalize_currency_code(row.get('currency', 'CNY')),
                         'description': row.get('description', ''),
@@ -346,12 +346,12 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     
                     if not is_duplicate:
                         # 使用TransactionService创建交易记录
-                        self.logger.warning(f"新建交易：{transaction_data}")
+                        self.logger.debug(f"新建交易：{transaction_data}")
                         transaction = TransactionService.create_transaction(**transaction_data)
                         if transaction:
                             processed_count += 1
                     else:
-                        self.logger.warning(f"重复交易：{transaction_data}")
+                        self.logger.debug(f"重复交易：{transaction_data}")
                     
                 except Exception as e:
                     self.logger.warning(f"处理交易记录失败: {e}")
