@@ -336,10 +336,10 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                         'account_id': account.id,
                         'date': row['date'].date(),
                         'amount': row['amount'],
-                        'balance_after': row.get('balance_after'),
-                        'currency': self._normalize_currency_code(row.get('currency', 'CNY')),
-                        'description': row.get('description', ''),
-                        'counterparty': row.get('counterparty', ''),
+                        'balance_after': row['balance_after'],
+                        'currency': self._normalize_currency_code(row['currency']),
+                        'description': row['description'],
+                        'counterparty': row['counterparty'],
                     }
                     
                     # 检查是否已存在相同交易（直接使用transaction_data的相关字段）
