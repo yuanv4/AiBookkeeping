@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from 'macros.html' import filter_form, filter_input %}
+
 
 {% block title %}交易记录{% endblock %}
 
@@ -18,87 +18,6 @@
                         <i class="fas fa-exchange-alt me-2"></i>交易记录
                     </h5>
                 </div>
-                <div class="card-body">
-                    <div class="filter-form-container">
-                        {% set account_options = [{'value': '', 'text': '所有账户'}] %}
-                        {% if accounts %}
-                            {% for account in accounts %}
-                                {% set _ = account_options.append({'value': account.id, 'text': account.name}) %}
-                            {% endfor %}
-                        {% endif %}
-                        
-                        {% set category_options = [{'value': '', 'text': '所有分类'}] %}
-                        {% if categories %}
-                            {% for cat in categories %}
-                                {% set _ = category_options.append({'value': cat, 'text': cat}) %}
-                            {% endfor %}
-                        {% endif %}
-                        
-                        {{ filter_form([
-                            {
-                                'type': 'date',
-                                'name': 'start_date',
-                                'label': '开始日期',
-                                'value': request.args.get('start_date', ''),
-                                'placeholder': '选择开始日期'
-                            },
-                            {
-                                'type': 'date',
-                                'name': 'end_date',
-                                'label': '结束日期',
-                                'value': request.args.get('end_date', ''),
-                                'placeholder': '选择结束日期'
-                            },
-                            {
-                                'type': 'select',
-                                'name': 'account_id',
-                                'label': '账户',
-                                'value': request.args.get('account_id', ''),
-                                'options': account_options
-                            },
-                            {
-                                'type': 'select',
-                                'name': 'transaction_type',
-                                'label': '交易类型',
-                                'value': request.args.get('transaction_type', ''),
-                                'options': [
-                                    {'value': '', 'text': '所有类型'},
-                                    {'value': 'income', 'text': '收入'},
-                                    {'value': 'expense', 'text': '支出'},
-                                    {'value': 'transfer', 'text': '转账'}
-                                ]
-                            },
-                            {
-                                'type': 'select',
-                                'name': 'category',
-                                'label': '分类',
-                                'value': request.args.get('category', ''),
-                                'options': category_options
-                            },
-                            {
-                                'type': 'number',
-                                'name': 'min_amount',
-                                'label': '最小金额',
-                                'value': request.args.get('min_amount', ''),
-                                'placeholder': '输入最小金额'
-                            },
-                            {
-                                'type': 'number',
-                                'name': 'max_amount',
-                                'label': '最大金额',
-                                'value': request.args.get('max_amount', ''),
-                                'placeholder': '输入最大金额'
-                            },
-                            {
-                                'type': 'text',
-                                'name': 'description',
-                                'label': '描述',
-                                'value': request.args.get('description', ''),
-                                'placeholder': '搜索描述关键词'
-                            }
-                        ]) }}
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -110,17 +29,17 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">交易列表</h6>
                     <div class="d-flex align-items-center gap-3">
-                        <span class="text-muted">共 {{ pagination.total }} 条记录</span>
-                        {% if pagination.total > 0 %}
+                        <span class="text-muted">共 {{ pagination.total if pagination else 0 }} 条记录</span>
+                        {% if pagination and pagination.total > 0 %}
                         <div class="dropdown">
                             <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-download me-1"></i>导出
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('transactions_bp.export_transactions', format='csv', **request.args) }}">
+                                <li><a class="dropdown-item" href="{{ url_for('transactions_bp.export_transactions', format='csv') }}">
                                     <i class="fas fa-file-csv me-2"></i>CSV格式
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('transactions_bp.export_transactions', format='excel', **request.args) }}">
+                                <li><a class="dropdown-item" href="{{ url_for('transactions_bp.export_transactions', format='excel') }}">
                                     <i class="fas fa-file-excel me-2"></i>Excel格式
                                 </a></li>
                             </ul>
@@ -212,7 +131,7 @@
                             <ul class="pagination pagination-sm mb-0">
                                 {% if pagination.has_prev %}
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ url_for('transactions_bp.transactions_list_route', page=pagination.prev_num, **request.args) }}">
+                                        <a class="page-link" href="{{ url_for('transactions_bp.transactions_list_route', page=pagination.prev_num) }}">
                                             <i class="fas fa-chevron-left"></i>
                                         </a>
                                     </li>
@@ -222,7 +141,7 @@
                                     {% if page_num %}
                                         {% if page_num != pagination.page %}
                                             <li class="page-item">
-                                                <a class="page-link" href="{{ url_for('transactions_bp.transactions_list_route', page=page_num, **request.args) }}">{{ page_num }}</a>
+                                                <a class="page-link" href="{{ url_for('transactions_bp.transactions_list_route', page=page_num) }}">{{ page_num }}</a>
                                             </li>
                                         {% else %}
                                             <li class="page-item active">
@@ -238,7 +157,7 @@
                                 
                                 {% if pagination.has_next %}
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ url_for('transactions_bp.transactions_list_route', page=pagination.next_num, **request.args) }}">
+                                        <a class="page-link" href="{{ url_for('transactions_bp.transactions_list_route', page=pagination.next_num) }}">
                                             <i class="fas fa-chevron-right"></i>
                                         </a>
                                     </li>

@@ -47,16 +47,16 @@ def upload_file_route():
             uploaded_filenames = [f.filename for f in files if f.filename] 
             result_message_display = "处理完成。\n"
             result_message_display += f"成功处理 {len(processed_files_result)} 个文件，共提取 "
-            total_records = sum(file_info['record_count'] for file_info in processed_files_result)
+            total_records = sum(file_info.record_count for file_info in processed_files_result)
             result_message_display += f"{total_records} 条交易记录。\n"
             
             bank_summary = {}
             for file_info in processed_files_result:
-                bank = file_info['bank']
+                bank = file_info.bank
                 if bank not in bank_summary:
                     bank_summary[bank] = {'files': 0, 'records': 0}
                 bank_summary[bank]['files'] += 1
-                bank_summary[bank]['records'] += file_info['record_count']
+                bank_summary[bank]['records'] += file_info.record_count
             
             for bank, summary in bank_summary.items():
                 result_message_display += f"  {bank}: {summary['files']} 个文件，{summary['records']} 条记录\n"

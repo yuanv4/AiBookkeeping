@@ -349,6 +349,8 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                         transaction = TransactionService.create_transaction(**transaction_data)
                         if transaction:
                             processed_count += 1
+                    else:
+                        self.logger.warning(f"重复交易：{transaction_data}")
                     
                 except Exception as e:
                     self.logger.warning(f"处理交易记录失败: {e}")

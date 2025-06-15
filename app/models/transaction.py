@@ -123,6 +123,9 @@ class Transaction(BaseModel):
     def validate_currency(self, key, currency):
         """Validate currency code."""
         if currency:
+            # 确保currency是字符串类型再调用strip()
+            if not isinstance(currency, str):
+                currency = str(currency)
             currency = currency.strip().upper()
             if len(currency) != 3:
                 raise ValueError('Currency code must be 3 characters')
@@ -132,6 +135,9 @@ class Transaction(BaseModel):
     def validate_description(self, key, description):
         """Validate transaction description."""
         if description:
+            # 确保description是字符串类型再调用strip()
+            if not isinstance(description, str):
+                description = str(description)
             description = description.strip()
             if len(description) > 200:
                 raise ValueError('Description cannot exceed 200 characters')
@@ -141,6 +147,9 @@ class Transaction(BaseModel):
     def validate_counterparty(self, key, counterparty):
         """Validate counterparty."""
         if counterparty:
+            # 确保counterparty是字符串类型再调用strip()
+            if not isinstance(counterparty, str):
+                counterparty = str(counterparty)
             counterparty = counterparty.strip()
             if len(counterparty) > 100:
                 raise ValueError('Counterparty cannot exceed 100 characters')
@@ -150,6 +159,9 @@ class Transaction(BaseModel):
     def validate_reference_number(self, key, reference_number):
         """Validate reference number."""
         if reference_number:
+            # 确保reference_number是字符串类型再调用strip()
+            if not isinstance(reference_number, str):
+                reference_number = str(reference_number)
             reference_number = reference_number.strip()
             if len(reference_number) > 50:
                 raise ValueError('Reference number cannot exceed 50 characters')
@@ -159,6 +171,9 @@ class Transaction(BaseModel):
     def validate_tags(self, key, tags):
         """Validate tags."""
         if tags:
+            # 确保tags是字符串类型再调用strip()
+            if not isinstance(tags, str):
+                tags = str(tags)
             tags = tags.strip()
             if len(tags) > 200:
                 raise ValueError('Tags cannot exceed 200 characters')

@@ -1,5 +1,8 @@
 # 使用新的服务层
-from flask import request, render_template, redirect, url_for, flash, current_app
+from flask import request, render_template, redirect, url_for, flash, current_app, make_response
+import csv
+import io
+from datetime import datetime
 from app.services.core.account_service import AccountService
 from app.services.core.transaction_service import TransactionService
 from app.utils.decorators import handle_errors
@@ -50,7 +53,7 @@ class Pagination:
 
 @transactions_bp.route('/') # 蓝图根路径对应 /transactions/
 @handle_errors(template='transactions.html', 
-               default_data={'data': {'transactions': [], 'accounts': [], 'transaction_types': [], 'currencies': [], 'current_filters': {}}, 'pagination': None, 'total_count': 0}, 
+               default_data={'data': {'transactions': [], 'accounts': [], 'transaction_types': [], 'currencies': [], 'current_filters': {}}, 'pagination': Pagination(1, 20, 0, []), 'total_count': 0}, 
                log_prefix="交易记录页面")
 def transactions_list_route(): # 重命名函数
     """交易记录页面"""
@@ -162,8 +165,105 @@ def transactions_list_route(): # 重命名函数
         total_count=total_transactions
     )
 
+@transactions_bp.route('/export')
+@handle_errors(template='transactions.html', 
+               default_data={'data': {'transactions': [], 'accounts': [], 'transaction_types': [], 'currencies': [], 'current_filters': {}}, 'pagination': Pagination(1, 20, 0, []), 'total_count': 0}, 
+               log_prefix="导出交易")
+def export_transactions():
+    """导出交易记录"""
+    format_type = request.args.get('format', 'csv')
+    
+    # 使用与列表页面相同的过滤逻辑
+    transaction_service = TransactionService()
+    
+    # 获取所有过滤参数
+    account_number_req = request.args.get('account_number', None) 
+    start_date_req = request.args.get('start_date', None)
+    end_date_req = request.args.get('end_date', None)
+    min_amount_req = request.args.get('min_amount', None, type=float)
+    max_amount_req = request.args.get('max_amount', None, type=float)
+    transaction_type_req = request.args.get('type', None) 
+    counterparty_req = request.args.get('counterparty', None)
+    currency_req = request.args.get('currency', None) 
+    account_name_req = request.args.get('account_name_filter', None)
+    
+    # 构建查询过滤器
+    filters = {}
+    if account_number_req:
+        filters['account_number'] = account_number_req
+    if start_date_req:
+        filters['start_date'] = start_date_req
+    if end_date_req:
+        filters['end_date'] = end_date_req
+    if min_amount_req is not None:
+        filters['min_amount'] = min_amount_req
+    if max_amount_req is not None:
+        filters['max_amount'] = max_amount_req
+    if transaction_type_req:
+        filters['transaction_type'] = transaction_type_req
+    if counterparty_req:
+        filters['counterparty'] = counterparty_req
+    if currency_req:
+        filters['currency'] = currency_req
+    if account_name_req:
+        filters['account_name'] = account_name_req
+    
+    # 获取所有符合条件的交易记录（不分页）
+    transactions_list = transaction_service.get_transactions_with_filters(
+        filters=filters,
+        limit=None,  # 不限制数量
+        offset=0
+    )
+    
+    if format_type.lower() == 'csv':
+        return _export_csv(transactions_list)
+    elif format_type.lower() == 'excel':
+        return _export_excel(transactions_list)
+    else:
+        flash('不支持的导出格式', 'error')
+        return redirect(url_for('transactions_bp.transactions_list_route'))
+
+def _export_csv(transactions_list):
+    """导出CSV格式"""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # 写入表头
+    headers = ['交易日期', '金额', '对方', '描述', '账户号码', '账户名称', '银行名称', '交易类型', '货币', '余额']
+    writer.writerow(headers)
+    
+    # 写入数据
+    for trans in transactions_list:
+        row = [
+            trans.date.strftime('%Y-%m-%d') if trans.date else '',
+            float(trans.amount) if trans.amount else 0.0,
+            trans.counterparty or '',
+            trans.description or '',
+            trans.account.account_number if trans.account else 'N/A',
+            trans.account.account_name if trans.account else 'N/A',
+            trans.account.bank.name if trans.account and trans.account.bank else 'N/A',
+            trans.get_transaction_type() if trans.get_transaction_type() else 'N/A',
+            trans.currency or '',
+            float(trans.balance_after) if trans.balance_after else 0.0
+        ]
+        writer.writerow(row)
+    
+    # 创建响应
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=transactions_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    
+    return response
+
+def _export_excel(transactions_list):
+    """导出Excel格式（基础实现）"""
+    # 由于没有openpyxl依赖，暂时返回CSV格式
+    # 在实际部署时可以安装openpyxl并实现真正的Excel导出
+    response = _export_csv(transactions_list)
+    response.headers['Content-Disposition'] = f'attachment; filename=transactions_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    return response
+
 # TODO: 以下功能待实现
 # - 添加交易
 # - 导入交易
-# - 导出交易
 # - 编辑交易
