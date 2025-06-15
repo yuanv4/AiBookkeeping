@@ -10,6 +10,7 @@ import logging
 from collections import defaultdict
 
 from app.models import Transaction, Account, db
+from flask_sqlalchemy.pagination import Pagination
 
 from sqlalchemy import func, and_
 
@@ -17,6 +18,76 @@ logger = logging.getLogger(__name__)
 
 class TransactionService:
     """Service for handling transaction operations and business logic."""
+
+    @staticmethod
+    def get_transactions_paginated(filters: Dict[str, Any] = None, 
+                                 page: int = 1, 
+                                 per_page: int = 20) -> Pagination:
+        """使用Flask-SQLAlchemy分页获取交易记录"""
+        try:
+            from app.models import Account, Bank
+            
+            query = db.session.query(Transaction).join(Account)
+            
+            if filters:
+                # Account number filter
+                if 'account_number' in filters and filters['account_number']:
+                    query = query.filter(Account.account_number.like(f"%{filters['account_number']}%"))
+                
+                # Account name filter
+                if 'account_name' in filters and filters['account_name']:
+                    query = query.filter(Account.account_name.like(f"%{filters['account_name']}%"))
+                
+                # Date range filters
+                if 'start_date' in filters and filters['start_date']:
+                    start_date = datetime.strptime(filters['start_date'], '%Y-%m-%d').date()
+                    query = query.filter(Transaction.date >= start_date)
+                
+                if 'end_date' in filters and filters['end_date']:
+                    end_date = datetime.strptime(filters['end_date'], '%Y-%m-%d').date()
+                    query = query.filter(Transaction.date <= end_date)
+                
+                # Amount range filters
+                if 'min_amount' in filters and filters['min_amount'] is not None:
+                    query = query.filter(Transaction.amount >= filters['min_amount'])
+                
+                if 'max_amount' in filters and filters['max_amount'] is not None:
+                    query = query.filter(Transaction.amount <= filters['max_amount'])
+                
+                # Transaction type filter
+                if 'transaction_type' in filters and filters['transaction_type']:
+                    filter_type = filters['transaction_type']
+                    if filter_type == 'income':
+                        query = query.filter(Transaction.amount > 0)
+                    elif filter_type == 'expense':
+                        query = query.filter(Transaction.amount < 0)
+                    elif filter_type == 'transfer':
+                        query = query.filter(Transaction.amount == 0)
+                
+                # Counterparty filter
+                if 'counterparty' in filters and filters['counterparty']:
+                    query = query.filter(Transaction.counterparty.like(f"%{filters['counterparty']}%"))
+                
+                # Currency filter
+                if 'currency' in filters and filters['currency']:
+                    query = query.filter(Transaction.currency == filters['currency'])
+            
+            # Order by date descending
+            query = query.order_by(Transaction.date.desc(), Transaction.created_at.desc())
+            
+            # 使用Flask-SQLAlchemy的分页功能
+            return query.paginate(
+                page=page,
+                per_page=per_page,
+                error_out=False
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting transactions with pagination: {e}")
+            # 返回空的分页对象
+            return db.session.query(Transaction).filter(Transaction.id == -1).paginate(
+                page=1, per_page=per_page, error_out=False
+            )
 
     @staticmethod
     def get_transactions_with_filters(filters: Dict[str, Any] = None, 

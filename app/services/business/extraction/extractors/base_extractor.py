@@ -346,6 +346,7 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     
                     if not is_duplicate:
                         # 使用TransactionService创建交易记录
+                        self.logger.warning(f"新建交易：{transaction_data}")
                         transaction = TransactionService.create_transaction(**transaction_data)
                         if transaction:
                             processed_count += 1

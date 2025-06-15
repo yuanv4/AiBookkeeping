@@ -643,11 +643,7 @@ function initOriginalFilterForm() {
             });
         });
         
-        // 下载CSV按钮点击事件
-        const downloadCsvBtn = document.getElementById('download-csv');
-        if (downloadCsvBtn) {
-            downloadCsvBtn.addEventListener('click', downloadCSV);
-        }
+        // 导出功能已移除
     }
     
     /**
@@ -813,21 +809,7 @@ function initOriginalFilterForm() {
     /**
      * 下载CSV文件
      */
-    function downloadCSV() {
-        const currentParams = new URLSearchParams(window.location.search);
-        currentParams.delete('page'); // 导出所有符合筛选条件的，不分页
-        
-        // 构建导出URL
-        const exportUrl = `/api/export_transactions?${currentParams.toString()}`;
-        
-        // 通过创建链接并点击来触发下载
-        const link = document.createElement('a');
-        link.href = exportUrl;
-        link.setAttribute('download', 'transactions.csv'); //浏览器将尝试保存名为 transactions.csv 的文件
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
+    // downloadCSV函数已移除
     
     /**
      * 初始化筛选表单
