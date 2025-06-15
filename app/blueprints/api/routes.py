@@ -1,7 +1,7 @@
 from flask import jsonify, request, current_app
 from . import api_bp
 from app.models import Account
-from app.services.financial_service import FinancialService
+from app.services.business.financial.financial_service import FinancialService
 from app.utils.decorators import handle_errors
 from datetime import date, datetime
 

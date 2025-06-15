@@ -25,11 +25,11 @@ from app.utils.db_utils import (
 
 # 导入分析相关的数据模型和工具
 try:
-    from app.services.analysis.data_models import (
+    from app.services.business.financial.analysis_models import (
         AnalysisResult, MonthlyData, FinancialSummary, 
         ComprehensiveReport
     )
-    from app.services.analysis.analysis_utils import (
+    from app.services.business.financial.analysis_utils import (
         cache_result, handle_analysis_errors, AnalysisError
     )
 except ImportError:

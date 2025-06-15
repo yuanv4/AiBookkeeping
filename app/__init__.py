@@ -11,8 +11,8 @@ from .template_filters import register_template_filters
 from .models import db
 
 from .services.core.transaction_service import TransactionService
-from .services import FinancialService as AnalysisService
-from .services.extraction.service import BankStatementExtractor
+from .services.business.financial.financial_service import FinancialService as AnalysisService
+from .services.business.extraction.service import BankStatementExtractor
 from .services.core.file_processor_service import FileProcessorService
 
 # Initialize extensions

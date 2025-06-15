@@ -13,14 +13,14 @@ Author: AI Assistant
 
 # 简化的核心接口（推荐使用）
 # FinancialAnalyzer已合并到FinancialService中
-from .data_models import (
+from ..business.financial.analysis_models import (
     AnalysisResult,
     MonthlyData,
     FinancialSummary,
     FinancialHealthMetrics,
     ComprehensiveReport
 )
-from .analysis_utils import (
+from ..business.financial.analysis_utils import (
     # 缓存功能
     cache_result,
     SimpleCache,

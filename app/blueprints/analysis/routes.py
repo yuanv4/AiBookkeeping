@@ -1,5 +1,5 @@
 from flask import render_template, request, current_app, jsonify
-from app.services import FinancialService
+from app.services.business.financial.financial_service import FinancialService
 from app.utils.decorators import handle_errors
 from . import analysis_bp
 from datetime import date, timedelta

@@ -6,33 +6,23 @@ This package contains business logic and service layer functionality.
 # 核心服务
 from .core import TransactionService, FileProcessorService
 
-# 统一财务服务（替代原有的分析和报告服务）
-from .financial_service import FinancialService
+# 新的推荐导入路径
+from .business.financial.financial_service import FinancialService
+from .business.extraction.service import BankStatementExtractor
+from .business.extraction.factory import ExtractorFactory
+from .business.extraction.models import ExtractionResult, StatementData
 
-# 分析服务（保持向后兼容，但建议使用FinancialService）
-from .analysis import (
-    AnalysisResult, MonthlyData, FinancialSummary, 
-    FinancialHealthMetrics, ComprehensiveReport,
-    cache_result, handle_analysis_errors, AnalysisError,
-    create_analyzer
-)
-
-# 报告服务功能已合并到FinancialService中
-
-# 提取服务
-from .extraction import BankStatementExtractor
+# 向后兼容的导入路径
+from .business.financial.financial_service import FinancialService as financial_service_FinancialService
+from .business.extraction.service import BankStatementExtractor as extraction_service_BankStatementExtractor
+from .business.extraction.factory import ExtractorFactory as extraction_factory_ExtractorFactory
+from .business.extraction.models import ExtractionResult as extraction_models_ExtractionResult
+from .business.extraction.models import StatementData as extraction_models_StatementData
 
 __all__ = [
-    # Core services
-    'TransactionService',
-    'FileProcessorService',
-    
-    # Analysis services
-    'AnalysisService',
-    
-    # Unified financial service
     'FinancialService',
-    
-    # Extraction services
-    'BankStatementExtractor',
+    'BankStatementExtractor', 
+    'ExtractorFactory',
+    'ExtractionResult',
+    'StatementData'
 ]

@@ -4,7 +4,8 @@
 """
 
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from datetime import datetime
 
 @dataclass
 class ExtractionResult:
@@ -66,4 +67,44 @@ class ExtractionResult:
             record_count=record_count,
             file_path=file_path,
             data=data
-        ) 
+        )
+
+
+@dataclass
+class StatementData:
+    """银行对账单数据类
+    
+    用于表示从银行对账单中提取的交易数据。
+    
+    Attributes:
+        date: 交易日期
+        description: 交易描述
+        amount: 交易金额
+        balance: 余额
+        transaction_type: 交易类型（收入/支出）
+        reference: 参考号码
+        category: 交易分类
+    """
+    date: datetime
+    description: str
+    amount: float
+    balance: Optional[float] = None
+    transaction_type: Optional[str] = None
+    reference: Optional[str] = None
+    category: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典格式
+        
+        Returns:
+            Dict[str, Any]: 字典格式的数据
+        """
+        return {
+            'date': self.date.isoformat() if self.date else None,
+            'description': self.description,
+            'amount': self.amount,
+            'balance': self.balance,
+            'transaction_type': self.transaction_type,
+            'reference': self.reference,
+            'category': self.category
+        }
