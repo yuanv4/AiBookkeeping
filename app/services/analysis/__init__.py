@@ -17,6 +17,7 @@ from .data_models import (
     AnalysisResult,
     MonthlyData,
     FinancialSummary,
+    FinancialHealthMetrics,
     ComprehensiveReport
 )
 from .analysis_utils import (
@@ -105,6 +106,7 @@ __all__ = [
     'AnalysisResult',
     'MonthlyData', 
     'FinancialSummary',
+    'FinancialHealthMetrics',
     'ComprehensiveReport',
     
     # 工具函数

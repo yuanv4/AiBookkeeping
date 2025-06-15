@@ -298,6 +298,83 @@ class FinancialService:
             'average_amount': total_expense / sum(category['count'] for category in expense_categories) if expense_categories else 0
         }
     
+    @cache_result(ttl=300)
+    @handle_analysis_errors
+    def analyze_cash_flow(self, start_date: date, end_date: date, 
+                         account_id: Optional[int] = None) -> Dict[str, Any]:
+        """分析现金流情况
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            account_id: 可选的账户ID
+            
+        Returns:
+            包含daily_trends的现金流分析结果
+        """
+        self._validate_parameters(account_id, start_date, end_date)
+        
+        try:
+            # 按日期分组查询交易数据
+            query = self.db.query(
+                Transaction.date,
+                func.sum(case(
+                    (Transaction.amount > 0, Transaction.amount),
+                    else_=0
+                )).label('daily_income'),
+                func.sum(case(
+                    (Transaction.amount < 0, func.abs(Transaction.amount)),
+                    else_=0
+                )).label('daily_expense'),
+                func.sum(Transaction.amount).label('daily_net'),
+                func.count(Transaction.id).label('daily_count')
+            )
+            
+            # 添加过滤条件
+            if account_id:
+                query = query.filter(Transaction.account_id == account_id)
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            if end_date:
+                query = query.filter(Transaction.date <= end_date)
+            
+            # 按日期分组并排序
+            query = query.group_by(Transaction.date).order_by(Transaction.date)
+            
+            results = query.all()
+            
+            # 格式化日趋势数据
+            daily_trends = []
+            for result in results:
+                daily_trends.append({
+                    'date': result.date.strftime('%Y-%m-%d'),
+                    'income': float(result.daily_income or 0),
+                    'expense': float(result.daily_expense or 0),
+                    'net_amount': float(result.daily_net or 0),
+                    'transaction_count': result.daily_count
+                })
+            
+            # 计算汇总统计
+            total_income = sum(day['income'] for day in daily_trends)
+            total_expense = sum(day['expense'] for day in daily_trends)
+            net_cash_flow = total_income - total_expense
+            
+            return {
+                'daily_trends': daily_trends,
+                'summary': {
+                    'total_income': total_income,
+                    'total_expense': total_expense,
+                    'net_cash_flow': net_cash_flow,
+                    'days_analyzed': len(daily_trends),
+                    'avg_daily_income': total_income / len(daily_trends) if daily_trends else 0,
+                    'avg_daily_expense': total_expense / len(daily_trends) if daily_trends else 0
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"现金流分析失败: {e}")
+            raise AnalysisError(f"现金流分析失败: {str(e)}")
+    
     
 
     

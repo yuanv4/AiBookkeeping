@@ -102,6 +102,28 @@ class FinancialSummary:
 
 
 @dataclass
+class FinancialHealthMetrics:
+    """财务健康指标"""
+    liquidity_ratio: float = 0.0
+    debt_to_income_ratio: float = 0.0
+    savings_rate: float = 0.0
+    expense_stability: float = 0.0
+    income_growth_rate: float = 0.0
+    emergency_fund_months: float = 0.0
+    
+    def to_dict(self) -> Dict[str, float]:
+        """转换为字典"""
+        return {
+            'liquidity_ratio': self.liquidity_ratio,
+            'debt_to_income_ratio': self.debt_to_income_ratio,
+            'savings_rate': self.savings_rate,
+            'expense_stability': self.expense_stability,
+            'income_growth_rate': self.income_growth_rate,
+            'emergency_fund_months': self.emergency_fund_months
+        }
+
+
+@dataclass
 class ComprehensiveReport:
     """综合报告"""
     income_data: AnalysisResult = field(default_factory=AnalysisResult)
