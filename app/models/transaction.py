@@ -24,8 +24,6 @@ class Transaction(BaseModel):
     description = db.Column(db.String(200), nullable=False, index=True)  # 交易描述
     currency = db.Column(db.String(3), default='CNY', nullable=False, index=True)
     reference_number = db.Column(db.String(50), index=True)  # 交易参考号
-    tags = db.Column(db.String(200))  # 标签，用逗号分隔
-    location = db.Column(db.String(100))  # 交易地点
     
     # 索引优化
     __table_args__ = (
@@ -165,20 +163,7 @@ class Transaction(BaseModel):
                 raise ValueError('Reference number cannot exceed 50 characters')
         return reference_number
     
-    @validates('tags')
-    def validate_tags(self, key, tags):
-        """Validate tags."""
-        if tags:
-            # 确保tags是字符串类型再调用strip()
-            if not isinstance(tags, str):
-                tags = str(tags)
-            tags = tags.strip()
-            if len(tags) > 200:
-                raise ValueError('Tags cannot exceed 200 characters')
-            # 验证标签格式（逗号分隔）
-            tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
-            tags = ','.join(tag_list)
-        return tags
+
     
     @classmethod
     def get_by_account(cls, account_id, start_date=None, end_date=None, limit=None, offset=None):
@@ -354,11 +339,7 @@ class Transaction(BaseModel):
         
         return query.group_by(db.extract('month', cls.date)).order_by('month').all()
     
-    def get_tags_list(self):
-        """Get tags as a list."""
-        if not self.tags:
-            return []
-        return [tag.strip() for tag in self.tags.split(',') if tag.strip()]
+
     
     def is_income(self):
         """Check if this is an income transaction."""
@@ -381,7 +362,7 @@ class Transaction(BaseModel):
         result['is_income'] = self.is_income()
         result['is_expense'] = self.is_expense()
         result['absolute_amount'] = float(self.get_absolute_amount())
-        result['tags_list'] = self.get_tags_list()
+
         result['account_name'] = self.account.account_name if self.account else None
         result['bank_name'] = self.account.bank.name if self.account and self.account.bank else None
         result['transaction_type'] = self.get_transaction_type()
