@@ -7,7 +7,7 @@ from flask_migrate import Migrate
 
 # 从同一目录的 config 模块导入配置类
 from .config import Config
-from .template_filters import register_template_filters
+from .utils.template_filters import register_template_filters
 from .models import db
 
 from .services.core.transaction_service import TransactionService
