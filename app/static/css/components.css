@@ -58,20 +58,33 @@
    图表组件样式
    ======================================== */
 
-.chart-wrapper {
+/* 合并具有相同基础样式的组件 */
+.chart-wrapper,
+.card {
     background: var(--background-primary);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-md);
     box-shadow: var(--shadow);
-    transition: var(--transition);
-    position: relative;
-    overflow: hidden;
     border: 1px solid var(--border-color);
+    overflow: hidden;
+    transition: var(--transition-fast);
+}
+
+.chart-wrapper:hover,
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.chart-wrapper {
+    padding: var(--spacing-md);
+    position: relative;
 }
 
 .chart-wrapper:hover {
-    box-shadow: var(--shadow-md);
     transform: translateY(-2px);
+}
+
+.card:hover {
+    transform: translateY(-1px);
 }
 
 .chart-container {
@@ -99,20 +112,6 @@
 /* ========================================
    卡片组件样式
    ======================================== */
-
-.card {
-    background-color: var(--background-primary);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border-color);
-    overflow: hidden;
-    transition: var(--transition-fast);
-}
-
-.card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
-}
 
 .card-header {
     padding: var(--spacing-lg);

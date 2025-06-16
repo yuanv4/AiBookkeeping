@@ -4,7 +4,6 @@
 {% block title %}仪表盘 - {{ config.APP_NAME }}{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
@@ -19,11 +18,11 @@
         {% call card("当前财务状况", "account_balance") %}
         <div class="row g-3">
             <div class="col-md-6">
-                <div class="p-3 rounded bg-light">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="text-muted small">账户总余额</div>
+                <div class="p-standard rounded-standard bg-light">
+                    <div class="d-flex align-items-center justify-content-between mb-standard">
+                        <div class="text-muted-custom fs-small">账户总余额</div>
                         <div class="d-flex align-items-center">
-                            {{ icon("wallet", "sm", "text-primary me-1") }}
+                            {{ icon("wallet", "sm", "text-primary-custom me-1") }}
                         </div>
                     </div>
                     <div class="metric-value text-success">¥{{ "%.2f"|format(summary_data.account_balance or 0) }}</div>
@@ -61,9 +60,9 @@
                 {% endif %}
             </div>
             <div class="col-md-6">
-                <div class="p-3 rounded bg-light">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="text-muted small">总净收支</div>
+                <div class="p-standard rounded-standard bg-light">
+                    <div class="d-flex align-items-center justify-content-between mb-standard">
+                        <div class="text-muted-custom fs-small">总净收支</div>
                         <div class="d-flex align-items-center">
                             {{ icon("landmark", "sm", "{% if summary_data.net_amount >= 0 %}text-success{% else %}text-danger{% endif %} me-1") }}
                         </div>

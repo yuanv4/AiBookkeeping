@@ -418,11 +418,11 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.amount-positive { color: var(--success-color); }
-.amount-negative { color: var(--danger-color); }
+.amount-positive { color: var(--success); }
+.amount-negative { color: var(--danger); }
 .amount-neutral { color: var(--text-primary); }
 
 /* 金额大小变体 */
-.amount-sm { font-size: var(--font-size-sm); }
-.amount-lg { font-size: var(--font-size-lg); }
-.amount-xl { font-size: var(--font-size-xl); font-weight: 700; }
+.amount-sm { font-size: var(--text-sm); }
+.amount-lg { font-size: var(--text-lg); }
+.amount-xl { font-size: var(--text-xl); font-weight: 700; }

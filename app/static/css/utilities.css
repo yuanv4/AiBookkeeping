@@ -4,6 +4,53 @@
  */
 
 /* ========================================
+   通用工具类 - 减少重复CSS值
+   ======================================== */
+
+/* 通用间距类 */
+.spacing-sm { padding: 0.5rem; }
+.spacing-md { padding: 1rem; }
+.spacing-lg { padding: 1.5rem; }
+.mb-standard { margin-bottom: 1rem; }
+.p-standard { padding: 1rem; }
+.px-standard { padding-left: 1rem; padding-right: 1rem; }
+.py-standard { padding-top: 1rem; padding-bottom: 1rem; }
+
+/* 通用阴影类 */
+.shadow-light { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
+.shadow-medium { box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); }
+.shadow-card { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); }
+.shadow-sm { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+
+/* 通用圆角类 */
+.rounded-standard { border-radius: 0.375rem; }
+.rounded-circle { border-radius: 50%; }
+.rounded-lg { border-radius: 8px; }
+.rounded-xl { border-radius: 12px; }
+
+/* 通用字体类 */
+.fw-semibold { font-weight: 600; }
+.fs-small { font-size: 0.875rem; }
+.fs-medium { font-size: 1rem; }
+.fs-large { font-size: 1.125rem; }
+
+/* 通用颜色类 */
+.text-muted-custom { color: #6c757d; }
+.text-primary-custom { color: #0d6efd; }
+.bg-light-shadow { background-color: rgba(0,0,0,0.1); }
+.bg-white { background-color: #fff; }
+.bg-primary-light { background-color: rgba(13, 110, 253, 0.1); }
+
+/* 通用边框类 */
+.border-light { border: 1px solid #f3f4f6; }
+.border-standard { border: 1px solid #d2d2d7; }
+.border-none { border: none; }
+
+/* 通用过渡效果类 */
+.transition-standard { transition: all 0.2s ease-in-out; }
+.transition-fast { transition: all 0.15s ease-in-out; }
+
+/* ========================================
    布局工具类
    ======================================== */
 

@@ -32,8 +32,10 @@
     margin: 0;
 }
 
-.dashboard-card {
-    /* 基础卡片样式优化 */
+/* 合并具有相同基础样式的卡片组件 */
+.dashboard-card,
+.metric-card,
+.stat-card {
     background: var(--surface-primary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
@@ -43,29 +45,25 @@
     overflow: hidden;
 }
 
-.dashboard-card:hover {
+.dashboard-card:hover,
+.metric-card:hover,
+.stat-card:hover {
     box-shadow: var(--shadow-md);
     transform: translateY(-2px);
 }
 
-/* 度量卡片样式优化 */
+/* 度量卡片特定样式 */
 .metric-card {
-    background: var(--surface-primary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
     padding: 1.5rem;
-    box-shadow: var(--shadow);
-    transition: var(--transition-fast);
-    margin-bottom: 1.5rem;
     min-height: 140px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    margin-bottom: 1rem;
 }
 
-.metric-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+.stat-card:hover {
+    transform: translateY(-1px);
 }
 
 /* 卡片网格布局优化 */
@@ -177,23 +175,12 @@
     color: var(--danger);
 }
 
-/* 统计卡片样式 */
+/* 统计卡片特定样式 */
 .stat-card {
-    background: var(--surface-primary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
     padding: 1.25rem;
-    box-shadow: var(--shadow);
-    transition: var(--transition-fast);
-    margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: 1rem;
-}
-
-.stat-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
 }
 
 .stat-icon {

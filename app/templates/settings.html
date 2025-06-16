@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 {% from "macros.html" import icon, card, page_header %}
 
-{% block page_css %}
-<link href="{{ url_for('static', filename='css/components.css') }}" rel="stylesheet">
-{% endblock %}
-
 {% block content %}
 <!-- 设置页头 -->
 {{ page_header("系统设置", "管理您的账户设置和数据导入", "settings") }}
@@ -24,9 +20,9 @@
                 
                 <div class="upload-container">
                     <div class="drop-zone" id="dropZone">
-                        <div class="mb-4">
-                            <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style="width: 4rem; height: 4rem;">
-                                {{ icon("upload", "xl", "text-primary") }}
+                        <div class="mb-standard">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-primary-light rounded-circle" style="width: 4rem; height: 4rem;">
+                                {{ icon("upload", "xl", "text-primary-custom") }}
                             </div>
                         </div>
 
@@ -35,7 +31,7 @@
                             <h5>拖拽文件到此处或点击上传</h5>
                             <p class="text-muted">支持 Excel (.xlsx, .xls) 和 CSV 文件</p>
                             <input type="file" id="fileInput" class="d-none" accept=".xlsx,.xls,.csv" multiple>
-                            <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <button type="button" class="btn btn-primary transition-standard" onclick="document.getElementById('fileInput').click()">
                                 <i class="fas fa-plus"></i> 选择文件
                             </button>
                         </div>
