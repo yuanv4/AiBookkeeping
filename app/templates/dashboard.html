@@ -15,7 +15,6 @@
     <div id="dashboard-data" 
          data-balance="{{ stats.balance }}"
          data-monthly-trends="{{ stats.monthly_trends|default([])|tojson }}"
-         data-last-updated="{{ stats.last_updated }}"
          style="display: none;">
     </div>
     
@@ -34,7 +33,6 @@
                 </div>
                 <div class="card-body">
                     <div class="metric-value text-success">¥{{ "%.2f"|format(stats.balance or 0) }}</div>
-                    <div class="metric-description">最近更新：{{ stats.last_updated|default('未知') }}</div>
                 </div>
             </div>
         </div>

@@ -25,8 +25,7 @@ const Dashboard = {
     // 数据存储
     data: {
         balance: 0,
-        monthlyTrends: [],
-        lastUpdated: null
+        monthlyTrends: []
     },
     
     // 图表实例
@@ -175,11 +174,9 @@ function getDashboardDataFromHTML() {
         }
         const balance = dataElement.dataset.balance;
         const monthlyTrends = dataElement.dataset.monthlyTrends;
-        const lastUpdated = dataElement.dataset.lastUpdated;
         return {
             balance: parseFloat(balance) || 0,
-            monthlyTrends: monthlyTrends ? JSON.parse(monthlyTrends) : [],
-            lastUpdated: lastUpdated || null
+            monthlyTrends: monthlyTrends ? JSON.parse(monthlyTrends) : []
         };
     } catch (error) {
         console.error('解析仪表盘数据失败:', error);
@@ -208,8 +205,7 @@ function autoInitializeDashboard() {
         // 使用默认空数据初始化
         Dashboard.init({
             balance: 0,
-            monthlyTrends: [],
-            lastUpdated: null
+            monthlyTrends: []
         });
         return;
     }
