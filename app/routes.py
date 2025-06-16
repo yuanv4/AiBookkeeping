@@ -1,24 +1,19 @@
 from flask import jsonify, render_template, flash
-from flask_login import login_required, current_user
 from sqlalchemy import func
 from datetime import datetime
 
 @bp.route('/api/dashboard/stats')
-@login_required
 def get_dashboard_stats():
     """获取仪表盘统计数据"""
     try:
         # 获取账户余额
-        balance = db.session.query(func.sum(Transaction.amount)).filter(
-            Transaction.user_id == current_user.id
-        ).scalar() or 0
+        balance = db.session.query(func.sum(Transaction.amount)).scalar() or 0
         
         # 获取最近12个月的余额趋势
         monthly_trends = db.session.query(
             func.strftime('%Y-%m', Transaction.date).label('month'),
             func.sum(Transaction.amount).label('total')
         ).filter(
-            Transaction.user_id == current_user.id,
             Transaction.date >= func.date('now', '-12 months')
         ).group_by(
             func.strftime('%Y-%m', Transaction.date)
@@ -51,21 +46,17 @@ def get_dashboard_stats():
         }), 500
 
 @bp.route('/dashboard')
-@login_required
 def dashboard():
     """仪表盘页面"""
     try:
         # 获取账户余额
-        balance = db.session.query(func.sum(Transaction.amount)).filter(
-            Transaction.user_id == current_user.id
-        ).scalar() or 0
+        balance = db.session.query(func.sum(Transaction.amount)).scalar() or 0
         
         # 获取最近12个月的余额趋势
         monthly_trends = db.session.query(
             func.strftime('%Y-%m', Transaction.date).label('month'),
             func.sum(Transaction.amount).label('total')
         ).filter(
-            Transaction.user_id == current_user.id,
             Transaction.date >= func.date('now', '-12 months')
         ).group_by(
             func.strftime('%Y-%m', Transaction.date)
