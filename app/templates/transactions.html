@@ -35,47 +35,47 @@
                 </div>
                 <div class="card-body p-0">
                     {% if transactions %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                    <div class="transactions-container">
+                        <table class="transactions-table">
+                            <thead>
                                 <tr>
-                                    <th>日期</th>
-                                    <th>账户</th>
-                                    <th>金额</th>
-                                    <th>余额</th>
-                                    <th>对手信息</th>
-                                    <th>摘要</th>
+                                    <th class="transaction-header">日期</th>
+                                    <th class="transaction-header">账户</th>
+                                    <th class="transaction-header">金额</th>
+                                    <th class="transaction-header">余额</th>
+                                    <th class="transaction-header">对手信息</th>
+                                    <th class="transaction-header">摘要</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for transaction in transactions %}
-                                <tr>
-                                    <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
-                                    <td>
+                                <tr class="transaction-row">
+                                    <td class="transaction-cell cell-date" data-label="日期">{{ transaction.date.strftime('%Y-%m-%d') }}</td>
+                                    <td class="transaction-cell cell-account" data-label="账户">
                                         {% if transaction.account %}
                                             <span class="badge bg-light text-dark">{{ transaction.account.account_name }} {{ transaction.account.account_number }}</span>
                                         {% else %}
                                             <span class="text-muted">未知账户</span>
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        <span class="fw-bold">{{ "%.2f"|format(transaction.amount) }}</span>
+                                    <td class="transaction-cell cell-amount {% if transaction.amount > 0 %}amount-positive{% elif transaction.amount < 0 %}amount-negative{% else %}amount-neutral{% endif %}" data-label="金额">
+                                        {{ "%.2f"|format(transaction.amount) }}
                                     </td>
-                                    <td>
+                                    <td class="transaction-cell cell-balance" data-label="余额">
                                         {% if transaction.balance_after %}
-                                            <span class="fw-bold">{{ "%.2f"|format(transaction.balance_after) }}</span>
+                                            {{ "%.2f"|format(transaction.balance_after) }}
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="transaction-cell cell-counterparty" data-label="对手">
                                         {% if transaction.counterparty %}
-                                            <span>{{ transaction.counterparty }}</span>
+                                            {{ transaction.counterparty }}
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="transaction-cell cell-description" data-label="摘要">
                                         {% if transaction.description %}
                                             <span title="{{ transaction.description }}">{{ transaction.description[:30] }}{% if transaction.description|length > 30 %}...{% endif %}</span>
                                         {% else %}
@@ -132,9 +132,12 @@
                     {% endif %}
                     
                     {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">暂无交易记录</h5>
+                    <div class="transactions-empty">
+                        <div class="transactions-empty-icon">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <div class="transactions-empty-title">暂无交易记录</div>
+                        <div class="transactions-empty-description">当前没有找到任何交易记录，请检查筛选条件或添加新的交易数据。</div>
                     </div>
                     {% endif %}
                 </div>

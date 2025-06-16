@@ -571,3 +571,377 @@
     padding: 1rem;
     min-height: 100px;
 }
+
+/* ==========================================================================
+   交易表格样式 (现代化卡片式设计)
+   ========================================================================== */
+
+/* 交易表格专用变量 */
+:root {
+    /* 交易表格颜色系统 */
+    --transaction-positive: var(--success);
+    --transaction-negative: var(--danger);
+    --transaction-neutral: var(--gray-600);
+    --transaction-row-hover: var(--gray-50);
+    --transaction-row-selected: rgba(0, 122, 255, 0.05);
+    
+    /* 交易表格间距 */
+    --transaction-row-height: 60px;
+    --transaction-cell-padding: 16px 12px;
+    --transaction-row-gap: 4px;
+    --transaction-border-radius: 8px;
+    
+    /* 交易表格字体 */
+    --transaction-amount-weight: 600;
+    --transaction-amount-size: 1.1em;
+    --transaction-date-weight: 500;
+    --transaction-secondary-size: 0.9em;
+    
+    /* 动画时长 */
+    --transaction-hover-duration: 200ms;
+    --transaction-color-duration: 150ms;
+    --transaction-shadow-duration: 250ms;
+}
+
+/* 交易表格容器 */
+.transactions-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--surface-primary);
+    border-radius: var(--transaction-border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-bottom: var(--spacing-xl);
+}
+
+/* 表头样式 */
+.transactions-table thead {
+    background: var(--surface-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.transactions-table .transaction-header {
+    padding: var(--transaction-cell-padding);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: none;
+    text-align: left;
+}
+
+.transactions-table .transaction-header:first-child {
+    padding-left: var(--spacing-lg);
+}
+
+.transactions-table .transaction-header:last-child {
+    padding-right: var(--spacing-lg);
+}
+
+/* 表格行样式 - 卡片化设计 */
+.transaction-row {
+    background: var(--surface-primary);
+    border-bottom: 1px solid var(--border-light);
+    transition: all var(--transaction-hover-duration) ease-out;
+    height: var(--transaction-row-height);
+}
+
+.transaction-row:hover {
+    background: var(--transaction-row-hover);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.transaction-row:last-child {
+    border-bottom: none;
+}
+
+/* 表格单元格样式 */
+.transaction-cell {
+    padding: var(--transaction-cell-padding);
+    vertical-align: middle;
+    border: none;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    transition: color var(--transaction-color-duration) ease-in-out;
+}
+
+.transaction-cell:first-child {
+    padding-left: var(--spacing-lg);
+}
+
+.transaction-cell:last-child {
+    padding-right: var(--spacing-lg);
+}
+
+/* 日期列样式 */
+.transaction-cell.cell-date {
+    font-weight: var(--transaction-date-weight);
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+/* 账户列样式 */
+.transaction-cell.cell-account {
+    color: var(--text-secondary);
+    font-size: var(--transaction-secondary-size);
+}
+
+/* 金额列样式 */
+.transaction-cell.cell-amount {
+    font-weight: var(--transaction-amount-weight);
+    font-size: var(--transaction-amount-size);
+    text-align: right;
+    font-family: var(--font-mono, 'SF Mono', 'Monaco', 'Consolas', monospace);
+}
+
+.transaction-cell.cell-amount.amount-positive {
+    color: var(--transaction-positive);
+}
+
+.transaction-cell.cell-amount.amount-negative {
+    color: var(--transaction-negative);
+}
+
+.transaction-cell.cell-amount.amount-neutral {
+    color: var(--transaction-neutral);
+}
+
+/* 余额列样式 */
+.transaction-cell.cell-balance {
+    font-weight: 500;
+    text-align: right;
+    color: var(--text-secondary);
+    font-family: var(--font-mono, 'SF Mono', 'Monaco', 'Consolas', monospace);
+}
+
+/* 对手信息列样式 */
+.transaction-cell.cell-counterparty {
+    color: var(--text-secondary);
+    font-size: var(--transaction-secondary-size);
+}
+
+/* 摘要列样式 */
+.transaction-cell.cell-description {
+    color: var(--text-primary);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 空状态样式 */
+.transactions-empty {
+    text-align: center;
+    padding: var(--spacing-3xl);
+    color: var(--text-secondary);
+    background: var(--surface-primary);
+    border-radius: var(--transaction-border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.transactions-empty-icon {
+    font-size: 3rem;
+    color: var(--gray-400);
+    margin-bottom: var(--spacing-lg);
+}
+
+.transactions-empty-title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.transactions-empty-description {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+}
+
+/* 响应式设计 - 移动端卡片布局 */
+@media (max-width: 768px) {
+    .transactions-table,
+    .transactions-table thead,
+    .transactions-table tbody,
+    .transactions-table th,
+    .transactions-table td,
+    .transactions-table tr {
+        display: block;
+    }
+    
+    .transactions-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    
+    .transaction-row {
+        background: var(--surface-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--transaction-border-radius);
+        margin-bottom: var(--spacing-md);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow);
+        height: auto;
+        position: relative;
+    }
+    
+    .transaction-row:hover {
+        transform: none;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .transaction-cell {
+        border: none;
+        padding: var(--spacing-xs) 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 32px;
+    }
+    
+    .transaction-cell:first-child,
+    .transaction-cell:last-child {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    
+    .transaction-cell:before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: var(--text-sm);
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        flex: 0 0 80px;
+    }
+    
+    .transaction-cell.cell-date:before {
+        content: "日期";
+    }
+    
+    .transaction-cell.cell-account:before {
+        content: "账户";
+    }
+    
+    .transaction-cell.cell-amount:before {
+        content: "金额";
+    }
+    
+    .transaction-cell.cell-balance:before {
+        content: "余额";
+    }
+    
+    .transaction-cell.cell-counterparty:before {
+        content: "对手";
+    }
+    
+    .transaction-cell.cell-description:before {
+        content: "摘要";
+    }
+    
+    .transaction-cell.cell-amount,
+    .transaction-cell.cell-balance {
+        text-align: right;
+    }
+    
+    .transaction-cell.cell-description {
+        max-width: none;
+        white-space: normal;
+        word-break: break-word;
+    }
+    
+    /* 移动端优先显示重要信息 */
+    .transaction-cell.cell-date {
+        order: 1;
+        font-size: var(--text-lg);
+        font-weight: 600;
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .transaction-cell.cell-amount {
+        order: 2;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    
+    .transaction-cell.cell-description {
+        order: 3;
+        font-weight: 500;
+    }
+    
+    .transaction-cell.cell-account {
+        order: 4;
+    }
+    
+    .transaction-cell.cell-balance {
+        order: 5;
+    }
+    
+    .transaction-cell.cell-counterparty {
+        order: 6;
+    }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 480px) {
+    .transaction-row {
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .transaction-cell.cell-date {
+        font-size: var(--text-base);
+    }
+    
+    .transaction-cell.cell-amount {
+        font-size: var(--text-lg);
+    }
+    
+    .transaction-cell:before {
+        flex: 0 0 60px;
+        font-size: var(--text-xs);
+    }
+}
+
+/* 加载动画 */
+.transactions-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacing-3xl);
+    background: var(--surface-primary);
+    border-radius: var(--transaction-border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.transactions-loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 表格容器响应式包装 */
+.transactions-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 769px) {
+    .transactions-container {
+        overflow-x: visible;
+    }
+}

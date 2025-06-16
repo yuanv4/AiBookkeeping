@@ -24,7 +24,7 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
         """将招商银行日期字符串转换为标准datetime对象
         
         Args:
-            date_str: 招商银行日期字符串，格式为"M/D/YYYY"，如"1/1/2023"
+            date_str: 招商银行日期字符串，格式为"M/D/YYYY"，如"2023-01-01"
             
         Returns:
             datetime: 转换后的标准日期时间对象，转换失败返回None
@@ -32,7 +32,7 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
         if pd.isna(date_str):
             return None
         try:
-            return pd.to_datetime(str(date_str).strip(), format='%m/%d/%Y')
+            return pd.to_datetime(str(date_str).strip(), format='%Y-%m-%d %H:%M:%S')
         except:
             self.logger.warning(f"无法解析招商银行日期格式: {date_str}")
             return None
