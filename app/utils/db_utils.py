@@ -7,8 +7,8 @@ from typing import List, Optional, Dict, Any, Type
 from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import Query
 from app.models.base import db
-from app.models import Transaction, Account, Bank
-from datetime import date
+from datetime import date, datetime
+from decimal import Decimal
 
 
 class QueryBuilder:
@@ -137,6 +137,7 @@ class TransactionQueries:
     @staticmethod
     def get_by_account(account_id, start_date=None, end_date=None, limit=None, offset=None):
         """Get transactions by account with optional date filtering."""
+        from app.models.transaction import Transaction
         query = Transaction.query.filter_by(account_id=account_id)
         
         if start_date:
@@ -156,6 +157,7 @@ class TransactionQueries:
     @staticmethod
     def get_by_type(transaction_type, start_date=None, end_date=None):
         """Get transactions by type with optional date filtering."""
+        from app.models.transaction import Transaction
         if transaction_type == 'income':
             query = Transaction.query.filter(Transaction.amount > 0)
         elif transaction_type == 'expense':
@@ -175,6 +177,7 @@ class TransactionQueries:
     @staticmethod
     def search(keyword, account_id=None, start_date=None, end_date=None):
         """Search transactions by keyword in description or counterparty."""
+        from app.models.transaction import Transaction
         query = Transaction.query
         
         if account_id:
@@ -196,6 +199,7 @@ class TransactionQueries:
     @staticmethod
     def get_income_transactions(account_id=None, start_date=None, end_date=None):
         """Get income transactions (positive amounts)."""
+        from app.models.transaction import Transaction
         query = Transaction.query.filter(Transaction.amount > 0)
         
         if account_id:
@@ -210,6 +214,7 @@ class TransactionQueries:
     @staticmethod
     def get_expense_transactions(account_id=None, start_date=None, end_date=None):
         """Get expense transactions (negative amounts)."""
+        from app.models.transaction import Transaction
         query = Transaction.query.filter(Transaction.amount < 0)
         
         if account_id:
@@ -224,6 +229,7 @@ class TransactionQueries:
     @staticmethod
     def get_summary_by_type(account_id=None, start_date=None, end_date=None):
         """Get transaction summary grouped by type."""
+        from app.models.transaction import Transaction
         income_query = db.session.query(
             db.literal('income').label('type'),
             db.func.count(Transaction.id).label('count'),
@@ -266,6 +272,7 @@ class TransactionQueries:
     @staticmethod
     def get_monthly_summary(account_id=None, year=None):
         """Get monthly transaction summary."""
+        from app.models.transaction import Transaction
         if not year:
             year = date.today().year
         
@@ -309,6 +316,7 @@ class AccountQueries:
     @staticmethod
     def get_by_bank_and_number(bank_id, account_number):
         """Get account by bank ID and account number."""
+        from app.models.account import Account
         if not account_number:
             return None
         return Account.query.filter_by(bank_id=bank_id, account_number=account_number.strip()).first()
@@ -316,6 +324,7 @@ class AccountQueries:
     @staticmethod
     def get_or_create(bank_id, account_number, account_name=None, currency='CNY', account_type='checking'):
         """Get existing account or create new one."""
+        from app.models.account import Account
         account = AccountQueries.get_by_bank_and_number(bank_id, account_number)
         if not account:
             account = Account.create(
@@ -330,6 +339,7 @@ class AccountQueries:
     @staticmethod
     def get_all_accounts(bank_id=None):
         """Get all accounts, optionally filtered by bank."""
+        from app.models.account import Account
         query = Account.query
         if bank_id:
             query = query.filter_by(bank_id=bank_id)
@@ -339,9 +349,7 @@ class AccountQueries:
     def get_all_accounts_balance():
         """Get the sum of current balances for all accounts."""
         from app.models.transaction import Transaction
-        from sqlalchemy import func
-        from decimal import Decimal
-        
+        from app.models.account import Account
         account_balances = db.session.query(
             Transaction.account_id,
             Transaction.balance_after
@@ -359,9 +367,7 @@ class AccountQueries:
     def get_monthly_balance_trends(months=12):
         """Get monthly balance trends for all accounts."""
         from app.models.transaction import Transaction
-        from sqlalchemy import func
-        from decimal import Decimal
-        
+        from app.models.account import Account
         monthly_trends = db.session.query(
             func.strftime('%Y-%m', Transaction.date).label('month'),
             func.sum(Transaction.balance_after).label('balance')
@@ -385,11 +391,13 @@ class BankQueries:
     @staticmethod
     def get_by_name(name):
         """Get bank by name."""
+        from app.models.bank import Bank
         return Bank.query.filter_by(name=name.strip()).first()
     
     @staticmethod
     def get_by_code(code):
         """Get bank by code."""
+        from app.models.bank import Bank
         if not code:
             return None
         return Bank.query.filter_by(code=code.strip().upper()).first()
@@ -397,6 +405,7 @@ class BankQueries:
     @staticmethod
     def get_or_create(name, code=None):
         """Get existing bank or create new one."""
+        from app.models.bank import Bank
         bank = BankQueries.get_by_name(name)
         if not bank:
             bank = Bank.create(name=name, code=code)
