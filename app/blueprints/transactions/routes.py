@@ -69,7 +69,7 @@ def transactions_list_route(): # 重命名函数
     
     transaction_types_for_filter = TransactionService.get_all_transaction_types()
 
-    currencies_for_filter = AccountService.get_all_currencies()
+    currencies_for_filter = TransactionService.get_all_currencies()
 
     current_filters = {
         'account_number': account_number_req,

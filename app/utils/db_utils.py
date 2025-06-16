@@ -155,12 +155,6 @@ class AccountQueries:
         return float(result) if result else 0.0
     
     @staticmethod
-    def get_distinct_currencies() -> List[str]:
-        """获取所有不同的账户货币类型"""
-        currencies = db.session.query(Account.currency).distinct().all()
-        return [c[0] for c in currencies if c[0]]
-    
-    @staticmethod
     def get_by_id(account_id: int) -> Optional[Account]:
         """根据ID获取账户"""
         return QueryBuilder(Account).get(account_id)

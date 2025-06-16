@@ -326,3 +326,25 @@ class TransactionService:
             List[str]: List of available transaction types ['income', 'expense', 'transfer']
         """
         return ['income', 'expense', 'transfer']
+
+    @staticmethod
+    def get_all_currencies() -> List[str]:
+        """Get all distinct currencies from transactions.
+        
+        Returns:
+            List[str]: A sorted list of unique currency codes used in transactions.
+            Returns ['CNY'] if any error occurs.
+        """
+        try:
+            # 只从交易记录获取货币类型
+            currencies = db.session.query(Transaction.currency).distinct().all()
+            
+            # 处理结果并去重
+            all_currencies = {currency for (currency,) in currencies if currency}
+            
+            # 转换为排序列表
+            return sorted(list(all_currencies))
+            
+        except Exception as e:
+            logger.error(f"Error getting all currencies: {e}")
+            return ['CNY']
