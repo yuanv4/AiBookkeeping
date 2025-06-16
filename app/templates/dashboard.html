@@ -11,31 +11,57 @@
 <div class="container-fluid">
     {{ page_header("财务仪表盘", "", "layout-dashboard") }}
     
+    <!-- 数据容器 -->
+    <div id="dashboard-data" 
+         data-balance="{{ stats.balance }}"
+         data-monthly-trends="{{ stats.monthly_trends|default([])|tojson }}"
+         data-last-updated="{{ stats.last_updated }}"
+         style="display: none;">
+    </div>
+    
     <!-- 统计卡片行 -->
     <div class="row g-3">
-        <!-- 账户余额 -->
+        <!-- 账户余额卡片 -->
         <div class="col-md-6">
-            <div class="d-flex align-items-center justify-content-between mb-standard">
-                <div class="text-muted-custom fs-small">账户总余额</div>
-                <div class="d-flex align-items-center">
-                    {{ icon("wallet", "sm", "text-primary-custom me-1") }}
+            <div class="dashboard-card metric-card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="text-muted-custom fs-small">账户总余额</div>
+                        <div class="d-flex align-items-center">
+                            {{ icon("wallet", "sm", "text-primary-custom me-1") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="metric-value text-success">¥{{ "%.2f"|format(stats.balance or 0) }}</div>
+                    <div class="metric-description">最近更新：{{ stats.last_updated|default('未知') }}</div>
                 </div>
             </div>
-            <div class="metric-value text-success">¥{{ "%.2f"|format(stats.balance or 0) }}</div>
         </div>
-        <!-- TODO：最近12个月余额趋势图表 -->
+        
+        <!-- 余额趋势图表卡片 -->
+        <div class="col-md-6">
+            <div class="dashboard-card chart-wrapper">
+                <div class="card-header">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="text-muted-custom fs-small">最近12个月余额趋势</div>
+                        <div class="d-flex align-items-center">
+                            {{ icon("trending-up", "sm", "text-primary-custom me-1") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" id="balanceTrendChart"></div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-// 仪表盘页面的JavaScript代码
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('仪表盘页面已加载');
-    
-    // 可以在这里添加图表初始化代码
-    // 例如：初始化收支趋势图表
-});
-</script>
+<!-- 引入 Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- 引入仪表盘脚本 -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}
