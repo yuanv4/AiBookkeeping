@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, card, chart_container, page_header, stat_card %}
+
+{% block title %}{{ page_title }} - {{ config.APP_NAME }}{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    {{ page_header("收入分析", "深入了解您的收入来源和趋势变化", "trending-up") }}
+    
+    <!-- 错误提示 -->
+    {% if error_message %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+            {{ icon("alert-triangle", "sm", "me-2") }}
+            {{ error_message }}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+    
+    <!-- 收入关键指标卡片网格 -->
+    <div class="cards-grid cols-4">
+        <!-- 总收入卡片 -->
+        {{ stat_card("trending-up", "¥" + "%.2f"|format(income_data.total_income or 0), "总收入", "success", "success") }}
+        
+        <!-- 月均收入卡片 -->
+        {{ stat_card("calendar", "¥" + "%.2f"|format(income_data.avg_monthly_income or 0), "月均收入", "primary", "primary") }}
+        
+        <!-- 收入增长率卡片 -->
+        {{ stat_card("arrow-up-right", "%.1f"|format(income_data.income_growth_rate or 0) + "%", "收入增长率", "info", "info") }}
+        
+        <!-- 收入笔数卡片 -->
+        {{ stat_card("hash", income_data.transaction_count or 0, "收入笔数", "warning", "warning") }}
+    </div>
+    
+    <!-- 图表分析区域 -->
+    <div class="cards-grid cols-2">
+        <!-- 月度收入趋势图 -->
+        {% call card("月度收入趋势", "trending-up") %}
+        <div class="chart-container">
+            <canvas id="incomeMonthlyTrendChart" width="400" height="200"></canvas>
+        </div>
+        <div class="chart-legend mt-3">
+            <small class="text-muted-custom">显示过去12个月的收入变化趋势</small>
+        </div>
+        {% endcall %}
+        
+        <!-- 收入来源分析图 -->
+        {% call card("收入来源分析", "pie-chart") %}
+        <div class="chart-container">
+            <canvas id="incomeSourceChart" width="400" height="200"></canvas>
+        </div>
+        <div class="chart-legend mt-3">
+            <small class="text-muted-custom">按收入来源分类统计</small>
+        </div>
+        {% endcall %}
+    </div>
+    
+    <!-- 收入详情数据表格 -->
+    {% call card("收入详情数据", "table") %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">月份</th>
+                    <th scope="col">收入金额</th>
+                    <th scope="col">交易笔数</th>
+                    <th scope="col">环比变化</th>
+                    <th scope="col">主要来源</th>
+                </tr>
+            </thead>
+            <tbody id="incomeDetailsTable">
+                {% if income_data.monthly_trends %}
+                    {% for trend in income_data.monthly_trends %}
+                    <tr>
+                        <td>{{ trend.month }}</td>
+                        <td class="text-success fw-bold">¥{{ "%.2f"|format(trend.amount or 0) }}</td>
+                        <td>{{ trend.count or 0 }}</td>
+                        <td>
+                            {% if trend.growth_rate is defined %}
+                                {% if trend.growth_rate > 0 %}
+                                    <span class="text-success">{{ icon("arrow-up", "xs", "me-1") }}{{ "%.1f"|format(trend.growth_rate) }}%</span>
+                                {% elif trend.growth_rate < 0 %}
+                                    <span class="text-danger">{{ icon("arrow-down", "xs", "me-1") }}{{ "%.1f"|format(trend.growth_rate|abs) }}%</span>
+                                {% else %}
+                                    <span class="text-muted">{{ icon("minus", "xs", "me-1") }}0%</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted-custom">{{ trend.main_source or "未分类" }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            {{ icon("inbox", "md", "mb-2 d-block mx-auto") }}
+                            暂无收入数据
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% endcall %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/income.js') }}"></script>
+<script>
+    // 初始化收入分析页面
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof IncomeAnalysis !== 'undefined') {
+            // 传递后端数据到前端
+            const incomeData = {
+                monthlyTrends: {{ income_data.monthly_trends|tojson if income_data.monthly_trends else '[]'|safe }},
+                incomeSources: {{ income_data.income_sources|tojson if income_data.income_sources else '[]'|safe }},
+                totalIncome: {{ income_data.total_income or 0 }},
+                avgMonthlyIncome: {{ income_data.avg_monthly_income or 0 }},
+                growthRate: {{ income_data.income_growth_rate or 0 }},
+                transactionCount: {{ income_data.transaction_count or 0 }}
+            };
+            
+            // 初始化收入分析模块
+            IncomeAnalysis.init(incomeData);
+        } else {
+            console.error('IncomeAnalysis模块未加载');
+        }
+    });
+</script>
+{% endblock %}

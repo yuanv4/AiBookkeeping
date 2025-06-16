@@ -79,6 +79,14 @@
                 </a>
             </li>
             <li class="nav-item mb-1">
+                <a class="nav-link rounded {% if request.path.startswith(url_for('income.income_analysis')) %}active{% endif %}" href="{{ url_for('income.income_analysis') }}">
+                    <div class="nav-icon-round d-flex align-items-center">
+                        {{ icon("trending-up", "sm", "", "me-3") }}
+                        <span>收入分析</span>
+                    </div>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
                 <a class="nav-link rounded {% if request.path.startswith(url_for('settings_bp.settings_index')) %}active{% endif %}" href="{{ url_for('settings_bp.settings_index') }}">
                     <div class="nav-icon-round d-flex align-items-center">
                         {{ icon("settings", "sm", "", "me-3") }}

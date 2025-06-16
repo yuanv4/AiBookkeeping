@@ -256,19 +256,196 @@
     margin-bottom: 0;
 }
 
-/* 收入分析页面卡片样式 */
+/* ==========================================================================
+   收入分析页面样式
+   ========================================================================== */
+
+/* 收入分析页面整体布局 */
+.income-analysis {
+    padding: var(--spacing-lg);
+}
+
+.income-analysis .page-header {
+    margin-bottom: var(--spacing-2xl);
+}
+
+/* 收入指标卡片网格 */
+.income-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-2xl);
+}
+
+/* 收入图表容器 */
+.income-charts {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-2xl);
+}
+
+@media (max-width: 1024px) {
+    .income-charts {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 收入分析卡片样式 */
 .income-analysis .card {
-    margin-bottom: 2rem;
+    margin-bottom: var(--spacing-xl);
+    transition: var(--transition-fast);
+}
+
+.income-analysis .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
 }
 
 .income-analysis .card-title {
     font-weight: 700;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-primary);
 }
 
 .income-analysis .card-subtitle {
-    color: var(--gray-600);
+    color: var(--text-muted);
     font-size: var(--text-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+/* 收入指标值样式 */
+.income-analysis .metric-value {
+    font-size: var(--text-3xl);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: var(--spacing-xs);
+}
+
+.income-analysis .metric-change {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.income-analysis .metric-change.positive {
+    color: var(--success);
+}
+
+.income-analysis .metric-change.negative {
+    color: var(--danger);
+}
+
+/* 收入图表容器样式 */
+.income-analysis .chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: var(--spacing-md);
+}
+
+.income-analysis .chart-container canvas {
+    max-height: 100%;
+}
+
+/* 收入数据表格样式 */
+.income-analysis .table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.income-analysis .table {
+    margin-bottom: 0;
+}
+
+.income-analysis .table th {
+    background-color: var(--surface-secondary);
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 600;
+    color: var(--text-primary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.income-analysis .table td {
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.income-analysis .table tbody tr:hover {
+    background-color: var(--surface-hover);
+}
+
+/* 收入来源标签样式 */
+.income-source-badge {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--primary-10);
+    color: var(--primary);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* 收入金额样式 */
+.income-amount {
+    font-weight: 700;
+    color: var(--success);
+}
+
+.income-amount.large {
+    font-size: var(--text-lg);
+}
+
+/* 收入趋势指示器 */
+.income-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.income-trend.up {
+    color: var(--success);
+}
+
+.income-trend.down {
+    color: var(--danger);
+}
+
+.income-trend.stable {
+    color: var(--text-muted);
+}
+
+/* 空状态样式 */
+.income-analysis .empty-state {
+    text-align: center;
+    padding: var(--spacing-2xl);
+    color: var(--text-muted);
+}
+
+.income-analysis .empty-state .empty-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-lg);
+    opacity: 0.5;
+}
+
+.income-analysis .empty-state .empty-title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.income-analysis .empty-state .empty-description {
+    font-size: var(--text-sm);
+    line-height: 1.6;
 }
 
 /* 图表图例样式优化 */

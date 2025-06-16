@@ -114,6 +114,10 @@ def create_app():
     from .blueprints.settings.routes import settings_bp
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.logger.info("已注册 settings_bp, 前缀 /settings")
+    
+    from .blueprints.income import income_bp
+    app.register_blueprint(income_bp, url_prefix='/income')
+    app.logger.info("已注册 income_bp, 前缀 /income")
 
     # 注册全局错误处理函数
     @app.errorhandler(404)
