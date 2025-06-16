@@ -71,23 +71,6 @@
                 </a>
             </li>
             <li class="nav-item mb-1">
-                <a class="nav-link rounded {% if request.path.startswith('/analysis/income') %}active{% endif %}" href="{{ url_for('analysis_bp.income_analysis') }}">
-                    <div class="nav-icon-round d-flex align-items-center">
-                        {{ icon("trending-up", "sm", "", "me-3") }}
-                        <span>收入分析</span>
-                    </div>
-                </a>
-            </li>
-            <li class="nav-item mb-1">
-                <a class="nav-link rounded {% if request.path.startswith('/analysis/expense') %}active{% endif %}" href="{{ url_for('analysis_bp.expense_analysis') }}">
-                    <div class="nav-icon-round d-flex align-items-center">
-                        {{ icon("trending-down", "sm", "", "me-3") }}
-                        <span>支出分析</span>
-                    </div>
-                </a>
-            </li>
-
-            <li class="nav-item mb-1">
                 <a class="nav-link rounded {% if request.path == url_for('transactions_bp.transactions_list_route') %}active{% endif %}" href="{{ url_for('transactions_bp.transactions_list_route') }}">
                     <div class="nav-icon-round d-flex align-items-center">
                         {{ icon("receipt", "sm", "", "me-3") }}
