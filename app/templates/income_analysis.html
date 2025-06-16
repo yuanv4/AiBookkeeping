@@ -113,25 +113,13 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/income.js') }}"></script>
-<script>
-    // 初始化收入分析页面
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof IncomeAnalysis !== 'undefined') {
-            // 传递后端数据到前端
-            const incomeData = {
-                monthlyTrends: {{ income_data.monthly_trends|tojson if income_data.monthly_trends else '[]'|safe }},
-                incomeSources: {{ income_data.income_sources|tojson if income_data.income_sources else '[]'|safe }},
-                totalIncome: {{ income_data.total_income or 0 }},
-                avgMonthlyIncome: {{ income_data.avg_monthly_income or 0 }},
-                growthRate: {{ income_data.income_growth_rate or 0 }},
-                transactionCount: {{ income_data.transaction_count or 0 }}
-            };
-            
-            // 初始化收入分析模块
-            IncomeAnalysis.init(incomeData);
-        } else {
-            console.error('IncomeAnalysis模块未加载');
-        }
-    });
-</script>
+<!-- 收入数据容器，用于传递后端数据到JavaScript -->
+    <div id="income-data" style="display: none;"
+         data-monthly-trends="{{ income_data.monthly_trends | tojson | e }}"
+         data-income-sources="{{ income_data.income_sources | tojson | e }}"
+         data-total-income="{{ income_data.total_income }}"
+         data-avg-monthly-income="{{ income_data.avg_monthly_income }}"
+         data-growth-rate="{{ income_data.growth_rate }}"
+         data-transaction-count="{{ income_data.transaction_count }}">
+    </div>
 {% endblock %}

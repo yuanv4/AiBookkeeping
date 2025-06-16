@@ -366,6 +366,81 @@ const IncomeAnalysis = {
     }
 };
 
+/**
+ * 从HTML元素的data属性获取后端数据
+ * @returns {Object|null} 收入数据对象或null
+ */
+function getIncomeDataFromHTML() {
+    try {
+        const dataElement = document.getElementById('income-data');
+        if (!dataElement) {
+            console.warn('未找到收入数据元素');
+            return null;
+        }
+        
+        const monthlyTrends = dataElement.dataset.monthlyTrends;
+        const incomeSources = dataElement.dataset.incomeSources;
+        const totalIncome = dataElement.dataset.totalIncome;
+        const avgMonthlyIncome = dataElement.dataset.avgMonthlyIncome;
+        const growthRate = dataElement.dataset.growthRate;
+        const transactionCount = dataElement.dataset.transactionCount;
+        
+        return {
+            monthlyTrends: monthlyTrends ? JSON.parse(monthlyTrends) : [],
+            incomeSources: incomeSources ? JSON.parse(incomeSources) : [],
+            totalIncome: parseFloat(totalIncome) || 0,
+            avgMonthlyIncome: parseFloat(avgMonthlyIncome) || 0,
+            growthRate: parseFloat(growthRate) || 0,
+            transactionCount: parseInt(transactionCount) || 0
+        };
+    } catch (error) {
+        console.error('解析收入数据失败:', error);
+        return null;
+    }
+}
+
+/**
+ * 自动初始化收入分析模块
+ */
+function autoInitializeIncomeAnalysis() {
+    // 检查是否在收入分析页面
+    const incomeChartElements = document.querySelectorAll('#incomeMonthlyTrendChart, #incomeSourceChart');
+    if (incomeChartElements.length === 0) {
+        return; // 不在收入分析页面，不执行初始化
+    }
+    
+    // 检查IncomeAnalysis模块是否可用
+    if (typeof IncomeAnalysis === 'undefined') {
+        console.error('IncomeAnalysis模块未定义');
+        return;
+    }
+    
+    // 获取数据
+    const incomeData = getIncomeDataFromHTML();
+    if (!incomeData) {
+        console.error('无法获取收入数据，尝试使用空数据初始化');
+        // 使用默认空数据初始化
+        IncomeAnalysis.init({
+            monthlyTrends: [],
+            incomeSources: [],
+            totalIncome: 0,
+            avgMonthlyIncome: 0,
+            growthRate: 0,
+            transactionCount: 0
+        });
+        return;
+    }
+    
+    // 初始化模块
+    console.log('自动初始化收入分析模块', incomeData);
+    IncomeAnalysis.init(incomeData);
+}
+
+// 自动初始化逻辑
+document.addEventListener('DOMContentLoaded', function() {
+    autoInitializeIncomeAnalysis();
+});
+
 // 页面卸载时清理资源
 window.addEventListener('beforeunload', function() {
     if (typeof IncomeAnalysis !== 'undefined') {
