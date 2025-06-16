@@ -107,15 +107,9 @@ def create_app():
     app.register_blueprint(main_blueprint)
     app.logger.info("已注册 main_blueprint")
 
-    # upload_bp 已迁移到 settings_bp，不再需要单独注册
-
     from .blueprints.transactions.routes import transactions_bp
     app.register_blueprint(transactions_bp, url_prefix='/transactions')
     app.logger.info("已注册 transactions_bp, 前缀 /transactions")
-
-    from .blueprints.api.routes import api_bp
-    app.register_blueprint(api_bp, url_prefix='/api')
-    app.logger.info(f"已注册 api_bp, 前缀 {'/api'}")
     
     from .blueprints.settings.routes import settings_bp
     app.register_blueprint(settings_bp, url_prefix='/settings')
