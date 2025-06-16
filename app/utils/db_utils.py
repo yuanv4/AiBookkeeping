@@ -293,9 +293,10 @@ class AccountQueries:
     """账户查询工具"""
     
     @staticmethod
-    def get_all_with_banks() -> List[Account]:
-        """获取所有账户及其银行信息"""
-        return QueryBuilder(Account).join(Bank).all()
+    def get_all_with_banks() -> List['Account']:
+        """Get all accounts with their associated banks."""
+        from app.models.account import Account
+        return Account.query.join(Account.bank).order_by(Account.account_name).all()
     
     @staticmethod
     def get_by_number(account_number: str) -> Optional[Account]:
