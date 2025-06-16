@@ -85,10 +85,10 @@ class Account(BaseModel):
         return query.order_by(cls.account_name, cls.account_number).all()
     
     def get_current_balance(self):
-        """Calculate current balance based on transactions."""
+        """Calculate current balance based on the latest transaction's balance_after."""
         from .transaction import Transaction
-        total_transactions = db.session.query(db.func.sum(Transaction.amount)).filter_by(account_id=self.id).scalar()
-        return total_transactions or Decimal('0.00')
+        latest_transaction = self.transactions.order_by(Transaction.date.desc(), Transaction.created_at.desc()).first()
+        return latest_transaction.balance_after if latest_transaction else Decimal('0.00')
     
     def get_transactions_count(self):
         """Get the number of transactions for this account."""
@@ -132,3 +132,59 @@ class Account(BaseModel):
     
     def __repr__(self):
         return f'<Account(id={self.id}, bank_id={self.bank_id}, number="{self.account_number}", name="{self.account_name}")>'
+    
+    @classmethod
+    def get_all_accounts_balance(cls):
+        """Get the sum of current balances for all accounts.
+        
+        Returns:
+            Decimal: The sum of all account balances
+        """
+        from .transaction import Transaction
+        from sqlalchemy import func
+        
+        # 获取所有账户的最新余额总和
+        account_balances = db.session.query(
+            Transaction.account_id,
+            Transaction.balance_after
+        ).distinct(
+            Transaction.account_id
+        ).order_by(
+            Transaction.account_id,
+            Transaction.date.desc(),
+            Transaction.created_at.desc()
+        ).all()
+        
+        # 计算总余额，保持 Decimal 类型
+        return sum(Decimal(str(balance)) for _, balance in account_balances) if account_balances else Decimal('0.00')
+    
+    @classmethod
+    def get_monthly_balance_trends(cls, months=12):
+        """Get monthly balance trends for all accounts.
+        
+        Args:
+            months (int): Number of months to look back
+            
+        Returns:
+            list: List of dicts containing month and balance for each month
+        """
+        from .transaction import Transaction
+        from sqlalchemy import func
+        
+        # 获取最近N个月的余额趋势
+        monthly_trends = db.session.query(
+            func.strftime('%Y-%m', Transaction.date).label('month'),
+            func.sum(Transaction.balance_after).label('balance')
+        ).filter(
+            Transaction.date >= func.date('now', f'-{months} months')
+        ).group_by(
+            func.strftime('%Y-%m', Transaction.date)
+        ).order_by(
+            func.strftime('%Y-%m', Transaction.date)
+        ).all()
+        
+        # 返回月度趋势数据，保持 Decimal 类型
+        return [{
+            'month': month,
+            'balance': Decimal(str(balance))
+        } for month, balance in monthly_trends]
