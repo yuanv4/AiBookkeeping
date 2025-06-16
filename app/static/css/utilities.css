@@ -17,16 +17,16 @@
 .py-standard { padding-top: 1rem; padding-bottom: 1rem; }
 
 /* 通用阴影类 */
-.shadow-light { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
-.shadow-medium { box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); }
-.shadow-card { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); }
-.shadow-sm { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.shadow-light { box-shadow: var(--shadow-light); }
+.shadow-medium { box-shadow: var(--shadow-medium); }
+.shadow-card { box-shadow: var(--shadow-card); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
 
 /* 通用圆角类 */
-.rounded-standard { border-radius: 0.375rem; }
-.rounded-circle { border-radius: 50%; }
-.rounded-lg { border-radius: 8px; }
-.rounded-xl { border-radius: 12px; }
+.rounded-standard { border-radius: var(--radius-standard); }
+.rounded-circle { border-radius: var(--radius-full); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
 
 /* 通用字体类 */
 .fw-semibold { font-weight: 600; }
@@ -42,13 +42,13 @@
 .bg-primary-light { background-color: rgba(13, 110, 253, 0.1); }
 
 /* 通用边框类 */
-.border-light { border: 1px solid #f3f4f6; }
-.border-standard { border: 1px solid #d2d2d7; }
+.border-light { border: 1px solid var(--border-light); }
+.border-standard { border: 1px solid var(--border-standard); }
 .border-none { border: none; }
 
 /* 通用过渡效果类 */
-.transition-standard { transition: all 0.2s ease-in-out; }
-.transition-fast { transition: all 0.15s ease-in-out; }
+.transition-standard { transition: all var(--transition-standard) ease-in-out; }
+.transition-fast { transition: all var(--transition-fast) ease-in-out; }
 
 /* ========================================
    布局工具类
@@ -198,11 +198,11 @@
 
 /* Margin 工具类 */
 .m-0 { margin: 0 !important; }
-.m-1 { margin: var(--spacing-xs) !important; }
-.m-2 { margin: var(--spacing-sm) !important; }
-.m-3 { margin: var(--spacing-md) !important; }
-.m-4 { margin: var(--spacing-lg) !important; }
-.m-5 { margin: var(--spacing-xl) !important; }
+.m-1 { margin: var(--spacing-1) !important; }
+.m-2 { margin: var(--spacing-2) !important; }
+.m-3 { margin: var(--spacing-3) !important; }
+.m-4 { margin: var(--spacing-4) !important; }
+.m-5 { margin: var(--spacing-5) !important; }
 
 /* Margin Top */
 .mt-0 { margin-top: 0 !important; }
@@ -254,11 +254,11 @@
 
 /* Padding 工具类 */
 .p-0 { padding: 0 !important; }
-.p-1 { padding: var(--spacing-xs) !important; }
-.p-2 { padding: var(--spacing-sm) !important; }
-.p-3 { padding: var(--spacing-md) !important; }
-.p-4 { padding: var(--spacing-lg) !important; }
-.p-5 { padding: var(--spacing-xl) !important; }
+.p-1 { padding: var(--spacing-1) !important; }
+.p-2 { padding: var(--spacing-2) !important; }
+.p-3 { padding: var(--spacing-3) !important; }
+.p-4 { padding: var(--spacing-4) !important; }
+.p-5 { padding: var(--spacing-5) !important; }
 
 /* Padding Top */
 .pt-0 { padding-top: 0 !important; }
@@ -393,27 +393,27 @@
 
 /* 文本粗细 */
 .font-light {
-    font-weight: 300 !important;
+    font-weight: var(--font-light) !important;
 }
 
 .font-normal {
-    font-weight: 400 !important;
+    font-weight: var(--font-normal) !important;
 }
 
 .font-medium {
-    font-weight: 500 !important;
+    font-weight: var(--font-medium) !important;
 }
 
 .font-semibold {
-    font-weight: 600 !important;
+    font-weight: var(--font-semibold) !important;
 }
 
 .font-bold {
-    font-weight: 700 !important;
+    font-weight: var(--font-bold) !important;
 }
 
 .font-extrabold {
-    font-weight: 800 !important;
+    font-weight: var(--font-extrabold) !important;
 }
 
 /* 文本装饰 */

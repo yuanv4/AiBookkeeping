@@ -162,7 +162,7 @@
 
 .metric-status.good {
     background-color: var(--success-500);
-    color: var(--success);
+    color: var(--success-500);
 }
 
 .metric-status.moderate {
@@ -172,7 +172,7 @@
 
 .metric-status.poor {
     background-color: var(--danger-500);
-    color: var(--danger);
+    color: var(--danger-500);
 }
 
 /* 统计卡片特定样式 */
@@ -232,7 +232,7 @@
 .stat-value {
     font-size: 1.25rem;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--primary-500);
     line-height: 1.2;
 }
 
@@ -274,9 +274,8 @@
 /* 图表图例样式优化 */
 .chart-legend {
     display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-4);
     padding: 0.75rem;
     background-color: var(--gray-50);
     border-radius: var(--radius-md);
@@ -303,7 +302,7 @@
     background-color: var(--gray-50);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    padding: 1rem;
+    padding: var(--spacing-4);
 }
 
 /* ==========================================================================
@@ -328,14 +327,14 @@
 
 /* 页面容器样式优化 */
 .page-container {
-    padding: 2rem;
+    padding: var(--spacing-8);
     max-width: 1400px;
     margin: 0 auto;
 }
 
 .page-header {
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
+    margin-bottom: var(--spacing-8);
+    padding-bottom: var(--spacing-4);
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -351,7 +350,7 @@
 .icon-circle {
     width: 2.5rem;
     height: 2.5rem;
-    border-radius: 50%;
+    border-radius: var(--radius-circle);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -391,7 +390,7 @@
 
 @media (max-width: 768px) {
     .page-container {
-        padding: 1rem;
+        padding: var(--spacing-4);
     }
     
     .page-title {
@@ -399,13 +398,13 @@
     }
     
     .cards-grid {
-        gap: 1rem;
+        gap: var(--spacing-4);
         grid-template-columns: 1fr;
     }
     
     .dashboard-card,
     .metric-card {
-        margin-bottom: 1rem;
+        margin-bottom: var(--spacing-4);
     }
     
     .metric-card {
@@ -427,7 +426,7 @@
     
     .stats-container.horizontal {
         grid-template-columns: 1fr;
-        gap: 0.75rem;
+        gap: var(--spacing-3);
     }
     
     .chart-container {
@@ -442,20 +441,20 @@
 
 @media (max-width: 576px) {
     .page-container {
-        padding: 0.75rem;
+        padding: var(--spacing-3);
     }
     
     .metric-card {
         min-height: 100px;
-        padding: 1rem;
+        padding: var(--spacing-4);
     }
     
     .card-header {
-        padding: 0.75rem 1rem;
+        padding: var(--spacing-3) var(--spacing-4);
     }
     
     .card-body {
-        padding: 1rem;
+        padding: var(--spacing-4);
     }
     
     .metric-value {
@@ -467,14 +466,14 @@
     }
     
     .stat-card {
-        padding: 1rem;
+        padding: var(--spacing-4);
         flex-direction: column;
         text-align: center;
-        gap: 0.75rem;
+        gap: var(--spacing-3);
     }
     
     .filter-form-container {
-        padding: 1rem;
+        padding: var(--spacing-4);
     }
 }
 
@@ -534,7 +533,7 @@
 
 /* 卡片成功/警告/错误状态 */
 .card.card-success {
-    border-left: 4px solid var(--success);
+    border-left: 4px solid var(--success-500);
 }
 
 .card.card-warning {
@@ -542,7 +541,7 @@
 }
 
 .card.card-danger {
-    border-left: 4px solid var(--danger);
+    border-left: 4px solid var(--danger-500);
 }
 
 /* 紧凑型卡片 */
@@ -566,8 +565,8 @@
 /* 交易表格专用变量 */
 :root {
     /* 交易表格颜色系统 */
-    --transaction-positive: var(--success);
-    --transaction-negative: var(--danger);
+    --transaction-positive: var(--success-500);
+    --transaction-negative: var(--danger-500);
     --transaction-neutral: var(--gray-600);
     --transaction-row-hover: var(--gray-50);
     --transaction-row-selected: rgba(0, 122, 255, 0.05);
@@ -768,8 +767,8 @@
         background: var(--surface-primary);
         border: 1px solid var(--border-color);
         border-radius: var(--transaction-border-radius);
-        margin-bottom: var(--spacing-md);
-        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-4);
+        padding: var(--spacing-5);
         box-shadow: var(--shadow);
         height: auto;
         position: relative;
@@ -782,7 +781,7 @@
     
     .transaction-cell {
         border: none;
-        padding: var(--spacing-xs) 0;
+        padding: var(--spacing-1) 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -846,8 +845,8 @@
         font-size: var(--text-lg);
         font-weight: 600;
         border-bottom: 1px solid var(--border-light);
-        padding-bottom: var(--spacing-sm);
-        margin-bottom: var(--spacing-sm);
+        padding-bottom: var(--spacing-2);
+        margin-bottom: var(--spacing-2);
     }
     
     .transaction-cell.cell-amount {
@@ -877,8 +876,8 @@
 /* 超小屏幕优化 */
 @media (max-width: 480px) {
     .transaction-row {
-        padding: var(--spacing-md);
-        margin-bottom: var(--spacing-sm);
+        padding: var(--spacing-4);
+        margin-bottom: var(--spacing-2);
     }
     
     .transaction-cell.cell-date {
@@ -910,7 +909,7 @@
     width: 32px;
     height: 32px;
     border: 3px solid var(--border-color);
-    border-top: 3px solid var(--primary);
+    border-top: 3px solid var(--primary-500);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }

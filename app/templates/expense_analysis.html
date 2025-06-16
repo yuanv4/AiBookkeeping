@@ -160,7 +160,7 @@
         <!-- 月度支出趋势分析 -->
         {% call chart_container("月度支出趋势分析 (最近12个月)", "monthlyExpenseChart") %}
         {% if data and data.expense_trends and data.expense_trends.monthly_data and data.expense_trends.monthly_data|length > 0 %}
-        <div class="chart-legend">
+        <div class="chart-legend flex-wrap">
             <div class="legend-item">
                 <div class="legend-color" style="background-color: rgba(239, 68, 68, 1);"></div>
                 <span>总支出</span>

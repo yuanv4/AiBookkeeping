@@ -106,7 +106,7 @@
         <!-- 月度收入趋势分析 -->
         {% call chart_container("月度收入趋势分析 (最近12个月)", "monthlyIncomeChart") %}
         {% if data and data.monthly_income_trend and data.monthly_income_trend|length > 0 %}
-        <div class="chart-legend">
+        <div class="chart-legend flex-wrap">
             <div class="legend-item">
                 <div class="legend-color" style="background-color: rgba(34, 197, 94, 1);"></div>
                 <span>总收入</span>

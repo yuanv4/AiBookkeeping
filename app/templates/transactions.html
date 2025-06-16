@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 
-
 {% block title %}交易记录{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}">
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -25,7 +28,6 @@
                     <h6 class="mb-0">交易列表</h6>
                     <div class="d-flex align-items-center gap-3">
                         <span class="text-muted">共 {{ pagination.total if pagination else 0 }} 条记录</span>
-                        <!-- 导出功能已移除 -->
                     </div>
                 </div>
                 <div class="card-body p-0">

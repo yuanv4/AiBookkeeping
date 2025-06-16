@@ -4,46 +4,84 @@
 
 :root {
     /* Primary Colors */
-    --primary: #007AFF;
-    --primary-50: #eff6ff;
-    --primary-100: #dbeafe;
-    --primary-200: #bfdbfe;
-    --primary-500: #3b82f6;
-    --primary-600: #2563eb;
-    --primary-700: #1d4ed8;
-    --primary-800: #1e40af;
-    --primary-900: #1e3a8a;
+    --primary-50: rgba(0, 123, 255, 0.05);
+    --primary-100: rgba(0, 123, 255, 0.1);
+    --primary-200: rgba(0, 123, 255, 0.2);
+    --primary-300: rgba(0, 123, 255, 0.3);
+    --primary-400: rgba(0, 123, 255, 0.4);
+    --primary-500: #007bff;
+    --primary-600: #0056b3;
+    --primary-700: #004085;
+    --primary-800: #002752;
+    --primary-900: #001a33;
     --primary-light: #f0f9ff;
     
     /* Secondary Colors */
-    --secondary: #5856D6;
+    --secondary: #6c757d;
     
     /* Status Colors */
-    --success: #34C759;
-    --success-500: #10b981;
-    --success-600: #059669;
-    --danger: #FF3B30;
-    --danger-500: #ef4444;
-    --danger-600: #dc2626;
+    --success-50: rgba(40, 167, 69, 0.05);
+    --success-100: rgba(40, 167, 69, 0.1);
+    --success-200: rgba(40, 167, 69, 0.2);
+    --success-300: rgba(40, 167, 69, 0.3);
+    --success-400: rgba(40, 167, 69, 0.4);
+    --success-500: #28a745;
+    --success-600: #1e7e34;
+    --success-700: #155724;
+    --success-800: #0d3d1a;
+    --success-900: #041f0a;
+    --danger-50: rgba(220, 53, 69, 0.05);
+    --danger-100: rgba(220, 53, 69, 0.1);
+    --danger-200: rgba(220, 53, 69, 0.2);
+    --danger-300: rgba(220, 53, 69, 0.3);
+    --danger-400: rgba(220, 53, 69, 0.4);
+    --danger-500: #dc3545;
+    --danger-600: #c82333;
+    --danger-700: #bd2130;
+    --danger-800: #a71e2a;
+    --danger-900: #721c24;
     --danger-light: #fef2f2;
-    --warning: #FF9500;
-    --warning-500: #f59e0b;
-    --warning-600: #d97706;
-    --info: #5AC8FA;
-    --info-500: #3b82f6;
-    --info-600: #2563eb;
+    --warning: #ffc107;
+    --warning-50: rgba(255, 193, 7, 0.05);
+    --warning-100: rgba(255, 193, 7, 0.1);
+    --warning-200: rgba(255, 193, 7, 0.2);
+    --warning-300: rgba(255, 193, 7, 0.3);
+    --warning-400: rgba(255, 193, 7, 0.4);
+    --warning-500: #ffc107;
+    --warning-600: #e0a800;
+    --warning-700: #d39e00;
+    --warning-800: #b08800;
+    --warning-900: #856404;
+    --info: #17a2b8;
+    --info-50: rgba(23, 162, 184, 0.05);
+    --info-100: rgba(23, 162, 184, 0.1);
+    --info-200: rgba(23, 162, 184, 0.2);
+    --info-300: rgba(23, 162, 184, 0.3);
+    --info-400: rgba(23, 162, 184, 0.4);
+    --info-500: #17a2b8;
+    --info-600: #138496;
+    --info-700: #117a8b;
+    --info-800: #0e6674;
+    --info-900: #0c5460;
     
     /* Gray Scale */
-    --gray-50: #f9fafb;
-    --gray-100: #f3f4f6;
-    --gray-200: #e5e7eb;
-    --gray-300: #d1d5db;
-    --gray-400: #9ca3af;
-    --gray-500: #6b7280;
-    --gray-600: #4b5563;
-    --gray-700: #374151;
-    --gray-800: #1f2937;
-    --gray-900: #111827;
+    --gray-50: #f8f9fa;
+    --gray-100: #f1f3f4;
+    --gray-200: #e9ecef;
+    --gray-300: #dee2e6;
+    --gray-400: #ced4da;
+    --gray-500: #adb5bd;
+    --gray-600: #6c757d;
+    --gray-700: #495057;
+    --gray-800: #343a40;
+    --gray-900: #212529;
+    
+    /* 响应式断点变量 */
+    --breakpoint-xs: 575.98px;
+    --breakpoint-sm: 767.98px;
+    --breakpoint-md: 991.98px;
+    --breakpoint-lg: 1199.98px;
+    --breakpoint-xl: 1399.98px;
     
     /* Surface Colors */
     --surface-primary: #ffffff;
@@ -51,53 +89,83 @@
     --surface-tertiary: #f1f5f9;
     
     /* Text Colors */
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-tertiary: #94a3b8;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-tertiary: #adb5bd;
+    --text-muted: #6c757d;
     
     /* Legacy Text Colors */
     /* Legacy text colors removed - use standard --text-primary and --text-secondary */
     
     /* Background Colors */
     --background-primary: #ffffff;
-    --background-secondary: #f5f5f7;
+    --background-secondary: #f8f9fa;
+    --background-tertiary: #e9ecef;
     
     /* Border Colors */
-    --border-color: #d2d2d7;
-    --border-color-light: #f3f4f6;
-    --border-color-alpha: rgba(0, 0, 0, 0.1);
-    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.1);
+    --border-color: #dee2e6;
+    --border-light: #e9ecef;
+    --border-dark: #ced4da;
     
     /* Spacing */
+    --spacing-1: 0.25rem;   /* 4px */
+    --spacing-2: 0.5rem;    /* 8px */
+    --spacing-3: 0.75rem;   /* 12px */
+    --spacing-4: 1rem;      /* 16px */
+    --spacing-5: 1.25rem;   /* 20px */
+    --spacing-6: 1.5rem;    /* 24px */
+    --spacing-8: 2rem;      /* 32px */
+    --spacing-10: 2.5rem;   /* 40px */
+    --spacing-12: 3rem;     /* 48px */
+    --spacing-16: 4rem;     /* 64px */
+    --spacing-20: 5rem;     /* 80px */
+    --spacing-24: 6rem;     /* 96px */
+    --spacing-32: 8rem;     /* 128px */
+    --spacing-40: 10rem;    /* 160px */
+    --spacing-48: 12rem;    /* 192px */
+    --spacing-56: 14rem;    /* 224px */
+    --spacing-64: 16rem;    /* 256px */
+    
+    /* 兼容性别名 */
     --spacing-3xs: 0.125rem;  /* 2px */
     --spacing-2xs: 0.1875rem; /* 3px */
-    --spacing-xs: 0.25rem;    /* 4px */
-    --spacing-sm: 0.5rem;     /* 8px */
-    --spacing-md: 1rem;       /* 16px */
-    --spacing-lg: 1.5rem;     /* 24px */
-    --spacing-xl: 2rem;       /* 32px */
-    --spacing-2xl: 3rem;      /* 48px */
-    --spacing-3xl: 4rem;      /* 64px */
-    --spacing-4: 1rem;        /* 16px - alias for --spacing-md */
-    --spacing-6: 1.5rem;      /* 24px - alias for --spacing-lg */
+    --spacing-xs: var(--spacing-1);
+    --spacing-sm: var(--spacing-2);
+    --spacing-md: var(--spacing-4);
+    --spacing-lg: var(--spacing-6);
+    --spacing-xl: var(--spacing-8);
+    --spacing-2xl: var(--spacing-12);
+    --spacing-3xl: var(--spacing-16);
     
     /* Border Radius */
+    --border-radius: 8px;
     --radius-none: 0;
+    --radius-xs: 2px;
     --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 8px;
-    --radius-xl: 12px;
-    --radius-2xl: 16px;
-    --border-radius-sm: 4px;   /* alias for --radius-sm */
-    --radius-full: 9999px;
-    --border-radius: 8px; /* Legacy support */
-    --border-radius-lg: 16px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 24px;
+    --radius-3xl: 32px;
+    --radius-full: 50%;
+    --radius-circle: 50%;
+    --radius-rounded: 9999px;
     
     /* Shadows and Effects */
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    --box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+    --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.25);
+    --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    --shadow-focus: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    --shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.12);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-dropdown: 0 8px 16px rgba(0, 0, 0, 0.15);
+    --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.1);
+
     --box-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --box-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     
@@ -107,6 +175,18 @@
     
     /* Typography */
     --font-family-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-family-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    
+    /* 字体权重 */
+    --font-thin: 100;
+    --font-light: 300;
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+    --font-extrabold: 800;
+    --font-black: 900;
     
     /* Font Sizes */
     --text-xs: 0.75rem;     /* 12px */
@@ -116,14 +196,21 @@
     --text-xl: 1.25rem;     /* 20px */
     --text-2xl: 1.5rem;     /* 24px */
     --text-3xl: 1.875rem;   /* 30px */
+    --text-4xl: 2.25rem;
+    --text-5xl: 3rem;
+    --text-6xl: 3.75rem;
     
     /* Transitions */
     --transition: 0.2s ease; /* Legacy support */
-    --transition-fast: all 0.15s ease-in-out;
-    --transition-normal: all 0.2s ease-in-out;
-    --transition-slow: all 0.3s ease-in-out;
-    --transition-slower: all 0.5s ease-in-out;
+    --transition-fast: 0.15s;
+    --transition-normal: 0.3s;
+    --transition-slow: 0.5s;
+    --transition-hover: 0.2s;
+    --transition-focus: 0.15s;
+    --transition-color: 0.15s;
+    --transition-shadow: 0.25s;
     --transition-medium: 0.3s;
+    --transition-standard: 0.3s;
     
     /* Transition Timing Functions */
     --ease-in: cubic-bezier(0.4, 0, 1, 1);
@@ -132,7 +219,6 @@
     
     /* base.html 特有变量（从内联样式迁移） */
     --sidebar-collapsed-width: 70px;
-    --shadow-hover: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.09); /* 替代旧的--card-shadow-hover */
     
     /* Legacy spacing and border-radius variables removed - use standard variables */
 }
@@ -176,7 +262,7 @@ body {
     background-color: var(--background-primary);
     height: 100vh;
     position: fixed;
-    box-shadow: var(--box-shadow);
+    box-shadow: var(--shadow);
     z-index: 1030;
     transition: all var(--transition-fast) ease;
     overflow-y: auto;
@@ -192,7 +278,7 @@ body {
 
 .sidebar-brand-icon {
     font-size: 24px;
-    color: var(--primary);
+    color: var(--primary-500);
     background-color: var(--primary-100);
     width: 36px;
     height: 36px;
@@ -241,12 +327,12 @@ body {
 }
 
 .nav-sidebar .nav-item .nav-link:hover {
-    color: var(--primary);
+    color: var(--primary-500);
     background-color: var(--primary-50);
 }
 
 .nav-sidebar .nav-item .nav-link.active {
-    color: var(--primary);
+    color: var(--primary-500);
     background-color: var(--primary-100);
     font-weight: 500;
 }
@@ -261,7 +347,7 @@ body {
 .header {
     height: var(--header-height);
     background-color: var(--surface-primary);
-    box-shadow: var(--box-shadow);
+    box-shadow: var(--shadow);
     padding: 0 var(--spacing-xl);
     display: flex;
     align-items: center;
@@ -418,8 +504,8 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.amount-positive { color: var(--success); }
-.amount-negative { color: var(--danger); }
+.amount-positive { color: var(--success-500); }
+.amount-negative { color: var(--danger-500); }
 .amount-neutral { color: var(--text-primary); }
 
 /* 金额大小变体 */
