@@ -10,7 +10,6 @@ from datetime import datetime, date
 import re
 import decimal
 from typing import Any
-from app.utils.db_utils import TransactionQueries
 
 class Transaction(BaseModel):
     """Transaction model representing financial transactions."""
@@ -163,41 +162,6 @@ class Transaction(BaseModel):
             if len(reference_number) > 50:
                 raise ValueError('Reference number cannot exceed 50 characters')
         return reference_number
-    
-    @classmethod
-    def get_by_account(cls, account_id, start_date=None, end_date=None, limit=None, offset=None):
-        """Get transactions by account with optional date filtering."""
-        return TransactionQueries.get_by_account(account_id, start_date, end_date, limit, offset)
-    
-    @classmethod
-    def get_by_type(cls, transaction_type, start_date=None, end_date=None):
-        """Get transactions by type with optional date filtering."""
-        return TransactionQueries.get_by_type(transaction_type, start_date, end_date)
-    
-    @classmethod
-    def search(cls, keyword, account_id=None, start_date=None, end_date=None):
-        """Search transactions by keyword in description or counterparty."""
-        return TransactionQueries.search(keyword, account_id, start_date, end_date)
-    
-    @classmethod
-    def get_income_transactions(cls, account_id=None, start_date=None, end_date=None):
-        """Get income transactions (positive amounts)."""
-        return TransactionQueries.get_income_transactions(account_id, start_date, end_date)
-    
-    @classmethod
-    def get_expense_transactions(cls, account_id=None, start_date=None, end_date=None):
-        """Get expense transactions (negative amounts)."""
-        return TransactionQueries.get_expense_transactions(account_id, start_date, end_date)
-    
-    @classmethod
-    def get_summary_by_type(cls, account_id=None, start_date=None, end_date=None):
-        """Get transaction summary grouped by type."""
-        return TransactionQueries.get_summary_by_type(account_id, start_date, end_date)
-    
-    @classmethod
-    def get_monthly_summary(cls, account_id=None, year=None):
-        """Get monthly transaction summary."""
-        return TransactionQueries.get_monthly_summary(account_id, year)
     
     def get_transaction_type(self) -> str:
         """Get transaction type based on amount.

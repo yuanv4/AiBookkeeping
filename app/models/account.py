@@ -6,7 +6,6 @@ This module contains the Account model class representing bank accounts.
 from .base import db, BaseModel
 from sqlalchemy.orm import validates
 from decimal import Decimal
-from app.utils.db_utils import AccountQueries
 
 class Account(BaseModel):
     """Account model representing bank accounts."""
@@ -55,31 +54,6 @@ class Account(BaseModel):
         if account_type and account_type.lower() not in valid_types:
             raise ValueError(f'Account type must be one of: {", ".join(valid_types)}')
         return account_type.lower() if account_type else 'checking'
-    
-    @classmethod
-    def get_by_bank_and_number(cls, bank_id, account_number):
-        """Get account by bank ID and account number."""
-        return AccountQueries.get_by_bank_and_number(bank_id, account_number)
-    
-    @classmethod
-    def get_or_create(cls, bank_id, account_number, account_name=None, currency='CNY', account_type='checking'):
-        """Get existing account or create new one."""
-        return AccountQueries.get_or_create(bank_id, account_number, account_name, currency, account_type)
-    
-    @classmethod
-    def get_all_accounts(cls, bank_id=None):
-        """Get all accounts, optionally filtered by bank."""
-        return AccountQueries.get_all_accounts(bank_id)
-    
-    @classmethod
-    def get_all_accounts_balance(cls):
-        """Get the sum of current balances for all accounts."""
-        return AccountQueries.get_all_accounts_balance()
-    
-    @classmethod
-    def get_monthly_balance_trends(cls, months=12):
-        """Get monthly balance trends for all accounts."""
-        return AccountQueries.get_monthly_balance_trends(months)
     
     def get_current_balance(self):
         """Calculate current balance based on the latest transaction's balance_after."""
