@@ -6,6 +6,7 @@ This module contains the Account model class representing bank accounts.
 from .base import db, BaseModel
 from sqlalchemy.orm import validates
 from decimal import Decimal
+from app.utils.db_utils import AccountQueries
 
 class Account(BaseModel):
     """Account model representing bank accounts."""
@@ -58,31 +59,27 @@ class Account(BaseModel):
     @classmethod
     def get_by_bank_and_number(cls, bank_id, account_number):
         """Get account by bank ID and account number."""
-        if not account_number:
-            return None
-        return cls.query.filter_by(bank_id=bank_id, account_number=account_number.strip()).first()
+        return AccountQueries.get_by_bank_and_number(bank_id, account_number)
     
     @classmethod
     def get_or_create(cls, bank_id, account_number, account_name=None, currency='CNY', account_type='checking'):
         """Get existing account or create new one."""
-        account = cls.get_by_bank_and_number(bank_id, account_number)
-        if not account:
-            account = cls.create(
-                bank_id=bank_id,
-                account_number=account_number,
-                account_name=account_name,
-                currency=currency,
-                account_type=account_type
-            )
-        return account
+        return AccountQueries.get_or_create(bank_id, account_number, account_name, currency, account_type)
     
     @classmethod
     def get_all_accounts(cls, bank_id=None):
         """Get all accounts, optionally filtered by bank."""
-        query = cls.query
-        if bank_id:
-            query = query.filter_by(bank_id=bank_id)
-        return query.order_by(cls.account_name, cls.account_number).all()
+        return AccountQueries.get_all_accounts(bank_id)
+    
+    @classmethod
+    def get_all_accounts_balance(cls):
+        """Get the sum of current balances for all accounts."""
+        return AccountQueries.get_all_accounts_balance()
+    
+    @classmethod
+    def get_monthly_balance_trends(cls, months=12):
+        """Get monthly balance trends for all accounts."""
+        return AccountQueries.get_monthly_balance_trends(months)
     
     def get_current_balance(self):
         """Calculate current balance based on the latest transaction's balance_after."""
@@ -132,59 +129,3 @@ class Account(BaseModel):
     
     def __repr__(self):
         return f'<Account(id={self.id}, bank_id={self.bank_id}, number="{self.account_number}", name="{self.account_name}")>'
-    
-    @classmethod
-    def get_all_accounts_balance(cls):
-        """Get the sum of current balances for all accounts.
-        
-        Returns:
-            Decimal: The sum of all account balances
-        """
-        from .transaction import Transaction
-        from sqlalchemy import func
-        
-        # 获取所有账户的最新余额总和
-        account_balances = db.session.query(
-            Transaction.account_id,
-            Transaction.balance_after
-        ).distinct(
-            Transaction.account_id
-        ).order_by(
-            Transaction.account_id,
-            Transaction.date.desc(),
-            Transaction.created_at.desc()
-        ).all()
-        
-        # 计算总余额，保持 Decimal 类型
-        return sum(Decimal(str(balance)) for _, balance in account_balances) if account_balances else Decimal('0.00')
-    
-    @classmethod
-    def get_monthly_balance_trends(cls, months=12):
-        """Get monthly balance trends for all accounts.
-        
-        Args:
-            months (int): Number of months to look back
-            
-        Returns:
-            list: List of dicts containing month and balance for each month
-        """
-        from .transaction import Transaction
-        from sqlalchemy import func
-        
-        # 获取最近N个月的余额趋势
-        monthly_trends = db.session.query(
-            func.strftime('%Y-%m', Transaction.date).label('month'),
-            func.sum(Transaction.balance_after).label('balance')
-        ).filter(
-            Transaction.date >= func.date('now', f'-{months} months')
-        ).group_by(
-            func.strftime('%Y-%m', Transaction.date)
-        ).order_by(
-            func.strftime('%Y-%m', Transaction.date)
-        ).all()
-        
-        # 返回月度趋势数据，保持 Decimal 类型
-        return [{
-            'month': month,
-            'balance': Decimal(str(balance))
-        } for month, balance in monthly_trends]

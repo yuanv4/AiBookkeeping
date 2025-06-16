@@ -133,6 +133,153 @@ class TransactionQueries:
         """获取所有不同的交易对手"""
         counterparties = db.session.query(Transaction.counterparty).distinct().all()
         return [c[0] for c in counterparties if c[0]]
+    
+    @staticmethod
+    def get_by_account(account_id, start_date=None, end_date=None, limit=None, offset=None):
+        """Get transactions by account with optional date filtering."""
+        query = Transaction.query.filter_by(account_id=account_id)
+        
+        if start_date:
+            query = query.filter(Transaction.date >= start_date)
+        if end_date:
+            query = query.filter(Transaction.date <= end_date)
+        
+        query = query.order_by(Transaction.date.desc(), Transaction.created_at.desc())
+        
+        if offset:
+            query = query.offset(offset)
+        if limit:
+            query = query.limit(limit)
+        
+        return query.all()
+    
+    @staticmethod
+    def get_by_type(transaction_type, start_date=None, end_date=None):
+        """Get transactions by type with optional date filtering."""
+        if transaction_type == 'income':
+            query = Transaction.query.filter(Transaction.amount > 0)
+        elif transaction_type == 'expense':
+            query = Transaction.query.filter(Transaction.amount < 0)
+        elif transaction_type == 'transfer':
+            query = Transaction.query.filter(Transaction.amount == 0)
+        else:
+            raise ValueError(f"Invalid transaction type: {transaction_type}")
+        
+        if start_date:
+            query = query.filter(Transaction.date >= start_date)
+        if end_date:
+            query = query.filter(Transaction.date <= end_date)
+        
+        return query.order_by(Transaction.date.desc()).all()
+    
+    @staticmethod
+    def search(keyword, account_id=None, start_date=None, end_date=None):
+        """Search transactions by keyword in description or counterparty."""
+        query = Transaction.query
+        
+        if account_id:
+            query = query.filter_by(account_id=account_id)
+        
+        if start_date:
+            query = query.filter(Transaction.date >= start_date)
+        if end_date:
+            query = query.filter(Transaction.date <= end_date)
+        
+        search_filter = db.or_(
+            Transaction.description.ilike(f'%{keyword}%'),
+            Transaction.counterparty.ilike(f'%{keyword}%')
+        )
+        query = query.filter(search_filter)
+        
+        return query.order_by(Transaction.date.desc()).all()
+    
+    @staticmethod
+    def get_income_transactions(account_id=None, start_date=None, end_date=None):
+        """Get income transactions (positive amounts)."""
+        query = Transaction.query.filter(Transaction.amount > 0)
+        
+        if account_id:
+            query = query.filter_by(account_id=account_id)
+        if start_date:
+            query = query.filter(Transaction.date >= start_date)
+        if end_date:
+            query = query.filter(Transaction.date <= end_date)
+        
+        return query.order_by(Transaction.date.desc()).all()
+    
+    @staticmethod
+    def get_expense_transactions(account_id=None, start_date=None, end_date=None):
+        """Get expense transactions (negative amounts)."""
+        query = Transaction.query.filter(Transaction.amount < 0)
+        
+        if account_id:
+            query = query.filter_by(account_id=account_id)
+        if start_date:
+            query = query.filter(Transaction.date >= start_date)
+        if end_date:
+            query = query.filter(Transaction.date <= end_date)
+        
+        return query.order_by(Transaction.date.desc()).all()
+    
+    @staticmethod
+    def get_summary_by_type(account_id=None, start_date=None, end_date=None):
+        """Get transaction summary grouped by type."""
+        income_query = db.session.query(
+            db.literal('income').label('type'),
+            db.func.count(Transaction.id).label('count'),
+            db.func.sum(Transaction.amount).label('total')
+        ).filter(Transaction.amount > 0)
+        
+        expense_query = db.session.query(
+            db.literal('expense').label('type'),
+            db.func.count(Transaction.id).label('count'),
+            db.func.sum(Transaction.amount).label('total')
+        ).filter(Transaction.amount < 0)
+        
+        transfer_query = db.session.query(
+            db.literal('transfer').label('type'),
+            db.func.count(Transaction.id).label('count'),
+            db.func.sum(Transaction.amount).label('total')
+        ).filter(Transaction.amount == 0)
+        
+        for query in [income_query, expense_query, transfer_query]:
+            if account_id:
+                query = query.filter(Transaction.account_id == account_id)
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            if end_date:
+                query = query.filter(Transaction.date <= end_date)
+        
+        results = income_query.union_all(expense_query).union_all(transfer_query).all()
+        
+        formatted_results = []
+        for type_name, count, total in results:
+            formatted_results.append({
+                'name': type_name,
+                'is_income': type_name == 'income',
+                'count': count,
+                'total': total
+            })
+        
+        return sorted(formatted_results, key=lambda x: x['name'])
+    
+    @staticmethod
+    def get_monthly_summary(account_id=None, year=None):
+        """Get monthly transaction summary."""
+        if not year:
+            year = date.today().year
+        
+        query = db.session.query(
+            db.extract('month', Transaction.date).label('month'),
+            db.func.sum(db.case((Transaction.amount > 0, Transaction.amount), else_=0)).label('income'),
+            db.func.sum(db.case((Transaction.amount < 0, Transaction.amount), else_=0)).label('expense'),
+            db.func.count(Transaction.id).label('count')
+        ).filter(db.extract('year', Transaction.date) == year)
+        
+        if account_id:
+            query = query.filter(Transaction.account_id == account_id)
+        
+        return query.group_by(db.extract('month', Transaction.date)).order_by('month').all()
 
 
 class AccountQueries:
@@ -158,19 +305,101 @@ class AccountQueries:
     def get_by_id(account_id: int) -> Optional[Account]:
         """根据ID获取账户"""
         return QueryBuilder(Account).get(account_id)
+    
+    @staticmethod
+    def get_by_bank_and_number(bank_id, account_number):
+        """Get account by bank ID and account number."""
+        if not account_number:
+            return None
+        return Account.query.filter_by(bank_id=bank_id, account_number=account_number.strip()).first()
+    
+    @staticmethod
+    def get_or_create(bank_id, account_number, account_name=None, currency='CNY', account_type='checking'):
+        """Get existing account or create new one."""
+        account = AccountQueries.get_by_bank_and_number(bank_id, account_number)
+        if not account:
+            account = Account.create(
+                bank_id=bank_id,
+                account_number=account_number,
+                account_name=account_name,
+                currency=currency,
+                account_type=account_type
+            )
+        return account
+    
+    @staticmethod
+    def get_all_accounts(bank_id=None):
+        """Get all accounts, optionally filtered by bank."""
+        query = Account.query
+        if bank_id:
+            query = query.filter_by(bank_id=bank_id)
+        return query.order_by(Account.account_name, Account.account_number).all()
+    
+    @staticmethod
+    def get_all_accounts_balance():
+        """Get the sum of current balances for all accounts."""
+        from app.models.transaction import Transaction
+        from sqlalchemy import func
+        from decimal import Decimal
+        
+        account_balances = db.session.query(
+            Transaction.account_id,
+            Transaction.balance_after
+        ).distinct(
+            Transaction.account_id
+        ).order_by(
+            Transaction.account_id,
+            Transaction.date.desc(),
+            Transaction.created_at.desc()
+        ).all()
+        
+        return sum(Decimal(str(balance)) for _, balance in account_balances) if account_balances else Decimal('0.00')
+    
+    @staticmethod
+    def get_monthly_balance_trends(months=12):
+        """Get monthly balance trends for all accounts."""
+        from app.models.transaction import Transaction
+        from sqlalchemy import func
+        from decimal import Decimal
+        
+        monthly_trends = db.session.query(
+            func.strftime('%Y-%m', Transaction.date).label('month'),
+            func.sum(Transaction.balance_after).label('balance')
+        ).filter(
+            Transaction.date >= func.date('now', f'-{months} months')
+        ).group_by(
+            func.strftime('%Y-%m', Transaction.date)
+        ).order_by(
+            func.strftime('%Y-%m', Transaction.date)
+        ).all()
+        
+        return [{
+            'month': month,
+            'balance': Decimal(str(balance))
+        } for month, balance in monthly_trends]
 
 
 class BankQueries:
     """银行查询工具"""
     
     @staticmethod
-    def get_or_create(name: str, code: Optional[str] = None) -> Bank:
-        """获取或创建银行"""
-        bank = QueryBuilder(Bank).filter_by(name=name).first()
+    def get_by_name(name):
+        """Get bank by name."""
+        return Bank.query.filter_by(name=name.strip()).first()
+    
+    @staticmethod
+    def get_by_code(code):
+        """Get bank by code."""
+        if not code:
+            return None
+        return Bank.query.filter_by(code=code.strip().upper()).first()
+    
+    @staticmethod
+    def get_or_create(name, code=None):
+        """Get existing bank or create new one."""
+        bank = BankQueries.get_by_name(name)
         if not bank:
-            bank = Bank(name=name, code=code)
-            db.session.add(bank)
-            db.session.commit()
+            bank = Bank.create(name=name, code=code)
         return bank
     
     @staticmethod

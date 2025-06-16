@@ -10,6 +10,7 @@ from datetime import datetime, date
 import re
 import decimal
 from typing import Any
+from app.utils.db_utils import TransactionQueries
 
 class Transaction(BaseModel):
     """Transaction model representing financial transactions."""
@@ -163,26 +164,40 @@ class Transaction(BaseModel):
                 raise ValueError('Reference number cannot exceed 50 characters')
         return reference_number
     
-
-    
     @classmethod
     def get_by_account(cls, account_id, start_date=None, end_date=None, limit=None, offset=None):
         """Get transactions by account with optional date filtering."""
-        query = cls.query.filter_by(account_id=account_id)
-        
-        if start_date:
-            query = query.filter(cls.date >= start_date)
-        if end_date:
-            query = query.filter(cls.date <= end_date)
-        
-        query = query.order_by(cls.date.desc(), cls.created_at.desc())
-        
-        if offset:
-            query = query.offset(offset)
-        if limit:
-            query = query.limit(limit)
-        
-        return query.all()
+        return TransactionQueries.get_by_account(account_id, start_date, end_date, limit, offset)
+    
+    @classmethod
+    def get_by_type(cls, transaction_type, start_date=None, end_date=None):
+        """Get transactions by type with optional date filtering."""
+        return TransactionQueries.get_by_type(transaction_type, start_date, end_date)
+    
+    @classmethod
+    def search(cls, keyword, account_id=None, start_date=None, end_date=None):
+        """Search transactions by keyword in description or counterparty."""
+        return TransactionQueries.search(keyword, account_id, start_date, end_date)
+    
+    @classmethod
+    def get_income_transactions(cls, account_id=None, start_date=None, end_date=None):
+        """Get income transactions (positive amounts)."""
+        return TransactionQueries.get_income_transactions(account_id, start_date, end_date)
+    
+    @classmethod
+    def get_expense_transactions(cls, account_id=None, start_date=None, end_date=None):
+        """Get expense transactions (negative amounts)."""
+        return TransactionQueries.get_expense_transactions(account_id, start_date, end_date)
+    
+    @classmethod
+    def get_summary_by_type(cls, account_id=None, start_date=None, end_date=None):
+        """Get transaction summary grouped by type."""
+        return TransactionQueries.get_summary_by_type(account_id, start_date, end_date)
+    
+    @classmethod
+    def get_monthly_summary(cls, account_id=None, year=None):
+        """Get monthly transaction summary."""
+        return TransactionQueries.get_monthly_summary(account_id, year)
     
     def get_transaction_type(self) -> str:
         """Get transaction type based on amount.
@@ -196,150 +211,6 @@ class Transaction(BaseModel):
             return 'expense'
         else:
             return 'transfer'
-    
-    @classmethod
-    def get_by_type(cls, transaction_type: str, start_date=None, end_date=None):
-        """Get transactions by type with optional date filtering.
-        
-        Args:
-            transaction_type: 'income', 'expense', or 'transfer'
-            start_date: Optional start date
-            end_date: Optional end date
-            
-        Returns:
-            List[Transaction]: List of transactions matching the type
-        """
-        if transaction_type == 'income':
-            query = cls.query.filter(cls.amount > 0)
-        elif transaction_type == 'expense':
-            query = cls.query.filter(cls.amount < 0)
-        elif transaction_type == 'transfer':
-            query = cls.query.filter(cls.amount == 0)
-        else:
-            raise ValueError(f"Invalid transaction type: {transaction_type}")
-        
-        if start_date:
-            query = query.filter(cls.date >= start_date)
-        if end_date:
-            query = query.filter(cls.date <= end_date)
-        
-        return query.order_by(cls.date.desc()).all()
-    
-    @classmethod
-    def search(cls, keyword, account_id=None, start_date=None, end_date=None):
-        """Search transactions by keyword in description or counterparty."""
-        query = cls.query
-        
-        if account_id:
-            query = query.filter_by(account_id=account_id)
-        
-        if start_date:
-            query = query.filter(cls.date >= start_date)
-        if end_date:
-            query = query.filter(cls.date <= end_date)
-        
-        # 搜索关键词
-        search_filter = db.or_(
-            cls.description.ilike(f'%{keyword}%'),
-            cls.counterparty.ilike(f'%{keyword}%')
-        )
-        query = query.filter(search_filter)
-        
-        return query.order_by(cls.date.desc()).all()
-    
-    @classmethod
-    def get_income_transactions(cls, account_id=None, start_date=None, end_date=None):
-        """Get income transactions (positive amounts)."""
-        query = cls.query.filter(cls.amount > 0)
-        
-        if account_id:
-            query = query.filter_by(account_id=account_id)
-        if start_date:
-            query = query.filter(cls.date >= start_date)
-        if end_date:
-            query = query.filter(cls.date <= end_date)
-        
-        return query.order_by(cls.date.desc()).all()
-    
-    @classmethod
-    def get_expense_transactions(cls, account_id=None, start_date=None, end_date=None):
-        """Get expense transactions (negative amounts)."""
-        query = cls.query.filter(cls.amount < 0)
-        
-        if account_id:
-            query = query.filter_by(account_id=account_id)
-        if start_date:
-            query = query.filter(cls.date >= start_date)
-        if end_date:
-            query = query.filter(cls.date <= end_date)
-        
-        return query.order_by(cls.date.desc()).all()
-    
-    @classmethod
-    def get_summary_by_type(cls, account_id=None, start_date=None, end_date=None):
-        """Get transaction summary grouped by type."""
-        # 使用子查询获取每种类型的统计
-        income_query = db.session.query(
-            db.literal('income').label('type'),
-            db.func.count(cls.id).label('count'),
-            db.func.sum(cls.amount).label('total')
-        ).filter(cls.amount > 0)
-        
-        expense_query = db.session.query(
-            db.literal('expense').label('type'),
-            db.func.count(cls.id).label('count'),
-            db.func.sum(cls.amount).label('total')
-        ).filter(cls.amount < 0)
-        
-        transfer_query = db.session.query(
-            db.literal('transfer').label('type'),
-            db.func.count(cls.id).label('count'),
-            db.func.sum(cls.amount).label('total')
-        ).filter(cls.amount == 0)
-        
-        # 应用通用过滤条件
-        for query in [income_query, expense_query, transfer_query]:
-            if account_id:
-                query = query.filter(cls.account_id == account_id)
-            if start_date:
-                query = query.filter(cls.date >= start_date)
-            if end_date:
-                query = query.filter(cls.date <= end_date)
-        
-        # 合并结果
-        results = income_query.union_all(expense_query).union_all(transfer_query).all()
-        
-        # 转换结果格式
-        formatted_results = []
-        for type_name, count, total in results:
-            formatted_results.append({
-                'name': type_name,
-                'is_income': type_name == 'income',
-                'count': count,
-                'total': total
-            })
-        
-        return sorted(formatted_results, key=lambda x: x['name'])
-    
-    @classmethod
-    def get_monthly_summary(cls, account_id=None, year=None):
-        """Get monthly transaction summary."""
-        if not year:
-            year = date.today().year
-        
-        query = db.session.query(
-            db.extract('month', cls.date).label('month'),
-            db.func.sum(db.case((cls.amount > 0, cls.amount), else_=0)).label('income'),
-            db.func.sum(db.case((cls.amount < 0, cls.amount), else_=0)).label('expense'),
-            db.func.count(cls.id).label('count')
-        ).filter(db.extract('year', cls.date) == year)
-        
-        if account_id:
-            query = query.filter(cls.account_id == account_id)
-        
-        return query.group_by(db.extract('month', cls.date)).order_by('month').all()
-    
-
     
     def is_income(self):
         """Check if this is an income transaction."""

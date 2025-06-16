@@ -5,6 +5,7 @@ This module contains the Bank model class representing financial institutions.
 
 from .base import db, BaseModel
 from sqlalchemy.orm import validates
+from app.utils.db_utils import BankQueries
 
 class Bank(BaseModel):
     """Bank model representing financial institutions."""
@@ -36,22 +37,17 @@ class Bank(BaseModel):
     @classmethod
     def get_by_name(cls, name):
         """Get bank by name."""
-        return cls.query.filter_by(name=name.strip()).first()
+        return BankQueries.get_by_name(name)
     
     @classmethod
     def get_by_code(cls, code):
         """Get bank by code."""
-        if not code:
-            return None
-        return cls.query.filter_by(code=code.strip().upper()).first()
+        return BankQueries.get_by_code(code)
     
     @classmethod
     def get_or_create(cls, name, code=None):
         """Get existing bank or create new one."""
-        bank = cls.get_by_name(name)
-        if not bank:
-            bank = cls.create(name=name, code=code)
-        return bank
+        return BankQueries.get_or_create(name, code)
     
     def to_dict(self):
         """Convert bank instance to dictionary with additional info."""
