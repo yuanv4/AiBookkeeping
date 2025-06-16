@@ -53,20 +53,3 @@ class BankService:
         except Exception as e:
             logger.error(f"Error deleting bank {bank_id}: {e}")
             raise
-
-    @staticmethod
-    def create_default_banks() -> None:
-        """Create default banks if they don't exist."""
-        default_banks = [
-            {'name': '招商银行', 'code': 'CMB'},
-            {'name': '建设银行', 'code': 'CCB'},
-        ]
-        
-        created_count = 0
-        for bank_data in default_banks:
-            if not Bank.get_by_name(bank_data['name']):
-                Bank.create(**bank_data)
-                created_count += 1
-        
-        if created_count > 0:
-            logger.info(f"Created {created_count} default banks")
