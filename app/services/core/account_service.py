@@ -31,11 +31,9 @@ class AccountService:
             raise
 
     @staticmethod
-    def get_all_accounts(active_only: bool = True) -> List[Account]:
+    def get_all_accounts() -> List[Account]:
         """Get all accounts."""
-        if active_only:
-            return Account.get_active_accounts()
-        return Account.get_all()
+        return Account.get_all_accounts()
 
     @staticmethod
     def update_account(account_id: int, **kwargs) -> bool:
@@ -51,15 +49,12 @@ class AccountService:
             raise
 
     @staticmethod
-    def delete_account(account_id: int, soft_delete: bool = True) -> bool:
-        """Delete account (soft delete by default)."""
+    def delete_account(account_id: int) -> bool:
+        """Delete account."""
         try:
             account = Account.get_by_id(account_id)
             if account:
-                if soft_delete:
-                    account.deactivate()
-                else:
-                    account.delete()
+                account.delete()
                 return True
             return False
         except Exception as e:

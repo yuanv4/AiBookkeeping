@@ -170,12 +170,11 @@ class BankQueries:
     """银行查询工具"""
     
     @staticmethod
-    def get_or_create(name: str, code: Optional[str] = None, 
-                     country: str = 'CN') -> Bank:
+    def get_or_create(name: str, code: Optional[str] = None) -> Bank:
         """获取或创建银行"""
         bank = QueryBuilder(Bank).filter_by(name=name).first()
         if not bank:
-            bank = Bank(name=name, code=code, country=country)
+            bank = Bank(name=name, code=code)
             db.session.add(bank)
             db.session.commit()
         return bank

@@ -12,14 +12,10 @@ def dashboard():
     try:
         # 获取账户余额（简单计算）
         balance = 0
-        
         # 准备统计数据
         stats = {
             'balance': balance,
         }
-        
-        current_app.logger.info(f"仪表盘数据加载成功，共 {total_transactions} 条交易记录")
-        
         return render_template('dashboard.html', stats=stats)
         
     except Exception as e:

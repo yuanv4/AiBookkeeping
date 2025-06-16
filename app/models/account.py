@@ -17,9 +17,6 @@ class Account(BaseModel):
     account_name = db.Column(db.String(100))
     currency = db.Column(db.String(3), default='CNY', nullable=False)
     account_type = db.Column(db.String(20), default='checking')  # checking, savings, credit, etc.
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    opening_balance = db.Column(db.Numeric(15, 2), default=0.00)
-    description = db.Column(db.Text)
     
     # Relationships
     transactions = db.relationship('Transaction', backref='account', lazy='dynamic', cascade='all, delete-orphan')
@@ -58,16 +55,6 @@ class Account(BaseModel):
             raise ValueError(f'Account type must be one of: {", ".join(valid_types)}')
         return account_type.lower() if account_type else 'checking'
     
-    @validates('opening_balance')
-    def validate_opening_balance(self, key, opening_balance):
-        """Validate opening balance."""
-        if opening_balance is not None:
-            if isinstance(opening_balance, (int, float)):
-                opening_balance = Decimal(str(opening_balance))
-            elif not isinstance(opening_balance, Decimal):
-                opening_balance = Decimal(str(opening_balance))
-        return opening_balance or Decimal('0.00')
-    
     @classmethod
     def get_by_bank_and_number(cls, bank_id, account_number):
         """Get account by bank ID and account number."""
@@ -90,9 +77,9 @@ class Account(BaseModel):
         return account
     
     @classmethod
-    def get_active_accounts(cls, bank_id=None):
-        """Get all active accounts, optionally filtered by bank."""
-        query = cls.query.filter_by(is_active=True)
+    def get_all_accounts(cls, bank_id=None):
+        """Get all accounts, optionally filtered by bank."""
+        query = cls.query
         if bank_id:
             query = query.filter_by(bank_id=bank_id)
         return query.order_by(cls.account_name, cls.account_number).all()
@@ -101,8 +88,7 @@ class Account(BaseModel):
         """Calculate current balance based on transactions."""
         from .transaction import Transaction
         total_transactions = db.session.query(db.func.sum(Transaction.amount)).filter_by(account_id=self.id).scalar()
-        balance = self.opening_balance + (total_transactions or Decimal('0.00'))
-        return balance
+        return total_transactions or Decimal('0.00')
     
     def get_transactions_count(self):
         """Get the number of transactions for this account."""
@@ -135,16 +121,6 @@ class Account(BaseModel):
         
         total = query.with_entities(db.func.sum(Transaction.amount)).scalar()
         return abs(total) if total else Decimal('0.00')
-    
-    def deactivate(self):
-        """Deactivate the account instead of deleting."""
-        self.is_active = False
-        self.save()
-    
-    def activate(self):
-        """Activate the account."""
-        self.is_active = True
-        self.save()
     
     def to_dict(self):
         """Convert account instance to dictionary with additional info."""
