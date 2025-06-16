@@ -102,10 +102,10 @@ def create_app():
     # 注册自定义模板过滤器
     register_template_filters(app)
 
-    # 注册蓝图
-    from .blueprints.main.routes import main as main_blueprint
-    app.register_blueprint(main_blueprint)
-    app.logger.info("已注册 main_blueprint")
+    # 注册main蓝图（仪表盘和主页）
+    from .blueprints.main import main_bp
+    app.register_blueprint(main_bp)
+    app.logger.info("已注册 main_bp")
 
     from .blueprints.transactions.routes import transactions_bp
     app.register_blueprint(transactions_bp, url_prefix='/transactions')
