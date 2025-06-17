@@ -18,6 +18,7 @@ from app.models import Transaction, Account, Bank, db
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import text as sql_text
 from app.services.core.transaction_service import TransactionService
 from app.services.core.account_service import AccountService
 from app.services.core.bank_service import BankService
@@ -873,32 +874,53 @@ class FinancialService:
             'expense_ratio': expense_ratio
         }
     
-    # ==================== 兼容性方法（来自FinancialAnalyzer）====================
+    def get_all_accounts_balance_with_window(self) -> Decimal:
+        """使用窗口函数获取所有账户的当前余额总和"""
+        # 使用原生SQL窗口函数查询
+        query = sql_text("""
+            WITH ranked_transactions AS (
+                SELECT 
+                    account_id,
+                    balance_after,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY account_id 
+                        ORDER BY date DESC, created_at DESC
+                    ) as rn
+                FROM transactions
+            )
+            SELECT account_id, balance_after 
+            FROM ranked_transactions 
+            WHERE rn = 1
+        """)
+        
+        result = self.db.execute(query)
+        account_balances = result.fetchall()
+        
+        return sum(Decimal(str(balance)) for _, balance in account_balances) if account_balances else Decimal('0.00')
     
-    def generate_financial_summary(self) -> Dict[str, Any]:
-        """生成财务总览（兼容FinancialAnalyzer接口）"""
-        return self.generate_summary()
-    
-    # ==================== 从AccountService迁移的方法 ====================
+    def get_all_accounts_balance_fallback(self) -> Decimal:
+        """备选方案：遍历账户获取余额"""
+        try:
+            accounts = self.db.query(Account).all()
+            total_balance = Decimal('0.00')
+            
+            for account in accounts:
+                balance = account.get_current_balance()
+                total_balance += balance
+                
+            return total_balance
+        except Exception as e:
+            self.logger.error(f"备选方案也失败: {e}")
+            return Decimal('0.00')
     
     def get_all_accounts_balance(self) -> Decimal:
         """获取所有账户的当前余额总和"""
         try:
-            account_balances = self.db.query(
-                Transaction.account_id,
-                Transaction.balance_after
-            ).distinct(
-                Transaction.account_id
-            ).order_by(
-                Transaction.account_id,
-                Transaction.date.desc(),
-                Transaction.created_at.desc()
-            ).all()
-            
-            return sum(Decimal(str(balance)) for _, balance in account_balances) if account_balances else Decimal('0.00')
+            # 使用新的窗口函数查询方法
+            return self.get_all_accounts_balance_with_window()
         except Exception as e:
-            self.logger.error(f"获取所有账户余额失败: {e}")
-            return Decimal('0.00')
+            self.logger.error(f"窗口函数查询失败，使用备选方案: {e}")
+            return self.get_all_accounts_balance_fallback()
     
     def get_monthly_balance_trends(self, months: int = 12) -> List[Dict[str, Any]]:
         """获取所有账户的月度余额趋势"""
