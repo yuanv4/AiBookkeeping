@@ -89,6 +89,15 @@ const IncomeAnalysis = {
             return;
         }
         
+        
+        // 设置canvas尺寸
+        const container = canvas.parentElement;
+        if (container) {
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = Math.min(rect.height, 280); // 最大高度280px
+        }
+        
         const ctx = canvas.getContext('2d');
         
         // 准备数据
@@ -177,6 +186,15 @@ const IncomeAnalysis = {
         if (!canvas) {
             console.warn('收入来源图画布未找到');
             return;
+        }
+        
+        
+        // 设置canvas尺寸
+        const container = canvas.parentElement;
+        if (container) {
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = Math.min(rect.height, 280); // 最大高度280px
         }
         
         const ctx = canvas.getContext('2d');

@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="page-container">
     {{ page_header("财务仪表盘", "", "layout-dashboard") }}
     
     <!-- 数据容器 -->
@@ -18,39 +18,24 @@
          style="display: none;">
     </div>
     
-    <!-- 统计卡片行 -->
-    <div class="row g-4">
+    <div class="cards-grid cols-4">
         <!-- 账户余额卡片 -->
-        <div class="col-12">
-            <div class="dashboard-card metric-card">
-                <div class="card-header">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="text-muted-custom fs-small">账户总余额</div>
-                        <div class="d-flex align-items-center">
-                            {{ icon("wallet", "sm", "text-primary-custom me-1") }}
-                        </div>
+        {{ stat_card("wallet", "¥" + "%.2f"|format(template_data.balance or 0), "账户总余额", "success", "success") }}
+    </div>
+    
+    <!-- 余额趋势图表卡片 -->
+    <div class="col-12">
+        <div class="dashboard-card chart-wrapper">
+            <div class="card-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="text-muted-custom fs-small">最近12个月余额趋势</div>
+                    <div class="d-flex align-items-center">
+                        {{ icon("trending-up", "sm", "text-primary-custom me-1") }}
                     </div>
-                </div>
-                <div class="card-body">
-                    <div class="metric-value text-success">¥{{ "%.2f"|format(template_data.balance or 0) }}</div>
                 </div>
             </div>
-        </div>
-        
-        <!-- 余额趋势图表卡片 -->
-        <div class="col-12">
-            <div class="dashboard-card chart-wrapper">
-                <div class="card-header">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="text-muted-custom fs-small">最近12个月余额趋势</div>
-                        <div class="d-flex align-items-center">
-                            {{ icon("trending-up", "sm", "text-primary-custom me-1") }}
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <canvas id="balanceTrendChart" class="chart-canvas"></canvas>
-                </div>
+            <div class="card-body">
+                <canvas id="balanceTrendChart" class="chart-canvas"></canvas>
             </div>
         </div>
     </div>

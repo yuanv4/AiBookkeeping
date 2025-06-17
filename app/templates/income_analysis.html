@@ -14,16 +14,16 @@
     <!-- 收入关键指标卡片网格 -->
     <div class="cards-grid cols-4">
         <!-- 总收入卡片 -->
-        {{ stat_card("trending-up", "¥" + "%.2f"|format(income_data.total_income or 0), "总收入", "success", "success") }}
+        {{ stat_card("trending-up", "¥" + "%.2f"|format(template_data.total_income or 0), "总收入", "success", "success") }}
         
         <!-- 月均收入卡片 -->
-        {{ stat_card("calendar", "¥" + "%.2f"|format(income_data.avg_monthly_income or 0), "月均收入", "primary", "primary") }}
+        {{ stat_card("calendar", "¥" + "%.2f"|format(template_data.avg_monthly_income or 0), "月均收入", "primary", "primary") }}
         
         <!-- 收入增长率卡片 -->
-        {{ stat_card("arrow-up-right", "%.1f"|format(income_data.income_growth_rate or 0) + "%", "收入增长率", "info", "info") }}
+        {{ stat_card("arrow-up-right", "%.1f"|format(template_data.income_growth_rate or 0) + "%", "收入增长率", "info", "info") }}
         
         <!-- 收入笔数卡片 -->
-        {{ stat_card("hash", income_data.transaction_count or 0, "收入笔数", "warning", "warning") }}
+        {{ stat_card("hash", template_data.transaction_count or 0, "收入笔数", "warning", "warning") }}
     </div>
     
     <!-- 图表分析区域 -->
@@ -31,7 +31,7 @@
         <!-- 月度收入趋势图 -->
         {% call card("月度收入趋势", "trending-up") %}
         <div class="chart-container">
-            <canvas id="incomeMonthlyTrendChart" width="400" height="200"></canvas>
+            <canvas id="incomeMonthlyTrendChart"></canvas>
         </div>
         <div class="chart-legend mt-3">
             <small class="text-muted-custom">显示过去12个月的收入变化趋势</small>
@@ -41,7 +41,7 @@
         <!-- 收入来源分析图 -->
         {% call card("收入来源分析", "pie-chart") %}
         <div class="chart-container">
-            <canvas id="incomeSourceChart" width="400" height="200"></canvas>
+            <canvas id="incomeSourceChart"></canvas>
         </div>
         <div class="chart-legend mt-3">
             <small class="text-muted-custom">按收入来源分类统计</small>
@@ -63,8 +63,8 @@
                 </tr>
             </thead>
             <tbody id="incomeDetailsTable">
-                {% if income_data.monthly_trends %}
-                    {% for trend in income_data.monthly_trends %}
+                {% if template_data.monthly_trends %}
+                    {% for trend in template_data.monthly_trends %}
                     <tr>
                         <td>{{ trend.month }}</td>
                         <td class="text-success fw-bold">¥{{ "%.2f"|format(trend.amount or 0) }}</td>
@@ -104,11 +104,11 @@
 <script src="{{ url_for('static', filename='js/income.js') }}"></script>
 <!-- 收入数据容器，用于传递后端数据到JavaScript -->
     <div id="income-data" style="display: none;"
-         data-monthly-trends="{{ income_data.monthly_trends | tojson | e }}"
-         data-income-sources="{{ income_data.income_sources | tojson | e }}"
-         data-total-income="{{ income_data.total_income }}"
-         data-avg-monthly-income="{{ income_data.avg_monthly_income }}"
-         data-growth-rate="{{ income_data.growth_rate }}"
-         data-transaction-count="{{ income_data.transaction_count }}">
+         data-monthly-trends="{{ template_data.monthly_trends | tojson | e }}"
+         data-income-sources="{{ template_data.income_sources | tojson | e }}"
+         data-total-income="{{ template_data.total_income }}"
+         data-avg-monthly-income="{{ template_data.avg_monthly_income }}"
+         data-growth-rate="{{ template_data.growth_rate }}"
+         data-transaction-count="{{ template_data.transaction_count }}">
     </div>
 {% endblock %}

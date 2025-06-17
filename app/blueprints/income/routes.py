@@ -29,8 +29,15 @@ def income_analysis():
         )
         # 准备模板数据
         template_data = {
-            'income_data': analyze_income_result,
-            'current_date': datetime.now().strftime('%Y-%m-%d'),
+            'total_income': float(analyze_income_result['total_income']),
+            'avg_monthly_income': float(analyze_income_result['avg_monthly_income']),
+            'income_growth_rate': float(analyze_income_result['income_growth_rate']),
+            'income_sources': analyze_income_result['income_sources'],
+            'monthly_trends': [{
+                'month': trend['month'],
+                'balance': float(trend['balance'])
+            } for trend in analyze_income_result['monthly_trends']],
+            'transaction_count': analyze_income_result['transaction_count']
         }
         
         return render_template('income_analysis.html',
@@ -40,15 +47,12 @@ def income_analysis():
     except Exception as e:
         current_app.logger.error(f"收入分析页面处理异常: {str(e)}")
         template_data = {
-            'income_data': {
-                'total_income': 0.0,
-                'avg_monthly_income': 0.0,
-                'income_growth_rate': 0.0,
-                'income_sources': [],
-                'monthly_trends': [],
-                'transaction_count': 0
-            },
-            'current_date': datetime.now().strftime('%Y-%m-%d'),
+            'total_income': 0.0,
+            'avg_monthly_income': 0.0,
+            'income_growth_rate': 0.0,
+            'income_sources': [],
+            'monthly_trends': [],
+            'transaction_count': 0
         }
         return render_template('income_analysis.html',
                              page_title='收入分析',
