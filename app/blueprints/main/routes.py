@@ -10,31 +10,31 @@ from app.services.business.financial.financial_service import FinancialService
 @main_bp.route('/dashboard')
 def dashboard():
     """仪表盘页面 - 显示财务概览和统计信息"""
+    # 使用财务服务获取总览数据
+    financial_service = FinancialService()    
     try:
-        # 创建FinancialService实例
-        financial_service = FinancialService()
-        
-        # 使用FinancialService获取总余额
-        result = financial_service.analyze_overview()
+        # 获取总览数据（默认12个月）
+        analyze_overview_result = financial_service.analyze_overview()
 
         # 准备统计数据（转换为 float 用于显示）
-        stats = {
-            'balance': float(result['balance']),
+        template_data = {
+            'balance': float(analyze_overview_result['balance']),
             'monthly_trends': [{
                 'month': trend['month'],
                 'balance': float(trend['balance'])
-            } for trend in result['monthly_trends']]
+            } for trend in analyze_overview_result['monthly_trends']]
         }
         
         return render_template('dashboard.html',
                              page_title='仪表盘',
-                             stats=stats)
+                             template_data=template_data)
                              
     except Exception as e:
         current_app.logger.error(f"加载仪表盘页面失败: {str(e)}")
+        template_data={
+            'balance': 0.0,
+            'monthly_trends': []
+        }
         return render_template('dashboard.html',
                              page_title='仪表盘',
-                             stats={
-                                 'balance': 0.0,
-                                 'monthly_trends': []
-                             })
+                             template_data=template_data)

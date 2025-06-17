@@ -11,17 +11,6 @@
 <div class="page-container">
     {{ page_header("收入分析", "深入了解您的收入来源和趋势变化", "trending-up") }}
     
-    <!-- 错误提示 -->
-    {% if error_message %}
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <div class="d-flex align-items-center">
-            {{ icon("alert-triangle", "sm", "me-2") }}
-            {{ error_message }}
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    {% endif %}
-    
     <!-- 收入关键指标卡片网格 -->
     <div class="cards-grid cols-4">
         <!-- 总收入卡片 -->

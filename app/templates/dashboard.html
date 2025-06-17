@@ -13,8 +13,8 @@
     
     <!-- 数据容器 -->
     <div id="dashboard-data" 
-         data-balance="{{ stats.balance }}"
-         data-monthly-trends='{{ stats.monthly_trends|tojson|safe }}'
+         data-balance="{{ template_data.balance }}"
+         data-monthly-trends='{{ template_data.monthly_trends|tojson|safe }}'
          style="display: none;">
     </div>
     
@@ -32,7 +32,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="metric-value text-success">¥{{ "%.2f"|format(stats.balance or 0) }}</div>
+                    <div class="metric-value text-success">¥{{ "%.2f"|format(template_data.balance or 0) }}</div>
                 </div>
             </div>
         </div>
