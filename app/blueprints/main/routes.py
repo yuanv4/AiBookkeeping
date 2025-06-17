@@ -4,17 +4,21 @@ from app.models import Transaction, Account, db
 from datetime import datetime, timedelta
 from sqlalchemy import func, desc
 from decimal import Decimal
+from app.services.business.financial.financial_service import FinancialService
 
 @main_bp.route('/')
 @main_bp.route('/dashboard')
 def dashboard():
     """仪表盘页面 - 显示财务概览和统计信息"""
     try:
-        # 使用 Account 模型的类方法获取总余额
-        balance = Account.get_all_accounts_balance()
+        # 创建FinancialService实例
+        financial_service = FinancialService()
         
-        # 使用 Account 模型的类方法获取月度趋势
-        monthly_trends = Account.get_monthly_balance_trends()
+        # 使用FinancialService获取总余额
+        balance = financial_service.get_all_accounts_balance()
+        
+        # 使用FinancialService获取月度趋势
+        monthly_trends = financial_service.get_monthly_balance_trends()
         
         # 准备统计数据（转换为 float 用于显示）
         stats = {

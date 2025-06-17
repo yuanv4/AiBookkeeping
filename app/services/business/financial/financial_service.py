@@ -18,10 +18,9 @@ from app.models import Transaction, Account, Bank, db
 from sqlalchemy import func, and_, or_, extract, case
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from app.utils.db_utils import (
-    TransactionQueries, AccountQueries, BankQueries, 
-    AggregationQueries, safe_query_execute
-)
+from app.services.core.transaction_service import TransactionService
+from app.services.core.account_service import AccountService
+from app.services.core.bank_service import BankService
 
 # 导入分析相关的数据模型和工具
 try:
@@ -81,17 +80,17 @@ class FinancialService:
             交易记录列表
         """
         if transaction_type == 'income':
-            return TransactionQueries.get_income_transactions(
+            return TransactionService.get_income_transactions(
                 start_date, end_date, account_id
-            ).all()
+            )
         elif transaction_type == 'expense':
-            return TransactionQueries.get_expense_transactions(
+            return TransactionService.get_expense_transactions(
                 start_date, end_date, account_id
-            ).all()
+            )
         else:
-            return TransactionQueries.get_by_date_range(
+            return TransactionService.get_by_date_range(
                 start_date, end_date, account_id
-            ).all()
+            )
     
     def _validate_parameters(self, account_id: Optional[int] = None, 
                            start_date: Optional[date] = None, 
@@ -101,6 +100,15 @@ class FinancialService:
             raise AnalysisError("无效的账户ID")
         if start_date and end_date and start_date > end_date:
             raise AnalysisError("开始日期不能晚于结束日期")
+    
+    def _safe_query_execute(self, query_func, default_value=None, log_error=True):
+        """安全执行查询，处理异常"""
+        try:
+            return query_func()
+        except Exception as e:
+            if log_error:
+                self.logger.error(f"数据库查询执行失败: {e}")
+            return default_value
     
     def _group_by_category(self, start_date: date, end_date: date,
                           account_id: Optional[int] = None, 
@@ -116,12 +124,37 @@ class FinancialService:
         Returns:
             按类别分组的金额字典
         """
-        return safe_query_execute(
-            lambda: AggregationQueries.group_by_category(
+        return self._safe_query_execute(
+            lambda: self._internal_group_by_category(
                 start_date, end_date, account_id, abs_amount
             ),
             default_value={}
         )
+    
+    def _internal_group_by_category(self, start_date: date, end_date: date,
+                                   account_id: Optional[int] = None, 
+                                   abs_amount: bool = False) -> Dict[str, float]:
+        """内部实现：按类别分组统计"""
+        query = self.db.query(
+            Transaction.counterparty,
+            func.sum(func.abs(Transaction.amount) if abs_amount else Transaction.amount)
+        )
+        
+        if account_id:
+            query = query.filter(Transaction.account_id == account_id)
+        if start_date:
+            query = query.filter(Transaction.date >= start_date)
+        if end_date:
+            query = query.filter(Transaction.date <= end_date)
+        
+        query = query.group_by(Transaction.counterparty)
+        
+        result = {}
+        for counterparty, amount in query.all():
+            if counterparty:
+                result[counterparty] = float(amount) if amount else 0.0
+        
+        return result
     
     def _group_by_month(self, start_date: date, end_date: date,
                        account_id: Optional[int] = None, 
@@ -137,12 +170,37 @@ class FinancialService:
         Returns:
             按月份分组的金额字典
         """
-        return safe_query_execute(
-            lambda: AggregationQueries.group_by_month(
+        return self._safe_query_execute(
+            lambda: self._internal_group_by_month(
                 start_date, end_date, account_id, abs_amount
             ),
             default_value={}
         )
+    
+    def _internal_group_by_month(self, start_date: date, end_date: date,
+                                account_id: Optional[int] = None, 
+                                abs_amount: bool = False) -> Dict[str, float]:
+        """内部实现：按月份分组统计"""
+        query = self.db.query(
+            func.date_format(Transaction.date, '%Y-%m').label('month'),
+            func.sum(func.abs(Transaction.amount) if abs_amount else Transaction.amount)
+        )
+        
+        if account_id:
+            query = query.filter(Transaction.account_id == account_id)
+        if start_date:
+            query = query.filter(Transaction.date >= start_date)
+        if end_date:
+            query = query.filter(Transaction.date <= end_date)
+        
+        query = query.group_by('month').order_by('month')
+        
+        result = {}
+        for month, amount in query.all():
+            if month:
+                result[month] = float(amount) if amount else 0.0
+        
+        return result
     
     # ==================== 分析方法 ====================
     
@@ -412,8 +470,8 @@ class FinancialService:
             }
             
             if account_id:
-                account = safe_query_execute(
-                    lambda: AccountQueries.get_by_id(account_id),
+                account = self._safe_query_execute(
+                    lambda: AccountService.get_by_id(account_id),
                     default_value=None
                 )
                 if account:
@@ -437,24 +495,24 @@ class FinancialService:
         try:
             self._validate_parameters(account_id, start_date, end_date)
             
-            # 使用工具类获取统计数据
-            total_income = TransactionQueries.get_total_amount(
+            # 使用服务层获取统计数据
+            total_income = TransactionService.get_total_amount(
                 start_date, end_date, account_id, 'income'
             )
-            total_expense = abs(TransactionQueries.get_total_amount(
+            total_expense = abs(TransactionService.get_total_amount(
                 start_date, end_date, account_id, 'expense'
             ))
             
             # 获取交易计数
-            income_transactions = TransactionQueries.get_income_transactions(
+            income_transactions = TransactionService.get_income_transactions(
                 start_date, end_date, account_id
             )
-            expense_transactions = TransactionQueries.get_expense_transactions(
+            expense_transactions = TransactionService.get_expense_transactions(
                 start_date, end_date, account_id
             )
             
-            income_count = income_transactions.count()
-            expense_count = expense_transactions.count()
+            income_count = len(income_transactions)
+            expense_count = len(expense_transactions)
             total_count = income_count + expense_count
             
             # 计算平均交易金额
@@ -820,3 +878,46 @@ class FinancialService:
     def generate_financial_summary(self) -> Dict[str, Any]:
         """生成财务总览（兼容FinancialAnalyzer接口）"""
         return self.generate_summary()
+    
+    # ==================== 从AccountService迁移的方法 ====================
+    
+    def get_all_accounts_balance(self) -> Decimal:
+        """获取所有账户的当前余额总和"""
+        try:
+            account_balances = self.db.query(
+                Transaction.account_id,
+                Transaction.balance_after
+            ).distinct(
+                Transaction.account_id
+            ).order_by(
+                Transaction.account_id,
+                Transaction.date.desc(),
+                Transaction.created_at.desc()
+            ).all()
+            
+            return sum(Decimal(str(balance)) for _, balance in account_balances) if account_balances else Decimal('0.00')
+        except Exception as e:
+            self.logger.error(f"获取所有账户余额失败: {e}")
+            return Decimal('0.00')
+    
+    def get_monthly_balance_trends(self, months: int = 12) -> List[Dict[str, Any]]:
+        """获取所有账户的月度余额趋势"""
+        try:
+            monthly_trends = self.db.query(
+                func.strftime('%Y-%m', Transaction.date).label('month'),
+                func.sum(Transaction.balance_after).label('balance')
+            ).filter(
+                Transaction.date >= func.date('now', f'-{months} months')
+            ).group_by(
+                func.strftime('%Y-%m', Transaction.date)
+            ).order_by(
+                func.strftime('%Y-%m', Transaction.date)
+            ).all()
+            
+            return [{
+                'month': month,
+                'balance': Decimal(str(balance))
+            } for month, balance in monthly_trends]
+        except Exception as e:
+            self.logger.error(f"获取月度余额趋势失败: {e}")
+            return []

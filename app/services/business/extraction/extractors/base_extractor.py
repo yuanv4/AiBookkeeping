@@ -316,15 +316,15 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
             
             # 确保银行存在
             bank = BankService.get_or_create_bank(
-                code=self.get_bank_code(),
-                name=self.get_bank_name()
+                name=self.get_bank_name(),
+                code=self.get_bank_code()
             )
             
             # 确保账户存在
             account = AccountService.get_or_create_account(
+                bank_id=bank.id,
                 account_number=account_number,
-                account_name=account_name,
-                bank_id=bank.id
+                account_name=account_name
             )
             
             # 处理交易记录

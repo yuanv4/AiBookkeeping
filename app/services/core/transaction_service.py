@@ -224,3 +224,185 @@ class TransactionService:
         except Exception as e:
             logger.error(f"Error getting all currencies: {e}")
             return ['CNY']
+
+    # ==================== 新增查询方法 (从db_utils迁移) ====================
+    
+    @staticmethod
+    def get_by_date_range(start_date: date, end_date: date, 
+                         account_id: Optional[int] = None) -> List[Transaction]:
+        """根据日期范围获取交易记录"""
+        try:
+            query = Transaction.query.join(Account)
+            
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            if end_date:
+                query = query.filter(Transaction.date <= end_date)
+            if account_id:
+                query = query.filter(Transaction.account_id == account_id)
+                
+            return query.order_by(Transaction.date.desc()).all()
+        except Exception as e:
+            logger.error(f"Error getting transactions by date range: {e}")
+            return []
+    
+    @staticmethod
+    def get_income_transactions(start_date: date, end_date: date, 
+                              account_id: Optional[int] = None) -> List[Transaction]:
+        """获取收入交易记录"""
+        try:
+            query = Transaction.query.join(Account).filter(Transaction.amount > 0)
+            
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            if end_date:
+                query = query.filter(Transaction.date <= end_date)
+            if account_id:
+                query = query.filter(Transaction.account_id == account_id)
+                
+            return query.order_by(Transaction.date.desc()).all()
+        except Exception as e:
+            logger.error(f"Error getting income transactions: {e}")
+            return []
+    
+    @staticmethod
+    def get_expense_transactions(start_date: date, end_date: date, 
+                               account_id: Optional[int] = None) -> List[Transaction]:
+        """获取支出交易记录"""
+        try:
+            query = Transaction.query.join(Account).filter(Transaction.amount < 0)
+            
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            if end_date:
+                query = query.filter(Transaction.date <= end_date)
+            if account_id:
+                query = query.filter(Transaction.account_id == account_id)
+                
+            return query.order_by(Transaction.date.desc()).all()
+        except Exception as e:
+            logger.error(f"Error getting expense transactions: {e}")
+            return []
+    
+    @staticmethod
+    def get_total_amount(start_date: date, end_date: date, 
+                        account_id: Optional[int] = None, 
+                        transaction_type: str = 'all') -> float:
+        """获取指定条件下的交易总额"""
+        try:
+            query = db.session.query(func.sum(Transaction.amount))
+            
+            if account_id:
+                query = query.filter(Transaction.account_id == account_id)
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            if end_date:
+                query = query.filter(Transaction.date <= end_date)
+            
+            if transaction_type == 'income':
+                query = query.filter(Transaction.amount > 0)
+            elif transaction_type == 'expense':
+                query = query.filter(Transaction.amount < 0)
+            
+            result = query.scalar()
+            return float(result) if result else 0.0
+        except Exception as e:
+            logger.error(f"Error getting total amount: {e}")
+            return 0.0
+    
+    @staticmethod
+    def get_distinct_currencies() -> List[str]:
+        """获取所有不同的货币类型"""
+        try:
+            currencies = db.session.query(Transaction.currency).distinct().all()
+            return [c[0] for c in currencies if c[0]]
+        except Exception as e:
+            logger.error(f"Error getting distinct currencies: {e}")
+            return ['CNY']
+    
+    @staticmethod
+    def get_distinct_counterparties() -> List[str]:
+        """获取所有不同的交易对手"""
+        try:
+            counterparties = db.session.query(Transaction.counterparty).distinct().all()
+            return [c[0] for c in counterparties if c[0]]
+        except Exception as e:
+            logger.error(f"Error getting distinct counterparties: {e}")
+            return []
+    
+    @staticmethod
+    def get_summary_by_type(account_id: Optional[int] = None, 
+                           start_date: Optional[date] = None, 
+                           end_date: Optional[date] = None) -> List[Dict[str, Any]]:
+        """Get transaction summary grouped by type."""
+        try:
+            income_query = db.session.query(
+                db.literal('income').label('type'),
+                db.func.count(Transaction.id).label('count'),
+                db.func.sum(Transaction.amount).label('total')
+            ).filter(Transaction.amount > 0)
+            
+            expense_query = db.session.query(
+                db.literal('expense').label('type'),
+                db.func.count(Transaction.id).label('count'),
+                db.func.sum(Transaction.amount).label('total')
+            ).filter(Transaction.amount < 0)
+            
+            transfer_query = db.session.query(
+                db.literal('transfer').label('type'),
+                db.func.count(Transaction.id).label('count'),
+                db.func.sum(Transaction.amount).label('total')
+            ).filter(Transaction.amount == 0)
+            
+            for query in [income_query, expense_query, transfer_query]:
+                if account_id:
+                    query = query.filter(Transaction.account_id == account_id)
+                if start_date:
+                    query = query.filter(Transaction.date >= start_date)
+                if end_date:
+                    query = query.filter(Transaction.date <= end_date)
+            
+            results = income_query.union_all(expense_query).union_all(transfer_query).all()
+            
+            formatted_results = []
+            for type_name, count, total in results:
+                formatted_results.append({
+                    'name': type_name,
+                    'is_income': type_name == 'income',
+                    'count': count,
+                    'total': total
+                })
+            
+            return sorted(formatted_results, key=lambda x: x['name'])
+        except Exception as e:
+            logger.error(f"Error getting summary by type: {e}")
+            return []
+    
+    @staticmethod
+    def get_monthly_summary(account_id: Optional[int] = None, year: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get monthly transaction summary."""
+        try:
+            if not year:
+                year = date.today().year
+            
+            query = db.session.query(
+                db.extract('month', Transaction.date).label('month'),
+                db.func.sum(db.case((Transaction.amount > 0, Transaction.amount), else_=0)).label('income'),
+                db.func.sum(db.case((Transaction.amount < 0, Transaction.amount), else_=0)).label('expense'),
+                db.func.count(Transaction.id).label('count')
+            ).filter(db.extract('year', Transaction.date) == year)
+            
+            if account_id:
+                query = query.filter(Transaction.account_id == account_id)
+            
+            results = query.group_by(db.extract('month', Transaction.date)).order_by('month').all()
+            
+            return [{
+                'month': int(month),
+                'income': float(income) if income else 0.0,
+                'expense': float(expense) if expense else 0.0,
+                'count': count
+            } for month, income, expense, count in results]
+        except Exception as e:
+            logger.error(f"Error getting monthly summary: {e}")
+            return []
