@@ -918,7 +918,7 @@ class FinancialService:
             
             return [{
                 'month': month,
-                'balance': Decimal(str(balance))
+                'balance': float(balance)
             } for month, balance in monthly_trends]
         except Exception as e:
             self.logger.error(f"获取月度余额趋势失败: {e}")

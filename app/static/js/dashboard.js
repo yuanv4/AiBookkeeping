@@ -68,73 +68,100 @@ const Dashboard = {
             console.warn('余额趋势图画布未找到');
             return;
         }
+        
+        // 检查是否为canvas元素
+        if (canvas.tagName !== 'CANVAS') {
+            console.error('balanceTrendChart元素不是canvas元素');
+            return;
+        }
+        
+        // 设置canvas尺寸
+        const container = canvas.parentElement;
+        if (container) {
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = Math.min(rect.height, 280); // 最大高度280px
+        }
+        
         const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error('无法获取canvas 2D上下文');
+            return;
+        }
+        
         // 准备数据
         const labels = this.data.monthlyTrends.map(trend => trend.month);
         const amounts = this.data.monthlyTrends.map(trend => trend.balance);
+        
         // 创建渐变色
         const gradient = ctx.createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, 'rgba(0, 123, 255, 0.3)');
         gradient.addColorStop(1, 'rgba(0, 123, 255, 0.05)');
-        this.charts.balanceTrend = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: '账户余额',
-                    data: amounts,
-                    borderColor: getCSSColor('--primary-500'),
-                    backgroundColor: gradient,
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: getCSSColor('--primary-500'),
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6,
-                    pointHoverRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#ffffff',
+        
+        try {
+            this.charts.balanceTrend = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '账户余额',
+                        data: amounts,
                         borderColor: getCSSColor('--primary-500'),
-                        borderWidth: 1,
-                        callbacks: {
-                            label: function(context) {
-                                return `余额: ¥${context.parsed.y.toFixed(2)}`;
-                            }
-                        }
-                    }
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: getCSSColor('--primary-500'),
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
                         },
-                        ticks: {
-                            callback: function(value) {
-                                return '¥' + value.toLocaleString();
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: getCSSColor('--primary-500'),
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    return `余额: ¥${context.parsed.y.toFixed(2)}`;
+                                }
                             }
                         }
                     },
-                    x: {
-                        grid: {
-                            display: false
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '¥' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
+            console.log('余额趋势图表初始化成功');
+        } catch (error) {
+            console.error('Chart.js初始化失败:', error);
+        }
     },
     
     /**
