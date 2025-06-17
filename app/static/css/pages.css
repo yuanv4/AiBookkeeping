@@ -746,7 +746,6 @@
     --transaction-negative: var(--danger-500);
     --transaction-neutral: var(--gray-600);
     --transaction-row-hover: var(--gray-50);
-    --transaction-row-selected: rgba(0, 122, 255, 0.05);
     
     /* 交易表格间距 */
     --transaction-row-height: 60px;
@@ -1069,31 +1068,6 @@
         flex: 0 0 60px;
         font-size: var(--text-xs);
     }
-}
-
-/* 加载动画 */
-.transactions-loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: var(--spacing-3xl);
-    background: var(--surface-primary);
-    border-radius: var(--transaction-border-radius);
-    border: 1px solid var(--border-color);
-}
-
-.transactions-loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid var(--border-color);
-    border-top: 3px solid var(--primary-500);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
 }
 
 /* 表格容器响应式包装 */
