@@ -1,17 +1,69 @@
 /**
  * 仪表盘页面的JavaScript逻辑
- * 仅负责初次加载时的账户余额展示和趋势图表渲染
+ * 负责余额趋势图表渲染
  */
+
+// 图表配置常量
+const CHART_CONFIG = {
+    type: 'line',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
+            borderWidth: 1,
+            callbacks: {
+                label: function(context) {
+                    return `余额: ¥${context.parsed.y.toFixed(2)}`;
+                }
+            }
+        }
+    },
+    scales: {
+        y: {
+            beginAtZero: false,
+            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+            ticks: {
+                callback: function(value) {
+                    return '¥' + value.toLocaleString();
+                }
+            }
+        },
+        x: {
+            grid: { display: false }
+        }
+    }
+};
+
+// 颜色配置
+const COLORS = {
+    primary: '--primary-500',
+    gradient: {
+        start: 'rgba(0, 123, 255, 0.3)',
+        end: 'rgba(0, 123, 255, 0.05)'
+    },
+    white: '#ffffff'
+};
+
+// 尺寸配置
+const DIMENSIONS = {
+    maxHeight: 280,
+    borderWidth: 3,
+    pointRadius: 6,
+    pointHoverRadius: 8,
+    pointBorderWidth: 2
+};
 
 /**
  * 从CSS变量获取颜色值
- * @param {string} cssVar CSS变量名（包含--前缀）
- * @returns {string} 颜色值
  */
 function getCSSColor(cssVar) {
     try {
         const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
-        return value || '#000000'; // 默认黑色
+        return value || '#000000';
     } catch (error) {
         console.warn(`无法获取CSS变量 ${cssVar}:`, error);
         return '#000000';
@@ -19,236 +71,123 @@ function getCSSColor(cssVar) {
 }
 
 /**
- * 仪表盘模块
+ * 设置Canvas尺寸
  */
-const Dashboard = {
-    // 数据存储
-    data: {
-        balance: 0,
-        monthlyTrends: []
-    },
-    
-    // 图表实例
-    charts: {
-        balanceTrend: null
-    },
-    
-    /**
-     * 初始化仪表盘模块
-     * @param {Object} dashboardData 仪表盘数据
-     */
-    init: function(dashboardData) {
-        console.log('初始化仪表盘模块', dashboardData);
-        // 存储数据
-        this.data = { ...this.data, ...dashboardData };
-        // 初始化图表
-        this.initializeCharts();
-        // 初始化交互功能
-        this.initializeInteractions();
-        console.log('仪表盘模块初始化完成');
-    },
-    
-    /**
-     * 初始化图表
-     */
-    initializeCharts: function() {
-        try {
-            this.initBalanceTrendChart();
-        } catch (error) {
-            console.error('图表初始化失败:', error);
-        }
-    },
-    
-    /**
-     * 初始化余额趋势图
-     */
-    initBalanceTrendChart: function() {
-        const canvas = document.getElementById('balanceTrendChart');
-        if (!canvas) {
-            console.warn('余额趋势图画布未找到');
-            return;
-        }
-        
-        // 检查是否为canvas元素
-        if (canvas.tagName !== 'CANVAS') {
-            console.error('balanceTrendChart元素不是canvas元素');
-            return;
-        }
-        
-        // 设置canvas尺寸
-        const container = canvas.parentElement;
-        if (container) {
-            const rect = container.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = Math.min(rect.height, 280); // 最大高度280px
-        }
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            console.error('无法获取canvas 2D上下文');
-            return;
-        }
-        
-        // 准备数据
-        const labels = this.data.monthlyTrends.map(trend => trend.month);
-        const amounts = this.data.monthlyTrends.map(trend => trend.balance);
-        
-        // 创建渐变色
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(0, 123, 255, 0.3)');
-        gradient.addColorStop(1, 'rgba(0, 123, 255, 0.05)');
-        
-        try {
-            this.charts.balanceTrend = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: '账户余额',
-                        data: amounts,
-                        borderColor: getCSSColor('--primary-500'),
-                        backgroundColor: gradient,
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: getCSSColor('--primary-500'),
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 6,
-                        pointHoverRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleColor: '#ffffff',
-                            bodyColor: '#ffffff',
-                            borderColor: getCSSColor('--primary-500'),
-                            borderWidth: 1,
-                            callbacks: {
-                                label: function(context) {
-                                    return `余额: ¥${context.parsed.y.toFixed(2)}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return '¥' + value.toLocaleString();
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-            console.log('余额趋势图表初始化成功');
-        } catch (error) {
-            console.error('Chart.js初始化失败:', error);
-        }
-    },
-    
-    /**
-     * 初始化交互功能（仅响应式处理）
-     */
-    initializeInteractions: function() {
-        // 响应式处理
-        window.addEventListener('resize', () => {
-            if (this.charts.balanceTrend) {
-                this.charts.balanceTrend.resize();
-            }
-        });
-    },
-    
-    /**
-     * 销毁图表实例
-     */
-    destroy: function() {
-        if (this.charts.balanceTrend) {
-            this.charts.balanceTrend.destroy();
-            this.charts.balanceTrend = null;
-        }
-        console.log('仪表盘模块已销毁');
+function setupCanvas(canvas) {
+    const container = canvas.parentElement;
+    if (container) {
+        const rect = container.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = Math.min(rect.height, DIMENSIONS.maxHeight);
     }
-};
+}
 
 /**
- * 从HTML元素的data属性获取后端数据
- * @returns {Object|null} 仪表盘数据对象或null
+ * 创建渐变色
  */
-function getDashboardDataFromHTML() {
-    try {
-        const dataElement = document.getElementById('dashboard-data');
-        if (!dataElement) {
-            console.warn('未找到仪表盘数据元素');
-            return null;
+function createGradient(ctx) {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, COLORS.gradient.start);
+    gradient.addColorStop(1, COLORS.gradient.end);
+    return gradient;
+}
+
+/**
+ * 创建余额趋势图表
+ */
+function createBalanceChart(canvas, data) {
+    if (!canvas || canvas.tagName !== 'CANVAS') {
+        console.warn('无效的Canvas元素');
+        return null;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+        console.error('无法获取Canvas 2D上下文');
+        return null;
+    }
+
+    setupCanvas(canvas);
+
+    const labels = data.monthlyTrends.map(trend => trend.month);
+    const amounts = data.monthlyTrends.map(trend => trend.balance);
+
+    const chartConfig = {
+        ...CHART_CONFIG,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '账户余额',
+                data: amounts,
+                borderColor: getCSSColor(COLORS.primary),
+                backgroundColor: createGradient(ctx),
+                borderWidth: DIMENSIONS.borderWidth,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: getCSSColor(COLORS.primary),
+                pointBorderColor: COLORS.white,
+                pointBorderWidth: DIMENSIONS.pointBorderWidth,
+                pointRadius: DIMENSIONS.pointRadius,
+                pointHoverRadius: DIMENSIONS.pointHoverRadius
+            }]
         }
-        const balance = dataElement.dataset.balance;
-        const monthlyTrends = dataElement.dataset.monthlyTrends;
-        return {
-            balance: parseFloat(balance) || 0,
-            monthlyTrends: monthlyTrends ? JSON.parse(monthlyTrends) : []
-        };
+    };
+
+    // 设置tooltip边框颜色
+    chartConfig.plugins.tooltip.borderColor = getCSSColor(COLORS.primary);
+
+    try {
+        return new Chart(ctx, chartConfig);
     } catch (error) {
-        console.error('解析仪表盘数据失败:', error);
+        console.error('Chart.js初始化失败:', error);
         return null;
     }
 }
 
 /**
- * 自动初始化仪表盘模块
+ * 获取仪表盘数据
  */
-function autoInitializeDashboard() {
-    // 检查是否在仪表盘页面
-    const dashboardChartElement = document.getElementById('balanceTrendChart');
-    if (!dashboardChartElement) {
-        return; // 不在仪表盘页面，不执行初始化
+function getDashboardData() {
+    const dataElement = document.getElementById('dashboard-data');
+    if (!dataElement) {
+        console.warn('未找到仪表盘数据元素');
+        return { balance: 0, monthlyTrends: [] };
     }
-    // 检查Dashboard模块是否可用
-    if (typeof Dashboard === 'undefined') {
-        console.error('Dashboard模块未定义');
-        return;
+
+    try {
+        const balance = parseFloat(dataElement.dataset.balance) || 0;
+        const monthlyTrends = dataElement.dataset.monthlyTrends ? 
+            JSON.parse(dataElement.dataset.monthlyTrends) : [];
+        
+        return { balance, monthlyTrends };
+    } catch (error) {
+        console.error('解析仪表盘数据失败:', error);
+        return { balance: 0, monthlyTrends: [] };
     }
-    // 获取数据
-    const dashboardData = getDashboardDataFromHTML();
-    if (!dashboardData) {
-        console.error('无法获取仪表盘数据，尝试使用空数据初始化');
-        // 使用默认空数据初始化
-        Dashboard.init({
-            balance: 0,
-            monthlyTrends: []
-        });
-        return;
-    }
-    // 初始化模块
-    console.log('自动初始化仪表盘模块', dashboardData);
-    Dashboard.init(dashboardData);
 }
 
-// 自动初始化逻辑
-document.addEventListener('DOMContentLoaded', function() {
-    autoInitializeDashboard();
-});
+/**
+ * 初始化仪表盘
+ */
+function initDashboard() {
+    const canvas = document.getElementById('balanceTrendChart');
+    if (!canvas) return; // 不在仪表盘页面
 
-// 页面卸载时清理资源
-window.addEventListener('beforeunload', function() {
-    if (typeof Dashboard !== 'undefined') {
-        Dashboard.destroy();
+    const data = getDashboardData();
+    const chart = createBalanceChart(canvas, data);
+    
+    if (chart) {
+        // 响应式处理
+        window.addEventListener('resize', () => chart.resize());
+        
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', () => {
+            chart.destroy();
+        });
+        
+        console.log('仪表盘初始化完成');
     }
-}); 
+}
+
+// 自动初始化
+document.addEventListener('DOMContentLoaded', initDashboard); 
