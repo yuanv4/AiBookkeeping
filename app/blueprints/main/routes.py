@@ -15,18 +15,15 @@ def dashboard():
         financial_service = FinancialService()
         
         # 使用FinancialService获取总余额
-        balance = financial_service.get_all_accounts_balance()
-        
-        # 使用FinancialService获取月度趋势
-        monthly_trends = financial_service.get_monthly_balance_trends()
-        
+        result = financial_service.analyze_overview()
+
         # 准备统计数据（转换为 float 用于显示）
         stats = {
-            'balance': float(balance),
+            'balance': float(result['balance']),
             'monthly_trends': [{
                 'month': trend['month'],
                 'balance': float(trend['balance'])
-            } for trend in monthly_trends]
+            } for trend in result['monthly_trends']]
         }
         
         return render_template('dashboard.html',
