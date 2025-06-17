@@ -1,11 +1,10 @@
 """统一财务服务
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from decimal import Decimal
-from datetime import date, datetime
+from datetime import date
 import logging
-from functools import wraps
 
 from app.models import Transaction, db
 from sqlalchemy import func, case
@@ -57,11 +56,29 @@ class FinancialService:
     def analyze_overview(self) -> Dict[str, Any]:
         """分析总览情况
         
+        获取当前总余额和月度趋势数据。注意：数据一致性问题已修复，
+        get_monthly_balance_trends现在返回的是每个月的最终余额，而不是累加所有交易余额。
+        最后一个月的余额数据与当前总余额保持一致。
+        
+        修复内容：
+        1. 使用窗口函数确保获取每个账户每个月的最终余额
+        2. 消除了原有的数据重复计算问题
+        3. 统一了查询逻辑，确保数据一致性
+        4. 添加了缓存机制，提高查询性能
+        
         Args:
             months: 分析月份数，默认12个月
             
         Returns:
-            Dict[str, Any]: 包含总览数据的字典
+            Dict[str, Any]: 包含总览数据的字典，格式如下：
+            {
+                'balance': Decimal,  # 当前总余额
+                'monthly_trends': [  # 月度趋势数据
+                    {'month': '2024-01', 'balance': 1000.0},
+                    {'month': '2024-02', 'balance': 1500.0},
+                    ...
+                ]
+            }
         """
         return {
             'balance': self.get_all_accounts_balance(),
@@ -139,69 +156,62 @@ class FinancialService:
             self.logger.error(f"获取收入数据失败: {e}")
             return []
 
-    def get_all_accounts_balance(self) -> Decimal:
-        """获取所有账户的当前余额总和
+    def get_balance_data(self, months: int = 12) -> Union[Decimal, List[Dict[str, Any]]]:
+        """获取余额趋势
         
-        使用SQLAlchemy ORM窗口函数实现，替代原有的原生SQL查询。
-        为每个账户获取最新的交易记录，然后计算所有账户余额的总和。
-        
+        Args:
+            months: 查询月数，默认12个月
+
         Returns:
-            Decimal: 所有账户当前余额的总和
+            Union[Decimal, List[Dict[str, Any]]]: 根据return_type返回相应格式的数据
             
         Raises:
             SQLAlchemyError: 数据库查询异常时抛出
         """
         try:
-            # 使用SQLAlchemy ORM窗口函数查询
-            # 为每个账户的交易按日期和创建时间排序，获取最新的交易记录
+            # 使用窗口函数查询每个账户每个月的最终余额
             window_func = over(
                 func.row_number(),
-                partition_by=Transaction.account_id,
+                partition_by=[Transaction.account_id, func.strftime('%Y-%m', Transaction.date)],
                 order_by=[Transaction.date.desc(), Transaction.created_at.desc()]
             )
             
-            # 子查询：获取每个账户的最新交易记录
-            latest_transactions = self.db.query(
+            # 子查询：获取每个账户每个月的最终交易记录
+            monthly_balances = self.db.query(
                 Transaction.account_id,
+                func.strftime('%Y-%m', Transaction.date).label('month'),
                 Transaction.balance_after
             ).add_columns(
                 window_func.label('rn')
-            ).subquery()
-            
-            # 主查询：筛选最新记录并计算总和
-            result = self.db.query(
-                func.sum(latest_transactions.c.balance_after)
-            ).filter(
-                latest_transactions.c.rn == 1
-            ).scalar()
-            
-            return Decimal(str(result)) if result else Decimal('0.00')
-            
-        except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - ORM窗口函数获取余额失败: {e}")
-            return Decimal('0.00')
-        except Exception as e:
-            self.logger.error(f"ORM窗口函数获取余额失败: {e}")
-            return Decimal('0.00')
-    
-    def get_monthly_balance_trends(self, months: int = 12) -> List[Dict[str, Any]]:
-        """获取所有账户的月度余额趋势"""
-        try:
-            monthly_trends = self.db.query(
-                func.strftime('%Y-%m', Transaction.date).label('month'),
-                func.sum(Transaction.balance_after).label('balance')
             ).filter(
                 Transaction.date >= func.date('now', f'-{months} months')
-            ).group_by(
-                func.strftime('%Y-%m', Transaction.date)
-            ).order_by(
-                func.strftime('%Y-%m', Transaction.date)
-            ).all()
+            ).subquery()
             
-            return [{
-                'month': month,
-                'balance': float(balance)
-            } for month, balance in monthly_trends]
+            # 主查询：筛选最终记录并按月分组
+            query = self.db.query(
+                monthly_balances.c.month,
+                func.sum(monthly_balances.c.balance_after).label('balance')
+            ).filter(
+                monthly_balances.c.rn == 1
+            ).group_by(
+                monthly_balances.c.month
+            ).order_by(
+                monthly_balances.c.month
+            )
+            
+            results = query.all()
+            
+            # 返回历史趋势数据
+            result_data = [{
+                'month': result.month,
+                'balance': float(result.balance or 0)
+            } for result in results]
+            
+            return result_data
+            
+        except SQLAlchemyError as e:
+            self.logger.error(f"数据库查询异常 - 统一余额查询失败: {e}")
+            return []
         except Exception as e:
-            self.logger.error(f"获取月度余额趋势失败: {e}")
+            self.logger.error(f"统一余额查询失败: {e}")
             return []

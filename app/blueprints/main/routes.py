@@ -14,15 +14,15 @@ def dashboard():
     financial_service = FinancialService()    
     try:
         # 获取总览数据（默认12个月）
-        analyze_overview_result = financial_service.analyze_overview()
+        balance_data = financial_service.get_balance_data()
 
         # 准备统计数据（转换为 float 用于显示）
         template_data = {
-            'balance': float(analyze_overview_result['balance']),
+            'balance': balance_data[len(balance_data)-1]['balance'],
             'monthly_trends': [{
                 'month': trend['month'],
                 'balance': float(trend['balance'])
-            } for trend in analyze_overview_result['monthly_trends']]
+            } for trend in balance_data]
         }
         
         return render_template('dashboard.html',
