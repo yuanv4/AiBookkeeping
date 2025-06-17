@@ -25,26 +25,14 @@
     
     <!-- 余额趋势图表卡片 -->
     <div class="col-12">
-        <div class="dashboard-card chart-wrapper">
-            <div class="card-header">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="text-muted-custom fs-small">最近12个月余额趋势</div>
-                    <div class="d-flex align-items-center">
-                        {{ icon("trending-up", "sm", "text-primary-custom me-1") }}
-                    </div>
-                </div>
-            </div>
-            <div class="card-body">
-                <canvas id="balanceTrendChart" class="chart-canvas"></canvas>
-            </div>
-        </div>
+        {% call card("最近12个月余额趋势", "trending-up") %}
+        <canvas id="balanceTrendChart" class="chart-canvas"></canvas>
+        {% endcall %}
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<!-- 引入 Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- 引入仪表盘脚本 -->
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}
