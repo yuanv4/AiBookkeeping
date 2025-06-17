@@ -55,40 +55,11 @@ class Account(BaseModel):
             raise ValueError(f'Account type must be one of: {", ".join(valid_types)}')
         return account_type.lower() if account_type else 'checking'
     
-    @classmethod
-    def get_by_bank_and_number(cls, bank_id, account_number):
-        """Get account by bank ID and account number."""
-        if not account_number:
-            return None
-        return cls.query.filter_by(bank_id=bank_id, account_number=account_number.strip()).first()
-    
-    @classmethod
-    def get_or_create(cls, bank_id, account_number, account_name=None, currency='CNY', account_type='checking'):
-        """Get existing account or create new one."""
-        account = cls.get_by_bank_and_number(bank_id, account_number)
-        if not account:
-            account = cls.create(
-                bank_id=bank_id,
-                account_number=account_number,
-                account_name=account_name,
-                currency=currency,
-                account_type=account_type
-            )
-        return account
-    
-    @classmethod
-    def get_all_accounts(cls, bank_id=None):
-        """Get all accounts, optionally filtered by bank."""
-        query = cls.query
-        if bank_id:
-            query = query.filter_by(bank_id=bank_id)
-        return query.order_by(cls.account_name, cls.account_number).all()
-    
     def get_current_balance(self):
-        """Calculate current balance based on transactions."""
+        """Calculate current balance based on the latest transaction's balance_after."""
         from .transaction import Transaction
-        total_transactions = db.session.query(db.func.sum(Transaction.amount)).filter_by(account_id=self.id).scalar()
-        return total_transactions or Decimal('0.00')
+        latest_transaction = self.transactions.order_by(Transaction.date.desc(), Transaction.created_at.desc()).first()
+        return latest_transaction.balance_after if latest_transaction else Decimal('0.00')
     
     def get_transactions_count(self):
         """Get the number of transactions for this account."""

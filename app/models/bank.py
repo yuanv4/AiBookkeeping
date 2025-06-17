@@ -33,26 +33,6 @@ class Bank(BaseModel):
                 raise ValueError('Bank code cannot exceed 20 characters')
         return code
     
-    @classmethod
-    def get_by_name(cls, name):
-        """Get bank by name."""
-        return cls.query.filter_by(name=name.strip()).first()
-    
-    @classmethod
-    def get_by_code(cls, code):
-        """Get bank by code."""
-        if not code:
-            return None
-        return cls.query.filter_by(code=code.strip().upper()).first()
-    
-    @classmethod
-    def get_or_create(cls, name, code=None):
-        """Get existing bank or create new one."""
-        bank = cls.get_by_name(name)
-        if not bank:
-            bank = cls.create(name=name, code=code)
-        return bank
-    
     def to_dict(self):
         """Convert bank instance to dictionary with additional info."""
         result = super().to_dict()
