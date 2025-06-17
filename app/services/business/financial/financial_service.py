@@ -53,38 +53,6 @@ class FinancialService:
             'average_amount': total_income / sum(source['count'] for source in income_sources) if income_sources else 0
         }
     
-    def analyze_overview(self) -> Dict[str, Any]:
-        """分析总览情况
-        
-        获取当前总余额和月度趋势数据。注意：数据一致性问题已修复，
-        get_monthly_balance_trends现在返回的是每个月的最终余额，而不是累加所有交易余额。
-        最后一个月的余额数据与当前总余额保持一致。
-        
-        修复内容：
-        1. 使用窗口函数确保获取每个账户每个月的最终余额
-        2. 消除了原有的数据重复计算问题
-        3. 统一了查询逻辑，确保数据一致性
-        4. 添加了缓存机制，提高查询性能
-        
-        Args:
-            months: 分析月份数，默认12个月
-            
-        Returns:
-            Dict[str, Any]: 包含总览数据的字典，格式如下：
-            {
-                'balance': Decimal,  # 当前总余额
-                'monthly_trends': [  # 月度趋势数据
-                    {'month': '2024-01', 'balance': 1000.0},
-                    {'month': '2024-02', 'balance': 1500.0},
-                    ...
-                ]
-            }
-        """
-        return {
-            'balance': self.get_all_accounts_balance(),
-            'monthly_trends': self.get_monthly_balance_trends(12),
-        }
-        
     # ==================== 计算方法 ====================
 
     def get_income_data(self, start_date: date, end_date: date, 
