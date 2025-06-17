@@ -1,14 +1,12 @@
 /*
- * AiBookkeeping - 页面特定样式
- * 整合所有页面特定的CSS样式，包括仪表盘、收入分析、交易记录和上传页面
- * 从 dashboard.css、income_analysis.css、transactions.css、upload.css 整合
+ * AiBookkeeping - 页面特定样式（简化版）
+ * 保留页面特定的样式，通用组件样式已迁移到 components.css
  */
 
 /* ==========================================================================
-   仪表盘页面样式 (从 dashboard.css 整合)
+   仪表盘页面特定样式
    ========================================================================== */
 
-/* Apple Design 仪表盘样式 */
 .dashboard-section {
     margin-bottom: var(--spacing-2xl);
 }
@@ -32,27 +30,7 @@
     margin: 0;
 }
 
-/* 合并具有相同基础样式的卡片组件 */
-.dashboard-card,
-.metric-card,
-.stat-card {
-    background: var(--surface-primary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
-    transition: var(--transition-fast);
-    margin-bottom: 1.5rem;
-    overflow: hidden;
-}
-
-.dashboard-card:hover,
-.metric-card:hover,
-.stat-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-}
-
-/* 度量卡片特定样式 */
+/* 页面特定的卡片样式 */
 .metric-card {
     padding: 1.5rem;
     min-height: 140px;
@@ -62,66 +40,26 @@
     margin-bottom: 1rem;
 }
 
-.stat-card:hover {
-    transform: translateY(-1px);
+.stat-card {
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
-/* 卡片网格布局优化 */
+/* 卡片网格布局 */
 .cards-grid {
     display: grid;
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
-/* 响应式网格布局 */
-.cards-grid.cols-1 {
-    grid-template-columns: 1fr;
-}
+.cards-grid.cols-1 { grid-template-columns: 1fr; }
+.cards-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.cards-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.cards-grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
 
-.cards-grid.cols-2 {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-}
-
-.cards-grid.cols-3 {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-}
-
-.cards-grid.cols-4 {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-}
-
-/* 卡片头部样式优化 */
-.card-header {
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    background-color: var(--surface-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.card-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-    line-height: 1.4;
-}
-
-.card-subtitle {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    margin: 0.25rem 0 0 0;
-    line-height: 1.4;
-}
-
-/* 卡片主体样式优化 */
-.card-body {
-    padding: 1.5rem;
-    flex: 1;
-}
-
-/* 度量值样式优化 */
+/* 度量值样式 */
 .metric-value {
     font-size: 2rem;
     font-weight: 700;
@@ -175,14 +113,6 @@
     color: var(--danger-500);
 }
 
-/* 统计卡片特定样式 */
-.stat-card {
-    padding: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
 .stat-icon {
     width: 48px;
     height: 48px;
@@ -193,14 +123,7 @@
     flex-shrink: 0;
 }
 
-/* 图表容器样式优化 */
-.chart-container {
-    position: relative;
-    height: 280px;
-    margin: 1rem 0;
-}
-
-/* 统计容器样式优化 */
+/* 统计容器样式 */
 .stat-container {
     display: flex;
     flex-direction: column;
@@ -243,7 +166,6 @@
     line-height: 1.4;
 }
 
-/* 水平统计容器 */
 .stats-container.horizontal {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -257,10 +179,9 @@
 }
 
 /* ==========================================================================
-   收入分析页面样式
+   收入分析页面特定样式
    ========================================================================== */
 
-/* 收入分析页面整体布局 */
 .income-analysis {
     padding: var(--spacing-lg);
 }
@@ -269,7 +190,6 @@
     margin-bottom: var(--spacing-2xl);
 }
 
-/* 收入指标卡片网格 */
 .income-metrics {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -277,7 +197,6 @@
     margin-bottom: var(--spacing-2xl);
 }
 
-/* 收入图表容器 */
 .income-charts {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -285,13 +204,6 @@
     margin-bottom: var(--spacing-2xl);
 }
 
-@media (max-width: 1024px) {
-    .income-charts {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* 收入分析卡片样式 */
 .income-analysis .card {
     margin-bottom: var(--spacing-xl);
     transition: var(--transition-fast);
@@ -302,19 +214,6 @@
     box-shadow: var(--shadow-lg);
 }
 
-.income-analysis .card-title {
-    font-weight: 700;
-    margin-bottom: var(--spacing-xs);
-    color: var(--text-primary);
-}
-
-.income-analysis .card-subtitle {
-    color: var(--text-muted);
-    font-size: var(--text-sm);
-    margin-bottom: var(--spacing-md);
-}
-
-/* 收入指标值样式 */
 .income-analysis .metric-value {
     font-size: var(--text-3xl);
     font-weight: 800;
@@ -338,27 +237,11 @@
     color: var(--danger);
 }
 
-/* 收入图表容器样式 */
-.income-analysis .chart-container {
-    position: relative;
-    height: 300px;
-    margin-bottom: var(--spacing-md);
-}
-
-.income-analysis .chart-container canvas {
-    max-height: 100%;
-}
-
-/* 收入数据表格样式 */
 .income-analysis .table-container {
     max-height: 400px;
     overflow-y: auto;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-}
-
-.income-analysis .table {
-    margin-bottom: 0;
 }
 
 .income-analysis .table th {
@@ -380,7 +263,6 @@
     background-color: var(--surface-hover);
 }
 
-/* 收入来源标签样式 */
 .income-source-badge {
     display: inline-block;
     padding: var(--spacing-xs) var(--spacing-sm);
@@ -393,7 +275,6 @@
     letter-spacing: 0.05em;
 }
 
-/* 收入金额样式 */
 .income-amount {
     font-weight: 700;
     color: var(--success);
@@ -403,7 +284,6 @@
     font-size: var(--text-lg);
 }
 
-/* 收入趋势指示器 */
 .income-trend {
     display: inline-flex;
     align-items: center;
@@ -412,19 +292,10 @@
     font-weight: 600;
 }
 
-.income-trend.up {
-    color: var(--success);
-}
+.income-trend.up { color: var(--success); }
+.income-trend.down { color: var(--danger); }
+.income-trend.stable { color: var(--text-muted); }
 
-.income-trend.down {
-    color: var(--danger);
-}
-
-.income-trend.stable {
-    color: var(--text-muted);
-}
-
-/* 空状态样式 */
 .income-analysis .empty-state {
     text-align: center;
     padding: var(--spacing-2xl);
@@ -448,7 +319,6 @@
     line-height: 1.6;
 }
 
-/* 图表图例样式优化 */
 .chart-legend {
     display: flex;
     gap: var(--spacing-4);
@@ -474,7 +344,6 @@
     flex-shrink: 0;
 }
 
-/* 趋势分析样式优化 */
 .trend-analysis {
     background-color: var(--gray-50);
     border: 1px solid var(--border-color);
@@ -483,10 +352,9 @@
 }
 
 /* ==========================================================================
-   交易记录页面样式 (从 transactions.css 整合)
+   交易记录页面特定样式
    ========================================================================== */
 
-/* Apple Design 筛选表单样式 */
 .filter-form-container {
     border-radius: var(--radius-lg);
     overflow: hidden;
@@ -502,17 +370,10 @@
     box-shadow: var(--shadow-md);
 }
 
-/* 页面容器样式优化 */
 .page-container {
     padding: var(--spacing-8);
     max-width: 1400px;
     margin: 0 auto;
-}
-
-.page-header {
-    margin-bottom: var(--spacing-8);
-    padding-bottom: var(--spacing-4);
-    border-bottom: 1px solid var(--border-color);
 }
 
 .page-title {
@@ -523,7 +384,6 @@
     letter-spacing: -0.01em;
 }
 
-/* 图标圆圈样式优化 */
 .icon-circle {
     width: 2.5rem;
     height: 2.5rem;
@@ -535,256 +395,25 @@
     border: 1px solid var(--primary-100);
 }
 
-/* 响应式设计优化 */
-@media (max-width: 1200px) {
-    .cards-grid.cols-4 {
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    }
-    
-    .cards-grid.cols-3 {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    }
-}
-
-@media (max-width: 992px) {
-    .page-container {
-        padding: 1.5rem;
-    }
-    
-    .cards-grid {
-        gap: 1.25rem;
-    }
-    
-    .cards-grid.cols-3,
-    .cards-grid.cols-4 {
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    }
-    
-    .stat-container {
-        gap: 0.75rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .page-container {
-        padding: var(--spacing-4);
-    }
-    
-    .page-title {
-        font-size: 1.75rem;
-    }
-    
-    .cards-grid {
-        gap: var(--spacing-4);
-        grid-template-columns: 1fr;
-    }
-    
-    .dashboard-card,
-    .metric-card {
-        margin-bottom: var(--spacing-4);
-    }
-    
-    .metric-card {
-        min-height: 120px;
-        padding: 1.25rem;
-    }
-    
-    .card-header {
-        padding: 1rem 1.25rem;
-    }
-    
-    .card-body {
-        padding: 1.25rem;
-    }
-    
-    .metric-value {
-        font-size: 1.75rem;
-    }
-    
-    .stats-container.horizontal {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-3);
-    }
-    
-    .chart-container {
-        height: 240px;
-    }
-    
-    .filter-form-container {
-        padding: 1.25rem;
-        margin-bottom: 1.5rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .page-container {
-        padding: var(--spacing-3);
-    }
-    
-    .metric-card {
-        min-height: 100px;
-        padding: var(--spacing-4);
-    }
-    
-    .card-header {
-        padding: var(--spacing-3) var(--spacing-4);
-    }
-    
-    .card-body {
-        padding: var(--spacing-4);
-    }
-    
-    .metric-value {
-        font-size: 1.5rem;
-    }
-    
-    .chart-container {
-        height: 200px;
-    }
-    
-    .stat-card {
-        padding: var(--spacing-4);
-        flex-direction: column;
-        text-align: center;
-        gap: var(--spacing-3);
-    }
-    
-    .filter-form-container {
-        padding: var(--spacing-4);
-    }
-}
-
-/* 卡片动画效果 */
-@keyframes cardFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.card-animate {
-    animation: cardFadeIn 0.3s ease-out;
-}
-
-/* 卡片加载状态 */
-.card-loading {
-    position: relative;
-    overflow: hidden;
-}
-
-.card-loading::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-    animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-    0% {
-        left: -100%;
-    }
-    100% {
-        left: 100%;
-    }
-}
-
-/* 卡片焦点状态 */
-.card:focus-within {
-    outline: 2px solid var(--primary-300);
-    outline-offset: 2px;
-}
-
-/* 卡片禁用状态 */
-.card.disabled {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-/* 卡片成功/警告/错误状态 */
-.card.card-success {
-    border-left: 4px solid var(--success-500);
-}
-
-.card.card-warning {
-    border-left: 4px solid var(--warning);
-}
-
-.card.card-danger {
-    border-left: 4px solid var(--danger-500);
-}
-
-/* 紧凑型卡片 */
-.card.card-compact .card-header {
-    padding: 0.75rem 1rem;
-}
-
-.card.card-compact .card-body {
-    padding: 1rem;
-}
-
-.card.card-compact .metric-card {
-    padding: 1rem;
-    min-height: 100px;
-}
-
-/* ==========================================================================
-   交易表格样式 (现代化卡片式设计)
-   ========================================================================== */
-
-/* 交易表格专用变量 */
-:root {
-    /* 交易表格颜色系统 */
-    --transaction-positive: var(--success-500);
-    --transaction-negative: var(--danger-500);
-    --transaction-neutral: var(--gray-600);
-    --transaction-row-hover: var(--gray-50);
-    
-    /* 交易表格间距 */
-    --transaction-row-height: 60px;
-    --transaction-cell-padding: 16px 12px;
-    --transaction-row-gap: 4px;
-    --transaction-border-radius: 8px;
-    
-    /* 交易表格字体 */
-    --transaction-amount-weight: 600;
-    --transaction-amount-size: 1.1em;
-    --transaction-date-weight: 500;
-    --transaction-secondary-size: 0.9em;
-    
-    /* 动画时长 */
-    --transaction-hover-duration: 200ms;
-    --transaction-color-duration: 150ms;
-    --transaction-shadow-duration: 250ms;
-}
-
-/* 交易表格容器 */
+/* 交易表格特定样式 */
 .transactions-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     background: var(--surface-primary);
-    border-radius: var(--transaction-border-radius);
+    border-radius: 8px;
     overflow: hidden;
     box-shadow: var(--shadow);
     margin-bottom: var(--spacing-xl);
 }
 
-/* 表头样式 */
 .transactions-table thead {
     background: var(--surface-secondary);
     border-bottom: 1px solid var(--border-color);
 }
 
-.transactions-table .transaction-header {
-    padding: var(--transaction-cell-padding);
+.transaction-header {
+    padding: 16px 12px;
     font-weight: 600;
     font-size: var(--text-sm);
     color: var(--text-secondary);
@@ -794,24 +423,18 @@
     text-align: left;
 }
 
-.transactions-table .transaction-header:first-child {
-    padding-left: var(--spacing-lg);
-}
+.transaction-header:first-child { padding-left: var(--spacing-lg); }
+.transaction-header:last-child { padding-right: var(--spacing-lg); }
 
-.transactions-table .transaction-header:last-child {
-    padding-right: var(--spacing-lg);
-}
-
-/* 表格行样式 - 卡片化设计 */
 .transaction-row {
     background: var(--surface-primary);
     border-bottom: 1px solid var(--border-light);
-    transition: all var(--transaction-hover-duration) ease-out;
-    height: var(--transaction-row-height);
+    transition: all 200ms ease-out;
+    height: 60px;
 }
 
 .transaction-row:hover {
-    background: var(--transaction-row-hover);
+    background: var(--gray-50);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     transform: translateY(-1px);
 }
@@ -820,58 +443,40 @@
     border-bottom: none;
 }
 
-/* 表格单元格样式 */
 .transaction-cell {
-    padding: var(--transaction-cell-padding);
+    padding: 16px 12px;
     vertical-align: middle;
     border: none;
     font-size: var(--text-base);
     color: var(--text-primary);
-    transition: color var(--transaction-color-duration) ease-in-out;
+    transition: color 150ms ease-in-out;
 }
 
-.transaction-cell:first-child {
-    padding-left: var(--spacing-lg);
-}
+.transaction-cell:first-child { padding-left: var(--spacing-lg); }
+.transaction-cell:last-child { padding-right: var(--spacing-lg); }
 
-.transaction-cell:last-child {
-    padding-right: var(--spacing-lg);
-}
-
-/* 日期列样式 */
 .transaction-cell.cell-date {
-    font-weight: var(--transaction-date-weight);
+    font-weight: 500;
     color: var(--text-primary);
     white-space: nowrap;
 }
 
-/* 账户列样式 */
 .transaction-cell.cell-account {
     color: var(--text-secondary);
-    font-size: var(--transaction-secondary-size);
+    font-size: 0.9em;
 }
 
-/* 金额列样式 */
 .transaction-cell.cell-amount {
-    font-weight: var(--transaction-amount-weight);
-    font-size: var(--transaction-amount-size);
+    font-weight: 600;
+    font-size: 1.1em;
     text-align: right;
     font-family: var(--font-mono, 'SF Mono', 'Monaco', 'Consolas', monospace);
 }
 
-.transaction-cell.cell-amount.amount-positive {
-    color: var(--transaction-positive);
-}
+.transaction-cell.cell-amount.amount-positive { color: var(--success-500); }
+.transaction-cell.cell-amount.amount-negative { color: var(--danger-500); }
+.transaction-cell.cell-amount.amount-neutral { color: var(--gray-600); }
 
-.transaction-cell.cell-amount.amount-negative {
-    color: var(--transaction-negative);
-}
-
-.transaction-cell.cell-amount.amount-neutral {
-    color: var(--transaction-neutral);
-}
-
-/* 余额列样式 */
 .transaction-cell.cell-balance {
     font-weight: 500;
     text-align: right;
@@ -879,13 +484,11 @@
     font-family: var(--font-mono, 'SF Mono', 'Monaco', 'Consolas', monospace);
 }
 
-/* 对手信息列样式 */
 .transaction-cell.cell-counterparty {
     color: var(--text-secondary);
-    font-size: var(--transaction-secondary-size);
+    font-size: 0.9em;
 }
 
-/* 摘要列样式 */
 .transaction-cell.cell-description {
     color: var(--text-primary);
     max-width: 200px;
@@ -894,13 +497,12 @@
     white-space: nowrap;
 }
 
-/* 空状态样式 */
 .transactions-empty {
     text-align: center;
     padding: var(--spacing-3xl);
     color: var(--text-secondary);
     background: var(--surface-primary);
-    border-radius: var(--transaction-border-radius);
+    border-radius: 8px;
     border: 1px solid var(--border-color);
 }
 
@@ -922,8 +524,43 @@
     color: var(--text-secondary);
 }
 
-/* 响应式设计 - 移动端卡片布局 */
+.transactions-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ==========================================================================
+   响应式设计（合并优化）
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+    .cards-grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .cards-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+}
+
+@media (max-width: 1024px) {
+    .income-charts { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 992px) {
+    .page-container { padding: 1.5rem; }
+    .cards-grid { gap: 1.25rem; }
+    .cards-grid.cols-3,
+    .cards-grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .stat-container { gap: 0.75rem; }
+}
+
 @media (max-width: 768px) {
+    .page-container { padding: var(--spacing-4); }
+    .page-title { font-size: 1.75rem; }
+    .cards-grid { gap: var(--spacing-4); grid-template-columns: 1fr; }
+    .metric-card { min-height: 120px; padding: 1.25rem; }
+    .metric-value { font-size: 1.75rem; }
+    .stats-container.horizontal { grid-template-columns: 1fr; gap: var(--spacing-3); }
+    .filter-form-container { padding: 1.25rem; margin-bottom: 1.5rem; }
+    
+    /* 交易表格移动端卡片布局 */
     .transactions-table,
     .transactions-table thead,
     .transactions-table tbody,
@@ -942,7 +579,7 @@
     .transaction-row {
         background: var(--surface-primary);
         border: 1px solid var(--border-color);
-        border-radius: var(--transaction-border-radius);
+        border-radius: 8px;
         margin-bottom: var(--spacing-4);
         padding: var(--spacing-5);
         box-shadow: var(--shadow);
@@ -980,29 +617,12 @@
         flex: 0 0 80px;
     }
     
-    .transaction-cell.cell-date:before {
-        content: "日期";
-    }
-    
-    .transaction-cell.cell-account:before {
-        content: "账户";
-    }
-    
-    .transaction-cell.cell-amount:before {
-        content: "金额";
-    }
-    
-    .transaction-cell.cell-balance:before {
-        content: "余额";
-    }
-    
-    .transaction-cell.cell-counterparty:before {
-        content: "对手";
-    }
-    
-    .transaction-cell.cell-description:before {
-        content: "摘要";
-    }
+    .transaction-cell.cell-date:before { content: "日期"; }
+    .transaction-cell.cell-account:before { content: "账户"; }
+    .transaction-cell.cell-amount:before { content: "金额"; }
+    .transaction-cell.cell-balance:before { content: "余额"; }
+    .transaction-cell.cell-counterparty:before { content: "对手"; }
+    .transaction-cell.cell-description:before { content: "摘要"; }
     
     .transaction-cell.cell-amount,
     .transaction-cell.cell-balance {
@@ -1036,49 +656,76 @@
         font-weight: 500;
     }
     
-    .transaction-cell.cell-account {
-        order: 4;
-    }
-    
-    .transaction-cell.cell-balance {
-        order: 5;
-    }
-    
-    .transaction-cell.cell-counterparty {
-        order: 6;
-    }
+    .transaction-cell.cell-account { order: 4; }
+    .transaction-cell.cell-balance { order: 5; }
+    .transaction-cell.cell-counterparty { order: 6; }
 }
 
-/* 超小屏幕优化 */
-@media (max-width: 480px) {
+@media (max-width: 576px) {
+    .page-container { padding: var(--spacing-3); }
+    .metric-card { min-height: 100px; padding: var(--spacing-4); }
+    .metric-value { font-size: 1.5rem; }
+    .stat-card {
+        padding: var(--spacing-4);
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-3);
+    }
+    .filter-form-container { padding: var(--spacing-4); }
+    
     .transaction-row {
         padding: var(--spacing-4);
         margin-bottom: var(--spacing-2);
     }
     
-    .transaction-cell.cell-date {
-        font-size: var(--text-base);
-    }
-    
-    .transaction-cell.cell-amount {
-        font-size: var(--text-lg);
-    }
-    
+    .transaction-cell.cell-date { font-size: var(--text-base); }
+    .transaction-cell.cell-amount { font-size: var(--text-lg); }
     .transaction-cell:before {
         flex: 0 0 60px;
         font-size: var(--text-xs);
     }
 }
 
-/* 表格容器响应式包装 */
-.transactions-container {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+@media (min-width: 769px) {
+    .transactions-container { overflow-x: visible; }
 }
 
-@media (min-width: 769px) {
-    .transactions-container {
-        overflow-x: visible;
+/* ==========================================================================
+   动画效果（简化版）
+   ========================================================================== */
+
+@keyframes cardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
     }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card-animate {
+    animation: cardFadeIn 0.3s ease-out;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.card-loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.card-loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 1.5s infinite;
 }
