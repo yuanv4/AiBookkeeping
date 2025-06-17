@@ -246,6 +246,8 @@ class FinancialService:
             'monthly_trends': self.get_monthly_balance_trends(12),
         }
         
+    # ==================== 计算方法 ====================
+
     def get_all_accounts_balance(self) -> Decimal:
         """获取所有账户的当前余额总和"""
         try:
