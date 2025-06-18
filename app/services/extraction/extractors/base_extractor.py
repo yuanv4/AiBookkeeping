@@ -13,10 +13,7 @@ from datetime import datetime
 from typing import Dict, List, Type, Optional, Any, Union, Tuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-
-from app.services.core.bank_service import BankService
-from app.services.core.account_service import AccountService
-from app.services.core.transaction_service import TransactionService
+from flask import current_app
 
 logger = logging.getLogger(__name__)
 
@@ -313,13 +310,13 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                 account_name, account_number = self.extract_account_info(raw_df)
             
             # 确保银行存在
-            bank = BankService.get_or_create_bank(
+            bank = current_app.bank_service.get_or_create_bank(
                 name=self.get_bank_name(),
                 code=self.get_bank_code()
             )
             
             # 确保账户存在
-            account = AccountService.get_or_create_account(
+            account = current_app.account_service.get_or_create_account(
                 bank_id=bank.id,
                 account_number=account_number,
                 account_name=account_name
@@ -341,12 +338,12 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     }
                     
                     # 检查是否已存在相同交易（直接使用transaction_data的相关字段）
-                    is_duplicate = TransactionService.is_duplicate_transaction(transaction_data)
+                    is_duplicate = current_app.transaction_service.is_duplicate_transaction(transaction_data)
                     
                     if not is_duplicate:
                         # 使用TransactionService创建交易记录
                         self.logger.debug(f"新建交易：{transaction_data}")
-                        transaction = TransactionService.create_transaction(**transaction_data)
+                        transaction = current_app.transaction_service.create_transaction(**transaction_data)
                         if transaction:
                             processed_count += 1
                     else:
