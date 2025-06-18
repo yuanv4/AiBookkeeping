@@ -1,8 +1,4 @@
-"""Bank service for handling bank-related operations.
-
-This module provides bank management functionality including CRUD operations
-and bank-specific business logic.
-"""
+"""Bank service for handling bank-related operations."""
 
 from typing import List, Optional
 import logging

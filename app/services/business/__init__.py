@@ -1,5 +1,5 @@
 from app.services.core import FinancialService
-from .extraction.service import BankStatementExtractor
+from app.services.extraction.service import BankStatementExtractor
 
 __all__ = [
     'FinancialService',

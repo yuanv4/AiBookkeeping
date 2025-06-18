@@ -12,7 +12,7 @@ from .models import db
 
 from .services.core.transaction_service import TransactionService
 from .services.core.financial_service import FinancialService
-from .services.business.extraction.service import BankStatementExtractor
+from .services.extraction.service import BankStatementExtractor
 from .services.core.file_processor_service import FileProcessorService
 
 # Initialize extensions

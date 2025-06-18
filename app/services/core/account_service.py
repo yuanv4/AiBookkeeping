@@ -1,16 +1,8 @@
-"""Account service for handling account-related operations.
-
-This module provides account management functionality including CRUD operations
-and account-specific business logic.
-"""
+"""Account service for handling account-related operations."""
 
 from typing import List, Optional, Dict, Any
 import logging
-from decimal import Decimal
-from datetime import date
-from sqlalchemy import func
-
-from app.models import Account, Transaction, db
+from app.models import Account
 
 logger = logging.getLogger(__name__)
 

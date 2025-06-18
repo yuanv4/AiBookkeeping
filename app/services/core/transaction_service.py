@@ -1,9 +1,6 @@
-"""Transaction service for handling transaction-related business logic.
+"""Transaction service for handling transaction-related logic."""
 
-This module provides transaction processing, validation, and analysis functionality.
-"""
-
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from decimal import Decimal
 from datetime import date, datetime
 import logging
@@ -17,8 +14,6 @@ from sqlalchemy import func, and_
 logger = logging.getLogger(__name__)
 
 class TransactionService:
-    """Service for handling transaction operations and business logic."""
-
     @staticmethod
     def get_transactions_paginated(filters: Dict[str, Any] = None, 
                                  page: int = 1, 

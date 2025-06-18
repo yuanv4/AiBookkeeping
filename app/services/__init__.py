@@ -1,17 +1,16 @@
-"""Services package for the Flask application.
-
-This package contains business logic and service layer functionality.
-"""
+"""Services package for the Flask application."""
 
 # 核心服务
 from .core import TransactionService, FileProcessorService, FinancialService
 
 # 新的推荐导入路径
-from .business.extraction.service import BankStatementExtractor
-from .business.extraction.factory import ExtractorFactory
-from .business.extraction.models import ExtractionResult, StatementData
+from .extraction.service import BankStatementExtractor
+from .extraction.factory import ExtractorFactory
+from .extraction.models import ExtractionResult, StatementData
 
 __all__ = [
+    'TransactionService',
+    'FileProcessorService',
     'FinancialService',
     'BankStatementExtractor', 
     'ExtractorFactory',
