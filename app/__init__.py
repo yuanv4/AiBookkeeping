@@ -119,6 +119,10 @@ def create_app():
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.logger.info("已注册 settings_bp, 前缀 /settings")
 
+    from .blueprints.expense_analysis import expense_analysis_bp
+    app.register_blueprint(expense_analysis_bp)
+    app.logger.info("已注册 expense_analysis_bp, 前缀 /expense-analysis")
+
     # 注册全局错误处理函数
     @app.errorhandler(404)
     def page_not_found_error(e): 

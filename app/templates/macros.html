@@ -265,3 +265,118 @@
   </div>
 </div>
 {% endmacro %}
+
+{# ==================== 支出分析组件宏 ==================== #}
+
+{% macro expense_overview_card(icon_name, value, label, icon_color="danger", value_color="danger") %}
+<div class="expense-overview-card">
+  <div class="card-icon bg-{{ icon_color }}">
+    {{ icon(icon_name, "md", "text-white") }}
+  </div>
+  <div class="card-value text-{{ value_color }}" data-stat="{{ label|lower|replace(' ', '_') }}">{{ value }}</div>
+  <div class="card-label">{{ label }}</div>
+</div>
+{% endmacro %}
+
+{% macro expense_trend_chart(title="支出趋势分析", chart_id="expenseTrendChart") %}
+<div class="expense-trend-chart">
+  <div class="chart-header">
+    <h5 class="chart-title">{{ title }}</h5>
+    <div class="chart-actions">
+      <!-- 可选的图表操作按钮 -->
+    </div>
+  </div>
+  <canvas id="{{ chart_id }}" class="chart-canvas"></canvas>
+</div>
+{% endmacro %}
+
+{% macro expense_category_table(categories, total_expense) %}
+<div class="expense-categories-table">
+  <table class="table" id="expense-categories-table">
+    <thead>
+      <tr>
+        <th class="rank">排名</th>
+        <th class="counterparty">交易对手</th>
+        <th class="amount">总金额</th>
+        <th class="count">交易笔数</th>
+        <th class="avg-amount">平均金额</th>
+        <th class="percentage">占比</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for category in categories %}
+      <tr>
+        <td class="rank">{{ loop.index }}</td>
+        <td class="counterparty">{{ category.counterparty }}</td>
+        <td class="amount text-danger">¥{{ "%.2f"|format(category.total_amount) }}</td>
+        <td class="count">{{ category.transaction_count }}</td>
+        <td class="avg-amount">¥{{ "%.2f"|format(category.avg_amount) }}</td>
+        <td class="percentage">
+          {% set percentage = (category.total_amount / total_expense * 100) if total_expense else 0 %}
+          <div class="progress">
+            <div class="progress-bar bg-danger" 
+                 style="width: {{ percentage }}%">
+              {{ "%.1f"|format(percentage) }}%
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro expense_pattern_card(title, icon_name, pattern_type="fixed") %}
+<div class="expense-pattern-card">
+  <div class="pattern-header">
+    <div class="pattern-icon {{ pattern_type }}">
+      {{ icon(icon_name, "sm", "text-white") }}
+    </div>
+    <h6 class="pattern-title">{{ title }}</h6>
+  </div>
+  <div class="pattern-content">
+    {{ caller() }}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro expense_filter_form() %}
+<form id="expense-filter-form" class="expense-filter-form">
+  <div class="row g-3">
+    <div class="col-md-3">
+      <label for="start_date" class="form-label">开始日期</label>
+      <input type="date" class="form-control" id="start_date" name="start_date">
+    </div>
+    <div class="col-md-3">
+      <label for="end_date" class="form-label">结束日期</label>
+      <input type="date" class="form-control" id="end_date" name="end_date">
+    </div>
+    <div class="col-md-3">
+      <label for="account_id" class="form-label">账户</label>
+      <select class="form-select" id="account_id" name="account_id">
+        <option value="">所有账户</option>
+        {{ caller() }}
+      </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary me-2">
+        {{ icon("search", "sm", "", "me-1") }}查询
+      </button>
+      <button type="button" class="btn btn-outline-secondary" id="reset-filters">
+        {{ icon("refresh", "sm", "", "me-1") }}重置
+      </button>
+    </div>
+  </div>
+</form>
+{% endmacro %}
+
+{% macro expense_empty_state(icon_name="inbox", title="暂无支出数据", description="当前没有找到任何支出记录，请检查筛选条件或添加新的交易数据。") %}
+<div class="expense-empty-state">
+  <div class="empty-icon">
+    {{ icon(icon_name, "xxl", "text-muted") }}
+  </div>
+  <h5 class="empty-title">{{ title }}</h5>
+  <p class="empty-description">{{ description }}</p>
+</div>
+{% endmacro %}
