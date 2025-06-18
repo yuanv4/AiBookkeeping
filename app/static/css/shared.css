@@ -1,0 +1,204 @@
+/*
+ * AiBookkeeping - 共享样式
+ * 从pages.css迁移的响应式设计和动画效果
+ */
+
+/* ==========================================================================
+   响应式设计（合并优化）
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+    .cards-grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .cards-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+}
+
+@media (max-width: 1024px) {
+    .income-charts { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 992px) {
+    .page-container { padding: 1.5rem; }
+    .cards-grid { gap: 1.25rem; }
+    .cards-grid.cols-3,
+    .cards-grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .stat-container { gap: 0.75rem; }
+}
+
+@media (max-width: 768px) {
+    .page-container { padding: var(--spacing-4); }
+    .page-title { font-size: 1.75rem; }
+    .cards-grid { gap: var(--spacing-4); grid-template-columns: 1fr; }
+    .metric-card { min-height: 120px; padding: 1.25rem; }
+    .metric-value { font-size: 1.75rem; }
+    .stats-container.horizontal { grid-template-columns: 1fr; gap: var(--spacing-3); }
+    .filter-form-container { padding: 1.25rem; margin-bottom: 1.5rem; }
+    
+    /* 交易表格移动端卡片布局 */
+    .transactions-table,
+    .transactions-table thead,
+    .transactions-table tbody,
+    .transactions-table th,
+    .transactions-table td,
+    .transactions-table tr {
+        display: block;
+    }
+    
+    .transactions-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    
+    .transaction-row {
+        background: var(--surface-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: var(--spacing-4);
+        padding: var(--spacing-5);
+        box-shadow: var(--shadow);
+        height: auto;
+        position: relative;
+    }
+    
+    .transaction-row:hover {
+        transform: none;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .transaction-cell {
+        border: none;
+        padding: var(--spacing-1) 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 32px;
+    }
+    
+    .transaction-cell:first-child,
+    .transaction-cell:last-child {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    
+    .transaction-cell:before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: var(--text-sm);
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        flex: 0 0 80px;
+    }
+    
+    .transaction-cell.cell-date:before { content: "日期"; }
+    .transaction-cell.cell-account:before { content: "账户"; }
+    .transaction-cell.cell-amount:before { content: "金额"; }
+    .transaction-cell.cell-balance:before { content: "余额"; }
+    .transaction-cell.cell-counterparty:before { content: "对手"; }
+    .transaction-cell.cell-description:before { content: "摘要"; }
+    
+    .transaction-cell.cell-amount,
+    .transaction-cell.cell-balance {
+        text-align: right;
+    }
+    
+    .transaction-cell.cell-description {
+        max-width: none;
+        white-space: normal;
+        word-break: break-word;
+    }
+    
+    /* 移动端优先显示重要信息 */
+    .transaction-cell.cell-date {
+        order: 1;
+        font-size: var(--text-lg);
+        font-weight: 600;
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: var(--spacing-2);
+        margin-bottom: var(--spacing-2);
+    }
+    
+    .transaction-cell.cell-amount {
+        order: 2;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    
+    .transaction-cell.cell-description {
+        order: 3;
+        font-weight: 500;
+    }
+    
+    .transaction-cell.cell-account { order: 4; }
+    .transaction-cell.cell-balance { order: 5; }
+    .transaction-cell.cell-counterparty { order: 6; }
+}
+
+@media (max-width: 576px) {
+    .page-container { padding: var(--spacing-3); }
+    .metric-card { min-height: 100px; padding: var(--spacing-4); }
+    .metric-value { font-size: 1.5rem; }
+    .stat-card {
+        padding: var(--spacing-4);
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-3);
+    }
+    .filter-form-container { padding: var(--spacing-4); }
+    
+    .transaction-row {
+        padding: var(--spacing-4);
+        margin-bottom: var(--spacing-2);
+    }
+    
+    .transaction-cell.cell-date { font-size: var(--text-base); }
+    .transaction-cell.cell-amount { font-size: var(--text-lg); }
+    .transaction-cell:before {
+        flex: 0 0 60px;
+        font-size: var(--text-xs);
+    }
+}
+
+@media (min-width: 769px) {
+    .transactions-container { overflow-x: visible; }
+}
+
+/* ==========================================================================
+   动画效果（简化版）
+   ========================================================================== */
+
+@keyframes cardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card-animate {
+    animation: cardFadeIn 0.3s ease-out;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.card-loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.card-loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 1.5s infinite;
+} 
