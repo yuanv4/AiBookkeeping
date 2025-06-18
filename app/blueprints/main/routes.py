@@ -1,10 +1,6 @@
 from flask import render_template, current_app
+from app.services.core import FinancialService
 from . import main_bp
-from app.models import Transaction, Account, db
-from datetime import datetime, timedelta
-from sqlalchemy import func, desc
-from decimal import Decimal
-from app.services.business.financial.financial_service import FinancialService
 
 @main_bp.route('/')
 @main_bp.route('/dashboard')

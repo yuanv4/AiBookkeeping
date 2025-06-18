@@ -11,7 +11,7 @@ from .utils.template_filters import register_template_filters
 from .models import db
 
 from .services.core.transaction_service import TransactionService
-from .services.business.financial.financial_service import FinancialService as AnalysisService
+from .services.core.financial_service import FinancialService
 from .services.business.extraction.service import BankStatementExtractor
 from .services.core.file_processor_service import FileProcessorService
 
@@ -88,7 +88,7 @@ def create_app():
         
         # Initialize services
         app.transaction_service = TransactionService()
-        app.analysis_service = AnalysisService()
+        app.financial_service = FinancialService()
         app.extractor_service = BankStatementExtractor()
         
         # Initialize file processor service with dependencies

@@ -1,4 +1,4 @@
-from .financial import FinancialService
+from app.services.core import FinancialService
 from .extraction.service import BankStatementExtractor
 
 __all__ = [
