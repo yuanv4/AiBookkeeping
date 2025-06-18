@@ -17,7 +17,7 @@ def income_analysis():
     """收入分析页面"""
     try:
         # 获取收入分析数据（默认12个月）
-        analyze_income_result = current_app.financial_service.analyze_income(
+        analyze_income_result = current_app.financial_service.get_income_data(
             months=12,
             account_filter=None  # 不筛选特定账户
         )
