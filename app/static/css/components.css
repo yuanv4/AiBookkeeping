@@ -446,6 +446,86 @@
     height: 3rem;
 }
 
+/* 新的详细进度条样式 */
+.progress-wrapper {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.progress {
+    background-color: var(--gray-200);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar {
+    background: linear-gradient(45deg, var(--primary-500), var(--primary-600));
+    transition: width 0.3s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-text {
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+}
+
+.upload-status-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.upload-status-text i {
+    color: var(--primary-500);
+}
+
+.upload-file-info {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    background: var(--gray-50);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.upload-time-estimate {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* 进度条状态样式 */
+.progress-bar.uploading {
+    background: linear-gradient(45deg, var(--primary-500), var(--primary-600));
+}
+
+.progress-bar.validating {
+    background: linear-gradient(45deg, var(--warning-500), var(--warning-600));
+}
+
+.progress-bar.processing {
+    background: linear-gradient(45deg, var(--info-500), var(--info-600));
+}
+
+.progress-bar.completing {
+    background: linear-gradient(45deg, var(--success-500), var(--success-600));
+}
+
+.progress-bar.error {
+    background: linear-gradient(45deg, var(--danger-500), var(--danger-600));
+}
+
 /* 上传状态样式 */
 .upload-success {
     color: var(--success-600);
@@ -490,6 +570,19 @@
         width: 100%;
         justify-content: flex-end;
     }
+    
+    .progress-wrapper {
+        max-width: 100%;
+    }
+    
+    .upload-status-text {
+        font-size: 0.875rem;
+    }
+    
+    .upload-file-info {
+        font-size: 0.8rem;
+        padding: 0.5rem;
+    }
 }
 
 @media (max-width: 576px) {
@@ -512,5 +605,19 @@
     
     .file-size {
         font-size: 0.75rem;
+    }
+    
+    .progress {
+        height: 1.25rem !important;
+    }
+    
+    .progress-text {
+        font-size: 0.75rem;
+    }
+    
+    .upload-status-text {
+        font-size: 0.8rem;
+        flex-direction: column;
+        gap: 0.25rem;
     }
 }
