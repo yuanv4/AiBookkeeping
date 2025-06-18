@@ -1,16 +1,14 @@
 from flask import render_template, current_app
-from app.services.core import FinancialService
 from . import main_bp
 
 @main_bp.route('/')
 @main_bp.route('/dashboard')
 def dashboard():
     """仪表盘页面 - 显示财务概览和统计信息"""
-    # 使用财务服务获取总览数据
-    financial_service = FinancialService()    
+    # 使用财务服务获取总览数据   
     try:
         # 获取总览数据（默认12个月）
-        balance_data = financial_service.get_balance_data()
+        balance_data = current_app.financial_service.get_balance_data()
 
         # 准备统计数据（转换为 float 用于显示）
         template_data = {

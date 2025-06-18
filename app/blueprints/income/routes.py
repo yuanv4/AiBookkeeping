@@ -1,5 +1,4 @@
 from flask import render_template, current_app
-from app.services import FinancialService
 from app.utils.decorators import handle_errors
 from . import income_bp
 
@@ -16,11 +15,9 @@ def after_request(response):
 @handle_errors
 def income_analysis():
     """收入分析页面"""
-    # 使用财务服务获取收入分析数据
-    financial_service = FinancialService()
     try:
         # 获取收入分析数据（默认12个月）
-        analyze_income_result = financial_service.analyze_income(
+        analyze_income_result = current_app.financial_service.analyze_income(
             months=12,
             account_filter=None  # 不筛选特定账户
         )

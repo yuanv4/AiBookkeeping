@@ -3,16 +3,12 @@
 # 核心服务
 from .core import TransactionService, FileProcessorService, FinancialService
 
-# 新的推荐导入路径
-from .extraction.service import BankStatementExtractor
-from .extraction.factory import ExtractorFactory
-from .extraction.models import ExtractionResult
+# 提取服务 - 使用包级别导入
+from .extraction import *
 
 __all__ = [
     'TransactionService',
     'FileProcessorService',
     'FinancialService',
-    'BankStatementExtractor', 
-    'ExtractorFactory',
-    'ExtractionResult',
+    *extraction.__all__,
 ]
