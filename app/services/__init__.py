@@ -6,7 +6,7 @@ from .core import TransactionService, FileProcessorService, FinancialService
 # 新的推荐导入路径
 from .extraction.service import BankStatementExtractor
 from .extraction.factory import ExtractorFactory
-from .extraction.models import ExtractionResult, StatementData
+from .extraction.models import ExtractionResult
 
 __all__ = [
     'TransactionService',
@@ -15,5 +15,4 @@ __all__ = [
     'BankStatementExtractor', 
     'ExtractorFactory',
     'ExtractionResult',
-    'StatementData'
 ]
