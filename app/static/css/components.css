@@ -10,8 +10,8 @@
 .page-header {
     background: var(--surface-primary);
     border-bottom: 1px solid var(--border-color);
-    padding: var(--spacing-6) var(--spacing-8);
-    margin-bottom: var(--spacing-8);
+    padding: var(--spacing-4) var(--spacing-6);
+    margin-bottom: var(--spacing-6);
 }
 
 .page-header:hover {
@@ -59,8 +59,8 @@
     background: var(--surface-primary);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-card);
-    padding: var(--spacing-6);
-    margin-bottom: var(--spacing-6);
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-4);
     transition: box-shadow var(--transition-hover) ease;
     border: 1px solid var(--border-color);
     overflow: hidden;
@@ -89,8 +89,8 @@
     background: var(--surface-primary);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-card);
-    padding: var(--spacing-6);
-    margin-bottom: var(--spacing-6);
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-4);
     position: relative;
     width: 100%;
     height: 100%;
@@ -116,17 +116,17 @@
    ======================================== */
 
 .card-header {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     border-bottom: 1px solid var(--border-color);
     background-color: var(--surface-secondary);
 }
 
 .card-body {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
 }
 
 .card-footer {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     border-top: 1px solid var(--border-color);
     background-color: var(--surface-secondary);
 }
@@ -330,6 +330,7 @@
 .upload-container {
     width: 100%;
     max-width: 100%;
+    overflow-x: auto;
 }
 
 /* 拖拽区域基础样式 */

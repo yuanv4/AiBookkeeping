@@ -32,7 +32,7 @@
 
 /* 页面特定的卡片样式 */
 .metric-card {
-    padding: 1.5rem;
+    padding: 1.25rem;
     min-height: 140px;
     display: flex;
     flex-direction: column;
@@ -41,7 +41,7 @@
 }
 
 .stat-card {
-    padding: 1.25rem;
+    padding: 1rem;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -183,7 +183,7 @@
    ========================================================================== */
 
 .income-analysis {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
 }
 
 .income-analysis .page-header {
@@ -371,9 +371,10 @@
 }
 
 .page-container {
-    padding: var(--spacing-8);
-    max-width: 1400px;
+    padding: var(--spacing-lg);
+    max-width: 1200px;
     margin: 0 auto;
+    overflow-x: auto;
 }
 
 .page-title {
@@ -528,6 +529,7 @@
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    max-width: 100%;
 }
 
 /* ==========================================================================
