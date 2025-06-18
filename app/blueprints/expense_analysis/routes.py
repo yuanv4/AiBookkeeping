@@ -15,68 +15,40 @@ from . import expense_analysis_bp
 def expense_analysis_page():
     """支出分析页面"""
     
-    # 获取查询参数
-    start_date_str = request.args.get('start_date', None)
-    end_date_str = request.args.get('end_date', None)
-    account_id = request.args.get('account_id', None, type=int)
-    
-    # 解析日期
-    start_date = None
-    end_date = None
-    if start_date_str:
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-    if end_date_str:
-        try:
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-    
-    # 获取支出概览数据
+    # 获取支出概览数据（查询所有历史数据）
     overview_data = current_app.financial_service.get_expense_overview(
-        start_date=start_date,
-        end_date=end_date,
-        account_id=account_id
+        start_date=None,  # 查询所有历史数据
+        end_date=None,
+        account_id=None
     )
     
-    # 获取支出趋势数据
+    # 获取支出趋势数据（查询所有历史数据）
     trends_data = current_app.financial_service.get_expense_trends(
-        months=12,
-        account_id=account_id
+        all_history=True,  # 查询所有历史数据
+        account_id=None
     )
     
-    # 获取支出模式数据
+    # 获取支出模式数据（查询所有历史数据）
     patterns_data = current_app.financial_service.get_expense_patterns(
-        start_date=start_date,
-        end_date=end_date,
-        account_id=account_id
+        start_date=None,  # 查询所有历史数据
+        end_date=None,
+        account_id=None
     )
     
-    # 获取支出分类数据
+    # 获取支出分类数据（查询所有历史数据）
     categories_data = current_app.financial_service.get_expense_categories(
-        start_date=start_date,
-        end_date=end_date,
-        account_id=account_id,
+        start_date=None,  # 查询所有历史数据
+        end_date=None,
+        account_id=None,
         limit=10
     )
-    
-    # 获取账户列表
-    accounts = current_app.account_service.get_all_accounts()
     
     # 准备模板数据
     template_data = {
         'overview': overview_data,
         'trends': trends_data,
         'patterns': patterns_data,
-        'categories': categories_data,
-        'accounts': accounts,
-        'filters': {
-            'start_date': start_date_str,
-            'end_date': end_date_str,
-            'account_id': account_id
-        }
+        'categories': categories_data
     }
     
     return render_template('expense_analysis.html', **template_data)
@@ -126,11 +98,13 @@ def api_expense_trends():
         # 获取查询参数
         months = request.args.get('months', 12, type=int)
         account_id = request.args.get('account_id', None, type=int)
+        all_history = request.args.get('all_history', 'false').lower() == 'true'
         
         # 获取支出趋势数据
         trends_data = current_app.financial_service.get_expense_trends(
             months=months,
-            account_id=account_id
+            account_id=account_id,
+            all_history=all_history
         )
         
         return jsonify(trends_data)

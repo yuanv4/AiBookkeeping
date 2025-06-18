@@ -171,28 +171,22 @@ function getExpenseAnalysisData() {
 /**
  * 加载支出分析数据
  */
-async function loadExpenseAnalysisData(filters = {}) {
+async function loadExpenseAnalysisData() {
     try {
-        const params = new URLSearchParams();
-        
-        if (filters.start_date) params.append('start_date', filters.start_date);
-        if (filters.end_date) params.append('end_date', filters.end_date);
-        if (filters.account_id) params.append('account_id', filters.account_id);
-        
         // 加载概览数据
-        const overviewResponse = await fetch(`/expense-analysis/api/overview?${params}`);
+        const overviewResponse = await fetch('/expense-analysis/api/overview');
         const overviewData = await overviewResponse.json();
         
         // 加载趋势数据
-        const trendsResponse = await fetch(`/expense-analysis/api/trends?${params}`);
+        const trendsResponse = await fetch('/expense-analysis/api/trends?all_history=true');
         const trendsData = await trendsResponse.json();
         
         // 加载模式数据
-        const patternsResponse = await fetch(`/expense-analysis/api/patterns?${params}`);
+        const patternsResponse = await fetch('/expense-analysis/api/patterns');
         const patternsData = await patternsResponse.json();
         
         // 加载分类数据
-        const categoriesResponse = await fetch(`/expense-analysis/api/categories?${params}`);
+        const categoriesResponse = await fetch('/expense-analysis/api/categories');
         const categoriesData = await categoriesResponse.json();
         
         return {
@@ -201,7 +195,6 @@ async function loadExpenseAnalysisData(filters = {}) {
             patterns: patternsData,
             categories: categoriesData
         };
-        
     } catch (error) {
         console.error('加载支出分析数据失败:', error);
         throw error;
@@ -334,68 +327,6 @@ function updateCategoriesTable(categories, totalExpense) {
 }
 
 /**
- * 处理筛选表单提交
- */
-function handleFilterSubmit(event) {
-    event.preventDefault();
-    
-    const formData = new FormData(event.target);
-    const filters = {
-        start_date: formData.get('start_date'),
-        end_date: formData.get('end_date'),
-        account_id: formData.get('account_id')
-    };
-    
-    // 显示加载状态
-    showLoadingState();
-    
-    // 加载数据
-    loadExpenseAnalysisData(filters)
-        .then(data => {
-            updatePageData(data);
-            hideLoadingState();
-        })
-        .catch(error => {
-            console.error('筛选数据失败:', error);
-            hideLoadingState();
-            showErrorMessage('数据加载失败，请重试');
-        });
-}
-
-/**
- * 重置筛选条件
- */
-function resetFilters() {
-    const form = document.getElementById('expense-filter-form');
-    if (form) {
-        form.reset();
-        form.dispatchEvent(new Event('submit'));
-    }
-}
-
-/**
- * 显示加载状态
- */
-function showLoadingState() {
-    const submitBtn = document.querySelector('#expense-filter-form button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>加载中...';
-    }
-}
-
-/**
- * 隐藏加载状态
- */
-function hideLoadingState() {
-    const submitBtn = document.querySelector('#expense-filter-form button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-search me-1"></i>查询';
-    }
-}
-
-/**
  * 显示错误消息
  */
 function showErrorMessage(message) {
@@ -434,17 +365,6 @@ function initExpenseAnalysis() {
     // 创建趋势图表
     if (data.trends && data.trends.length > 0) {
         window.expenseTrendChart = createExpenseTrendChart(canvas, data.trends);
-    }
-    
-    // 绑定事件监听器
-    const filterForm = document.getElementById('expense-filter-form');
-    if (filterForm) {
-        filterForm.addEventListener('submit', handleFilterSubmit);
-    }
-    
-    const resetBtn = document.getElementById('reset-filters');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', resetFilters);
     }
     
     // 响应式处理

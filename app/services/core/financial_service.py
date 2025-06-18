@@ -121,7 +121,7 @@ class FinancialService:
         """获取支出概览统计
         
         Args:
-            start_date: 开始日期，默认为12个月前
+            start_date: 开始日期，None表示查询所有历史数据
             end_date: 结束日期，默认为今天
             account_id: 账户ID，None表示所有账户
             
@@ -132,15 +132,17 @@ class FinancialService:
             # 设置默认日期范围
             if not end_date:
                 end_date = date.today()
-            if not start_date:
-                start_date = date(end_date.year - 1, end_date.month, end_date.day)
+            # 移除默认的12个月限制，当start_date为None时查询所有历史数据
             
             # 构建基础查询
             query = self.db.query(Transaction).filter(
-                Transaction.amount < 0,  # 只查询支出
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
+                Transaction.amount < 0  # 只查询支出
             )
+            
+            # 添加时间范围过滤（如果指定了start_date）
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            query = query.filter(Transaction.date <= end_date)
             
             # 添加账户过滤
             if account_id:
@@ -155,16 +157,29 @@ class FinancialService:
             expense_count = query.count()
             
             # 计算平均每月支出
-            months_diff = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
-            if months_diff == 0:
-                months_diff = 1
+            if start_date:
+                months_diff = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
+                if months_diff == 0:
+                    months_diff = 1
+            else:
+                # 查询所有历史数据时，计算从最早交易到现在的月数
+                earliest_date = self.db.query(func.min(Transaction.date)).filter(
+                    Transaction.amount < 0
+                ).scalar()
+                if earliest_date:
+                    months_diff = (end_date.year - earliest_date.year) * 12 + (end_date.month - earliest_date.month)
+                    if months_diff == 0:
+                        months_diff = 1
+                else:
+                    months_diff = 1
+            
             avg_monthly_expense = total_expense / months_diff
             
             return {
                 'total_expense': float(total_expense),
                 'expense_count': expense_count,
                 'avg_monthly_expense': float(avg_monthly_expense),
-                'start_date': start_date.isoformat(),
+                'start_date': start_date.isoformat() if start_date else None,
                 'end_date': end_date.isoformat(),
                 'months': months_diff
             }
@@ -177,12 +192,14 @@ class FinancialService:
             return {}
 
     def get_expense_trends(self, months: int = 12, 
-                          account_id: Optional[int] = None) -> List[Dict[str, Any]]:
+                          account_id: Optional[int] = None,
+                          all_history: bool = False) -> List[Dict[str, Any]]:
         """获取支出趋势数据
         
         Args:
-            months: 查询月数，默认12个月
+            months: 查询月数，默认12个月（仅在all_history=False时使用）
             account_id: 账户ID，None表示所有账户
+            all_history: 是否查询所有历史数据，True时忽略months参数
             
         Returns:
             List[Dict[str, Any]]: 支出趋势数据
@@ -194,9 +211,12 @@ class FinancialService:
                 func.sum(func.abs(Transaction.amount)).label('expense_amount'),
                 func.count(Transaction.id).label('expense_count')
             ).filter(
-                Transaction.amount < 0,  # 只查询支出
-                Transaction.date >= func.date('now', f'-{months} months')
+                Transaction.amount < 0  # 只查询支出
             )
+            
+            # 添加时间范围过滤
+            if not all_history:
+                query = query.filter(Transaction.date >= func.date('now', f'-{months} months'))
             
             # 添加账户过滤
             if account_id:
@@ -231,7 +251,7 @@ class FinancialService:
         """获取支出模式分析
         
         Args:
-            start_date: 开始日期，默认为12个月前
+            start_date: 开始日期，None表示查询所有历史数据
             end_date: 结束日期，默认为今天
             account_id: 账户ID，None表示所有账户
             
@@ -242,15 +262,17 @@ class FinancialService:
             # 设置默认日期范围
             if not end_date:
                 end_date = date.today()
-            if not start_date:
-                start_date = date(end_date.year - 1, end_date.month, end_date.day)
+            # 移除默认的12个月限制，当start_date为None时查询所有历史数据
             
             # 构建基础查询
             query = self.db.query(Transaction).filter(
-                Transaction.amount < 0,  # 只查询支出
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
+                Transaction.amount < 0  # 只查询支出
             )
+            
+            # 添加时间范围过滤（如果指定了start_date）
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            query = query.filter(Transaction.date <= end_date)
             
             # 添加账户过滤
             if account_id:
@@ -288,7 +310,7 @@ class FinancialService:
         """获取支出分类数据（按对手方）
         
         Args:
-            start_date: 开始日期，默认为12个月前
+            start_date: 开始日期，None表示查询所有历史数据
             end_date: 结束日期，默认为今天
             account_id: 账户ID，None表示所有账户
             limit: 返回结果数量限制
@@ -300,8 +322,7 @@ class FinancialService:
             # 设置默认日期范围
             if not end_date:
                 end_date = date.today()
-            if not start_date:
-                start_date = date(end_date.year - 1, end_date.month, end_date.day)
+            # 移除默认的12个月限制，当start_date为None时查询所有历史数据
             
             # 构建查询
             query = self.db.query(
@@ -311,11 +332,14 @@ class FinancialService:
                 func.avg(func.abs(Transaction.amount)).label('avg_amount')
             ).filter(
                 Transaction.amount < 0,  # 只查询支出
-                Transaction.date >= start_date,
-                Transaction.date <= end_date,
                 Transaction.counterparty.isnot(None),
                 Transaction.counterparty != ''
             )
+            
+            # 添加时间范围过滤（如果指定了start_date）
+            if start_date:
+                query = query.filter(Transaction.date >= start_date)
+            query = query.filter(Transaction.date <= end_date)
             
             # 添加账户过滤
             if account_id:
@@ -361,9 +385,10 @@ class FinancialService:
         for counterparty, group_transactions in counterparty_groups.items():
             if len(group_transactions) >= 2:  # 至少2次交易
                 amounts = [abs(t.amount) for t in group_transactions]
-                avg_amount = sum(amounts) / len(amounts)
+                # 确保平均值为Decimal类型
+                avg_amount = sum(amounts) / Decimal(str(len(amounts)))
                 # 如果所有金额都在平均值的10%范围内，认为是固定支出
-                if all(abs(amount - avg_amount) / avg_amount <= 0.1 for amount in amounts):
+                if all(abs(amount - avg_amount) / avg_amount <= Decimal('0.1') for amount in amounts):
                     fixed_expenses.append({
                         'counterparty': counterparty,
                         'amount': float(avg_amount),
@@ -382,14 +407,15 @@ class FinancialService:
             return []
         
         amounts = [abs(t.amount) for t in transactions]
-        avg_amount = sum(amounts) / len(amounts)
+        # 确保平均值为Decimal类型
+        avg_amount = sum(amounts) / Decimal(str(len(amounts)))
         
-        # 计算标准差
-        variance = sum((amount - avg_amount) ** 2 for amount in amounts) / len(amounts)
-        std_dev = variance ** 0.5
+        # 计算标准差，使用Decimal运算
+        variance = sum((amount - avg_amount) ** 2 for amount in amounts) / Decimal(str(len(amounts)))
+        std_dev = variance.sqrt()
         
         # 识别异常支出（超过平均值2个标准差）
-        threshold = avg_amount + 2 * std_dev
+        threshold = avg_amount + Decimal('2') * std_dev
         abnormal_expenses = []
         
         for transaction in transactions:
