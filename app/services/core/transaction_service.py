@@ -5,6 +5,7 @@ from decimal import Decimal
 from datetime import date, datetime
 import logging
 from collections import defaultdict
+import decimal
 
 from app.models import Transaction, Account, db
 from flask_sqlalchemy.pagination import Pagination
@@ -88,17 +89,38 @@ class TransactionService:
     def is_duplicate_transaction(transaction_data: Dict[str, Any]) -> bool:
         """Check if transaction is a duplicate."""
         try:
-            existing = Transaction.query.filter(
-                and_(
-                    Transaction.account_id == transaction_data.get('account_id'),
-                    Transaction.date == transaction_data.get('date'),
-                    Transaction.amount == transaction_data.get('amount'),
-                    Transaction.balance_after == transaction_data.get('balance_after')
-                )
-            ).first()
+            # 基本字段检查
+            account_id = transaction_data.get('account_id')
+            date = transaction_data.get('date')
+            amount = transaction_data.get('amount')
+            balance_after = transaction_data.get('balance_after')
+            
+            if account_id is None or date is None or amount is None or balance_after is None:
+                logger.warning("重复检查失败：缺少必需字段")
+                return True
+            
+            # 简单类型转换（主要处理pandas数值类型）
+            try:
+                normalized_amount = Transaction._normalize_decimal(amount)
+                normalized_balance = Transaction._normalize_decimal(balance_after)
+            except (ValueError, TypeError, decimal.InvalidOperation):
+                logger.warning(f"重复检查失败：无效的amount格式或者balance_after格式 {amount} {balance_after}")
+                return True
+            
+            # 执行查询
+            query_conditions = [
+                Transaction.account_id == account_id,
+                Transaction.date == date,
+                Transaction.amount == normalized_amount,
+                Transaction.balance_after == normalized_balance
+            ]
+            
+            existing = Transaction.query.filter(and_(*query_conditions)).first()
             return existing is not None
-        except Exception:
-            return False
+            
+        except Exception as e:
+            logger.error(f"重复检查异常: {e}")
+            return True
     
     # Database transaction operations (migrated from DatabaseService)
     @staticmethod
