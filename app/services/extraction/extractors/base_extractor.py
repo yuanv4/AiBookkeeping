@@ -14,7 +14,6 @@ from typing import Dict, List, Type, Optional, Any, Union, Tuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from app.models import Bank, Account, Transaction, db
 from app.services.core.bank_service import BankService
 from app.services.core.account_service import AccountService
 from app.services.core.transaction_service import TransactionService
@@ -201,8 +200,7 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
             bank_code: 银行代码，如CMB、CCB等
         """
         self.logger = logging.getLogger(f'extractor_{bank_code.lower()}')
-        self.transaction_service = TransactionService()
-    
+ 
     def _extract_transactions_impl(self, file_path: str) -> Optional[pd.DataFrame]:
         """提取交易数据的具体实现 - 使用配置化方法
         
@@ -343,7 +341,7 @@ class BaseTransactionExtractor(BankStatementExtractorInterface):
                     }
                     
                     # 检查是否已存在相同交易（直接使用transaction_data的相关字段）
-                    is_duplicate = self.transaction_service.is_duplicate_transaction(transaction_data)
+                    is_duplicate = TransactionService.is_duplicate_transaction(transaction_data)
                     
                     if not is_duplicate:
                         # 使用TransactionService创建交易记录

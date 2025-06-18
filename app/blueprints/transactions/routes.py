@@ -1,13 +1,6 @@
 # 使用新的服务层
-from flask import request, render_template, redirect, url_for, flash, current_app
-from datetime import datetime
-from app.services.core.account_service import AccountService
-from app.services.core.transaction_service import TransactionService
-from app.services.core.bank_service import BankService
+from flask import request, render_template, current_app
 from app.utils.decorators import handle_errors
-from datetime import datetime, timedelta
-import logging
-from flask import jsonify
 
 from . import transactions_bp
 
@@ -17,9 +10,7 @@ from . import transactions_bp
                log_prefix="交易记录页面")
 def transactions_list_route(): # 重命名函数
     """交易记录页面"""
-    # 使用新的服务层
-    transaction_service = TransactionService()
-    
+
     page = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 20, type=int)
     
@@ -56,7 +47,7 @@ def transactions_list_route(): # 重命名函数
         filters['account_name'] = account_name_req
 
     # 使用Flask-SQLAlchemy分页获取交易记录
-    pagination = transaction_service.get_transactions_paginated(
+    pagination = current_app.transaction_service.get_transactions_paginated(
         filters=filters,
         page=page,
         per_page=limit
@@ -65,11 +56,11 @@ def transactions_list_route(): # 重命名函数
     transactions_data = pagination.items
     total_transactions = pagination.total
 
-    accounts = AccountService.get_all_accounts()
+    accounts = current_app.account_service.get_all_accounts()
     
-    transaction_types_for_filter = TransactionService.get_all_transaction_types()
+    transaction_types_for_filter = current_app.transaction_service.get_all_transaction_types()
 
-    currencies_for_filter = TransactionService.get_all_currencies()
+    currencies_for_filter = current_app.transaction_service.get_all_currencies()
 
     current_filters = {
         'account_number': account_number_req,

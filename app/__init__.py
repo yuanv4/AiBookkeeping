@@ -10,6 +10,8 @@ from .config import Config
 from .utils.template_filters import register_template_filters
 from .models import db
 
+from .services.core.bank_service import BankService
+from .services.core.account_service import AccountService
 from .services.core.transaction_service import TransactionService
 from .services.core.financial_service import FinancialService
 from .services.extraction.service import BankStatementExtractor
@@ -87,8 +89,10 @@ def create_app():
         app.logger.info("数据库表已创建")
         
         # Initialize services
-        app.transaction_service = TransactionService()
+        app.bank_service = BankService()
+        app.account_service = AccountService()
         app.financial_service = FinancialService()
+        app.transaction_service = TransactionService()
         app.extractor_service = BankStatementExtractor()
         
         # Initialize file processor service with dependencies
