@@ -4,6 +4,7 @@
 from typing import List, Dict, Any, Optional, Union
 from decimal import Decimal
 from datetime import date, datetime
+from dateutil.relativedelta import relativedelta
 import logging
 
 from app.models import Transaction, db
@@ -442,3 +443,180 @@ class FinancialService:
             weekly_counts[weekday_name] += 1
         
         return weekly_counts
+
+    # ==================== 新增分析方法 ====================
+
+    def get_income_expense_analysis(self, duration_months: int = 12) -> Dict[str, Any]:
+        """获取收支分析数据
+        
+        Args:
+            duration_months: 查询月数，默认12个月
+            
+        Returns:
+            Dict[str, Any]: 收支分析数据
+        """
+        try:
+            # 计算起始日期
+            end_date = date.today()
+            start_date = end_date - relativedelta(months=duration_months)
+            
+            # 查询指定时间范围内的月度收支数据
+            query = self.db.query(
+                func.strftime('%Y-%m', Transaction.date).label('month'),
+                func.sum(
+                    case(
+                        (Transaction.amount > 0, Transaction.amount),
+                        else_=0
+                    )
+                ).label('income'),
+                func.sum(
+                    case(
+                        (Transaction.amount < 0, func.abs(Transaction.amount)),
+                        else_=0
+                    )
+                ).label('expense')
+            ).filter(
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                func.strftime('%Y-%m', Transaction.date)
+            ).order_by(
+                func.strftime('%Y-%m', Transaction.date)
+            )
+            
+            results = query.all()
+            
+            # 格式化月度数据
+            monthly_data = []
+            total_income = Decimal('0')
+            total_expense = Decimal('0')
+            
+            for result in results:
+                income = Decimal(str(result.income or 0))
+                expense = Decimal(str(result.expense or 0))
+                
+                monthly_data.append({
+                    'month': result.month,
+                    'income': float(income),
+                    'expense': float(expense),
+                    'net': float(income - expense)
+                })
+                
+                total_income += income
+                total_expense += expense
+            
+            return {
+                'monthly_income_expense': monthly_data,
+                'total_income': float(total_income),
+                'total_expense': float(total_expense),
+                'net_income': float(total_income - total_expense),
+                'duration_months': duration_months,
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat()
+            }
+            
+        except SQLAlchemyError as e:
+            self.logger.error(f"数据库查询异常 - 收支分析查询失败: {e}")
+            return {
+                'monthly_income_expense': [],
+                'total_income': 0.0,
+                'total_expense': 0.0,
+                'net_income': 0.0,
+                'duration_months': duration_months,
+                'start_date': '',
+                'end_date': ''
+            }
+        except Exception as e:
+            self.logger.error(f"收支分析查询失败: {e}")
+            return {
+                'monthly_income_expense': [],
+                'total_income': 0.0,
+                'total_expense': 0.0,
+                'net_income': 0.0,
+                'duration_months': duration_months,
+                'start_date': '',
+                'end_date': ''
+            }
+
+    def get_category_analysis(self, duration_months: int = 12) -> Dict[str, Any]:
+        """获取分类洞察数据
+        
+        Args:
+            duration_months: 查询月数，默认12个月
+            
+        Returns:
+            Dict[str, Any]: 分类洞察数据
+        """
+        try:
+            # 计算起始日期
+            end_date = date.today()
+            start_date = end_date - relativedelta(months=duration_months)
+            
+            # 查询指定时间范围内的支出交易，按描述分组
+            query = self.db.query(
+                func.coalesce(Transaction.description, '未分类').label('category'),
+                func.sum(func.abs(Transaction.amount)).label('total_amount'),
+                func.count(Transaction.id).label('transaction_count')
+            ).filter(
+                Transaction.amount < 0,  # 只查询支出
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                func.coalesce(Transaction.description, '未分类')
+            ).order_by(
+                func.sum(func.abs(Transaction.amount)).desc()
+            )
+            
+            results = query.all()
+            
+            # 计算总支出用于百分比计算
+            total_expense = sum(Decimal(str(result.total_amount or 0)) for result in results)
+            
+            # 格式化分类数据
+            category_breakdown = []
+            for result in results:
+                amount = Decimal(str(result.total_amount or 0))
+                percentage = (amount / total_expense * 100) if total_expense > 0 else 0
+                
+                category_breakdown.append({
+                    'name': result.category,
+                    'amount': float(amount),
+                    'percentage': float(percentage),
+                    'count': result.transaction_count or 0
+                })
+            
+            # 获取前10个支出类别作为排行榜
+            top_categories = category_breakdown[:10]
+            
+            return {
+                'category_breakdown': category_breakdown,
+                'top_categories': top_categories,
+                'total_expense': float(total_expense),
+                'category_count': len(category_breakdown),
+                'duration_months': duration_months,
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat()
+            }
+            
+        except SQLAlchemyError as e:
+            self.logger.error(f"数据库查询异常 - 分类分析查询失败: {e}")
+            return {
+                'category_breakdown': [],
+                'top_categories': [],
+                'total_expense': 0.0,
+                'category_count': 0,
+                'duration_months': duration_months,
+                'start_date': '',
+                'end_date': ''
+            }
+        except Exception as e:
+            self.logger.error(f"分类分析查询失败: {e}")
+            return {
+                'category_breakdown': [],
+                'top_categories': [],
+                'total_expense': 0.0,
+                'category_count': 0,
+                'duration_months': duration_months,
+                'start_date': '',
+                'end_date': ''
+            }

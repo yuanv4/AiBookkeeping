@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, card, chart_container, page_header, stat_card %}
+
+{% block title %}{{ page_title }} - {{ config.APP_NAME }}{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/analysis.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    {{ page_header("收支分析", "深入了解您的收入与支出趋势", "trending-up") }}
+    
+    <!-- 数据容器 -->
+    <div id="analysis-data" 
+         data-monthly-data='{{ template_data.monthly_income_expense|tojson|safe }}'
+         data-total-income="{{ template_data.total_income }}"
+         data-total-expense="{{ template_data.total_expense }}"
+         style="display: none;">
+    </div>
+    
+    <!-- 统计卡片 -->
+    <div class="cards-grid cols-3">
+        {{ stat_card("trending-up", "¥" + "%.2f"|format(template_data.total_income or 0), "总收入", "success", "success") }}
+        {{ stat_card("trending-down", "¥" + "%.2f"|format(template_data.total_expense or 0), "总支出", "danger", "danger") }}
+        {{ stat_card("calculator", "¥" + "%.2f"|format((template_data.total_income or 0) - (template_data.total_expense or 0)), "净收支", "info", "info") }}
+    </div>
+    
+    <!-- 收支对比图表卡片 -->
+    <div class="col-12">
+        {% call card("月度收支对比", "bar-chart") %}
+        <canvas id="incomeExpenseChart" class="chart-canvas"></canvas>
+        {% endcall %}
+    </div>
+    
+    <!-- 净收支趋势图表卡片 -->
+    <div class="col-12">
+        {% call card("净收支趋势", "trending-up") %}
+        <canvas id="netIncomeChart" class="chart-canvas"></canvas>
+        {% endcall %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/analysis_income_expense.js') }}"></script>
+{% endblock %} 

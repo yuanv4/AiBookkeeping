@@ -118,10 +118,10 @@ def create_app():
     from .blueprints.settings.routes import settings_bp
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.logger.info("已注册 settings_bp, 前缀 /settings")
-
-    from .blueprints.expense_analysis import expense_analysis_bp
-    app.register_blueprint(expense_analysis_bp)
-    app.logger.info("已注册 expense_analysis_bp, 前缀 /expense-analysis")
+    
+    from .blueprints.analysis import analysis_bp
+    app.register_blueprint(analysis_bp)
+    app.logger.info("已注册 analysis_bp, 前缀 /analysis")
 
     # 注册全局错误处理函数
     @app.errorhandler(404)

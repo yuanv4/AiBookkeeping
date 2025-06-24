@@ -66,15 +66,7 @@
                 <a class="nav-link rounded {% if request.path == url_for('main.dashboard') %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
                     <div class="nav-icon-round d-flex align-items-center">
                         {{ icon("layout-dashboard", "sm", "", "me-3") }}
-                        <span>仪表盘</span>
-                    </div>
-                </a>
-            </li>
-            <li class="nav-item mb-1">
-                <a class="nav-link rounded {% if request.path.startswith('/expense-analysis') %}active{% endif %}" href="{{ url_for('expense_analysis_bp.expense_analysis_page') }}">
-                    <div class="nav-icon-round d-flex align-items-center">
-                        {{ icon("chart-pie", "sm", "", "me-3") }}
-                        <span>支出分析</span>
+                        <span>概览</span>
                     </div>
                 </a>
             </li>
@@ -85,6 +77,45 @@
                         <span>交易记录</span>
                     </div>
                 </a>
+            </li>
+            <!-- 财务分析可折叠菜单 -->
+            <li class="nav-item mb-1">
+                <a class="nav-link rounded {% if request.path.startswith('/analysis') %}active{% endif %}" 
+                   data-bs-toggle="collapse" 
+                   href="#analysisSubmenu" 
+                   role="button" 
+                   aria-expanded="{% if request.path.startswith('/analysis') %}true{% else %}false{% endif %}" 
+                   aria-controls="analysisSubmenu">
+                    <div class="nav-icon-round d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            {{ icon("pie-chart", "sm", "", "me-3") }}
+                            <span>财务分析</span>
+                        </div>
+                        {{ icon("chevron-down", "sm", "", "nav-chevron") }}
+                    </div>
+                </a>
+                <div class="collapse {% if request.path.startswith('/analysis') %}show{% endif %}" id="analysisSubmenu">
+                    <ul class="nav nav-sidebar flex-column ms-3">
+                        <li class="nav-item">
+                            <a class="nav-link rounded submenu-link {% if request.path == url_for('analysis_bp.income_expense') %}active{% endif %}" 
+                               href="{{ url_for('analysis_bp.income_expense') }}">
+                                <div class="nav-icon-round d-flex align-items-center">
+                                    {{ icon("trending-up", "sm", "", "me-3") }}
+                                    <span>收支分析</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded submenu-link {% if request.path == url_for('analysis_bp.category_insights') %}active{% endif %}" 
+                               href="{{ url_for('analysis_bp.category_insights') }}">
+                                <div class="nav-icon-round d-flex align-items-center">
+                                    {{ icon("tag", "sm", "", "me-3") }}
+                                    <span>分类洞察</span>
+                                </div>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </li>
             <li class="nav-item mb-1">
                 <a class="nav-link rounded {% if request.path.startswith(url_for('settings_bp.settings_index')) %}active{% endif %}" href="{{ url_for('settings_bp.settings_index') }}">
