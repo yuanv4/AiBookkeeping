@@ -638,3 +638,82 @@
     .d-lg-flex { display: flex !important; }
     .d-lg-inline-flex { display: inline-flex !important; }
 }
+
+/* ========================================
+   图标和组件尺寸工具类
+   ======================================== */
+
+/* 图标容器尺寸类 */
+.icon-sm {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+}
+
+.icon-md {
+    width: 3rem !important;
+    height: 3rem !important;
+}
+
+.icon-lg {
+    width: 3rem !important;
+    height: 3rem !important;
+}
+
+.icon-xl {
+    width: 4rem !important;
+    height: 4rem !important;
+}
+
+/* 统计卡片图标尺寸 */
+.stat-icon.icon-md {
+    width: 48px !important;
+    height: 48px !important;
+}
+
+/* 字体尺寸工具类 */
+.fs-2 {
+    font-size: 1.5rem !important;
+}
+
+/* Flex shrink 工具类 */
+.flex-shrink-0 {
+    flex-shrink: 0 !important;
+}
+
+/* 输入组样式工具类 */
+.input-group-text-centered {
+    min-width: 40px !important;
+    justify-content: center !important;
+}
+
+.form-control-flex {
+    flex: 1 !important;
+}
+
+/* 图表容器尺寸 */
+.chart-container-sm {
+    position: relative !important;
+    height: 200px !important;
+}
+
+.chart-container-md {
+    position: relative !important;
+    height: 250px !important;
+}
+
+.chart-container-lg {
+    position: relative !important;
+    height: 300px !important;
+}
+
+/* 无数据提示容器 */
+.no-data-overlay {
+    display: none !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: white !important;
+    z-index: 10 !important;
+}

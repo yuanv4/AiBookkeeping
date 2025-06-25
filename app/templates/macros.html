@@ -19,7 +19,7 @@
         <div class="col-md-8">
             <div class="d-flex align-items-center">
                 {% if icon_name %}
-                <div class="icon-circle me-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                <div class="icon-circle me-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center icon-lg">
                     {{ icon(icon_name, "lg", "text-primary") }}
                 </div>
                 {% endif %}
@@ -65,7 +65,7 @@
 </div>
 {% endmacro %}
 
-{% macro data_table(id, headers, show_export=false, total=0, filtered=0) %}
+{% macro data_table(id, headers, total=0, filtered=0, tbody_id="", pagination_id="pagination", pagination_container_id="pagination-container", no_data_id="no-data", reset_btn_id="reset-all", filtered_count_id="filtered-count") %}
 <div class="card border-0 h-100">
   <div class="card-header d-flex justify-content-between align-items-center bg-white py-3">
     <div class="d-flex align-items-center">
@@ -74,21 +74,13 @@
       </div>
       <h6 class="card-title fw-bold mb-0">数据明细</h6>
     </div>
-    {% if show_export or total > 0 %}
+    {% if total > 0 %}
     <div class="d-flex align-items-center">
-      {% if show_export %}
-      <button id="download-csv" class="btn btn-sm btn-outline-primary me-2 export-btn d-flex align-items-center">
-        {{ icon("download", "sm", "", "me-1") }}
-        <span>导出CSV</span>
-      </button>
-      {% endif %}
-      {% if total > 0 %}
       <div class="table-stats d-flex align-items-center">
-        <span class="badge rounded-pill bg-primary" id="filtered-count">{{ filtered }}</span>
+        <span class="badge rounded-pill bg-primary" id="{{ filtered_count_id }}">{{ filtered }}</span>
         <span class="mx-1">/</span>
         <span class="badge rounded-pill bg-light text-dark">{{ total }}</span>
       </div>
-      {% endif %}
     </div>
     {% endif %}
   </div>
@@ -102,24 +94,24 @@
             {% endfor %}
           </tr>
         </thead>
-        <tbody id="transactions-body">
+        <tbody id="{{ tbody_id if tbody_id else id + '-body' }}">
           <!-- 表格内容将通过JavaScript动态填充 -->
         </tbody>
       </table>
     </div>
     
     <!-- 分页控件 -->
-    <div id="pagination-container" class="pagination-container p-3 border-top">
-      <ul class="pagination pagination-sm justify-content-center mb-0" id="pagination">
+    <div id="{{ pagination_container_id }}" class="pagination-container p-3 border-top">
+      <ul class="pagination pagination-sm justify-content-center mb-0" id="{{ pagination_id }}">
         <!-- 分页按钮将通过JavaScript动态填充 -->
       </ul>
     </div>
     
     <!-- 无数据提示 -->
-    <div id="no-data" class="no-data-container d-flex flex-column align-items-center justify-content-center py-5" style="display: none !important; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 10;">
+    <div id="{{ no_data_id }}" class="no-data-container d-flex flex-column align-items-center justify-content-center py-5" style="display: none !important; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 10;">
       {{ icon("search-x", "xxl", "text-muted mb-3") }}
       <p class="mb-3 text-muted">没有找到匹配的记录</p>
-      <button id="reset-all" class="btn btn-sm btn-outline-primary">
+      <button id="{{ reset_btn_id }}" class="btn btn-sm btn-outline-primary">
         {{ icon("refresh-cw", "sm", "", "me-1") }}
         <span>重置筛选条件</span>
       </button>
@@ -128,129 +120,35 @@
 </div>
 {% endmacro %}
 
-{% macro filter_form(fields=[]) %}
-<form id="filter-form" class="row g-3 filter-form">
-  {% if fields %}
-    {% for field in fields %}
-      <div class="col-lg-4 col-md-6">
-        <label for="{{ field.name }}" class="form-label small fw-medium">{{ field.label }}</label>
-        <div class="input-group input-group-sm">
-          {% if field.type == 'date' %}
-            <span class="input-group-text bg-light border-end-0" style="min-width: 40px; justify-content: center;">
-              {{ icon("calendar", "sm", "text-muted") }}
-            </span>
-            <input type="date" class="form-control border-start-0 shadow-none" id="{{ field.name }}" name="{{ field.name }}" value="{{ field.value }}" placeholder="{{ field.placeholder }}" style="flex: 1;">
-          {% elif field.type == 'select' %}
-            <span class="input-group-text bg-light border-end-0" style="min-width: 40px; justify-content: center;">
-              {{ icon("chevron-down", "sm", "text-muted") }}
-            </span>
-            <select class="form-select border-start-0 shadow-none" id="{{ field.name }}" name="{{ field.name }}" style="flex: 1;">
-              <option value="">全部{{ field.label }}</option>
-              {% for option in field.options %}
-                {% if option is mapping %}
-                  {% if option.value is defined %}
-                    <option value="{{ option.value }}" {% if field.value == option.value %}selected{% endif %}>{{ option.text }}</option>
-                  {% elif option.id is defined %}
-                    <option value="{{ option.id }}" {% if field.value == option.id|string %}selected{% endif %}>{{ option.bank_name }} ({{ option.account_number }})</option>
-                  {% endif %}
-                {% else %}
-                  <option value="{{ option }}" {% if field.value == option %}selected{% endif %}>{{ option }}</option>
-                {% endif %}
-              {% endfor %}
-            </select>
-          {% elif field.type == 'number' %}
-            <span class="input-group-text bg-light border-end-0" style="min-width: 40px; justify-content: center;">
-              {{ icon("dollar-sign", "sm", "text-muted") }}
-            </span>
-            <input type="number" class="form-control border-start-0 shadow-none" id="{{ field.name }}" name="{{ field.name }}" value="{{ field.value }}" placeholder="{{ field.placeholder }}" style="flex: 1;">
-          {% else %}
-            <span class="input-group-text bg-light border-end-0" style="min-width: 40px; justify-content: center;">
-              {{ icon("search", "sm", "text-muted") }}
-            </span>
-            <input type="text" class="form-control border-start-0 shadow-none" id="{{ field.name }}" name="{{ field.name }}" value="{{ field.value }}" placeholder="{{ field.placeholder }}" style="flex: 1;">
-          {% endif %}
-        </div>
-      </div>
-    {% endfor %}
-  {% else %}
-    {{ caller() }}
-  {% endif %}
-  <div class="col-12 text-end mt-4 filter-actions">
-    <button type="button" id="reset-filters" class="btn btn-outline-secondary btn-sm me-2 d-inline-flex align-items-center">
-      {{ icon("refresh", "sm", "", "me-1") }}
-      <span>重置</span>
-    </button>
-    <button type="button" id="apply-filters" class="btn btn-primary btn-sm d-inline-flex align-items-center">
-      {{ icon("search", "sm", "", "me-1") }}
-      <span>搜索</span>
-    </button>
-  </div>
-</form>
-{% endmacro %}
 
-{% macro filter_input(label, icon_name, input_id, input_type="text", options=None, placeholder="") %}
-<div class="col-lg-4 col-md-6">
-  <label for="{{ input_id }}" class="form-label small fw-medium">{{ label }}</label>
-  <div class="input-group input-group-sm">
-    <span class="input-group-text bg-light border-end-0" style="min-width: 40px; justify-content: center;">
-      {{ icon(icon_name, "sm", "text-muted") }}
-    </span>
-    {% if input_type == "select" and options %}
-    <select class="form-select border-start-0 shadow-none" id="{{ input_id }}" name="{{ input_id }}" style="flex: 1;">
-      <option value="">全部{{ label }}</option>
-      {% for option in options %}
-        {% if option is mapping %}
-          <option value="{{ option.id }}">{{ option.bank_name }} ({{ option.account_number }})</option>
-        {% else %}
-          <option value="{{ option }}">{{ option }}</option>
-        {% endif %}
-      {% endfor %}
-    </select>
-    {% else %}
-    <input type="{{ input_type }}" class="form-control border-start-0 shadow-none" id="{{ input_id }}" name="{{ input_id }}" placeholder="{{ placeholder }}" style="flex: 1;">
-    {% endif %}
-  </div>
-</div>
-{% endmacro %}
 
-{% macro stat_card(icon_name, value, label, icon_color="primary", value_color="") %}
-<div class="stat-card p-3 rounded bg-white shadow-sm mb-3">
-  <div class="d-flex align-items-center">
-    <div class="stat-icon bg-{{ icon_color }}-light rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; flex-shrink: 0;">
-      {{ icon(icon_name, "md", "text-" + icon_color) }}
+
+
+{% macro stat_card(icon_name, value, label, icon_color="primary", value_color="", value_id="", change_text="", change_id="") %}
+<div class="stat-card">
+  <div class="stat-card-body">
+    <div class="stat-icon bg-{{ icon_color }}">
+      {{ icon(icon_name, "md", "text-white") }}
     </div>
-    <div class="ms-3">
-      <h3 class="mb-0 fw-bold {% if value_color %}text-{{ value_color }}{% endif %}" style="font-size: 1.5rem;">{{ value }}</h3>
-      <p class="text-muted mb-0 small">{{ label }}</p>
-    </div>
-  </div>
-</div>
-{% endmacro %}
-
-{% macro section_header(title, subtitle="", extra_content="") %}
-<div class="dashboard-section-header bg-white p-4 rounded shadow-sm mb-4">
-  <div class="d-flex justify-content-between align-items-center flex-wrap">
-    <div class="mb-3 mb-md-0">
-      <h1 class="mb-2 fw-bold" style="color: var(--primary-dark);">{{ title }}</h1>
-      {% if subtitle %}
-      <p class="subheading m-0 text-muted">{{ subtitle }}</p>
+    <div class="stat-content">
+      <div class="stat-value{% if value_color %} text-{{ value_color }}{% endif %}"{% if value_id %} id="{{ value_id }}"{% endif %}>{{ value }}</div>
+      <div class="stat-label">{{ label }}</div>
+      {% if change_text %}
+      <div class="stat-change"{% if change_id %} id="{{ change_id }}"{% endif %}>{{ change_text }}</div>
       {% endif %}
     </div>
-    {% if extra_content %}
-    <div class="text-md-end">
-      {{ extra_content|safe }}
-    </div>
-    {% endif %}
   </div>
 </div>
 {% endmacro %}
 
-{% macro chart_container(title, chart_id, height="250px") %}
+
+
+{% macro chart_container(title, chart_id, height="250px", icon_name="trending-up") %}
 <div class="card border-0 shadow-sm h-100">
   <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
       <div class="icon-circle me-2 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem; border-radius: 50%;">
-        {{ icon("trending-up", "sm", "text-primary") }}
+        {{ icon(icon_name, "sm", "text-primary") }}
       </div>
       <h6 class="mb-0 fw-bold">{{ title }}</h6>
     </div>
@@ -260,123 +158,23 @@
   </div>
   <div class="card-body">
     <div class="chart-container" {% if height %}style="position: relative; height: {{ height }};"{% endif %}>
-      <canvas id="{{ chart_id }}"></canvas>
+      <canvas id="{{ chart_id }}" class="chart-canvas"></canvas>
     </div>
   </div>
 </div>
 {% endmacro %}
 
-{# ==================== 支出分析组件宏 ==================== #}
 
-{% macro expense_overview_card(icon_name, value, label, icon_color="danger", value_color="danger") %}
-<div class="expense-overview-card">
-  <div class="card-icon bg-{{ icon_color }}">
-    {{ icon(icon_name, "md", "text-white") }}
-  </div>
-  <div class="card-value text-{{ value_color }}" data-stat="{{ label|lower|replace(' ', '_') }}">{{ value }}</div>
-  <div class="card-label">{{ label }}</div>
-</div>
-{% endmacro %}
 
-{% macro expense_trend_chart(title="支出趋势分析", chart_id="expenseTrendChart") %}
-<div class="expense-trend-chart">
-  <div class="chart-header">
-    <h5 class="chart-title">{{ title }}</h5>
-    <div class="chart-actions">
-      <!-- 可选的图表操作按钮 -->
-    </div>
-  </div>
-  <canvas id="{{ chart_id }}" class="chart-canvas"></canvas>
-</div>
-{% endmacro %}
+{# ==================== 导航链接组件宏 ==================== #}
 
-{% macro expense_category_table(categories, total_expense) %}
-<div class="expense-categories-table">
-  <table class="table" id="expense-categories-table">
-    <thead>
-      <tr>
-        <th class="rank">排名</th>
-        <th class="counterparty">交易对手</th>
-        <th class="amount">总金额</th>
-        <th class="count">交易笔数</th>
-        <th class="avg-amount">平均金额</th>
-        <th class="percentage">占比</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for category in categories %}
-      <tr>
-        <td class="rank">{{ loop.index }}</td>
-        <td class="counterparty">{{ category.counterparty }}</td>
-        <td class="amount text-danger">¥{{ "%.2f"|format(category.total_amount) }}</td>
-        <td class="count">{{ category.transaction_count }}</td>
-        <td class="avg-amount">¥{{ "%.2f"|format(category.avg_amount) }}</td>
-        <td class="percentage">
-          {% set percentage = (category.total_amount / total_expense * 100) if total_expense else 0 %}
-          <div class="progress">
-            <div class="progress-bar bg-danger" 
-                 style="width: {{ percentage }}%">
-              {{ "%.1f"|format(percentage) }}%
-            </div>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endmacro %}
-
-{% macro expense_pattern_card(title, icon_name, pattern_type="fixed") %}
-<div class="expense-pattern-card">
-  <div class="pattern-header">
-    <div class="pattern-icon {{ pattern_type }}">
-      {{ icon(icon_name, "sm", "text-white") }}
+{% macro nav_link(endpoint, label, icon_name, extra_classes="") %}
+<li class="nav-item mb-1">
+  <a class="nav-link rounded {% if request.endpoint == endpoint or (endpoint.endswith('.dashboard') and request.path.startswith('/analysis')) %}active{% endif %} {{ extra_classes }}" href="{{ url_for(endpoint) }}">
+    <div class="nav-icon-round d-flex align-items-center">
+      {{ icon(icon_name, "sm", "", "me-3") }}
+      <span>{{ label }}</span>
     </div>
-    <h6 class="pattern-title">{{ title }}</h6>
-  </div>
-  <div class="pattern-content">
-    {{ caller() }}
-  </div>
-</div>
-{% endmacro %}
-
-{% macro expense_filter_form() %}
-<form id="expense-filter-form" class="expense-filter-form">
-  <div class="row g-3">
-    <div class="col-md-3">
-      <label for="start_date" class="form-label">开始日期</label>
-      <input type="date" class="form-control" id="start_date" name="start_date">
-    </div>
-    <div class="col-md-3">
-      <label for="end_date" class="form-label">结束日期</label>
-      <input type="date" class="form-control" id="end_date" name="end_date">
-    </div>
-    <div class="col-md-3">
-      <label for="account_id" class="form-label">账户</label>
-      <select class="form-select" id="account_id" name="account_id">
-        <option value="">所有账户</option>
-        {{ caller() }}
-      </select>
-    </div>
-    <div class="col-md-3 d-flex align-items-end">
-      <button type="submit" class="btn btn-primary me-2">
-        {{ icon("search", "sm", "", "me-1") }}查询
-      </button>
-      <button type="button" class="btn btn-outline-secondary" id="reset-filters">
-        {{ icon("refresh", "sm", "", "me-1") }}重置
-      </button>
-    </div>
-  </div>
-</form>
-{% endmacro %}
-
-{% macro expense_empty_state(icon_name="inbox", title="暂无支出数据", description="当前没有找到任何支出记录，请检查筛选条件或添加新的交易数据。") %}
-<div class="expense-empty-state">
-  <div class="empty-icon">
-    {{ icon(icon_name, "xxl", "text-muted") }}
-  </div>
-  <h5 class="empty-title">{{ title }}</h5>
-  <p class="empty-description">{{ description }}</p>
-</div>
+  </a>
+</li>
 {% endmacro %}

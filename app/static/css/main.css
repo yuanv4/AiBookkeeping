@@ -340,6 +340,11 @@ body {
     font-weight: 500;
 }
 
+/* 防止导航标签文本换行 */
+.nav-sidebar .nav-item .nav-link span {
+    white-space: nowrap;
+}
+
 .nav-sidebar .lucide-icon {
     width: 18px;
     height: 18px;
