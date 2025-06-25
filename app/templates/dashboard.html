@@ -1,12 +1,9 @@
 {% extends "base.html" %}
 {% from "macros.html" import icon, card, chart_container, page_header, stat_card %}
 
-{% block title %}{{ page_title }} - {{ config.APP_NAME }}{% endblock %}
+{% block title %}财务仪表盘 - {{ config.APP_NAME }}{% endblock %}
 
-{% block page_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
-{% endblock %}
+
 
 {% block content %}
 <div class="page-container">
@@ -14,8 +11,7 @@
     
     <!-- 数据容器 -->
     <div id="dashboard-data" 
-         data-balance="{{ template_data.balance }}"
-         data-monthly-trends='{{ template_data.monthly_trends|tojson|safe }}'
+         data-initial-data='{{ template_data|tojson|safe }}'
          style="display: none;">
     </div>
     
@@ -31,7 +27,10 @@
 </div>
 {% endblock %}
 
-{% block page_scripts %}
+{% block page_vendor_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block page_scripts %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

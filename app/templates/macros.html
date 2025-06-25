@@ -5,14 +5,7 @@
   {%- if extra_classes %} {{ extra_classes }}{% endif %}"></i><span class="icon-text position-absolute" style="clip: rect(0,0,0,0); width: 1px; height: 1px; overflow: hidden;">{{ name }}</span>
 {% endmacro %}
 
-{% macro page_header(title, subtitle="", icon_name="", browser_title="") %}
-<!-- 设置浏览器标题 -->
-{% if browser_title %}
-{% set page_title = browser_title %}
-{% else %}
-{% set page_title = title + " - " + config.APP_NAME %}
-{% endif %}
-
+{% macro page_header(title, subtitle="", icon_name="") %}
 <!-- 统一页头组件 -->
 <div class="page-header">
     <div class="row align-items-center">
@@ -33,11 +26,6 @@
         </div>
     </div>
 </div>
-
-<!-- 动态设置页面标题的脚本 -->
-<script>
-    document.title = "{{ page_title }}";
-</script>
 {% endmacro %}
 
 {% macro card(title="", icon_name="", header_class="", body_class="p-6") %}
@@ -65,19 +53,19 @@
 </div>
 {% endmacro %}
 
-{% macro data_table(id, headers, total=0, filtered=0, tbody_id="", pagination_id="pagination", pagination_container_id="pagination-container", no_data_id="no-data", reset_btn_id="reset-all", filtered_count_id="filtered-count") %}
+{% macro data_table(id, headers, title="数据明细", total=0, filtered=0, no_data_message="没有找到匹配的记录") %}
 <div class="card border-0 h-100">
   <div class="card-header d-flex justify-content-between align-items-center bg-white py-3">
     <div class="d-flex align-items-center">
       <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
         {{ icon("receipt", "sm", "text-primary") }}
       </div>
-      <h6 class="card-title fw-bold mb-0">数据明细</h6>
+      <h6 class="card-title fw-bold mb-0">{{ title }}</h6>
     </div>
     {% if total > 0 %}
     <div class="d-flex align-items-center">
       <div class="table-stats d-flex align-items-center">
-        <span class="badge rounded-pill bg-primary" id="{{ filtered_count_id }}">{{ filtered }}</span>
+        <span class="badge rounded-pill bg-primary" id="{{ id ~ '-filtered-count' }}">{{ filtered }}</span>
         <span class="mx-1">/</span>
         <span class="badge rounded-pill bg-light text-dark">{{ total }}</span>
       </div>
@@ -94,24 +82,24 @@
             {% endfor %}
           </tr>
         </thead>
-        <tbody id="{{ tbody_id if tbody_id else id + '-body' }}">
+        <tbody id="{{ id ~ '-body' }}">
           <!-- 表格内容将通过JavaScript动态填充 -->
         </tbody>
       </table>
     </div>
     
     <!-- 分页控件 -->
-    <div id="{{ pagination_container_id }}" class="pagination-container p-3 border-top">
-      <ul class="pagination pagination-sm justify-content-center mb-0" id="{{ pagination_id }}">
+    <div id="{{ id ~ '-pagination-container' }}" class="pagination-container p-3 border-top">
+      <ul class="pagination pagination-sm justify-content-center mb-0" id="{{ id ~ '-pagination' }}">
         <!-- 分页按钮将通过JavaScript动态填充 -->
       </ul>
     </div>
     
     <!-- 无数据提示 -->
-    <div id="{{ no_data_id }}" class="no-data-container d-flex flex-column align-items-center justify-content-center py-5" style="display: none !important; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 10;">
+    <div id="{{ id ~ '-no-data' }}" class="no-data-container d-flex flex-column align-items-center justify-content-center py-5">
       {{ icon("search-x", "xxl", "text-muted mb-3") }}
-      <p class="mb-3 text-muted">没有找到匹配的记录</p>
-      <button id="{{ reset_btn_id }}" class="btn btn-sm btn-outline-primary">
+      <p class="mb-3 text-muted">{{ no_data_message }}</p>
+      <button id="{{ id ~ '-reset-all' }}" class="btn btn-sm btn-outline-primary">
         {{ icon("refresh-cw", "sm", "", "me-1") }}
         <span>重置筛选条件</span>
       </button>
@@ -170,11 +158,70 @@
 
 {% macro nav_link(endpoint, label, icon_name, extra_classes="") %}
 <li class="nav-item mb-1">
-  <a class="nav-link rounded {% if request.endpoint == endpoint or (endpoint.endswith('.dashboard') and request.path.startswith('/analysis')) %}active{% endif %} {{ extra_classes }}" href="{{ url_for(endpoint) }}">
+  <a class="nav-link rounded {% if request.endpoint == endpoint or (request.blueprint and endpoint.split('.')[0] == request.blueprint) %}active{% endif %} {{ extra_classes }}" href="{{ url_for(endpoint) }}">
     <div class="nav-icon-round d-flex align-items-center">
       {{ icon(icon_name, "sm", "", "me-3") }}
       <span>{{ label }}</span>
     </div>
   </a>
 </li>
+{% endmacro %}
+
+{% macro file_uploader(id="file-uploader", accept_types=".xlsx,.xls,.csv", instructions="") %}
+<div class="text-center py-4">
+    {% if instructions %}
+    <h5 class="fw-bold mb-3 text-start">{{ instructions }}</h5>
+    {% else %}
+    <h5 class="fw-bold mb-3 text-start">如何获得银行账单文件：</h5>
+    <ol class="text-muted mb-4 text-start">
+        <li>打开手机银行</li>
+        <li>找到打印流水</li>
+        <li>输入您的邮箱</li>
+        <li>将解压后的文件上传</li>
+    </ol>
+    {% endif %}
+    
+    <div class="upload-container" id="{{ id ~ '-container' }}">
+        <div class="drop-zone" id="{{ id ~ '-drop-zone' }}">
+            <div class="mb-3">
+                <div class="upload-icon-wrapper d-inline-flex align-items-center justify-content-center bg-primary-light rounded-circle">
+                    {{ icon("upload", "xl", "text-primary-custom") }}
+                </div>
+            </div>
+
+            <div class="drop-zone-content">
+                {{ icon("upload-cloud", "xxl", "text-muted mb-3") }}
+                <h5>拖拽文件到此处或点击上传</h5>
+                <p class="text-muted">支持 Excel (.xlsx, .xls) 和 CSV 文件</p>
+                <input type="file" id="{{ id ~ '-input' }}" class="d-none" accept="{{ accept_types }}" multiple>
+                <button type="button" class="btn btn-primary" data-file-input="{{ id ~ '-input' }}">
+                    {{ icon("plus", "sm", "", "me-1") }} 选择文件
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 详细进度条容器 -->
+    <div class="upload-progress-container" id="{{ id ~ '-progress' }}" style="display: none;">
+        <div class="progress-wrapper">
+            <div class="progress mb-3" style="height: 1.5rem;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     id="{{ id ~ '-progress-bar' }}" 
+                     role="progressbar" 
+                     style="width: 0%" 
+                     aria-valuenow="0" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                    <span class="progress-text" id="{{ id ~ '-progress-text' }}">0%</span>
+                </div>
+            </div>
+            <div class="upload-status-text mb-2" id="{{ id ~ '-status-text' }}">
+                {{ icon("loader-2", "sm", "me-2", "animate-spin") }}
+                准备上传...
+            </div>
+            <div class="upload-file-info mb-2" id="{{ id ~ '-file-info' }}"></div>
+            <div class="upload-time-estimate text-muted small" id="{{ id ~ '-time-estimate' }}"></div>
+        </div>
+    </div>
+</div>
 {% endmacro %}

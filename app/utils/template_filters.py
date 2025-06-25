@@ -77,6 +77,23 @@ def register_template_filters(app: Flask):
             return []
         return [item.get(key) for item in dict_list]
     
+    # 分页数据序列化过滤器
+    @app.template_filter('serialize_pagination')
+    def serialize_pagination_filter(pagination):
+        """将分页对象序列化为字典，用于前端JSON数据传递"""
+        if not pagination:
+            return None
+        return {
+            "current_page": pagination.page,
+            "total_pages": pagination.pages,
+            "has_prev": pagination.has_prev,
+            "has_next": pagination.has_next,
+            "prev_num": pagination.prev_num,
+            "next_num": pagination.next_num,
+            "per_page": pagination.per_page,
+            "total": pagination.total
+        }
+    
     # 为了保持兼容性，可以添加一些别名
     app.add_template_filter(currency_filter, 'rmb')
     app.add_template_filter(percent_filter, 'pct')

@@ -94,9 +94,6 @@
     --text-tertiary: #adb5bd;
     --text-muted: #6c757d;
     
-    /* Legacy Text Colors */
-    /* Legacy text colors removed - use standard --text-primary and --text-secondary */
-    
     /* Background Colors */
     --background-primary: #ffffff;
     --background-secondary: #f8f9fa;
@@ -387,8 +384,6 @@ body {
     color: var(--text-primary);
 }
 
-/* 移除重复的卡片和按钮样式 - 已统一到components.css */
-
 /* 提示样式 */
 .alert {
     border: none;
@@ -401,8 +396,6 @@ body {
 .alert .lucide-icon {
     margin-right: var(--spacing-sm);
 }
-
-/* 重复的响应式设计规则已删除 - 合并到下方的媒体查询中 */
 
 /* 添加侧边栏折叠功能的样式 */
 .sidebar-collapsed {
@@ -504,7 +497,24 @@ body {
     }
 }
 
+/* ========================================
+   页面级布局样式
+   ======================================== */
 
+.page-container {
+    padding: var(--spacing-lg);
+    max-width: 1200px;
+    margin: 0 auto;
+    overflow-x: auto;
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+}
 
 /* Amount Styles - 金额样式 */
 .amount {
@@ -520,3 +530,167 @@ body {
 .amount-sm { font-size: var(--text-sm); }
 .amount-lg { font-size: var(--text-lg); }
 .amount-xl { font-size: var(--text-xl); font-weight: 700; }
+
+/* ==========================================================================
+   共享样式（从shared.css合并）
+   ========================================================================== */
+
+/* 响应式设计（合并优化） */
+@media (max-width: 1200px) {
+    .cards-grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .cards-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+}
+
+@media (max-width: 1024px) {
+    .income-charts { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 992px) {
+    .page-container { padding: 1.5rem; }
+    .cards-grid { gap: 1.25rem; }
+    .cards-grid.cols-3,
+    .cards-grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .stat-container { gap: 0.75rem; }
+}
+
+@media (max-width: 768px) {
+    .page-container { padding: var(--spacing-4); }
+    .page-title { font-size: 1.75rem; }
+    .cards-grid { gap: var(--spacing-4); grid-template-columns: 1fr; }
+    .metric-card { min-height: 120px; padding: 1.25rem; }
+    .metric-value { font-size: 1.75rem; }
+    .stats-container.horizontal { grid-template-columns: 1fr; gap: var(--spacing-3); }
+    .filter-form-container { padding: 1.25rem; margin-bottom: 1.5rem; }
+}
+
+@media (max-width: 576px) {
+    .page-container { padding: var(--spacing-3); }
+    .metric-card { min-height: 100px; padding: var(--spacing-4); }
+    .metric-value { font-size: 1.5rem; }
+    .stat-card {
+        padding: var(--spacing-4);
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-3);
+    }
+    .filter-form-container { padding: var(--spacing-4); }
+}
+
+/* 动画效果（简化版） */
+@keyframes cardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card-animate {
+    animation: cardFadeIn 0.3s ease-out;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.card-loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.card-loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+/* ==========================================================================
+   实用工具类（从utilities.css合并）
+   ========================================================================== */
+
+/* 自定义颜色类（项目特定颜色） */
+.text-tertiary { color: var(--text-tertiary); }
+
+/* 图标容器尺寸类 */
+.icon-sm {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+}
+
+.icon-md {
+    width: 3rem !important;
+    height: 3rem !important;
+}
+
+.icon-lg {
+    width: 3rem !important;
+    height: 3rem !important;
+}
+
+.icon-xl {
+    width: 4rem !important;
+    height: 4rem !important;
+}
+
+/* 统计卡片图标尺寸 */
+.stat-icon.icon-md {
+    width: 48px !important;
+    height: 48px !important;
+}
+
+/* 字体尺寸工具类 */
+.fs-2 {
+    font-size: 1.5rem !important;
+}
+
+/* Flex shrink 工具类 */
+.flex-shrink-0 {
+    flex-shrink: 0 !important;
+}
+
+/* 输入组样式工具类 */
+.input-group-text-centered {
+    min-width: 40px !important;
+    justify-content: center !important;
+}
+
+.form-control-flex {
+    flex: 1 !important;
+}
+
+/* 图表容器尺寸 */
+.chart-container-sm {
+    position: relative !important;
+    height: 200px !important;
+}
+
+.chart-container-md {
+    position: relative !important;
+    height: 250px !important;
+}
+
+.chart-container-lg {
+    position: relative !important;
+    height: 300px !important;
+}
+
+/* 无数据提示容器 */
+.no-data-overlay {
+    display: none !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: white !important;
+    z-index: 10 !important;
+}

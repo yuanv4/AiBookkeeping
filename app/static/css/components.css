@@ -31,12 +31,23 @@
     margin-bottom: 0;
 }
 
-.page-header .icon-circle {
-    border-radius: 50%;
+/* ========================================
+   图标圆圈组件样式
+   ======================================== */
+
+.icon-circle {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-circle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-50);
+    border: 1px solid var(--primary-100);
     transition: var(--transition);
 }
 
-.page-header .icon-circle:hover {
+.icon-circle:hover {
     transform: scale(1.05);
 }
 
@@ -190,33 +201,21 @@
     border-color: var(--gray-400);
 }
 
+
+
 /* ========================================
-   布局工具类
+   数据表格组件样式
    ======================================== */
 
-.flex-container {
-    display: flex;
-    gap: var(--spacing-md);
-}
-
-.flex-container.flex-column {
-    flex-direction: column;
-}
-
-.flex-container.align-center {
-    align-items: center;
-}
-
-.flex-container.justify-center {
-    justify-content: center;
-}
-
-.flex-container.justify-between {
-    justify-content: space-between;
-}
-
-.flex-container.justify-around {
-    justify-content: space-around;
+.no-data-container {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    z-index: 10;
 }
 
 /* ========================================
@@ -264,11 +263,6 @@
     
     .page-header h1 {
         font-size: 1.5rem;
-    }
-    
-    .page-header .icon-circle {
-        width: 2.5rem !important;
-        height: 2.5rem !important;
     }
     
     .page-header .d-flex.align-items-center {
@@ -361,6 +355,11 @@
 .drop-zone-content {
     text-align: center;
     pointer-events: auto;
+}
+
+.upload-icon-wrapper {
+    width: 4rem;
+    height: 4rem;
 }
 
 /* 文件列表容器 */
@@ -620,4 +619,36 @@
         flex-direction: column;
         gap: 0.25rem;
     }
+}
+
+/* ========================================
+   加载状态组件样式
+   ======================================== */
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: var(--spacing-8);
+    background: var(--surface-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+}
+
+.loading-spinner p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
 }

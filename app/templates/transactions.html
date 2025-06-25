@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% from "macros.html" import page_header, data_table %}
 
-{% block title %}交易记录{% endblock %}
+{% block title %}交易记录 - {{ config.APP_NAME }}{% endblock %}
 
 {% block page_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/transactions.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -16,56 +15,22 @@
     <div class="row mt-4">
         <div class="col-12">
             {% set headers = ['日期', '账户', '金额', '余额', '对手信息', '摘要'] %}
-            {% set total_count = pagination.total if pagination else 0 %}
-            {% set filtered_count = transactions|length if transactions else 0 %}
             
             {{ data_table(
                 id='transactions-table',
                 headers=headers,
-                total=total_count,
-                filtered=filtered_count,
-                tbody_id='transactions-body',
-                pagination_id='transactions-pagination',
-                pagination_container_id='transactions-pagination-container',
-                no_data_id='transactions-no-data',
-                reset_btn_id='transactions-reset-all',
-                filtered_count_id='transactions-filtered-count'
+                title='交易明细',
+                total=pagination.total if pagination else 0
             ) }}
             
-            <!-- 隐藏的交易数据，供JavaScript使用 -->
-            <script id="transactions-data" type="application/json">
-                [
-                {% for transaction in transactions %}
-                {
-                    "date": "{{ transaction.date.strftime('%Y-%m-%d') }}",
-                    "account": "{% if transaction.account %}{{ transaction.account.account_name }} {{ transaction.account.account_number }}{% else %}未知账户{% endif %}",
-                    "amount": {{ transaction.amount }},
-                    "amount_formatted": "{{ '%.2f'|format(transaction.amount) }}",
-                    "amount_class": "{% if transaction.amount > 0 %}amount-positive{% elif transaction.amount < 0 %}amount-negative{% else %}amount-neutral{% endif %}",
-                    "balance_after": {% if transaction.balance_after %}"{{ '%.2f'|format(transaction.balance_after) }}"{% else %}null{% endif %},
-                    "counterparty": "{% if transaction.counterparty %}{{ transaction.counterparty }}{% else %}-{% endif %}",
-                    "description": "{% if transaction.description %}{{ transaction.description }}{% else %}无描述{% endif %}",
-                    "description_short": "{% if transaction.description %}{{ transaction.description[:30] }}{% if transaction.description|length > 30 %}...{% endif %}{% else %}无描述{% endif %}"
-                }{% if not loop.last %},{% endif %}
-                {% endfor %}
-                ]
-            </script>
-            
-            <!-- 分页数据，供JavaScript使用 -->
-            {% if pagination %}
-            <script id="pagination-data" type="application/json">
-                {
-                    "current_page": {{ pagination.page }},
-                    "total_pages": {{ pagination.pages }},
-                    "has_prev": {{ pagination.has_prev|lower }},
-                    "has_next": {{ pagination.has_next|lower }},
-                    "prev_num": {% if pagination.prev_num %}{{ pagination.prev_num }}{% else %}null{% endif %},
-                    "next_num": {% if pagination.next_num %}{{ pagination.next_num }}{% else %}null{% endif %},
-                    "per_page": {{ pagination.per_page }},
-                    "total": {{ pagination.total }}
-                }
-            </script>
-            {% endif %}
+            <!-- 统一的数据容器，供JavaScript使用 -->
+            <div id="page-data" 
+                 data-initial-data='{{ {
+                     "transactions": transactions,
+                     "pagination": pagination|serialize_pagination
+                 }|tojson|safe }}'
+                 style="display: none;">
+            </div>
         </div>
     </div>
 </div>

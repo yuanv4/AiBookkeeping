@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% from "macros.html" import icon, card, chart_container, page_header, stat_card %}
 
-{% block title %}{{ page_title }} - {{ config.APP_NAME }}{% endblock %}
+{% block title %}财务健康仪表盘 - {{ config.APP_NAME }}{% endblock %}
 
 {% block page_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/analysis_dashboard.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -59,11 +58,11 @@
     </div>
     
     <!-- KPI 指标卡片 -->
-    <div class="cards-grid cols-4 mb-4">
-        {{ stat_card("dollar-sign", "¥0.00", "当前总资产", "primary", "", "currentAssets") }}
-        {{ stat_card("trending-up", "¥0.00", "期间总收入", "success", "", "totalIncome", "--", "incomeChange") }}
-        {{ stat_card("trending-down", "¥0.00", "期间总支出", "danger", "", "totalExpense", "--", "expenseChange") }}
-        {{ stat_card("calculator", "¥0.00", "期间净收支", "info", "", "netIncome", "--", "netChange") }}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 mb-4">
+        <div class="col">{{ stat_card("dollar-sign", "¥0.00", "当前总资产", "primary", "", "currentAssets") }}</div>
+        <div class="col">{{ stat_card("trending-up", "¥0.00", "期间总收入", "success", "", "totalIncome", "--", "incomeChange") }}</div>
+        <div class="col">{{ stat_card("trending-down", "¥0.00", "期间总支出", "danger", "", "totalExpense", "--", "expenseChange") }}</div>
+        <div class="col">{{ stat_card("calculator", "¥0.00", "期间净收支", "info", "", "netIncome", "--", "netChange") }}</div>
     </div>
     
     <!-- 模块二：资金流分析 -->
