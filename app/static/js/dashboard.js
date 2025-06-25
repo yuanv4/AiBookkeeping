@@ -1,193 +1,434 @@
 /**
- * 仪表盘页面的JavaScript逻辑
- * 负责余额趋势图表渲染
+ * 财务健康仪表盘 JavaScript
  */
 
-// 图表配置常量
-const CHART_CONFIG = {
-    type: 'line',
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            titleColor: '#ffffff',
-            bodyColor: '#ffffff',
-            borderWidth: 1,
-            callbacks: {
-                label: function(context) {
-                    return `余额: ¥${context.parsed.y.toFixed(2)}`;
-                }
-            }
-        }
-    },
-    scales: {
-        y: {
-            beginAtZero: false,
-            grid: { color: 'rgba(0, 0, 0, 0.05)' },
-            ticks: {
-                callback: function(value) {
-                    return '¥' + value.toLocaleString();
-                }
-            }
-        },
-        x: {
-            grid: { display: false }
-        }
-    }
-};
-
-// 颜色配置
-const COLORS = {
-    primary: '--primary-500',
-    gradient: {
-        start: 'rgba(0, 123, 255, 0.3)',
-        end: 'rgba(0, 123, 255, 0.05)'
-    },
-    white: '#ffffff'
-};
-
-// 尺寸配置
-const DIMENSIONS = {
-    maxHeight: 280,
-    borderWidth: 3,
-    pointRadius: 6,
-    pointHoverRadius: 8,
-    pointBorderWidth: 2
-};
-
-/**
- * 从CSS变量获取颜色值
- */
-function getCSSColor(cssVar) {
-    try {
-        const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
-        return value || '#000000';
-    } catch (error) {
-        console.warn(`无法获取CSS变量 ${cssVar}:`, error);
-        return '#000000';
-    }
-}
-
-/**
- * 设置Canvas尺寸
- */
-function setupCanvas(canvas) {
-    const container = canvas.parentElement;
-    if (container) {
-        const rect = container.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = Math.min(rect.height, DIMENSIONS.maxHeight);
-    }
-}
-
-/**
- * 创建渐变色
- */
-function createGradient(ctx) {
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, COLORS.gradient.start);
-    gradient.addColorStop(1, COLORS.gradient.end);
-    return gradient;
-}
-
-/**
- * 创建余额趋势图表
- */
-function createBalanceChart(canvas, data) {
-    if (!canvas || canvas.tagName !== 'CANVAS') {
-        console.warn('无效的Canvas元素');
-        return null;
-    }
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-        console.error('无法获取Canvas 2D上下文');
-        return null;
-    }
-
-    setupCanvas(canvas);
-
-    const labels = data.monthlyTrends.map(trend => trend.month);
-    const amounts = data.monthlyTrends.map(trend => trend.balance);
-
-    const chartConfig = {
-        ...CHART_CONFIG,
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '账户余额',
-                data: amounts,
-                borderColor: getCSSColor(COLORS.primary),
-                backgroundColor: createGradient(ctx),
-                borderWidth: DIMENSIONS.borderWidth,
-                fill: true,
-                tension: 0.4,
-                pointBackgroundColor: getCSSColor(COLORS.primary),
-                pointBorderColor: COLORS.white,
-                pointBorderWidth: DIMENSIONS.pointBorderWidth,
-                pointRadius: DIMENSIONS.pointRadius,
-                pointHoverRadius: DIMENSIONS.pointHoverRadius
-            }]
-        }
-    };
-
-    // 设置tooltip边框颜色
-    chartConfig.plugins.tooltip.borderColor = getCSSColor(COLORS.primary);
-
-    try {
-        return new Chart(ctx, chartConfig);
-    } catch (error) {
-        console.error('Chart.js初始化失败:', error);
-        return null;
-    }
-}
-
-/**
- * 获取仪表盘数据
- */
-function getDashboardData() {
-    const dataElement = document.getElementById('dashboard-data');
-    if (!dataElement) {
-        console.warn('未找到仪表盘数据元素');
-        return { balance: 0, monthlyTrends: [] };
-    }
-
-    try {
-        const balance = parseFloat(dataElement.dataset.balance) || 0;
-        const monthlyTrends = dataElement.dataset.monthlyTrends ? 
-            JSON.parse(dataElement.dataset.monthlyTrends) : [];
+class FinancialDashboard {
+    constructor() {
+        this.charts = {};
+        this.currentData = {};
+        this.currentDateRange = {
+            start: null,
+            end: null
+        };
         
-        return { balance, monthlyTrends };
-    } catch (error) {
-        console.error('解析仪表盘数据失败:', error);
-        return { balance: 0, monthlyTrends: [] };
+        this.init();
     }
-}
-
-/**
- * 初始化仪表盘
- */
-function initDashboard() {
-    const canvas = document.getElementById('balanceTrendChart');
-    if (!canvas) return; // 不在仪表盘页面
-
-    const data = getDashboardData();
-    const chart = createBalanceChart(canvas, data);
     
-    if (chart) {
-        // 响应式处理
-        window.addEventListener('resize', () => chart.resize());
+    init() {
+        // 获取初始数据
+        const dataContainer = document.getElementById('dashboard-data');
+        if (dataContainer) {
+            this.currentData = JSON.parse(dataContainer.dataset.initialData);
+        }
         
-        // 页面卸载时清理
-        window.addEventListener('beforeunload', () => {
-            chart.destroy();
+        // 设置默认日期范围
+        this.setDefaultDateRange();
+        
+        // 初始化图表
+        this.initializeCharts();
+        
+        // 绑定事件
+        this.bindEvents();
+        
+        // 渲染初始数据
+        this.updateDashboard(this.currentData);
+    }
+    
+    setDefaultDateRange() {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        
+        this.currentDateRange.end = AppUtils.formatDate(today);
+        this.currentDateRange.start = AppUtils.formatDate(thirtyDaysAgo);
+        
+        // 设置日期输入框的值
+        document.getElementById('startDate').value = this.currentDateRange.start;
+        document.getElementById('endDate').value = this.currentDateRange.end;
+    }
+    
+
+    
+    bindEvents() {
+        // 预设时间按钮
+        document.querySelectorAll('[data-period]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                this.handlePresetPeriod(e.target.dataset.period);
+                
+                // 更新按钮状态
+                document.querySelectorAll('[data-period]').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+            });
         });
         
-        console.log('仪表盘初始化完成');
+        // 自定义日期范围应用按钮
+        document.getElementById('applyDateRange').addEventListener('click', () => {
+            this.handleCustomDateRange();
+        });
+        
+        // 日期输入框回车键
+        document.getElementById('startDate').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleCustomDateRange();
+        });
+        document.getElementById('endDate').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleCustomDateRange();
+        });
+    }
+    
+    handlePresetPeriod(days) {
+        const today = new Date();
+        const startDate = new Date(today.getTime() - parseInt(days) * 24 * 60 * 60 * 1000);
+        
+        this.currentDateRange.start = AppUtils.formatDate(startDate);
+        this.currentDateRange.end = AppUtils.formatDate(today);
+        
+        // 更新日期输入框
+        document.getElementById('startDate').value = this.currentDateRange.start;
+        document.getElementById('endDate').value = this.currentDateRange.end;
+        
+        // 更新数据
+        this.fetchDashboardData();
+    }
+    
+    handleCustomDateRange() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (!startDate || !endDate) {
+            AppUtils.showNotification('请选择完整的日期范围', 'warning');
+            return;
+        }
+        
+        if (new Date(startDate) > new Date(endDate)) {
+            AppUtils.showNotification('开始日期不能晚于结束日期', 'warning');
+            return;
+        }
+        
+        this.currentDateRange.start = startDate;
+        this.currentDateRange.end = endDate;
+        
+        // 清除预设按钮的选中状态
+        document.querySelectorAll('[data-period]').forEach(btn => btn.classList.remove('active'));
+        
+        // 更新数据
+        this.fetchDashboardData();
+    }
+    
+    async fetchDashboardData() {
+        const url = `/dashboard-data?start_date=${this.currentDateRange.start}&end_date=${this.currentDateRange.end}`;
+        const result = await AppUtils.apiService.get(url);
+        
+        if (result.success) {
+            this.currentData = result.data;
+            this.updateDashboard(result.data);
+        } else {
+            console.error('获取仪表盘数据失败:', result.error);
+        }
+    }
+    
+
+    
+    initializeCharts() {
+        // 净资产趋势图
+        this.charts.netWorth = new Chart(document.getElementById('netWorthChart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '净资产',
+                    data: [],
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return '¥' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 资金流分析图
+        this.charts.cashFlow = new Chart(document.getElementById('cashFlowChart'), {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: '收入',
+                        data: [],
+                        backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                        borderColor: 'rgb(40, 167, 69)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: '支出',
+                        data: [],
+                        backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                        borderColor: 'rgb(220, 53, 69)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '¥' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 收入构成图
+        this.charts.incomeComposition = new Chart(document.getElementById('incomeCompositionChart'), {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // 支出构成图（带点击事件）
+        this.charts.expenseComposition = new Chart(document.getElementById('expenseCompositionChart'), {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                onClick: (event, elements) => {
+                    console.log('图表点击事件触发:', elements);
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const label = this.charts.expenseComposition.data.labels[index];
+                        console.log('点击的分类:', label, '索引:', index);
+                        this.fetchCategoryTransactions(label);
+                    }
+                }
+            }
+        });
+    }
+    
+    updateDashboard(data) {
+        // 更新核心指标
+        this.updateCoreMetrics(data.core_metrics);
+        
+        // 更新图表
+        this.updateNetWorthChart(data.net_worth_trend);
+        this.updateCashFlowChart(data.cash_flow);
+        this.updateIncomeCompositionChart(data.income_composition);
+        this.updateExpenseCompositionChart(data.expense_composition);
+    }
+    
+    updateCoreMetrics(metrics) {
+        document.getElementById('currentAssets').textContent = '¥' + metrics.current_total_assets.toLocaleString('zh-CN', {minimumFractionDigits: 2});
+        document.getElementById('totalIncome').textContent = '¥' + metrics.total_income.toLocaleString('zh-CN', {minimumFractionDigits: 2});
+        document.getElementById('totalExpense').textContent = '¥' + metrics.total_expense.toLocaleString('zh-CN', {minimumFractionDigits: 2});
+        document.getElementById('netIncome').textContent = '¥' + metrics.net_income.toLocaleString('zh-CN', {minimumFractionDigits: 2});
+        
+        // 更新变化百分比
+        this.updateChangeIndicator('incomeChange', metrics.income_change_percentage);
+        this.updateChangeIndicator('expenseChange', metrics.expense_change_percentage);
+        this.updateChangeIndicator('netChange', metrics.net_change_percentage);
+    }
+    
+    updateChangeIndicator(elementId, percentage) {
+        const element = document.getElementById(elementId);
+        const absPercentage = Math.abs(percentage);
+        const sign = percentage > 0 ? '+' : percentage < 0 ? '-' : '';
+        const color = percentage > 0 ? 'text-success' : percentage < 0 ? 'text-danger' : 'text-muted';
+        
+        element.textContent = `${sign}${absPercentage.toFixed(1)}%`;
+        element.className = `stat-change ${color}`;
+    }
+    
+    updateNetWorthChart(trendData) {
+        if (!trendData || trendData.length === 0) {
+            // 清空图表数据
+            this.charts.netWorth.data.labels = [];
+            this.charts.netWorth.data.datasets[0].data = [];
+            this.charts.netWorth.update();
+            return;
+        }
+        
+        const labels = trendData.map(item => new Date(item.date).toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'}));
+        const data = trendData.map(item => item.balance);
+        
+        this.charts.netWorth.data.labels = labels;
+        this.charts.netWorth.data.datasets[0].data = data;
+        this.charts.netWorth.update();
+    }
+    
+    updateCashFlowChart(cashFlowData) {
+        const labels = cashFlowData.map(item => new Date(item.date).toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'}));
+        const incomeData = cashFlowData.map(item => item.income);
+        const expenseData = cashFlowData.map(item => item.expense);
+        
+        this.charts.cashFlow.data.labels = labels;
+        this.charts.cashFlow.data.datasets[0].data = incomeData;
+        this.charts.cashFlow.data.datasets[1].data = expenseData;
+        this.charts.cashFlow.update();
+    }
+    
+    updateIncomeCompositionChart(compositionData) {
+        const labels = compositionData.map(item => item.name);
+        const data = compositionData.map(item => item.amount);
+        
+        this.charts.incomeComposition.data.labels = labels;
+        this.charts.incomeComposition.data.datasets[0].data = data;
+        this.charts.incomeComposition.update();
+    }
+    
+    updateExpenseCompositionChart(compositionData) {
+        console.log('更新支出构成图表:', compositionData);
+        const labels = compositionData.map(item => item.name);
+        const data = compositionData.map(item => item.amount);
+        
+        this.charts.expenseComposition.data.labels = labels;
+        this.charts.expenseComposition.data.datasets[0].data = data;
+        this.charts.expenseComposition.update();
+        console.log('支出构成图表标签:', labels);
+    }
+    
+    async fetchCategoryTransactions(category) {
+        try {
+            const url = `/category-transactions?category=${encodeURIComponent(category)}&start_date=${this.currentDateRange.start}&end_date=${this.currentDateRange.end}`;
+            console.log('请求URL:', url);
+            
+            const response = await fetch(url);
+            console.log('响应状态:', response.status);
+            
+            if (!response.ok) {
+                throw new Error('获取交易明细失败');
+            }
+            
+            const data = await response.json();
+            console.log('获取到的数据:', data);
+            this.displayTransactionDetails(data);
+            
+        } catch (error) {
+            console.error('获取交易明细失败:', error);
+            AppUtils.showNotification('获取交易明细失败，请稍后重试', 'error');
+        }
+    }
+    
+    displayTransactionDetails(data) {
+        const container = document.getElementById('transactionDetails');
+        console.log('显示交易明细:', data);
+        
+        if (!data.transactions || data.transactions.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i data-lucide="inbox" class="lucide-icon icon-lg text-muted"></i>
+                    <p class="mt-2">该分类暂无交易记录</p>
+                </div>
+            `;
+            // 重新初始化Lucide图标
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            return;
+        }
+        
+        let html = `
+            <div class="transaction-header mb-3">
+                <h6 class="mb-1">${data.category}</h6>
+                <small class="text-muted">共 ${data.total_count} 笔交易</small>
+            </div>
+            <div class="transaction-list">
+        `;
+        
+        data.transactions.forEach(transaction => {
+            const amountClass = transaction.amount > 0 ? 'text-success' : 'text-danger';
+            const amountSign = transaction.amount > 0 ? '+' : '';
+            
+            // 格式化日期
+            const transactionDate = new Date(transaction.date);
+            const formattedDate = transactionDate.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            
+            // 处理对手方信息，参考transactions.html的逻辑
+            const counterparty = transaction.counterparty || '未知对手';
+            
+            // 处理描述信息，参考transactions.html的逻辑
+            const description = transaction.description || '无描述';
+            const shortDescription = description.length > 20 ? description.substring(0, 20) + '...' : description;
+            
+            html += `
+                <div class="transaction-item">
+                    <div class="transaction-info">
+                        <div class="transaction-counterparty" title="${counterparty}">${counterparty}</div>
+                        <div class="transaction-meta">
+                            <span class="transaction-date">${formattedDate}</span>
+                            <span class="transaction-description" title="${description}">${shortDescription}</span>
+                        </div>
+                    </div>
+                    <div class="transaction-amount ${amountClass}">
+                        ${amountSign}¥${Math.abs(transaction.amount).toLocaleString('zh-CN', {minimumFractionDigits: 2})}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
     }
 }
 
-// 自动初始化
-document.addEventListener('DOMContentLoaded', initDashboard); 
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    new FinancialDashboard();
+}); 
