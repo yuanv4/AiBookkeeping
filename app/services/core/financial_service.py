@@ -790,7 +790,7 @@ class FinancialService:
             results = query.all()
             
             return [{
-                'date': result.date.isoformat(),
+                'date': result.date,
                 'income': float(result.income or 0),
                 'expense': float(result.expense or 0),
                 'net': float((result.income or 0) - (result.expense or 0))
