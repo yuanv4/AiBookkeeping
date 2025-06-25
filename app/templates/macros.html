@@ -6,18 +6,18 @@
 {% endmacro %}
 
 {% macro page_header(title, subtitle="", icon_name="") %}
-<!-- 统一页头组件 -->
-<div class="page-header">
+<!-- 统一页头组件 - Bootstrap 重构版 -->
+<div class="bg-white border-bottom shadow-sm p-4 mb-4">
     <div class="row align-items-center">
         <div class="col-md-8">
             <div class="d-flex align-items-center">
                 {% if icon_name %}
-                <div class="icon-circle me-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center icon-lg">
+                <div class="me-3 bg-primary bg-opacity-10 rounded-3 d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
                     {{ icon(icon_name, "lg", "text-primary") }}
                 </div>
                 {% endif %}
                 <div>
-                    <h1 class="fw-bold mb-1">{{ title }}</h1>
+                    <h1 class="fw-bold mb-1 fs-2">{{ title }}</h1>
                     {% if subtitle %}
                     <p class="text-muted mb-0">{{ subtitle }}</p>
                     {% endif %}
@@ -28,13 +28,13 @@
 </div>
 {% endmacro %}
 
-{% macro card(title="", icon_name="", header_class="", body_class="p-6") %}
-<div class="card h-100 dashboard-card">
+{% macro card(title="", icon_name="", header_class="", body_class="") %}
+<div class="card h-100 shadow-sm border-0">
   {% if title %}
-  <div class="card-header d-flex align-items-center justify-content-between {% if header_class %}{{ header_class }}{% endif %}">
+  <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between {{ header_class }}">
     <div class="d-flex align-items-center">
       {% if icon_name %}
-      <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
+      <div class="me-2 bg-light rounded-2 d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem;">
         {{ icon(icon_name, "sm", "text-primary") }}
       </div>
       {% endif %}
@@ -47,38 +47,36 @@
     {% endif %}
   </div>
   {% endif %}
-  <div class="card-body {{ body_class }}">
+  <div class="card-body {{ body_class if body_class else 'p-3' }}">
     {{ caller() }}
   </div>
 </div>
 {% endmacro %}
 
 {% macro data_table(id, headers, title="数据明细", total=0, filtered=0, no_data_message="没有找到匹配的记录") %}
-<div class="card border-0 h-100">
-  <div class="card-header d-flex justify-content-between align-items-center bg-white py-3">
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3">
     <div class="d-flex align-items-center">
-      <div class="icon-circle me-2 bg-light d-flex align-items-center justify-content-center">
+      <div class="me-2 bg-light rounded-2 d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem;">
         {{ icon("receipt", "sm", "text-primary") }}
       </div>
       <h6 class="card-title fw-bold mb-0">{{ title }}</h6>
     </div>
     {% if total > 0 %}
-    <div class="d-flex align-items-center">
-      <div class="table-stats d-flex align-items-center">
-        <span class="badge rounded-pill bg-primary" id="{{ id ~ '-filtered-count' }}">{{ filtered }}</span>
-        <span class="mx-1">/</span>
-        <span class="badge rounded-pill bg-light text-dark">{{ total }}</span>
-      </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-primary rounded-pill" id="{{ id ~ '-filtered-count' }}">{{ filtered }}</span>
+      <span class="text-muted">/</span>
+      <span class="badge bg-secondary rounded-pill">{{ total }}</span>
     </div>
     {% endif %}
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover mb-0 table-striped transactions-table" id="{{ id }}">
+      <table class="table table-hover mb-0" id="{{ id }}">
         <thead class="table-light">
           <tr>
             {% for header in headers %}
-            <th>{{ header }}</th>
+            <th class="px-3 py-3 fw-semibold text-muted text-uppercase small border-0">{{ header }}</th>
             {% endfor %}
           </tr>
         </thead>
@@ -89,20 +87,26 @@
     </div>
     
     <!-- 分页控件 -->
-    <div id="{{ id ~ '-pagination-container' }}" class="pagination-container p-3 border-top">
-      <ul class="pagination pagination-sm justify-content-center mb-0" id="{{ id ~ '-pagination' }}">
-        <!-- 分页按钮将通过JavaScript动态填充 -->
-      </ul>
+    <div id="{{ id ~ '-pagination-container' }}" class="border-top bg-light p-3">
+      <nav aria-label="表格分页">
+        <ul class="pagination pagination-sm justify-content-center mb-0" id="{{ id ~ '-pagination' }}">
+          <!-- 分页按钮将通过JavaScript动态填充 -->
+        </ul>
+      </nav>
     </div>
     
     <!-- 无数据提示 -->
-    <div id="{{ id ~ '-no-data' }}" class="no-data-container d-flex flex-column align-items-center justify-content-center py-5">
-      {{ icon("search-x", "xxl", "text-muted mb-3") }}
-      <p class="mb-3 text-muted">{{ no_data_message }}</p>
-      <button id="{{ id ~ '-reset-all' }}" class="btn btn-sm btn-outline-primary">
-        {{ icon("refresh-cw", "sm", "", "me-1") }}
-        <span>重置筛选条件</span>
-      </button>
+    <div id="{{ id ~ '-no-data' }}" class="d-none">
+      <div class="text-center py-5">
+        <div class="mb-3">
+          {{ icon("search-x", "xl", "text-muted") }}
+        </div>
+        <p class="text-muted mb-3">{{ no_data_message }}</p>
+        <button id="{{ id ~ '-reset-all' }}" class="btn btn-sm btn-outline-primary">
+          {{ icon("refresh-cw", "sm", "me-1") }}
+          重置筛选条件
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -113,16 +117,16 @@
 
 
 {% macro stat_card(icon_name, value, label, icon_color="primary", value_color="", value_id="", change_text="", change_id="") %}
-<div class="stat-card">
-  <div class="stat-card-body">
-    <div class="stat-icon bg-{{ icon_color }}">
+<div class="card h-100 shadow-sm border-0">
+  <div class="card-body p-4 d-flex align-items-center">
+    <div class="me-3 bg-{{ icon_color }} rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 3rem; height: 3rem;">
       {{ icon(icon_name, "md", "text-white") }}
     </div>
-    <div class="stat-content">
-      <div class="stat-value{% if value_color %} text-{{ value_color }}{% endif %}"{% if value_id %} id="{{ value_id }}"{% endif %}>{{ value }}</div>
-      <div class="stat-label">{{ label }}</div>
+    <div class="flex-grow-1 min-width-0">
+      <div class="fs-4 fw-bold mb-1{% if value_color %} text-{{ value_color }}{% endif %}"{% if value_id %} id="{{ value_id }}"{% endif %}>{{ value }}</div>
+      <div class="text-muted small mb-1">{{ label }}</div>
       {% if change_text %}
-      <div class="stat-change"{% if change_id %} id="{{ change_id }}"{% endif %}>{{ change_text }}</div>
+      <div class="badge bg-light text-dark"{% if change_id %} id="{{ change_id }}"{% endif %}>{{ change_text }}</div>
       {% endif %}
     </div>
   </div>
@@ -135,7 +139,7 @@
 <div class="card border-0 shadow-sm h-100">
   <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
-      <div class="icon-circle me-2 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem; border-radius: 50%;">
+      <div class="me-2 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem;">
         {{ icon(icon_name, "sm", "text-primary") }}
       </div>
       <h6 class="mb-0 fw-bold">{{ title }}</h6>
@@ -145,8 +149,8 @@
     </div>
   </div>
   <div class="card-body">
-    <div class="chart-container" {% if height %}style="position: relative; height: {{ height }};"{% endif %}>
-      <canvas id="{{ chart_id }}" class="chart-canvas"></canvas>
+    <div class="position-relative" {% if height %}style="height: {{ height }};"{% endif %}>
+      <canvas id="{{ chart_id }}" class="w-100 h-100"></canvas>
     </div>
   </div>
 </div>
@@ -157,12 +161,10 @@
 {# ==================== 导航链接组件宏 ==================== #}
 
 {% macro nav_link(endpoint, label, icon_name, extra_classes="") %}
-<li class="nav-item mb-1">
-  <a class="nav-link rounded {% if request.endpoint == endpoint or (request.blueprint and endpoint.split('.')[0] == request.blueprint) %}active{% endif %} {{ extra_classes }}" href="{{ url_for(endpoint) }}">
-    <div class="nav-icon-round d-flex align-items-center">
-      {{ icon(icon_name, "sm", "", "me-3") }}
-      <span>{{ label }}</span>
-    </div>
+<li class="nav-item">
+  <a class="nav-link d-flex align-items-center rounded px-3 py-2 text-decoration-none {% if request.endpoint == endpoint or (request.blueprint and endpoint.split('.')[0] == request.blueprint) %}active{% endif %} {{ extra_classes }}" href="{{ url_for(endpoint) }}">
+    {{ icon(icon_name, "sm", "me-2") }}
+    <span>{{ label }}</span>
   </a>
 </li>
 {% endmacro %}
@@ -181,46 +183,51 @@
     </ol>
     {% endif %}
     
-    <div class="upload-container" id="{{ id ~ '-container' }}">
-        <div class="drop-zone" id="{{ id ~ '-drop-zone' }}">
-            <div class="mb-3">
-                <div class="upload-icon-wrapper d-inline-flex align-items-center justify-content-center bg-primary-light rounded-circle">
-                    {{ icon("upload", "xl", "text-primary-custom") }}
-                </div>
-            </div>
-
-            <div class="drop-zone-content">
-                {{ icon("upload-cloud", "xxl", "text-muted mb-3") }}
-                <h5>拖拽文件到此处或点击上传</h5>
-                <p class="text-muted">支持 Excel (.xlsx, .xls) 和 CSV 文件</p>
-                <input type="file" id="{{ id ~ '-input' }}" class="d-none" accept="{{ accept_types }}" multiple>
-                <button type="button" class="btn btn-primary" data-file-input="{{ id ~ '-input' }}">
-                    {{ icon("plus", "sm", "", "me-1") }} 选择文件
-                </button>
+    <div class="border border-2 border-dashed rounded-3 p-5 bg-light bg-opacity-50 position-relative file-drop-zone" 
+         id="{{ id ~ '-drop-zone' }}" 
+         style="transition: all 0.2s ease; cursor: pointer;">
+        <div class="mb-3">
+            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" 
+                 style="width: 4rem; height: 4rem;">
+                {{ icon("upload-cloud", "xl", "text-primary") }}
             </div>
         </div>
+        
+        <h5 class="mb-3">拖拽文件到此处或点击上传</h5>
+        <p class="text-muted mb-3">支持 Excel (.xlsx, .xls) 和 CSV 文件</p>
+        
+        <input type="file" id="{{ id ~ '-input' }}" class="d-none" accept="{{ accept_types }}" multiple>
+        <button type="button" class="btn btn-primary" data-file-input="{{ id ~ '-input' }}">
+            {{ icon("plus", "sm", "me-1") }} 选择文件
+        </button>
     </div>
     
-    <!-- 详细进度条容器 -->
-    <div class="upload-progress-container" id="{{ id ~ '-progress' }}" style="display: none;">
-        <div class="progress-wrapper">
-            <div class="progress mb-3" style="height: 1.5rem;">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                     id="{{ id ~ '-progress-bar' }}" 
-                     role="progressbar" 
-                     style="width: 0%" 
-                     aria-valuenow="0" 
-                     aria-valuemin="0" 
-                     aria-valuemax="100">
-                    <span class="progress-text" id="{{ id ~ '-progress-text' }}">0%</span>
+    <!-- 上传进度 -->
+    <div class="mt-4 d-none" id="{{ id ~ '-progress' }}">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="progress mb-3" style="height: 1.5rem;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         id="{{ id ~ '-progress-bar' }}" 
+                         role="progressbar" 
+                         style="width: 0%" 
+                         aria-valuenow="0" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        <span class="fw-semibold" id="{{ id ~ '-progress-text' }}">0%</span>
+                    </div>
                 </div>
+                
+                <div class="d-flex align-items-center mb-2" id="{{ id ~ '-status-text' }}">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">上传中...</span>
+                    </div>
+                    <span>准备上传...</span>
+                </div>
+                
+                <div class="small text-muted mb-2" id="{{ id ~ '-file-info' }}"></div>
+                <div class="small text-muted" id="{{ id ~ '-time-estimate' }}"></div>
             </div>
-            <div class="upload-status-text mb-2" id="{{ id ~ '-status-text' }}">
-                {{ icon("loader-2", "sm", "me-2", "animate-spin") }}
-                准备上传...
-            </div>
-            <div class="upload-file-info mb-2" id="{{ id ~ '-file-info' }}"></div>
-            <div class="upload-time-estimate text-muted small" id="{{ id ~ '-time-estimate' }}"></div>
         </div>
     </div>
 </div>
