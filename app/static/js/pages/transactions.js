@@ -201,7 +201,7 @@ export default class TransactionsPage extends BasePage {
         ui.renderPagination({
             currentPage: this.currentPage,
             totalPages: this.totalPages,
-            containerId: 'pagination',
+            containerId: 'transactions-table-pagination',
             onPageClick: (page) => this.goToPage(page)
         });
     }

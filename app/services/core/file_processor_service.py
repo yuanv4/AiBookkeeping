@@ -7,35 +7,38 @@ from flask import current_app # current_app 用于访问 app.config 和 logger
 import logging
 
 class FileProcessorService:
-    def __init__(self, extractor_service, upload_folder=None):
+    def __init__(self, extractor_service, bank_service, account_service, transaction_service, upload_folder=None, allowed_extensions=None):
+        """初始化文件处理服务
+        
+        Args:
+            extractor_service: 文件提取服务
+            bank_service: 银行服务实例
+            account_service: 账户服务实例
+            transaction_service: 交易服务实例
+            upload_folder: 上传文件夹路径
+            allowed_extensions: 允许的文件扩展名集合
+        """
         self.extractor_service = extractor_service
-        # 如果没有提供 upload_folder，使用默认值或从配置获取
+        self.bank_service = bank_service
+        self.account_service = account_service
+        self.transaction_service = transaction_service
+        
+        # 设置上传文件夹
         if upload_folder:
             self.upload_folder = Path(upload_folder)
         else:
-            try:
-                from flask import current_app
-                self.upload_folder = Path(current_app.config.get('UPLOAD_FOLDER', 'uploads'))
-            except RuntimeError:
-                self.upload_folder = Path('uploads')
-        # 移除对 current_app.logger 的直接访问
-        # self.logger = current_app.logger # 使用 Flask 的 logger
+            self.upload_folder = Path('uploads')
+        
+        # 设置允许的文件扩展名
+        self.allowed_extensions = allowed_extensions or {'xlsx', 'xls'}
+        
+        # 设置日志器
+        self.logger = logging.getLogger(__name__)
 
-    def _get_logger(self):
-        """获取 logger，如果在应用上下文中，使用 current_app.logger，否则使用标准库 logger"""
-        try:
-            return current_app.logger
-        except RuntimeError:
-            # 如果不在应用上下文中，使用标准库 logging
-            return logging.getLogger('file_processor_service')
-
-    def _get_allowed_extensions(self):
-        """获取允许的文件扩展名，如果在应用上下文中，使用 current_app.config，否则使用默认值"""
-        try:
-            return current_app.config['ALLOWED_EXTENSIONS']
-        except RuntimeError:
-            # 如果不在应用上下文中，使用默认值
-            return {'xlsx', 'xls'}
+    def _is_allowed_file(self, filename):
+        """检查文件是否为允许的类型"""
+        return '.' in filename and \
+               filename.rsplit('.', 1)[1].lower() in self.allowed_extensions
 
     def process_uploaded_files(self, uploaded_file_objects):
         """
@@ -61,14 +64,14 @@ class FileProcessorService:
                 filenames.append(filename)
                 # saved_file_paths.append(file_path)
             except Exception as e:
-                self._get_logger().error(f"保存文件 {filename} 失败: {e}")
+                self.logger.error(f"保存文件 {filename} 失败: {e}")
                 # flash(f"保存文件 {filename} 失败。")
                 return None, f"保存文件 {filename} 失败"
         
         if not filenames:
             return None, '没有有效文件被保存'
 
-        self._get_logger().info(f"FileProcessorService: 开始处理 {len(filenames)} 个上传的文件: {', '.join(filenames)}")
+        self.logger.info(f"FileProcessorService: 开始处理 {len(filenames)} 个上传的文件: {', '.join(filenames)}")
         # specific_filenames 用于告知 _process_and_cleanup_files_in_folder 这些是本次上传的文件
         return self._process_and_cleanup_files_in_folder(self.upload_folder, specific_filenames=filenames)
 
@@ -84,15 +87,14 @@ class FileProcessorService:
             folder_path_obj = Path(folder_path)
             file_paths = [str(f) for f in folder_path_obj.glob('*') if f.is_file()]
             
-            # 使用新的导入方法处理每个文件
-            from app.services.core.transaction_service import TransactionService
+            # 处理每个文件
             processed_files_result_all = []
             for file_path in file_paths:
-                result = TransactionService.import_transactions_from_file(file_path)
+                result = self._process_single_file(file_path)
                 processed_files_result_all.append(result)
 
             if not processed_files_result_all:
-                self._get_logger().warning("提取器未能成功处理任何文件。")
+                self.logger.warning("提取器未能成功处理任何文件。")
                 return None, "未能成功提取任何交易记录"
 
             # 如果是特定文件上传流程，只关心这些文件的结果
@@ -109,12 +111,12 @@ class FileProcessorService:
                 
                 if not files_to_consider_for_result_and_cleanup:
                     # 这意味着 specific_filenames 中的文件一个都没在 processed_files_result_all 中找到对应的处理记录
-                    self._get_logger().warning(f"提供的特定文件 {specific_filenames} 未在处理结果中找到。")
+                    self.logger.warning(f"提供的特定文件 {specific_filenames} 未在处理结果中找到。")
                     return None, "指定的上传文件未能被处理"
             else: # 处理目录下所有检测到的文件
                 files_to_consider_for_result_and_cleanup = processed_files_result_all
             
-            self._get_logger().info(f"成功处理 {len(files_to_consider_for_result_and_cleanup)} 个目标文件。")
+            self.logger.info(f"成功处理 {len(files_to_consider_for_result_and_cleanup)} 个目标文件。")
 
             # 处理完成后删除已处理的文件 (仅删除 files_to_consider_for_result_and_cleanup 中的)
             for file_info in files_to_consider_for_result_and_cleanup:
@@ -126,22 +128,100 @@ class FileProcessorService:
                     path_to_delete = Path(folder_path) / file_name_to_delete
                     if path_to_delete.exists():
                         path_to_delete.unlink()
-                        self._get_logger().info(f"已删除处理过的文件: {path_to_delete}")
+                        self.logger.info(f"已删除处理过的文件: {path_to_delete}")
                     else:
                         # 这个警告可能意味着 extractor_factory.auto_detect_and_process 内部已经移动或删除了文件
                         # 或者 specific_filenames 中的文件实际上在 auto_detect_and_process 调用前就不存在于原始 folder_path
-                        self._get_logger().warning(f"尝试删除处理过的文件时未找到: {path_to_delete}。可能已被提取器移动/删除，或最初就不在特定文件名列表中。")
+                        self.logger.warning(f"尝试删除处理过的文件时未找到: {path_to_delete}。可能已被提取器移动/删除，或最初就不在特定文件名列表中。")
                 except Exception as e:
-                    self._get_logger().error(f"删除文件 {file_name_to_delete} 时出错: {e}")
+                    self.logger.error(f"删除文件 {file_name_to_delete} 时出错: {e}")
             
             # 返回针对 relevant_processed_files 的结果
             return files_to_consider_for_result_and_cleanup, "处理成功"
 
         except Exception as e:
-            self._get_logger().error(f"处理文件时出错 (服务层): {str(e)}", exc_info=True)
+            self.logger.error(f"处理文件时出错 (服务层): {str(e)}", exc_info=True)
             return None, f"处理文件时出错: {str(e)}"
     
-    def _is_allowed_file(self, filename):
-        # 使用 _get_allowed_extensions 方法获取允许的扩展名
-        return '.' in filename and \
-               filename.rsplit('.', 1)[1].lower() in self._get_allowed_extensions()
+    def _process_single_file(self, file_path: str):
+        """处理单个文件，从文件导入交易记录
+        
+        Args:
+            file_path: 文件路径
+            
+        Returns:
+            ExtractionResult: 导入结果
+        """
+        from app.services.extraction.models import ExtractionResult
+        
+        try:
+            # 提取数据
+            extracted_data = self.extractor_service.extract(file_path)
+            
+            # 确保银行存在
+            bank = self.bank_service.get_or_create_bank(
+                name=extracted_data.bank_name,
+                code=extracted_data.bank_code
+            )
+            
+            # 确保账户存在
+            account = self.account_service.get_or_create_account(
+                bank_id=bank.id,
+                account_number=extracted_data.account_number,
+                account_name=extracted_data.account_name
+            )
+            
+            # 处理交易记录
+            processed_count = 0
+            for transaction_dict in extracted_data.transactions:
+                try:
+                    # 创建交易记录数据
+                    transaction_data = {
+                        'account_id': account.id,
+                        'date': transaction_dict['date'],
+                        'amount': transaction_dict['amount'],
+                        'balance_after': transaction_dict['balance_after'],
+                        'currency': transaction_dict['currency'],
+                        'description': transaction_dict['description'],
+                        'counterparty': transaction_dict['counterparty'],
+                    }
+                    
+                    # 检查是否已存在相同交易
+                    is_duplicate = self.transaction_service.is_duplicate_transaction(transaction_data)
+                    
+                    if not is_duplicate:
+                        # 创建交易记录
+                        self.logger.debug(f"新建交易：{transaction_data}")
+                        transaction = self.transaction_service.create_transaction(**transaction_data)
+                        if transaction:
+                            processed_count += 1
+                    else:
+                        self.logger.debug(f"重复交易：{transaction_data}")
+                    
+                except Exception as e:
+                    self.logger.warning(f"处理交易记录失败: {e}")
+                    continue
+
+            # 创建成功结果
+            result_data = {
+                'success': True,
+                'bank': extracted_data.bank_name,
+                'account_number': extracted_data.account_number,
+                'account_name': extracted_data.account_name,
+                'record_count': processed_count,
+                'file_path': file_path
+            }
+
+            return ExtractionResult.success_result(
+                bank=extracted_data.bank_name,
+                record_count=processed_count,
+                file_path=file_path,
+                data=result_data
+            )
+            
+        except Exception as e:
+            self.logger.error(f"从文件导入交易记录失败 {file_path}: {e}")
+            return ExtractionResult.error_result(
+                f'从文件导入交易记录失败: {str(e)}',
+                file_path=file_path
+            )

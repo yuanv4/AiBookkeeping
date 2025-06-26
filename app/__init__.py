@@ -88,16 +88,21 @@ def create_app():
         db.create_all()
         app.logger.info("数据库表已创建")
         
-        # Initialize services
+        # Initialize services with dependency injection
         app.bank_service = BankService()
         app.account_service = AccountService()
-        app.financial_service = FinancialService()
         app.transaction_service = TransactionService()
+        app.financial_service = FinancialService()
         app.extractor_service = get_extraction_service()
         
-        # Initialize file processor service with dependencies
+        # Initialize file processor service with all dependencies
         app.file_processor_service = FileProcessorService(
-            extractor_service=app.extractor_service
+            extractor_service=app.extractor_service,
+            bank_service=app.bank_service,
+            account_service=app.account_service,
+            transaction_service=app.transaction_service,
+            upload_folder=app.config.get('UPLOAD_FOLDER', 'uploads'),
+            allowed_extensions=app.config.get('ALLOWED_EXTENSIONS', {'xlsx', 'xls'})
         )
     
 
@@ -143,20 +148,5 @@ def create_app():
             return jsonify(success=False, error="服务器发生内部错误", details=str(e)), 500
         return render_template('errors/500.html', error="发生了一个意外错误"), 500
     app.logger.info("已注册全局错误处理器。")
-
-    # 数据库统计信息检查
-    try:
-        with app.app_context():
-            from app.models import Transaction
-            
-            # 直接查询交易数量，避免复杂的分析调用
-            total_transactions = Transaction.query.count()
-            if total_transactions > 0:
-                app.logger.info(f"数据库已连接并包含 {total_transactions} 条交易记录")
-            else:
-                app.logger.info("数据库已连接但暂无交易记录")
-    except Exception as e:
-        app.logger.warning(f"获取数据库统计信息时出错: {e}")
-        app.logger.info("数据库连接正常，但无法获取统计信息")
         
     return app
