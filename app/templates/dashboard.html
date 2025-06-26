@@ -78,12 +78,7 @@
     <!-- 模块三：支出结构透视 -->
     <div class="row mb-4">
         <div class="col-lg-6">
-            {% call card("支出结构分析", "pie-chart") %}
-            <canvas id="expenseCompositionChart" class="chart-canvas"></canvas>
-            <div class="text-center mt-3">
-                <small class="text-muted">点击图表查看详细交易</small>
-            </div>
-            {% endcall %}
+            {{ chart_container("支出结构分析", "expenseCompositionChart", "250px", "pie-chart") }}
         </div>
         <div class="col-lg-6">
             {% call card("交易明细", "list") %}
