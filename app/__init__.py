@@ -97,7 +97,9 @@ def create_app():
         
         # Initialize file processor service with dependencies
         app.file_processor_service = FileProcessorService(
-            extractor_service=app.extractor_service
+            extractor_service=app.extractor_service,
+            logger=app.logger,
+            allowed_extensions=app.config.get('ALLOWED_EXTENSIONS', {'xlsx', 'xls'})
         )
     
 
