@@ -83,7 +83,13 @@ class FileProcessorService:
             # 获取文件夹中的所有文件
             folder_path_obj = Path(folder_path)
             file_paths = [str(f) for f in folder_path_obj.glob('*') if f.is_file()]
-            processed_files_result_all = self.extractor_service.process_files(file_paths)
+            
+            # 使用新的导入方法处理每个文件
+            from app.services.core.transaction_service import TransactionService
+            processed_files_result_all = []
+            for file_path in file_paths:
+                result = TransactionService.import_transactions_from_file(file_path)
+                processed_files_result_all.append(result)
 
             if not processed_files_result_all:
                 self._get_logger().warning("提取器未能成功处理任何文件。")

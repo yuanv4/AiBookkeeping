@@ -143,6 +143,100 @@ class TransactionService:
             raise
     
     @staticmethod
+    def import_transactions_from_file(file_path: str, user_id: int = None) -> 'ExtractionResult':
+        """从文件导入交易记录
+        
+        Args:
+            file_path: 文件路径
+            user_id: 用户ID（可选，用于日志记录）
+            
+        Returns:
+            ExtractionResult: 导入结果
+        """
+        from app.services.extraction.service import get_extractor_service
+        from app.services.extraction.models import ExtractionResult
+        from flask import current_app
+        
+        try:
+            # 获取提取器服务
+            extractor_service = get_extractor_service()
+            
+            # 提取数据
+            extracted_data = extractor_service.extract_data_from_file(file_path)
+            
+            # 获取业务服务实例
+            bank_service = current_app.bank_service
+            account_service = current_app.account_service
+            
+            # 确保银行存在
+            bank = bank_service.get_or_create_bank(
+                name=extracted_data.bank_name,
+                code=extracted_data.bank_code
+            )
+            
+            # 确保账户存在
+            account = account_service.get_or_create_account(
+                bank_id=bank.id,
+                account_number=extracted_data.account_number,
+                account_name=extracted_data.account_name
+            )
+            
+            # 处理交易记录
+            processed_count = 0
+            for transaction_dict in extracted_data.transactions:
+                try:
+                    # 创建交易记录数据
+                    transaction_data = {
+                        'account_id': account.id,
+                        'date': transaction_dict['date'],
+                        'amount': transaction_dict['amount'],
+                        'balance_after': transaction_dict['balance_after'],
+                        'currency': transaction_dict['currency'],
+                        'description': transaction_dict['description'],
+                        'counterparty': transaction_dict['counterparty'],
+                    }
+                    
+                    # 检查是否已存在相同交易
+                    is_duplicate = TransactionService.is_duplicate_transaction(transaction_data)
+                    
+                    if not is_duplicate:
+                        # 创建交易记录
+                        logger.debug(f"新建交易：{transaction_data}")
+                        transaction = TransactionService.create_transaction(**transaction_data)
+                        if transaction:
+                            processed_count += 1
+                    else:
+                        logger.debug(f"重复交易：{transaction_data}")
+                    
+                except Exception as e:
+                    logger.warning(f"处理交易记录失败: {e}")
+                    continue
+
+            # 创建成功结果
+            result_data = {
+                'success': True,
+                'bank': extracted_data.bank_name,
+                'account_number': extracted_data.account_number,
+                'account_name': extracted_data.account_name,
+                'record_count': processed_count,
+                'file_path': file_path
+            }
+
+            return ExtractionResult.success_result(
+                bank=extracted_data.bank_name,
+                record_count=processed_count,
+                file_path=file_path,
+                data=result_data
+            )
+            
+        except Exception as e:
+            logger.error(f"从文件导入交易记录失败 {file_path}: {e}")
+            return ExtractionResult.error_result(
+                f'从文件导入交易记录失败: {str(e)}',
+                file_path=file_path
+            )
+    
+    @staticmethod
     def get_transactions(account_id: int = None, start_date: date = None, 
                         end_date: date = None, transaction_type: str = None,
                         limit: int = None, offset: int = None) -> List[Transaction]:

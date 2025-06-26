@@ -7,12 +7,13 @@ Includes base extractors, specific bank extractors, factory patterns, and compre
 from .extractors import *
 from .factory import ExtractorFactory
 from .service import BankStatementExtractor, get_extractor_service
-from .models import ExtractionResult
+from .models import ExtractionResult, ExtractedData
 
 __all__ = [
     *extractors.__all__,
     'ExtractorFactory',
     'BankStatementExtractor', 
     'get_extractor_service',
-    'ExtractionResult'
+    'ExtractionResult',
+    'ExtractedData'
 ]
