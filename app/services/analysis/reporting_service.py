@@ -16,7 +16,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 # 导入核心分析服务和工具函数
-from .core_analysis_service import CoreAnalysisService
+from .analysis_service import AnalysisService
 from .utils import validate_date_range
 from .models import (
     Period, CoreMetrics, CompositionItem, 
@@ -29,7 +29,7 @@ class ReportingService:
     """报告服务
     
     负责聚合和格式化财务数据，为前端页面提供完整的报告数据。
-    依赖 CoreAnalysisService 进行底层计算。
+    依赖 AnalysisService 进行底层计算。
     """
     
     def __init__(self, db_session: Optional[Session] = None):
@@ -40,7 +40,7 @@ class ReportingService:
         """
         self.db = db_session or db.session
         self.logger = logging.getLogger(__name__)
-        self.analysis_service = CoreAnalysisService(db_session)
+        self.analysis_service = AnalysisService(db_session)
     
     # ==================== 仪表盘数据聚合 ====================
     

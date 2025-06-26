@@ -4,7 +4,7 @@
 优化后使用CoreAnalysisService替代原有的FinancialAnalysisService。
 """
 
-from .core_analysis_service import CoreAnalysisService
+from .analysis_service import AnalysisService
 from .reporting_service import ReportingService
 from .models import (
     Period, CoreMetrics, CompositionItem, 
@@ -12,7 +12,7 @@ from .models import (
 )
 
 __all__ = [
-    'CoreAnalysisService',
+    'AnalysisService',
     'ReportingService',
     'Period',
     'CoreMetrics', 

@@ -16,7 +16,7 @@ from sqlalchemy.sql.expression import over
 
 logger = logging.getLogger(__name__)
 
-class CoreAnalysisService:
+class AnalysisService:
     """核心分析服务
     
     提供财务分析的核心功能，专注于当前实际使用的计算。
