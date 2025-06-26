@@ -153,16 +153,16 @@ class TransactionService:
         Returns:
             ExtractionResult: 导入结果
         """
-        from app.services.extraction.service import get_extractor_service
+        from app.services.extraction.service import get_extraction_service
         from app.services.extraction.models import ExtractionResult
         from flask import current_app
         
         try:
             # 获取提取器服务
-            extractor_service = get_extractor_service()
+            extractor_service = get_extraction_service()
             
             # 提取数据
-            extracted_data = extractor_service.extract_data_from_file(file_path)
+            extracted_data = extractor_service.extract(file_path)
             
             # 获取业务服务实例
             bank_service = current_app.bank_service

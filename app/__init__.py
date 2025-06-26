@@ -14,7 +14,7 @@ from .services.core.bank_service import BankService
 from .services.core.account_service import AccountService
 from .services.core.transaction_service import TransactionService
 from .services.core.financial_service import FinancialService
-from .services.extraction.service import BankStatementExtractor
+from .services.extraction import get_extraction_service
 from .services.core.file_processor_service import FileProcessorService
 
 # Initialize extensions
@@ -93,7 +93,7 @@ def create_app():
         app.account_service = AccountService()
         app.financial_service = FinancialService()
         app.transaction_service = TransactionService()
-        app.extractor_service = BankStatementExtractor()
+        app.extractor_service = get_extraction_service()
         
         # Initialize file processor service with dependencies
         app.file_processor_service = FileProcessorService(

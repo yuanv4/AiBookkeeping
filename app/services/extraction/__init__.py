@@ -1,19 +1,14 @@
 """Extraction Services Package.
 
 This package contains services for extracting transaction data from bank statements.
-Includes base extractors, specific bank extractors, factory patterns, and comprehensive facade service.
+Provides a clean public API with service facade and data models.
 """
 
-from .extractors import *
-from .factory import ExtractorFactory
-from .service import BankStatementExtractor, get_extractor_service
-from .models import ExtractionResult, ExtractedData
+from .service import get_extraction_service, ExtractionService
+from .models import ExtractedData
 
 __all__ = [
-    *extractors.__all__,
-    'ExtractorFactory',
-    'BankStatementExtractor', 
-    'get_extractor_service',
-    'ExtractionResult',
+    'get_extraction_service',
+    'ExtractionService',
     'ExtractedData'
 ]

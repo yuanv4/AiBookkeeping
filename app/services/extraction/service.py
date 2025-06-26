@@ -8,94 +8,81 @@
 
 import logging
 import pandas as pd
-from typing import List, Dict, Any, Optional
+from typing import Optional
 from pathlib import Path
 from functools import lru_cache
 
-from .factory import ExtractorFactory
-from .models import ExtractionResult, ExtractedData
+from .models import ExtractedData
 
-class BankStatementExtractor:
-    """提取器服务"""
+class ExtractionService:
+    """银行对账单提取服务"""
     
-    def __init__(self, factory: ExtractorFactory = None):
-        """初始化提取器服务
+    def __init__(self):
+        """初始化提取服务"""
+        self.logger = logging.getLogger('extraction_service')
+        self._extractors = []
+        self._load_extractors()
+    
+    def _load_extractors(self):
+        """加载所有可用的提取器"""
+        from .extractors import ALL_EXTRACTORS
         
-        Args:
-            factory: 提取器工厂实例，如果为None则创建默认工厂
-        """
-        self.factory = factory or ExtractorFactory()
-        self.logger = logging.getLogger('extractor_service')
+        for extractor_class in ALL_EXTRACTORS:
+            try:
+                extractor_instance = extractor_class()
+                self._extractors.append(extractor_instance)
+                self.logger.info(f"加载提取器: {extractor_instance.get_bank_name()}")
+            except Exception as e:
+                self.logger.error(f"加载提取器失败 {extractor_class}: {e}")
     
-    def extract_data_from_file(self, file_path: str) -> ExtractedData:
-        """从文件中提取数据
+    def extract(self, file_path: str) -> ExtractedData:
+        """从文件中提取银行对账单数据
         
         Args:
             file_path: 文件路径
             
         Returns:
-            ExtractedData: 提取的数据
+            ExtractedData: 提取的标准化数据
             
         Raises:
-            Exception: 提取失败时抛出异常
+            ValueError: 未找到合适的提取器时抛出
+            FileNotFoundError: 文件不存在时抛出
+            Exception: 文件读取失败或数据提取失败时抛出
         """
         # 步骤1: 验证文件并读取数据
         df_raw = self._read_file_to_dataframe(file_path)
-        if df_raw is None:
-            raise Exception('文件不存在或无法读取')
 
         # 步骤2: 查找合适的提取器
-        extractor = self._find_extractor(df_raw, file_path)
+        extractor = self._find_suitable_extractor(df_raw, file_path)
         if not extractor:
-            raise Exception('未找到合适的提取器')
+            raise ValueError('未找到适用于该文件的提取器')
 
-        # 步骤3: 提取数据
-        extraction_data = self._extract_data(df_raw, extractor, file_path)
-        if not extraction_data['success']:
-            raise Exception(extraction_data['error'])
-
-        # 步骤4: 转换交易数据为字典列表
-        transactions_df = extraction_data['transactions_df']
-        transactions_list = []
-        
-        for _, row in transactions_df.iterrows():
-            transaction_dict = {
-                'date': row['date'].date() if hasattr(row['date'], 'date') else row['date'],
-                'amount': row['amount'],
-                'balance_after': row['balance_after'],
-                'currency': row['currency'],
-                'description': row['description'],
-                'counterparty': row['counterparty'],
-            }
-            transactions_list.append(transaction_dict)
-        
-        # 返回标准化的提取数据
-        return ExtractedData(
-            bank_name=extractor.get_bank_name(),
-            bank_code=extractor.get_bank_code(),
-            account_name=extraction_data['account_name'],
-            account_number=extraction_data['account_number'],
-            transactions=transactions_list
-        )
+        # 步骤3: 使用提取器的extract方法进行完整提取
+        return extractor.extract(df_raw)
     
-    def _read_file_to_dataframe(self, file_path: str) -> Optional[pd.DataFrame]:
+    def _read_file_to_dataframe(self, file_path: str) -> pd.DataFrame:
         """读取文件为DataFrame
         
         Args:
             file_path: 文件路径
             
         Returns:
-            Optional[pd.DataFrame]: 原始DataFrame或None（读取失败）
+            pd.DataFrame: 原始DataFrame
+            
+        Raises:
+            FileNotFoundError: 文件不存在时抛出
+            ValueError: 文件读取失败时抛出
         """
+        if not Path(file_path).exists():
+            raise FileNotFoundError(f'文件不存在: {file_path}')
+        
         try:
-            if not Path(file_path).exists():
-                return None
             return pd.read_excel(file_path, header=None)
         except Exception as e:
             self.logger.error(f"读取文件失败 {file_path}: {e}")
-            return None
+            raise ValueError(f'无法读取文件 {file_path}: {str(e)}')
     
-    def _find_extractor(self, df_raw: pd.DataFrame, file_path: str) -> Optional['BaseTransactionExtractor']:
+    def _find_suitable_extractor(self, df_raw: pd.DataFrame, file_path: str):
         """查找合适的提取器
         
         Args:
@@ -103,119 +90,26 @@ class BankStatementExtractor:
             file_path: 文件路径（用于日志）
             
         Returns:
-            Optional[BaseTransactionExtractor]: 提取器实例或None
+            提取器实例或None
         """
-        extractor = self.factory.find_suitable_extractor(df_raw)
-        if extractor:
-            self.logger.info(f"为文件 {file_path} 选择了提取器: {extractor.get_bank_name()}")
-        return extractor
-    
-    def _extract_data(self, df_raw: pd.DataFrame, extractor, file_path: str) -> Dict[str, Any]:
-        """提取数据
-        
-        Args:
-            df_raw: 原始DataFrame
-            extractor: 提取器实例
-            file_path: 文件路径（用于日志）
-            
-        Returns:
-            Dict: 包含提取结果的字典
-        """
-        try:
-            # 提取交易数据
-            transactions_df = extractor.extract_transactions(df_raw)
-            if transactions_df is None or transactions_df.empty:
-                return {
-                    'success': False,
-                    'error': '无法提取交易数据'
-                }
-
-            # 提取账户信息
-            account_name, account_number = extractor.extract_account_info(df_raw)
-            if not account_name or not account_number:
-                return {
-                    'success': False,
-                    'error': '无法提取账户信息'
-                }
-
-            return {
-                'success': True,
-                'transactions_df': transactions_df,
-                'account_name': account_name,
-                'account_number': account_number
-            }
-            
-        except Exception as e:
-            self.logger.error(f"数据提取失败 {file_path}: {e}")
-            return {
-                'success': False,
-                'error': f'数据提取失败: {str(e)}'
-            }
-    
-
-    
-    def validate_files(self, file_paths: List[str]) -> List[ExtractionResult]:
-        """验证文件列表
-        
-        Args:
-            file_paths: 文件路径列表
-            
-        Returns:
-            List[ExtractionResult]: 验证结果列表
-        """
-        results = []
-        for file_path in file_paths:
+        for extractor in self._extractors:
             try:
-                # 读取文件数据
-                df_raw = self._read_file_to_dataframe(file_path)
-                if df_raw is None:
-                    results.append(ExtractionResult.error_result('文件不存在或无法读取', file_path=file_path))
-                    continue
-
-                # 查找合适的提取器
-                extractor = self.factory.find_suitable_extractor(df_raw)
-                if extractor:
-                    results.append(ExtractionResult.success_result(
-                        bank=extractor.get_bank_name(),
-                        record_count=0,  # 验证阶段不处理记录
-                        file_path=file_path,
-                        data={'detected_bank': {
-                            'code': extractor.get_bank_code(),
-                            'name': extractor.get_bank_name()
-                        }}
-                    ))
-                else:
-                    # 提供可能的银行建议
-                    suggested_banks = []
-                    for bank_code in self.factory.get_available_banks()[:3]:
-                        extractor_instance = self.factory.create(bank_code)
-                        if extractor_instance:
-                            suggested_banks.append({
-                                'code': bank_code,
-                                'name': extractor_instance.get_bank_name()
-                            })
-                    
-                    results.append(ExtractionResult.error_result(
-                        '未找到合适的提取器',
-                        file_path=file_path,
-                        data={'suggested_banks': suggested_banks}
-                    ))
-
+                if extractor.is_applicable(df_raw):
+                    self.logger.info(f"为文件 {file_path} 选择了提取器: {extractor.get_bank_name()}")
+                    return extractor
             except Exception as e:
-                self.logger.error(f"文件验证失败 {file_path}: {e}")
-                results.append(ExtractionResult.error_result(str(e), file_path=file_path))
-
-        return results
+                # 如果提取器检查失败，继续尝试下一个
+                self.logger.debug(f"提取器 {extractor.get_bank_name()} 检查数据时出错: {e}")
+                continue
+        
+        self.logger.warning(f"未找到适用于文件 {file_path} 的提取器")
+        return None
 
 @lru_cache(maxsize=1)
-def get_extractor_service() -> BankStatementExtractor:
-    """获取提取器服务实例
+def get_extraction_service() -> ExtractionService:
+    """获取提取服务实例
     
     Returns:
-        BankStatementExtractor: 提取器服务实例
+        ExtractionService: 提取服务实例
     """
-    # 创建提取器工厂
-    factory = ExtractorFactory()
-    
-    # 返回不带数据库依赖的提取器服务
-    return BankStatementExtractor(factory=factory)
+    return ExtractionService()
