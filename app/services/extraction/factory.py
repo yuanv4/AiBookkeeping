@@ -7,33 +7,39 @@
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Type, Optional, Tuple
 import pandas as pd
 
 from .extractors.base_extractor import BankStatementExtractorInterface
-from .extractors.configurable_extractor import ConfigurableTransactionExtractor
-from .bank_configs import get_bank_config, BANK_CONFIGS
+from .extractors import CMBTransactionExtractor, CCBTransactionExtractor
 
 class ExtractorFactory:
     """银行提取器工厂"""
     
     def __init__(self):
+        self._extractors: Dict[str, Type[BankStatementExtractorInterface]] = {}
         self.logger = logging.getLogger('extraction_factory')
+        self._register_default_extractors()
+    
+    def _register_default_extractors(self):
+        """注册默认提取器"""
+        self.register('CMB', CMBTransactionExtractor)
+        self.register('CCB', CCBTransactionExtractor)
+    
+    def register(self, bank_code: str, extractor_class: Type[BankStatementExtractorInterface]):
+        """注册银行提取器"""
+        self._extractors[bank_code] = extractor_class
+        self.logger.info(f"注册提取器: {bank_code} -> {extractor_class.__name__}")
     
     def create(self, bank_code: str) -> Optional[BankStatementExtractorInterface]:
         """创建指定银行的提取器实例"""
-        try:
-            bank_config = get_bank_config(bank_code)
-            extractor = ConfigurableTransactionExtractor(bank_code, bank_config)
-            self.logger.info(f"创建提取器: {bank_code} -> ConfigurableTransactionExtractor")
-            return extractor
-        except KeyError:
-            self.logger.error(f"不支持的银行代码: {bank_code}")
-            return None
+        if bank_code in self._extractors:
+            return self._extractors[bank_code]()
+        return None
     
     def get_available_banks(self) -> List[str]:
         """获取可用的银行代码列表"""
-        return list(BANK_CONFIGS.keys())
+        return list(self._extractors.keys())
     
     def find_suitable_extractor(self, file_path: str) -> Optional[Tuple[BankStatementExtractorInterface, str, str]]:
         """根据文件找到合适的提取器
@@ -46,7 +52,7 @@ class ExtractorFactory:
                 如果找到合适的提取器，返回 (extractor, account_name, account_number) 元组
                 否则返回 None
         """
-        for bank_code in BANK_CONFIGS.keys():
+        for bank_code in self._extractors:
             extractor = self.create(bank_code)
             if extractor:
                 try:

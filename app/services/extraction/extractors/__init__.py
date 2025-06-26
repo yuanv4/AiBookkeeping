@@ -7,10 +7,12 @@
 """
 
 from .base_extractor import BankStatementExtractorInterface, BaseTransactionExtractor
-from .configurable_extractor import ConfigurableTransactionExtractor
+from .cmb_extractor import CMBTransactionExtractor
+from .ccb_extractor import CCBTransactionExtractor
 
 __all__ = [
     'BankStatementExtractorInterface',
     'BaseTransactionExtractor',
-    'ConfigurableTransactionExtractor'
+    'CMBTransactionExtractor',
+    'CCBTransactionExtractor'
 ]
