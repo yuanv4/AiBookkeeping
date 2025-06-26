@@ -35,5 +35,8 @@
     </div>
 </div>
 
+{% endblock %}
 
+{% block page_scripts %}
+<script type="module" src="{{ url_for('static', filename='js/main/transactions.js') }}"></script>
 {% endblock %}

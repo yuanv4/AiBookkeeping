@@ -3,22 +3,21 @@
  * 使用现代化的类结构重构筛选、分页和表格显示功能
  */
 
-class TransactionsPage {
+import BasePage from '../common/BasePage.js';
+import { escapeHtml, urlHandler, ui, formatDate } from '../common/utils.js';
+
+export default class TransactionsPage extends BasePage {
     constructor() {
+        super();
         this.currentPage = 1;
         this.itemsPerPage = 20;
         this.totalPages = 1;
         this.transactions = [];
-        
-        this.elements = {};
-        this.init();
     }
     
     init() {
-        this.bindElements();
+        super.init();
         this.loadPageData();
-        this.setupEventListeners();
-        this.renderPage();
     }
     
     bindElements() {
@@ -160,18 +159,18 @@ class TransactionsPage {
         const rowHtml = `
             <tr>
                 <td>${index + 1}</td>
-                <td>${AppUtils.escapeHtml(transaction.date || '')}</td>
-                <td>${AppUtils.escapeHtml(transaction.transaction_type || '')}</td>
-                <td>${AppUtils.escapeHtml(transaction.counterparty || '')}</td>
+                <td>${escapeHtml(transaction.date || '')}</td>
+                <td>${escapeHtml(transaction.transaction_type || '')}</td>
+                <td>${escapeHtml(transaction.counterparty || '')}</td>
                 <td class="${amount >= 0 ? 'positive' : 'negative'}">${amount.toFixed(2)}</td>
                 <td>${balance.toFixed(2)}</td>
-                <td>${AppUtils.escapeHtml(transaction.currency || '')}</td>
-                <td>${AppUtils.escapeHtml(transaction.account_number || '')}</td>
-                <td>${AppUtils.escapeHtml(transaction.account_name || '')}</td>
+                <td>${escapeHtml(transaction.currency || '')}</td>
+                <td>${escapeHtml(transaction.account_number || '')}</td>
+                <td>${escapeHtml(transaction.account_name || '')}</td>
             </tr>
         `;
         
-        return AppUtils.ui.createDOMElement(rowHtml);
+        return ui.createDOMElement(rowHtml);
     }
     
     showNoData() {
@@ -199,7 +198,7 @@ class TransactionsPage {
     }
     
     renderPagination() {
-        AppUtils.ui.renderPagination({
+        ui.renderPagination({
             currentPage: this.currentPage,
             totalPages: this.totalPages,
             containerId: 'pagination',
@@ -208,7 +207,7 @@ class TransactionsPage {
     }
     
     goToPage(page) {
-        AppUtils.urlHandler.set('page', page);
+        urlHandler.set('page', page);
     }
     
     initTransactionRowFormatting() {
@@ -246,7 +245,7 @@ class TransactionsPage {
     }
     
     updateActiveFilters() {
-        const urlParams = AppUtils.urlHandler.getAll();
+        const urlParams = urlHandler.getAll();
         
         if (!this.elements.activeFiltersBadges || !this.elements.activeFiltersContainer) return;
         
@@ -271,14 +270,14 @@ class TransactionsPage {
                 
                 const badgeHtml = `
                     <div class="filter-badge">
-                        <span>${AppUtils.escapeHtml(label)}: ${AppUtils.escapeHtml(value)}</span>
+                        <span>${escapeHtml(label)}: ${escapeHtml(value)}</span>
                         <span class="close-icon" data-param="${key}">
                             <i data-lucide="x" class="lucide-icon lucide-icon-sm"></i>
                         </span>
                     </div>
                 `;
                 
-                const badge = AppUtils.ui.createDOMElement(badgeHtml);
+                const badge = ui.createDOMElement(badgeHtml);
                 this.elements.activeFiltersBadges.appendChild(badge);
             }
         });
@@ -308,7 +307,7 @@ class TransactionsPage {
         
         switch(filterType) {
             case 'today':
-                const todayStr = AppUtils.formatDate(today);
+                const todayStr = formatDate(today);
                 this.setFilterValue('start_date_filter', todayStr);
                 this.setFilterValue('end_date_filter', todayStr);
                 break;
@@ -316,14 +315,14 @@ class TransactionsPage {
             case 'last7days':
                 const last7days = new Date();
                 last7days.setDate(today.getDate() - 6);
-                this.setFilterValue('start_date_filter', AppUtils.formatDate(last7days));
-                this.setFilterValue('end_date_filter', AppUtils.formatDate(today));
+                this.setFilterValue('start_date_filter', formatDate(last7days));
+                this.setFilterValue('end_date_filter', formatDate(today));
                 break;
                 
             case 'thisMonth':
                 const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                this.setFilterValue('start_date_filter', AppUtils.formatDate(firstDay));
-                this.setFilterValue('end_date_filter', AppUtils.formatDate(today));
+                this.setFilterValue('start_date_filter', formatDate(firstDay));
+                this.setFilterValue('end_date_filter', formatDate(today));
                 break;
                 
             case 'income':
@@ -378,8 +377,8 @@ class TransactionsPage {
         // 重置到第一页
         filters.page = '1';
         
-        // 使用 AppUtils.urlHandler 批量设置参数
-        AppUtils.urlHandler.setMultiple(filters);
+        // 使用 urlHandler 批量设置参数
+        urlHandler.setMultiple(filters);
     }
     
     getFilterValue(fieldId) {
@@ -406,20 +405,16 @@ class TransactionsPage {
             }
         });
         
-        // 使用 AppUtils.urlHandler 清除所有参数
-        AppUtils.urlHandler.setMultiple({});
+        // 使用 urlHandler 清除所有参数
+        urlHandler.setMultiple({});
     }
     
     clearAllFilters() {
-        AppUtils.urlHandler.setMultiple({});
+        urlHandler.setMultiple({});
     }
     
     removeFilterParam(param) {
-        AppUtils.urlHandler.remove(param);
+        urlHandler.remove(param);
     }
 }
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    new TransactionsPage();
-});

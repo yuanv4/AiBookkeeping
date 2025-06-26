@@ -2,19 +2,23 @@
  * 财务健康仪表盘 JavaScript
  */
 
-class FinancialDashboard {
+import BasePage from '../common/BasePage.js';
+import { formatDate, showNotification, apiService } from '../common/utils.js';
+
+export default class FinancialDashboard extends BasePage {
     constructor() {
+        super();
         this.charts = {};
         this.currentData = {};
         this.currentDateRange = {
             start: null,
             end: null
         };
-        
-        this.init();
     }
     
     init() {
+        super.init();
+        
         // 获取初始数据
         const dataContainer = document.getElementById('dashboard-data');
         if (dataContainer) {
@@ -27,9 +31,6 @@ class FinancialDashboard {
         // 初始化图表
         this.initializeCharts();
         
-        // 绑定事件
-        this.bindEvents();
-        
         // 渲染初始数据
         this.updateDashboard(this.currentData);
     }
@@ -38,8 +39,8 @@ class FinancialDashboard {
         const today = new Date();
         const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
         
-        this.currentDateRange.end = AppUtils.formatDate(today);
-        this.currentDateRange.start = AppUtils.formatDate(thirtyDaysAgo);
+        this.currentDateRange.end = formatDate(today);
+        this.currentDateRange.start = formatDate(thirtyDaysAgo);
         
         // 设置日期输入框的值
         document.getElementById('startDate').value = this.currentDateRange.start;
@@ -48,7 +49,7 @@ class FinancialDashboard {
     
 
     
-    bindEvents() {
+    setupEventListeners() {
         // 预设时间按钮
         document.querySelectorAll('[data-period]').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -78,8 +79,8 @@ class FinancialDashboard {
         const today = new Date();
         const startDate = new Date(today.getTime() - parseInt(days) * 24 * 60 * 60 * 1000);
         
-        this.currentDateRange.start = AppUtils.formatDate(startDate);
-        this.currentDateRange.end = AppUtils.formatDate(today);
+        this.currentDateRange.start = formatDate(startDate);
+        this.currentDateRange.end = formatDate(today);
         
         // 更新日期输入框
         document.getElementById('startDate').value = this.currentDateRange.start;
@@ -94,12 +95,12 @@ class FinancialDashboard {
         const endDate = document.getElementById('endDate').value;
         
         if (!startDate || !endDate) {
-            AppUtils.showNotification('请选择完整的日期范围', 'warning');
+            showNotification('请选择完整的日期范围', 'warning');
             return;
         }
         
         if (new Date(startDate) > new Date(endDate)) {
-            AppUtils.showNotification('开始日期不能晚于结束日期', 'warning');
+            showNotification('开始日期不能晚于结束日期', 'warning');
             return;
         }
         
@@ -115,7 +116,7 @@ class FinancialDashboard {
     
     async fetchDashboardData() {
         const url = `/dashboard-data?start_date=${this.currentDateRange.start}&end_date=${this.currentDateRange.end}`;
-        const result = await AppUtils.apiService.get(url);
+        const result = await apiService.get(url);
         
         if (result.success) {
             this.currentData = result.data;
@@ -358,7 +359,7 @@ class FinancialDashboard {
             
         } catch (error) {
             console.error('获取交易明细失败:', error);
-            AppUtils.showNotification('获取交易明细失败，请稍后重试', 'error');
+            showNotification('获取交易明细失败，请稍后重试', 'error');
         }
     }
     
@@ -428,7 +429,4 @@ class FinancialDashboard {
     }
 }
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    new FinancialDashboard();
-}); 
+ 

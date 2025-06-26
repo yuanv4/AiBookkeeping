@@ -3,10 +3,12 @@
  * 使用现代化的类结构重构文件上传和数据库管理功能
  */
 
+import { showNotification, formatFileSize, apiService, ui } from '../common/utils.js';
+
 /**
  * 文件上传功能类
  */
-class UploadFeature {
+export class UploadFeature {
     constructor() {
         this.selectedFiles = [];
         this.config = {
@@ -97,7 +99,7 @@ class UploadFeature {
         
         // 检查文件数量限制
         if (this.selectedFiles.length + files.length > this.config.maxFiles) {
-            AppUtils.showNotification(`最多只能选择 ${this.config.maxFiles} 个文件`, 'error');
+            showNotification(`最多只能选择 ${this.config.maxFiles} 个文件`, 'error');
             return;
         }
         
@@ -117,7 +119,7 @@ class UploadFeature {
         
         // 显示错误信息
         if (errors.length > 0) {
-            AppUtils.showNotification(errors.join('\n'), 'error');
+            showNotification(errors.join('\n'), 'error');
         }
         
         // 添加有效文件并立即开始上传
@@ -143,7 +145,7 @@ class UploadFeature {
         if (file.size > this.config.maxFileSize) {
             return {
                 valid: false,
-                error: `文件大小超过限制（最大 ${AppUtils.formatFileSize(this.config.maxFileSize)}）`
+                error: `文件大小超过限制（最大 ${formatFileSize(this.config.maxFileSize)}）`
             };
         }
         
@@ -159,7 +161,7 @@ class UploadFeature {
     
     async startUpload() {
         if (this.selectedFiles.length === 0) {
-            AppUtils.showNotification('请先选择要上传的文件', 'error');
+            showNotification('请先选择要上传的文件', 'error');
             return;
         }
         
@@ -178,7 +180,7 @@ class UploadFeature {
             // 等待进度模拟完成后发送请求
             await progressPromise;
             
-            const result = await AppUtils.apiService.post('/settings/upload', formData, { showLoading: false });
+            const result = await apiService.post('/settings/upload', formData, { showLoading: false });
             
             if (result.success) {
                 this.updateProgress(100, '处理完成！', '文件处理成功，正在重置界面...', 'completing');
@@ -337,7 +339,7 @@ class UploadFeature {
 /**
  * 数据库管理功能类
  */
-class DatabaseFeature {
+export class DatabaseFeature {
     constructor() {
         this.init();
     }
@@ -365,7 +367,7 @@ class DatabaseFeature {
         const dashboardUrl = button.dataset.dashboardUrl;
         
         // 使用统一的确认对话框
-        const confirmed = await AppUtils.ui.showConfirmationModal({
+        const confirmed = await ui.showConfirmationModal({
             title: '危险操作警告',
             text: '此操作将删除所有交易数据和分析结果，且无法恢复！您确定要继续吗？',
             icon: 'warning',
@@ -375,7 +377,7 @@ class DatabaseFeature {
         
         if (confirmed) {
             // 第二次确认
-            const finalConfirmed = await AppUtils.ui.showConfirmationModal({
+            const finalConfirmed = await ui.showConfirmationModal({
                 title: '最后确认',
                 text: '您真的要删除所有数据吗？此操作不可逆！',
                 icon: 'error',
@@ -390,22 +392,17 @@ class DatabaseFeature {
     }
     
     async executeDelete(deleteUrl, dashboardUrl) {
-        const result = await AppUtils.apiService.post(deleteUrl, {});
+        const result = await apiService.post(deleteUrl, {});
         
         if (result.success && result.data.success) {
-            AppUtils.showNotification('成功：' + result.data.message, 'success');
+            showNotification('成功：' + result.data.message, 'success');
             setTimeout(() => {
                 window.location.href = dashboardUrl;
             }, 1500);
         } else {
             const errorMessage = result.data?.message || result.error || '删除操作失败';
-            AppUtils.showNotification('错误：' + errorMessage, 'error');
+            showNotification('错误：' + errorMessage, 'error');
         }
     }
 }
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    new UploadFeature();
-    new DatabaseFeature();
-});

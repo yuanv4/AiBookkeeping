@@ -53,7 +53,7 @@ def transactions_list_route(): # 重命名函数
         per_page=limit
     )
     
-    transactions_data = pagination.items
+    transactions_data = [t.to_dict() for t in pagination.items]
     total_transactions = pagination.total
 
     accounts = current_app.account_service.get_all_accounts()
