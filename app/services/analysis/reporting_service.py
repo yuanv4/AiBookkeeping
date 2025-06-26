@@ -1,6 +1,7 @@
 """报告服务
 
 专门负责财务数据的聚合和报告生成，为前端页面提供格式化的数据。
+优化后移除了pandas依赖，使用原生Python进行数据处理。
 """
 
 from typing import List, Dict, Any, Optional
@@ -14,8 +15,13 @@ from sqlalchemy import func, case
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-# 导入分析服务
-from .financial_analysis_service import FinancialAnalysisService
+# 导入核心分析服务和工具函数
+from .core_analysis_service import CoreAnalysisService
+from .utils import validate_date_range
+from .models import (
+    Period, CoreMetrics, CompositionItem, 
+    TrendPoint, DashboardData
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +29,7 @@ class ReportingService:
     """报告服务
     
     负责聚合和格式化财务数据，为前端页面提供完整的报告数据。
-    依赖 FinancialAnalysisService 进行底层计算。
+    依赖 CoreAnalysisService 进行底层计算。
     """
     
     def __init__(self, db_session: Optional[Session] = None):
@@ -34,11 +40,11 @@ class ReportingService:
         """
         self.db = db_session or db.session
         self.logger = logging.getLogger(__name__)
-        self.analysis_service = FinancialAnalysisService(db_session)
+        self.analysis_service = CoreAnalysisService(db_session)
     
     # ==================== 仪表盘数据聚合 ====================
     
-    def get_financial_dashboard_data(self, start_date: date, end_date: date) -> Dict[str, Any]:
+    def get_financial_dashboard_data(self, start_date: date, end_date: date) -> DashboardData:
         """获取财务健康仪表盘数据
         
         Args:
@@ -46,31 +52,25 @@ class ReportingService:
             end_date: 结束日期
             
         Returns:
-            Dict[str, Any]: 仪表盘所需的全部数据
+            DashboardData: 仪表盘所需的全部数据
         """
         try:
+            # 验证日期范围
+            validate_date_range(start_date, end_date)
+            
             # 计算上一个同等时长的周期，用于对比
             period_days = (end_date - start_date).days
             prev_end_date = start_date - relativedelta(days=1)
             prev_start_date = prev_end_date - relativedelta(days=period_days)
             
-            # 1. 净资产趋势数据
-            net_worth_trend = self.analysis_service.get_net_worth_trend(start_date, end_date)
+            # 1. 计算核心指标（当前周期和上一周期）
+            current_metrics = self._calculate_core_metrics_direct(start_date, end_date)
+            previous_metrics = self._calculate_core_metrics_direct(prev_start_date, prev_end_date)
             
-            # 2. 核心健康指标
-            current_metrics = self.analysis_service.calculate_period_metrics(start_date, end_date)
-            previous_metrics = self.analysis_service.calculate_period_metrics(prev_start_date, prev_end_date)
+            # 获取当前总资产
+            current_total_assets = self.analysis_service.get_current_total_assets()
             
-            # 3. 资金流分析数据
-            cash_flow_data = self.get_cash_flow_data(start_date, end_date)
-            
-            # 4. 收入构成分析
-            income_composition = self.get_income_composition(start_date, end_date)
-            
-            # 5. 支出构成分析
-            expense_composition = self.get_expense_composition(start_date, end_date)
-            
-            # 计算对比指标
+            # 2. 计算变化百分比
             income_change = self.analysis_service.calculate_change_percentage(
                 current_metrics['total_income'], 
                 previous_metrics['total_income']
@@ -84,401 +84,68 @@ class ReportingService:
                 previous_metrics['net_income']
             )
             
-            return {
-                'period': {
-                    'start_date': start_date.isoformat(),
-                    'end_date': end_date.isoformat(),
-                    'days': period_days
-                },
-                'net_worth_trend': net_worth_trend,
-                'core_metrics': {
-                    'current_total_assets': current_metrics['current_total_assets'],
-                    'total_income': current_metrics['total_income'],
-                    'total_expense': current_metrics['total_expense'],
-                    'net_income': current_metrics['net_income'],
-                    'income_change_percentage': income_change,
-                    'expense_change_percentage': expense_change,
-                    'net_change_percentage': net_change
-                },
-                'cash_flow': cash_flow_data,
-                'income_composition': income_composition,
-                'expense_composition': expense_composition
-            }
+            # 3. 净资产趋势数据
+            net_worth_trend = self._calculate_net_worth_trend_direct(start_date, end_date)
             
+            # 4. 资金流分析数据（按日聚合）
+            cash_flow_data = self._calculate_cash_flow_direct(start_date, end_date)
+            
+            # 5. 收入构成分析
+            income_composition = self._calculate_composition_direct(start_date, end_date, 'income')
+            
+            # 6. 支出构成分析
+            expense_composition = self._calculate_composition_direct(start_date, end_date, 'expense')
+            
+            # 构建并返回数据类实例
+            return DashboardData(
+                period=Period(
+                    start_date=start_date.isoformat(),
+                    end_date=end_date.isoformat(),
+                    days=period_days
+                ),
+                net_worth_trend=net_worth_trend,
+                core_metrics=CoreMetrics(
+                    current_total_assets=current_total_assets,
+                    total_income=current_metrics['total_income'],
+                    total_expense=current_metrics['total_expense'],
+                    net_income=current_metrics['net_income'],
+                    income_change_percentage=income_change,
+                    expense_change_percentage=expense_change,
+                    net_change_percentage=net_change
+                ),
+                cash_flow=cash_flow_data,
+                income_composition=income_composition,
+                expense_composition=expense_composition
+            )
+            
+        except ValueError as e:
+            self.logger.error(f"数据验证失败: {e}")
+            raise
         except Exception as e:
             self.logger.error(f"获取仪表盘数据失败: {e}")
-            return {
-                'period': {
-                    'start_date': start_date.isoformat(),
-                    'end_date': end_date.isoformat(),
-                    'days': 0
-                },
-                'net_worth_trend': [],
-                'core_metrics': {
-                    'current_total_assets': 0.0,
-                    'total_income': 0.0,
-                    'total_expense': 0.0,
-                    'net_income': 0.0,
-                    'income_change_percentage': 0.0,
-                    'expense_change_percentage': 0.0,
-                    'net_change_percentage': 0.0
-                },
-                'cash_flow': [],
-                'income_composition': [],
-                'expense_composition': []
-            }
-    
-    # ==================== 数据组合方法 ====================
-    
-    def get_cash_flow_data(self, start_date: date, end_date: date) -> List[Dict[str, Any]]:
-        """获取资金流数据，按日统计收支
-        
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            
-        Returns:
-            List[Dict[str, Any]]: 资金流数据
-        """
-        try:
-            query = self.db.query(
-                func.date(Transaction.date).label('date'),
-                func.sum(
-                    case(
-                        (Transaction.amount > 0, Transaction.amount),
-                        else_=0
-                    )
-                ).label('income'),
-                func.sum(
-                    case(
-                        (Transaction.amount < 0, func.abs(Transaction.amount)),
-                        else_=0
-                    )
-                ).label('expense')
-            ).filter(
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            ).group_by(
-                func.date(Transaction.date)
-            ).order_by(
-                func.date(Transaction.date)
+            # 返回默认的空数据结构
+            return DashboardData(
+                period=Period(
+                    start_date=start_date.isoformat(),
+                    end_date=end_date.isoformat(),
+                    days=0
+                ),
+                net_worth_trend=[],
+                core_metrics=CoreMetrics(
+                    current_total_assets=0.0,
+                    total_income=0.0,
+                    total_expense=0.0,
+                    net_income=0.0,
+                    income_change_percentage=0.0,
+                    expense_change_percentage=0.0,
+                    net_change_percentage=0.0
+                ),
+                cash_flow=[],
+                income_composition=[],
+                expense_composition=[]
             )
-            
-            results = query.all()
-            
-            return [{
-                'date': result.date.isoformat() if hasattr(result.date, 'isoformat') else str(result.date),
-                'income': float(result.income or 0),
-                'expense': float(result.expense or 0),
-                'net': float((result.income or 0) - (result.expense or 0))
-            } for result in results]
-            
-        except Exception as e:
-            self.logger.error(f"获取资金流数据失败: {e}")
-            return []
     
-    def get_income_composition(self, start_date: date, end_date: date) -> List[Dict[str, Any]]:
-        """获取收入构成分析
-        
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            
-        Returns:
-            List[Dict[str, Any]]: 收入构成数据
-        """
-        try:
-            query = self.db.query(
-                func.coalesce(Transaction.description, '未分类').label('category'),
-                func.sum(Transaction.amount).label('total_amount'),
-                func.count(Transaction.id).label('transaction_count')
-            ).filter(
-                Transaction.amount > 0,  # 只查询收入
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            ).group_by(
-                func.coalesce(Transaction.description, '未分类')
-            ).order_by(
-                func.sum(Transaction.amount).desc()
-            )
-            
-            results = query.all()
-            
-            # 计算总收入用于百分比计算
-            total_income = sum(Decimal(str(result.total_amount or 0)) for result in results)
-            
-            return [{
-                'name': result.category,
-                'amount': float(result.total_amount or 0),
-                'percentage': float((Decimal(str(result.total_amount or 0)) / total_income * 100) if total_income > 0 else 0),
-                'count': result.transaction_count or 0
-            } for result in results]
-            
-        except Exception as e:
-            self.logger.error(f"获取收入构成失败: {e}")
-            return []
-    
-    def get_expense_composition(self, start_date: date, end_date: date) -> List[Dict[str, Any]]:
-        """获取支出构成分析
-        
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            
-        Returns:
-            List[Dict[str, Any]]: 支出构成数据
-        """
-        try:
-            query = self.db.query(
-                func.coalesce(Transaction.description, '未分类').label('category'),
-                func.sum(func.abs(Transaction.amount)).label('total_amount'),
-                func.count(Transaction.id).label('transaction_count')
-            ).filter(
-                Transaction.amount < 0,  # 只查询支出
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            ).group_by(
-                func.coalesce(Transaction.description, '未分类')
-            ).order_by(
-                func.sum(func.abs(Transaction.amount)).desc()
-            )
-            
-            results = query.all()
-            
-            # 计算总支出用于百分比计算
-            total_expense = sum(Decimal(str(result.total_amount or 0)) for result in results)
-            
-            return [{
-                'name': result.category,
-                'amount': float(result.total_amount or 0),
-                'percentage': float((Decimal(str(result.total_amount or 0)) / total_expense * 100) if total_expense > 0 else 0),
-                'count': result.transaction_count or 0
-            } for result in results]
-            
-        except Exception as e:
-            self.logger.error(f"获取支出构成失败: {e}")
-            return []
-    
-    # ==================== 专项报告 ====================
-    
-    def get_income_expense_analysis(self, duration_months: int = 12) -> Dict[str, Any]:
-        """获取收支分析数据
-        
-        Args:
-            duration_months: 查询月数，默认12个月
-            
-        Returns:
-            Dict[str, Any]: 收支分析数据
-        """
-        try:
-            # 计算起始日期
-            end_date = date.today()
-            start_date = end_date - relativedelta(months=duration_months)
-            
-            # 查询指定时间范围内的月度收支数据
-            query = self.db.query(
-                func.strftime('%Y-%m', Transaction.date).label('month'),
-                func.sum(
-                    case(
-                        (Transaction.amount > 0, Transaction.amount),
-                        else_=0
-                    )
-                ).label('income'),
-                func.sum(
-                    case(
-                        (Transaction.amount < 0, func.abs(Transaction.amount)),
-                        else_=0
-                    )
-                ).label('expense')
-            ).filter(
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            ).group_by(
-                func.strftime('%Y-%m', Transaction.date)
-            ).order_by(
-                func.strftime('%Y-%m', Transaction.date)
-            )
-            
-            results = query.all()
-            
-            # 格式化月度数据
-            monthly_data = []
-            total_income = Decimal('0')
-            total_expense = Decimal('0')
-            
-            for result in results:
-                income = Decimal(str(result.income or 0))
-                expense = Decimal(str(result.expense or 0))
-                
-                monthly_data.append({
-                    'month': result.month,
-                    'income': float(income),
-                    'expense': float(expense),
-                    'net': float(income - expense)
-                })
-                
-                total_income += income
-                total_expense += expense
-            
-            return {
-                'monthly_income_expense': monthly_data,
-                'total_income': float(total_income),
-                'total_expense': float(total_expense),
-                'net_income': float(total_income - total_expense),
-                'duration_months': duration_months,
-                'start_date': start_date.isoformat(),
-                'end_date': end_date.isoformat()
-            }
-            
-        except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 收支分析查询失败: {e}")
-            return {
-                'monthly_income_expense': [],
-                'total_income': 0.0,
-                'total_expense': 0.0,
-                'net_income': 0.0,
-                'duration_months': duration_months,
-                'start_date': '',
-                'end_date': ''
-            }
-        except Exception as e:
-            self.logger.error(f"收支分析查询失败: {e}")
-            return {
-                'monthly_income_expense': [],
-                'total_income': 0.0,
-                'total_expense': 0.0,
-                'net_income': 0.0,
-                'duration_months': duration_months,
-                'start_date': '',
-                'end_date': ''
-            }
-    
-    def get_expense_overview_report(self, start_date: Optional[date] = None, 
-                                  end_date: Optional[date] = None, 
-                                  account_id: Optional[int] = None) -> Dict[str, Any]:
-        """获取支出概览报告
-        
-        Args:
-            start_date: 开始日期，None表示查询所有历史数据
-            end_date: 结束日期，默认为今天
-            account_id: 账户ID，None表示所有账户
-            
-        Returns:
-            Dict[str, Any]: 支出概览报告
-        """
-        try:
-            # 设置默认日期范围
-            if not end_date:
-                end_date = date.today()
-            
-            # 构建基础查询
-            query = self.db.query(Transaction).filter(
-                Transaction.amount < 0  # 只查询支出
-            )
-            
-            # 添加时间范围过滤
-            if start_date:
-                query = query.filter(Transaction.date >= start_date)
-            query = query.filter(Transaction.date <= end_date)
-            
-            # 添加账户过滤
-            if account_id:
-                query = query.filter(Transaction.account_id == account_id)
-            
-            # 计算总支出金额
-            total_expense = query.with_entities(
-                func.sum(func.abs(Transaction.amount))
-            ).scalar() or Decimal('0.00')
-            
-            # 计算支出交易笔数
-            expense_count = query.count()
-            
-            # 计算平均每月支出
-            if start_date:
-                months_diff = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
-                if months_diff == 0:
-                    months_diff = 1
-            else:
-                # 查询所有历史数据时，计算从最早交易到现在的月数
-                earliest_date = self.db.query(func.min(Transaction.date)).filter(
-                    Transaction.amount < 0
-                ).scalar()
-                if earliest_date:
-                    months_diff = (end_date.year - earliest_date.year) * 12 + (end_date.month - earliest_date.month)
-                    if months_diff == 0:
-                        months_diff = 1
-                else:
-                    months_diff = 1
-            
-            avg_monthly_expense = total_expense / months_diff
-            
-            return {
-                'total_expense': float(total_expense),
-                'expense_count': expense_count,
-                'avg_monthly_expense': float(avg_monthly_expense),
-                'start_date': start_date.isoformat() if start_date else None,
-                'end_date': end_date.isoformat(),
-                'months': months_diff
-            }
-            
-        except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 支出概览查询失败: {e}")
-            return {}
-        except Exception as e:
-            self.logger.error(f"支出概览查询失败: {e}")
-            return {}
-    
-    def get_expense_trends_report(self, months: int = 12, 
-                                account_id: Optional[int] = None,
-                                all_history: bool = False) -> List[Dict[str, Any]]:
-        """获取支出趋势报告
-        
-        Args:
-            months: 查询月数，默认12个月
-            account_id: 账户ID，None表示所有账户
-            all_history: 是否查询所有历史数据
-            
-        Returns:
-            List[Dict[str, Any]]: 支出趋势数据
-        """
-        try:
-            # 构建查询
-            query = self.db.query(
-                func.strftime('%Y-%m', Transaction.date).label('month'),
-                func.sum(func.abs(Transaction.amount)).label('expense_amount'),
-                func.count(Transaction.id).label('expense_count')
-            ).filter(
-                Transaction.amount < 0  # 只查询支出
-            )
-            
-            # 添加时间范围过滤
-            if not all_history:
-                query = query.filter(Transaction.date >= func.date('now', f'-{months} months'))
-            
-            # 添加账户过滤
-            if account_id:
-                query = query.filter(Transaction.account_id == account_id)
-            
-            # 分组和排序
-            results = query.group_by(
-                func.strftime('%Y-%m', Transaction.date)
-            ).order_by(
-                func.strftime('%Y-%m', Transaction.date)
-            ).all()
-            
-            # 格式化结果
-            return [{
-                'month': result.month,
-                'expense_amount': float(result.expense_amount or 0),
-                'expense_count': result.expense_count or 0
-            } for result in results]
-            
-        except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 支出趋势查询失败: {e}")
-            return []
-        except Exception as e:
-            self.logger.error(f"支出趋势查询失败: {e}")
-            return []
+    # ==================== 核心报告方法 ====================
     
     def get_category_transactions(self, category: str, start_date: date, end_date: date) -> List[Dict[str, Any]]:
         """获取指定分类的交易明细（用于下钻功能）
@@ -519,4 +186,181 @@ class ReportingService:
             
         except Exception as e:
             self.logger.error(f"获取分类交易明细失败: {e}")
-            return [] 
+            return []
+    
+    # ==================== 私有辅助方法 ====================
+    
+    def _calculate_core_metrics_direct(self, start_date: date, end_date: date) -> Dict[str, float]:
+        """直接通过数据库查询计算核心指标
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            
+        Returns:
+            Dict[str, float]: 核心指标
+        """
+        try:
+            # 使用单个查询计算收入、支出和净收入
+            result = self.db.query(
+                func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)).label('total_income'),
+                func.sum(case((Transaction.amount < 0, func.abs(Transaction.amount)), else_=0)).label('total_expense')
+            ).filter(
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).first()
+            
+            total_income = float(result.total_income or 0)
+            total_expense = float(result.total_expense or 0)
+            net_income = total_income - total_expense
+            
+            return {
+                'total_income': total_income,
+                'total_expense': total_expense,
+                'net_income': net_income
+            }
+            
+        except Exception as e:
+            self.logger.error(f"计算核心指标失败: {e}")
+            return {
+                'total_income': 0.0,
+                'total_expense': 0.0,
+                'net_income': 0.0
+            }
+    
+    def _calculate_composition_direct(self, start_date: date, end_date: date, transaction_type: str) -> List[CompositionItem]:
+        """直接通过数据库查询计算收入或支出构成
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            transaction_type: 'income' 或 'expense'
+            
+        Returns:
+            List[CompositionItem]: 构成数据
+        """
+        try:
+            # 根据类型设置过滤条件
+            if transaction_type == 'income':
+                amount_filter = Transaction.amount > 0
+                amount_field = Transaction.amount
+            else:  # expense
+                amount_filter = Transaction.amount < 0
+                amount_field = func.abs(Transaction.amount)
+            
+            # 按描述分组聚合
+            results = self.db.query(
+                func.coalesce(Transaction.description, '未分类').label('name'),
+                func.sum(amount_field).label('amount'),
+                func.count(Transaction.id).label('count')
+            ).filter(
+                Transaction.date >= start_date,
+                Transaction.date <= end_date,
+                amount_filter
+            ).group_by(
+                func.coalesce(Transaction.description, '未分类')
+            ).order_by(
+                func.sum(amount_field).desc()
+            ).all()
+            
+            if not results:
+                return []
+            
+            # 计算总金额用于百分比计算
+            total_amount = sum(float(r.amount) for r in results)
+            
+            # 构建CompositionItem列表
+            composition_items = []
+            for r in results:
+                amount = float(r.amount)
+                percentage = (amount / total_amount * 100) if total_amount > 0 else 0
+                
+                composition_items.append(CompositionItem(
+                    name=r.name,
+                    amount=amount,
+                    percentage=round(percentage, 1),
+                    count=r.count
+                ))
+            
+            return composition_items
+            
+        except Exception as e:
+            self.logger.error(f"计算{transaction_type}构成失败: {e}")
+            return []
+    
+    def _calculate_cash_flow_direct(self, start_date: date, end_date: date) -> List[TrendPoint]:
+        """直接通过数据库查询计算每日资金流净值
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            
+        Returns:
+            List[TrendPoint]: 每日资金流数据
+        """
+        try:
+            # 按日期分组计算每日净流入
+            results = self.db.query(
+                Transaction.date,
+                func.sum(Transaction.amount).label('net_flow')
+            ).filter(
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                Transaction.date
+            ).order_by(
+                Transaction.date
+            ).all()
+            
+            # 构建TrendPoint列表
+            cash_flow_data = []
+            for r in results:
+                cash_flow_data.append(TrendPoint(
+                    date=r.date.isoformat(),
+                    value=float(r.net_flow)
+                ))
+            
+            return cash_flow_data
+            
+        except Exception as e:
+            self.logger.error(f"计算资金流失败: {e}")
+            return []
+    
+    def _calculate_net_worth_trend_direct(self, start_date: date, end_date: date) -> List[TrendPoint]:
+        """直接通过数据库查询计算净资产趋势
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            
+        Returns:
+            List[TrendPoint]: 净资产趋势数据
+        """
+        try:
+            # 获取指定日期范围内每天的日期
+            from datetime import timedelta
+            
+            trend_data = []
+            current_date = start_date
+            
+            while current_date <= end_date:
+                # 获取截至当前日期的总资产
+                total_assets = self.analysis_service.get_total_assets_at_date(current_date)
+                
+                trend_data.append(TrendPoint(
+                    date=current_date.isoformat(),
+                    value=total_assets
+                ))
+                
+                current_date += timedelta(days=1)
+            
+            return trend_data
+            
+        except Exception as e:
+            self.logger.error(f"计算净资产趋势失败: {e}")
+            # 返回默认数据
+            current_assets = self.analysis_service.get_current_total_assets()
+            return [TrendPoint(
+                date=start_date.isoformat(),
+                value=current_assets
+            )]
