@@ -13,7 +13,7 @@ def dashboard():
         start_date = end_date - relativedelta(days=30)
         
         # 获取初始数据
-        dashboard_data = current_app.financial_service.get_financial_dashboard_data(start_date, end_date)
+        dashboard_data = current_app.reporting_service.get_financial_dashboard_data(start_date, end_date)
         
         return render_template('dashboard.html',
                              page_title='财务健康仪表盘',
@@ -61,7 +61,7 @@ def get_dashboard_data():
             return jsonify({'error': '日期格式错误，请使用 YYYY-MM-DD 格式'}), 400
         
         # 获取数据
-        dashboard_data = current_app.financial_service.get_financial_dashboard_data(start_date, end_date)
+        dashboard_data = current_app.reporting_service.get_financial_dashboard_data(start_date, end_date)
         
         return jsonify(dashboard_data)
         
@@ -91,7 +91,7 @@ def get_category_transactions():
             return jsonify({'error': '日期格式错误'}), 400
         
         # 获取交易明细
-        transactions = current_app.financial_service.get_category_transactions(category, start_date, end_date)
+        transactions = current_app.reporting_service.get_category_transactions(category, start_date, end_date)
         current_app.logger.info(f"找到 {len(transactions)} 条交易记录")
         
         result = {

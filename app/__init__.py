@@ -13,7 +13,7 @@ from .models import db
 from .services.core.bank_service import BankService
 from .services.core.account_service import AccountService
 from .services.core.transaction_service import TransactionService
-from .services.core.financial_service import FinancialService
+from .services.analysis.reporting_service import ReportingService
 from .services.extraction import get_extraction_service
 from .services.core.file_processor_service import FileProcessorService
 
@@ -92,7 +92,7 @@ def create_app():
         app.bank_service = BankService()
         app.account_service = AccountService()
         app.transaction_service = TransactionService()
-        app.financial_service = FinancialService()
+        app.reporting_service = ReportingService()
         app.extractor_service = get_extraction_service()
         
         # Initialize file processor service with all dependencies
