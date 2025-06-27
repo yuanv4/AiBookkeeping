@@ -84,6 +84,16 @@
         </div>
     </div>
     
+    <!-- 模块四：深度消费分析 -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            {{ chart_container("消费时段热力图", "consumptionHeatmapChart", "300px", "activity") }}
+        </div>
+        <div class="col-lg-4">
+            {{ chart_container("主要支出商家 (TOP 10)", "topMerchantsChart", "300px", "bar-chart") }}
+        </div>
+    </div>
+    
     <!-- 加载状态 -->
     <div id="loadingOverlay" class="loading-overlay" style="display: none;">
         <div class="loading-spinner">

@@ -20,7 +20,8 @@ from .analysis_service import AnalysisService
 from .utils import validate_date_range
 from .models import (
     Period, CoreMetrics, CompositionItem, 
-    TrendPoint, DashboardData, TopExpenseCategory
+    TrendPoint, DashboardData, TopExpenseCategory,
+    HeatmapPoint, MerchantRanking
 )
 
 logger = logging.getLogger(__name__)
@@ -110,6 +111,22 @@ class ReportingService:
             # 8. 计算支出分类排行（Top 5）
             top_expense_categories = self._calculate_top_expense_categories(start_date, end_date, 5)
             
+            # 9. 获取消费时段热力图数据
+            heatmap_data = self.analysis_service.get_consumption_heatmap_data(start_date, end_date)
+            consumption_heatmap = [HeatmapPoint(
+                weekday=point['weekday'],
+                hour=point['hour'],
+                amount=point['amount']
+            ) for point in heatmap_data]
+            
+            # 10. 获取主要支出商家排行数据
+            merchants_data = self.analysis_service.get_top_merchants_data(start_date, end_date, 10)
+            top_merchants = [MerchantRanking(
+                merchant_name=merchant['merchant_name'],
+                amount=merchant['amount'],
+                transaction_count=merchant['transaction_count']
+            ) for merchant in merchants_data]
+            
             # 构建并返回数据类实例
             return DashboardData(
                 period=Period(
@@ -131,7 +148,9 @@ class ReportingService:
                 cash_flow=cash_flow_data,
                 income_composition=income_composition,
                 expense_composition=expense_composition,
-                top_expense_categories=top_expense_categories
+                top_expense_categories=top_expense_categories,
+                consumption_heatmap=consumption_heatmap,
+                top_merchants=top_merchants
             )
             
         except ValueError as e:
@@ -160,7 +179,9 @@ class ReportingService:
                 cash_flow=[],
                 income_composition=[],
                 expense_composition=[],
-                top_expense_categories=[]
+                top_expense_categories=[],
+                consumption_heatmap=[],
+                top_merchants=[]
             )
     
     # ==================== 核心报告方法 ====================

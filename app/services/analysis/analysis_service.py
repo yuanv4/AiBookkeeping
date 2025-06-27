@@ -207,3 +207,103 @@ class AnalysisService:
         except Exception as e:
             self.logger.error(f"计算应急储备月数失败: {e}")
             raise 
+    
+    def get_consumption_heatmap_data(self, start_date: date, end_date: date) -> list:
+        """获取消费时段热力图数据
+        
+        按星期几和小时分组统计支出金额，用于生成消费时段热力图。
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            
+        Returns:
+            list: 热力图数据，格式为 [{'weekday': 0-6, 'hour': 0-23, 'amount': float}]
+        """
+        try:
+            # 查询支出交易，按星期几和小时分组
+            # 使用数据库函数提取星期几(0=周日,1=周一...6=周六)和小时
+            heatmap_query = self.db.query(
+                func.extract('dow', Transaction.created_at).label('weekday'),  # 星期几
+                func.extract('hour', Transaction.created_at).label('hour'),    # 小时
+                func.sum(func.abs(Transaction.amount)).label('total_amount')   # 支出总额（绝对值）
+            ).filter(
+                Transaction.amount < 0,  # 只统计支出
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                func.extract('dow', Transaction.created_at),
+                func.extract('hour', Transaction.created_at)
+            ).all()
+            
+            # 转换为前端需要的数据格式
+            heatmap_data = []
+            for weekday, hour, amount in heatmap_query:
+                # 将PostgreSQL的星期几格式(0=周日)转换为前端期望的格式(0=周一)
+                adjusted_weekday = (int(weekday) + 6) % 7  # 0=周一, 6=周日
+                
+                heatmap_data.append({
+                    'weekday': adjusted_weekday,
+                    'hour': int(hour),
+                    'amount': float(amount or 0)
+                })
+            
+            self.logger.debug(f"获取消费热力图数据: {len(heatmap_data)}个数据点")
+            return heatmap_data
+            
+        except SQLAlchemyError as e:
+            self.logger.error(f"数据库查询异常 - 获取消费热力图数据失败: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"获取消费热力图数据失败: {e}")
+            raise
+    
+    def get_top_merchants_data(self, start_date: date, end_date: date, limit: int = 10) -> list:
+        """获取主要支出商家排行数据
+        
+        按商家名称分组统计支出金额，返回支出最高的商家列表。
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            limit: 返回的商家数量限制，默认10个
+            
+        Returns:
+            list: 商家排行数据，格式为 [{'merchant_name': str, 'amount': float, 'transaction_count': int}]
+        """
+        try:
+            # 查询支出交易，按商家名称分组
+            merchants_query = self.db.query(
+                Transaction.merchant_name,
+                func.sum(func.abs(Transaction.amount)).label('total_amount'),     # 支出总额
+                func.count(Transaction.id).label('transaction_count')            # 交易次数
+            ).filter(
+                Transaction.amount < 0,  # 只统计支出
+                Transaction.date >= start_date,
+                Transaction.date <= end_date,
+                Transaction.merchant_name.isnot(None),  # 排除没有商家名称的交易
+                Transaction.merchant_name != ''         # 排除空字符串
+            ).group_by(
+                Transaction.merchant_name
+            ).order_by(
+                func.sum(func.abs(Transaction.amount)).desc()  # 按支出总额降序排列
+            ).limit(limit).all()
+            
+            # 转换为前端需要的数据格式
+            merchants_data = []
+            for merchant_name, total_amount, transaction_count in merchants_query:
+                merchants_data.append({
+                    'merchant_name': merchant_name,
+                    'amount': float(total_amount or 0),
+                    'transaction_count': int(transaction_count or 0)
+                })
+            
+            self.logger.debug(f"获取主要支出商家数据: {len(merchants_data)}个商家")
+            return merchants_data
+            
+        except SQLAlchemyError as e:
+            self.logger.error(f"数据库查询异常 - 获取主要支出商家数据失败: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"获取主要支出商家数据失败: {e}")
+            raise

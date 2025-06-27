@@ -275,6 +275,129 @@ export default class FinancialDashboard extends BasePage {
                 }
             }
         });
+        
+        // 消费时段热力图（使用气泡图模拟）
+        this.charts.consumptionHeatmap = new Chart(document.getElementById('consumptionHeatmapChart'), {
+            type: 'bubble',
+            data: {
+                datasets: [{
+                    label: '消费金额',
+                    data: [],
+                    backgroundColor: (context) => {
+                        const value = context.raw ? context.raw.r : 0;
+                        const alpha = Math.max(0.2, Math.min(1.0, value / 500));
+                        return getCSSColor('--bs-danger', alpha);
+                    },
+                    borderColor: getCSSColor('--bs-danger'),
+                    borderWidth: 1,
+                    hoverBackgroundColor: getCSSColor('--bs-danger'),
+                    hoverBorderColor: getCSSColor('--bs-danger-dark')
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+                                const day = weekdays[context.parsed.x];
+                                const hour = context.parsed.y;
+                                const amount = context.raw._amount;
+                                return `${day} ${hour}:00, 消费: ¥${amount.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        min: -0.5,
+                        max: 6.5,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+                                return weekdays[value] || '';
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        min: -0.5,
+                        max: 23.5,
+                        ticks: {
+                            stepSize: 2,
+                            callback: function(value) {
+                                return value + ':00';
+                            }
+                        },
+                        title: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 主要支出商家排行图
+        this.charts.topMerchants = new Chart(document.getElementById('topMerchantsChart'), {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '支出金额',
+                    data: [],
+                    backgroundColor: getCSSColor('--bs-warning-100'),
+                    borderColor: getCSSColor('--bs-warning'),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y', // 水平条形图
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    datalabels: {
+                        display: true,
+                        anchor: 'end',
+                        align: 'right',
+                        offset: 4,
+                        clamp: true,
+                        font: {
+                            size: 10
+                        },
+                        color: '#6c757d',
+                        formatter: function(value, context) {
+                            // 显示金额和交易次数
+                            const transactionCount = context.dataset.transactionCounts ? context.dataset.transactionCounts[context.dataIndex] : 0;
+                            return `¥${value.toLocaleString()} (${transactionCount}笔)`;
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '¥' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
     
     updateDashboard(data) {
@@ -286,6 +409,8 @@ export default class FinancialDashboard extends BasePage {
         this.updateCashFlowChart(data.cash_flow);
         this.updateIncomeCompositionChart(data.income_composition);
         this.updateExpenseTopCategoriesChart(data.top_expense_categories);
+        this.updateConsumptionHeatmapChart(data.consumption_heatmap);
+        this.updateTopMerchantsChart(data.top_merchants);
     }
     
     updateCoreMetrics(metrics) {
@@ -523,6 +648,46 @@ export default class FinancialDashboard extends BasePage {
             </div>
         `;
         container.innerHTML = html;
+    }
+    
+    updateConsumptionHeatmapChart(heatmapData) {
+        if (!heatmapData || heatmapData.length === 0) {
+            // 清空图表数据
+            this.charts.consumptionHeatmap.data.datasets[0].data = [];
+            this.charts.consumptionHeatmap.update();
+            return;
+        }
+        
+        // 修正：转换数据格式，并对半径进行缩放以获得更好的视觉效果
+        const scatterData = heatmapData.map(point => ({
+            x: point.weekday,
+            y: point.hour,
+            r: 5 + Math.sqrt(point.amount), // 缩放半径：基础值5 + 金额的平方根
+            _amount: point.amount // 将原始金额存储在自定义属性中，用于tooltip
+        }));
+        
+        this.charts.consumptionHeatmap.data.datasets[0].data = scatterData;
+        this.charts.consumptionHeatmap.update();
+    }
+    
+    updateTopMerchantsChart(merchantsData) {
+        if (!merchantsData || merchantsData.length === 0) {
+            // 清空图表数据
+            this.charts.topMerchants.data.labels = [];
+            this.charts.topMerchants.data.datasets[0].data = [];
+            this.charts.topMerchants.data.datasets[0].transactionCounts = [];
+            this.charts.topMerchants.update();
+            return;
+        }
+        
+        const labels = merchantsData.map(item => item.merchant_name);
+        const data = merchantsData.map(item => item.amount);
+        const transactionCounts = merchantsData.map(item => item.transaction_count);
+        
+        this.charts.topMerchants.data.labels = labels;
+        this.charts.topMerchants.data.datasets[0].data = data;
+        this.charts.topMerchants.data.datasets[0].transactionCounts = transactionCounts;
+        this.charts.topMerchants.update();
     }
 }
 

@@ -24,6 +24,7 @@ class Transaction(BaseModel):
     description = db.Column(db.String(200), nullable=False, index=True)  # 交易描述
     currency = db.Column(db.String(3), default='CNY', nullable=False, index=True)
     reference_number = db.Column(db.String(50), index=True)  # 交易参考号
+    merchant_name = db.Column(db.String(128), nullable=True, index=True)  # 规范化的商家名称
     
     # 索引优化
     __table_args__ = (
@@ -201,6 +202,7 @@ class Transaction(BaseModel):
         result['account_name'] = self.account.account_name if self.account else None
         result['bank_name'] = self.account.bank.name if self.account and self.account.bank else None
         result['transaction_type'] = self.get_transaction_type()
+        result['merchant_name'] = self.merchant_name
         return result
     
     def __repr__(self):

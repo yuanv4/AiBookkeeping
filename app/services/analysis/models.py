@@ -49,6 +49,20 @@ class TopExpenseCategory:
     count: int
 
 @dataclass
+class HeatmapPoint:
+    """热力图数据点"""
+    weekday: int  # 0-6, 0=周一, 6=周日
+    hour: int     # 0-23
+    amount: float
+
+@dataclass
+class MerchantRanking:
+    """商家排行项目"""
+    merchant_name: str
+    amount: float
+    transaction_count: int
+
+@dataclass
 class DashboardData:
     """仪表盘完整数据"""
     period: Period
@@ -57,4 +71,6 @@ class DashboardData:
     cash_flow: List[TrendPoint]
     income_composition: List[CompositionItem]
     expense_composition: List[CompositionItem]
-    top_expense_categories: List[TopExpenseCategory] 
+    top_expense_categories: List[TopExpenseCategory]
+    consumption_heatmap: List[HeatmapPoint]
+    top_merchants: List[MerchantRanking] 

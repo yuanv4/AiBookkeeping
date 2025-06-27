@@ -5,6 +5,7 @@ from flask import current_app # current_app 用于访问 app.config 和 logger
 # from scripts.extractors.factory.extractor_factory import get_extractor_factory # 假设这些在 app 层面实例化后传入
 # from scripts.db.db_facade import DBFacade
 import logging
+from ..extraction.payee_service import payee_service
 
 class FileProcessorService:
     def __init__(self, extractor_service, bank_service, account_service, transaction_service, upload_folder=None, allowed_extensions=None):
@@ -174,6 +175,12 @@ class FileProcessorService:
             processed_count = 0
             for transaction_dict in extracted_data.transactions:
                 try:
+                    # 使用PayeeService提取商家名称
+                    extracted_merchant = payee_service.extract_merchant_name(
+                        description=transaction_dict['description'],
+                        counterparty=transaction_dict['counterparty']
+                    )
+                    
                     # 创建交易记录数据
                     transaction_data = {
                         'account_id': account.id,
@@ -183,6 +190,7 @@ class FileProcessorService:
                         'currency': transaction_dict['currency'],
                         'description': transaction_dict['description'],
                         'counterparty': transaction_dict['counterparty'],
+                        'merchant_name': extracted_merchant,
                     }
                     
                     # 检查是否已存在相同交易
