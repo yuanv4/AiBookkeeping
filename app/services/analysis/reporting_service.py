@@ -75,7 +75,7 @@ class ReportingService:
             current_metrics = self._calculate_core_metrics_direct(start_date, end_date)
             previous_metrics = self._calculate_core_metrics_direct(prev_start_date, prev_end_date)
             
-            # 获取当前总资产
+            # 获取当前总现金
             current_total_assets = self.analysis_service.get_current_total_assets()
             
             # 2. 计算变化百分比
@@ -92,7 +92,7 @@ class ReportingService:
                 previous_metrics['net_income']
             )
             
-            # 3. 净资产趋势数据（根据粒度调整）
+            # 3. 净现金趋势数据（根据粒度调整）
             net_worth_trend = self._calculate_net_worth_trend_direct(start_date, end_date, granularity)
             
             # 4. 资金流分析数据（根据粒度调整）
@@ -384,9 +384,9 @@ class ReportingService:
             return []
     
     def _calculate_net_worth_trend_direct(self, start_date: date, end_date: date, granularity: str = 'day') -> List[TrendPoint]:
-        """直接通过数据库查询计算净资产趋势
+        """直接通过数据库查询计算净现金趋势
 
-        最终修正版: 采用基于`balance_after`的每日资产历史构建模型，
+        最终修正版: 采用基于`balance_after`的每日现金历史构建模型，
         确保在所有时间范围和粒度下数据的一致性和准确性。
         """
         try:
@@ -401,7 +401,7 @@ class ReportingService:
             if not all_transactions:
                 return []
 
-            # 2. 在内存中构建完整的每日资产历史
+            # 2. 在内存中构建完整的每日现金历史
             # 这是为了避免在循环中执行N+1次数据库查询
             first_tx_date = all_transactions[0].date
             
@@ -427,7 +427,7 @@ class ReportingService:
                 
                 current_date += timedelta(days=1)
             
-            # 3. 根据粒度对每日资产历史进行采样
+            # 3. 根据粒度对每日现金历史进行采样
             trend_data = []
             
             # 重新从start_date开始循环以进行采样
@@ -471,7 +471,7 @@ class ReportingService:
             return trend_data
             
         except Exception as e:
-            self.logger.error(f"计算净资产趋势失败: {e}", exc_info=True)
+            self.logger.error(f"计算净现金趋势失败: {e}", exc_info=True)
             return []
 
     def _calculate_top_expense_categories(self, start_date: date, end_date: date, top_n: int) -> List[TopExpenseCategory]:

@@ -46,13 +46,13 @@
     <!-- 模块一：核心健康指标 -->
     <div class="row mb-4">
         <div class="col-12">
-            {{ chart_container("净资产趋势", "netWorthChart") }}
+            {{ chart_container("净现金趋势", "netWorthChart") }}
         </div>
     </div>
     
     <!-- KPI 指标卡片 -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4">
-        <div class="col">{{ stat_card("dollar-sign", "¥0.00", "当前总资产", "primary", "", "currentAssets") }}</div>
+        <div class="col">{{ stat_card("dollar-sign", "¥0.00", "当前总现金", "primary", "", "currentAssets") }}</div>
         <div class="col">{{ stat_card("shield-check", "0个月", "应急储备月数", "warning", "", "emergencyReserveMonths") }}</div>
         <div class="col">{{ stat_card("calculator", "¥0.00", "期间净收支", "info", "", "netIncome", "--", "netChange") }}</div>
     </div>

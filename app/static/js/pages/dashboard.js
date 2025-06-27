@@ -93,13 +93,13 @@ export default class FinancialDashboard extends BasePage {
     }
     
     initializeCharts() {
-        // 净资产趋势图
+        // 净现金趋势图
         this.charts.netWorth = new Chart(document.getElementById('netWorthChart'), {
             type: 'line',
             data: {
                 labels: [],
                 datasets: [{
-                    label: '净资产',
+                    label: '净现金',
                     data: [],
                     borderColor: getCSSColor('--bs-primary'),
                     backgroundColor: getCSSColor('--bs-primary-100'),

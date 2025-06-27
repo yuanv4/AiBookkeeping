@@ -32,10 +32,10 @@ class AnalysisService:
         self.logger = logging.getLogger(__name__)
     
     def get_current_total_assets(self) -> float:
-        """获取当前总资产（所有账户最新余额之和）
+        """获取当前总现金（所有账户最新余额之和）
         
         Returns:
-            float: 当前总资产
+            float: 当前总现金
         """
         try:
             # 使用窗口函数获取每个账户的最新余额
@@ -61,25 +61,25 @@ class AnalysisService:
             ).scalar() or 0
             
             result = float(total_assets)
-            self.logger.debug(f"计算总资产: {result}")
+            self.logger.debug(f"计算总现金: {result}")
             
             return result
             
         except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 获取当前总资产失败: {e}")
+            self.logger.error(f"数据库查询异常 - 获取当前总现金失败: {e}")
             raise
         except Exception as e:
-            self.logger.error(f"获取当前总资产失败: {e}")
+            self.logger.error(f"获取当前总现金失败: {e}")
             raise
     
     def get_total_assets_at_date(self, target_date: date) -> float:
-        """获取截至指定日期的总资产
+        """获取截至指定日期的总现金
         
         Args:
             target_date: 目标日期
             
         Returns:
-            float: 截至指定日期的总资产
+            float: 截至指定日期的总现金
         """
         try:
             # 使用窗口函数获取每个账户在指定日期前的最新余额
@@ -107,15 +107,15 @@ class AnalysisService:
             ).scalar() or 0
             
             result = float(total_assets)
-            self.logger.debug(f"计算截至{target_date}的总资产: {result}")
+            self.logger.debug(f"计算截至{target_date}的总现金: {result}")
             
             return result
             
         except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 获取指定日期总资产失败: {e}")
+            self.logger.error(f"数据库查询异常 - 获取指定日期总现金失败: {e}")
             raise
         except Exception as e:
-            self.logger.error(f"获取指定日期总资产失败: {e}")
+            self.logger.error(f"获取指定日期总现金失败: {e}")
             raise
     
     def calculate_change_percentage(self, current: float, previous: float) -> float:
@@ -184,7 +184,7 @@ class AnalysisService:
             float: 应急储备月数，如果日均支出为0则返回-1表示无限
         """
         try:
-            # 获取当前总资产作为应急储备资金
+            # 获取当前总现金作为应急储备资金
             current_assets = self.get_current_total_assets()
             
             # 如果没有提供日均支出，则计算过去指定天数的日均支出
@@ -200,7 +200,7 @@ class AnalysisService:
             
             # 计算应急储备月数（按30天/月计算）
             reserve_months = current_assets / (daily_average_expense * 30)
-            self.logger.debug(f"计算应急储备月数: 总资产={current_assets}, 日均支出={daily_average_expense}, 储备月数={reserve_months}")
+            self.logger.debug(f"计算应急储备月数: 总现金={current_assets}, 日均支出={daily_average_expense}, 储备月数={reserve_months}")
             
             return reserve_months
             
