@@ -366,11 +366,12 @@ export const apiService = {
             }
             
             // 尝试解析JSON，如果失败则返回文本
+            const responseText = await response.text();
             let responseData;
             try {
-                responseData = await response.json();
+                responseData = JSON.parse(responseText);
             } catch {
-                responseData = await response.text();
+                responseData = responseText;
             }
             
             return { success: true, data: responseData };

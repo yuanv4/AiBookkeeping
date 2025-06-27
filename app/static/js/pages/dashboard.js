@@ -162,7 +162,7 @@ export default class FinancialDashboard extends BasePage {
                             }
                             const value = context.parsed.y;
                             return value >= 0 ? 
-                                getCSSColor('--bs-success-200') : 
+                                getCSSColor('--bs-success-100') : 
                                 getCSSColor('--bs-danger-100');
                         },
                         borderColor: function(context) {
