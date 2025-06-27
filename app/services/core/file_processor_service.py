@@ -103,8 +103,8 @@ class FileProcessorService:
             if specific_filenames:
                 # 筛选出本次上传并被处理的文件信息
                 for proc_file_info in processed_files_result_all:
-                    # 直接访问ExtractionResult对象的file_path属性
-                    file_path = proc_file_info.file_path if hasattr(proc_file_info, 'file_path') else ''
+                    # 直接访问字典的file_path键
+                    file_path = proc_file_info.get('file_path', '')
                     file_name = Path(file_path).name if file_path else ''
                     if file_name in specific_filenames:
                         files_to_consider_for_result_and_cleanup.append(proc_file_info)
@@ -123,7 +123,7 @@ class FileProcessorService:
                 file_name_to_delete = "未知文件"  # 初始化默认值
                 try:
                     # 使用file_path字段并提取文件名
-                    file_path_to_delete = file_info.file_path if file_info.file_path else ''
+                    file_path_to_delete = file_info.get('file_path', '')
                     file_name_to_delete = Path(file_path_to_delete).name if file_path_to_delete else ''
                     path_to_delete = Path(folder_path) / file_name_to_delete
                     if path_to_delete.exists():
@@ -150,9 +150,8 @@ class FileProcessorService:
             file_path: 文件路径
             
         Returns:
-            ExtractionResult: 导入结果
+            dict: 导入结果
         """
-        from app.services.extraction.models import ExtractionResult
         
         try:
             # 提取数据
@@ -212,16 +211,22 @@ class FileProcessorService:
                 'file_path': file_path
             }
 
-            return ExtractionResult.success_result(
-                bank=extracted_data.bank_name,
-                record_count=processed_count,
-                file_path=file_path,
-                data=result_data
-            )
+            return {
+                'success': True,
+                'bank': extracted_data.bank_name,
+                'record_count': processed_count,
+                'file_path': file_path,
+                'data': result_data,
+                'error': None
+            }
             
         except Exception as e:
             self.logger.error(f"从文件导入交易记录失败 {file_path}: {e}")
-            return ExtractionResult.error_result(
-                f'从文件导入交易记录失败: {str(e)}',
-                file_path=file_path
-            )
+            return {
+                'success': False,
+                'bank': None,
+                'record_count': 0,
+                'file_path': file_path,
+                'data': None,
+                'error': f'从文件导入交易记录失败: {str(e)}'
+            }

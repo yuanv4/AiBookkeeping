@@ -9,7 +9,8 @@ import { showNotification, formatFileSize, apiService, ui } from '../common/util
  * 文件上传功能类
  */
 export class UploadFeature {
-    constructor() {
+    constructor(baseId = 'file-uploader') {
+        this.baseId = baseId;
         this.selectedFiles = [];
         this.config = {
             allowedExtensions: ['.xlsx', '.xls'],
@@ -32,18 +33,15 @@ export class UploadFeature {
     
     bindElements() {
         this.elements = {
-            fileInput: document.getElementById('fileInput'),
-            dropZone: document.getElementById('dropZone'),
-            fileListContainer: document.getElementById('fileListContainer'),
-            fileList: document.getElementById('fileList'),
-            clearBtn: document.getElementById('clearBtn'),
-            uploadProgressContainer: document.getElementById('uploadProgress'),
-            uploadContainer: document.getElementById('uploadContainer'),
-            progressBar: document.getElementById('progressBar'),
-            progressText: document.getElementById('progressText'),
-            statusText: document.getElementById('statusText'),
-            fileInfo: document.getElementById('fileInfo'),
-            timeEstimate: document.getElementById('timeEstimate')
+            fileInput: document.getElementById(`${this.baseId}-input`),
+            dropZone: document.getElementById(`${this.baseId}-drop-zone`),
+            uploadProgressContainer: document.getElementById(`${this.baseId}-progress`),
+            progressBar: document.getElementById(`${this.baseId}-progress-bar`),
+            progressText: document.getElementById(`${this.baseId}-progress-text`),
+            statusText: document.getElementById(`${this.baseId}-status-text`),
+            fileInfo: document.getElementById(`${this.baseId}-file-info`),
+            timeEstimate: document.getElementById(`${this.baseId}-time-estimate`),
+            selectButton: document.querySelector(`[data-file-input="${this.baseId}-input"]`)
         };
     }
     
@@ -71,6 +69,13 @@ export class UploadFeature {
                 const files = e.dataTransfer.files;
                 this.handleFiles(files);
             }, false);
+            
+            // 点击拖拽区域触发文件选择
+            this.elements.dropZone.addEventListener('click', () => {
+                if (this.elements.fileInput) {
+                    this.elements.fileInput.click();
+                }
+            });
         }
         
         // 文件输入
@@ -80,10 +85,13 @@ export class UploadFeature {
             });
         }
         
-        // 清空按钮
-        if (this.elements.clearBtn) {
-            this.elements.clearBtn.addEventListener('click', () => {
-                this.clearAllFiles();
+        // 选择文件按钮
+        if (this.elements.selectButton) {
+            this.elements.selectButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止冒泡到dropZone
+                if (this.elements.fileInput) {
+                    this.elements.fileInput.click();
+                }
             });
         }
     }
@@ -274,21 +282,21 @@ export class UploadFeature {
     }
     
     showUploadProgress() {
-        if (this.elements.uploadContainer) {
-            this.elements.uploadContainer.style.display = 'none';
+        if (this.elements.dropZone) {
+            this.elements.dropZone.style.display = 'none';
         }
         if (this.elements.uploadProgressContainer) {
-            this.elements.uploadProgressContainer.style.display = 'block';
+            this.elements.uploadProgressContainer.classList.remove('d-none');
         }
         this.initProgressBar();
     }
     
     hideUploadProgress() {
-        if (this.elements.uploadContainer) {
-            this.elements.uploadContainer.style.display = 'block';
+        if (this.elements.dropZone) {
+            this.elements.dropZone.style.display = 'block';
         }
         if (this.elements.uploadProgressContainer) {
-            this.elements.uploadProgressContainer.style.display = 'none';
+            this.elements.uploadProgressContainer.classList.add('d-none');
         }
     }
     
