@@ -1,6 +1,6 @@
 """报告服务
 
-专门负责财务数据的聚合和报告生成，为前端页面提供格式化的数据。
+专门负责现金流数据的聚合和报告生成，为前端页面提供格式化的数据。
 优化后移除了pandas依赖，使用原生Python进行数据处理。
 """
 
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class ReportingService:
     """报告服务
     
-    负责聚合和格式化财务数据，为前端页面提供完整的报告数据。
+    负责聚合和格式化现金流数据，为前端页面提供完整的报告数据。
     依赖 AnalysisService 进行底层计算。
     """
     
@@ -45,7 +45,7 @@ class ReportingService:
     # ==================== 仪表盘数据聚合 ====================
     
     def get_financial_dashboard_data(self, start_date: date, end_date: date) -> DashboardData:
-        """获取财务健康仪表盘数据
+        """获取现金流健康仪表盘数据
         
         Args:
             start_date: 开始日期

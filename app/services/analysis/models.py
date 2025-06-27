@@ -16,7 +16,7 @@ class Period:
 
 @dataclass
 class CoreMetrics:
-    """核心财务指标"""
+    """核心现金流指标"""
     current_total_assets: float
     total_income: float
     total_expense: float

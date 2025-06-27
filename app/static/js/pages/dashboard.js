@@ -1,5 +1,5 @@
 /**
- * 财务健康仪表盘 JavaScript
+ * 现金流健康仪表盘 JavaScript
  */
 
 import BasePage from '../common/BasePage.js';

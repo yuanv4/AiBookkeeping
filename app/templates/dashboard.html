@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "macros.html" import icon, card, chart_container, page_header, stat_card %}
 
-{% block title %}财务健康仪表盘 - {{ config.APP_NAME }}{% endblock %}
+{% block title %}现金流健康仪表盘 - {{ config.APP_NAME }}{% endblock %}
 
 {% block page_css %}
 <!-- analysis_dashboard.css 已删除，样式已迁移到 Bootstrap 组件 -->
@@ -9,7 +9,7 @@
 
 {% block content %}
 <div class="page-container">
-    {{ page_header("财务健康仪表盘", "全面掌握您的财务状况，智能洞察资金流向", "activity") }}
+    {{ page_header("现金流健康仪表盘", "全面掌握您的现金流状况，智能洞察资金流向", "activity") }}
     
     <!-- 数据容器 -->
     <div id="dashboard-data" 

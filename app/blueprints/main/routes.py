@@ -6,7 +6,7 @@ from . import main_bp
 @main_bp.route('/')
 @main_bp.route('/dashboard')
 def dashboard():
-    """财务健康仪表盘页面"""
+    """现金流健康仪表盘页面"""
     try:
         # 设置默认时间范围为过去30天
         end_date = date.today()
@@ -16,11 +16,11 @@ def dashboard():
         dashboard_data = current_app.reporting_service.get_financial_dashboard_data(start_date, end_date)
         
         return render_template('dashboard.html',
-                             page_title='财务健康仪表盘',
+                             page_title='现金流健康仪表盘',
                              dashboard_data=dashboard_data)
                              
     except Exception as e:
-        current_app.logger.error(f"加载财务仪表盘页面失败: {str(e)}")
+        current_app.logger.error(f"加载现金流仪表盘页面失败: {str(e)}")
         # 返回空数据结构
         empty_data = {
             'period': {'start_date': '', 'end_date': '', 'days': 0},
@@ -41,7 +41,7 @@ def dashboard():
             'top_expense_categories': []
         }
         return render_template('dashboard.html',
-                             page_title='财务健康仪表盘',
+                             page_title='现金流健康仪表盘',
                              dashboard_data=empty_data)
 
 @main_bp.route('/dashboard-data')
