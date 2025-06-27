@@ -87,7 +87,11 @@
     <!-- 模块四：深度消费分析 -->
     <div class="row mb-4">
         <div class="col-lg-8">
-            {{ chart_container("消费时段热力图", "consumptionHeatmapChart", "300px", "activity") }}
+            {% call card("消费日历", "calendar") %}
+            <div id="consumption-calendar-view" class="consumption-calendar-container p-2">
+                <!-- 日历将由JS动态生成 -->
+            </div>
+            {% endcall %}
         </div>
         <div class="col-lg-4">
             {{ chart_container("主要支出商家 (TOP 10)", "topMerchantsChart", "300px", "bar-chart") }}

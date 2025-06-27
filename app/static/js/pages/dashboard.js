@@ -276,77 +276,7 @@ export default class FinancialDashboard extends BasePage {
             }
         });
         
-        // 消费时段热力图（使用气泡图模拟）
-        this.charts.consumptionHeatmap = new Chart(document.getElementById('consumptionHeatmapChart'), {
-            type: 'bubble',
-            data: {
-                datasets: [{
-                    label: '消费金额',
-                    data: [],
-                    backgroundColor: (context) => {
-                        const value = context.raw ? context.raw.r : 0;
-                        const alpha = Math.max(0.2, Math.min(1.0, value / 500));
-                        return getCSSColor('--bs-danger', alpha);
-                    },
-                    borderColor: getCSSColor('--bs-danger'),
-                    borderWidth: 1,
-                    hoverBackgroundColor: getCSSColor('--bs-danger'),
-                    hoverBorderColor: getCSSColor('--bs-danger-dark')
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-                                const day = weekdays[context.parsed.x];
-                                const hour = context.parsed.y;
-                                const amount = context.raw._amount;
-                                return `${day} ${hour}:00, 消费: ¥${amount.toLocaleString()}`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        type: 'linear',
-                        position: 'bottom',
-                        min: -0.5,
-                        max: 6.5,
-                        ticks: {
-                            stepSize: 1,
-                            callback: function(value) {
-                                const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-                                return weekdays[value] || '';
-                            }
-                        },
-                        grid: {
-                            display: false
-                        }
-                    },
-                    y: {
-                        type: 'linear',
-                        min: -0.5,
-                        max: 23.5,
-                        ticks: {
-                            stepSize: 2,
-                            callback: function(value) {
-                                return value + ':00';
-                            }
-                        },
-                        title: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
+
         
         // 主要支出商家排行图
         this.charts.topMerchants = new Chart(document.getElementById('topMerchantsChart'), {
@@ -409,7 +339,7 @@ export default class FinancialDashboard extends BasePage {
         this.updateCashFlowChart(data.cash_flow);
         this.updateIncomeCompositionChart(data.income_composition);
         this.updateExpenseTopCategoriesChart(data.top_expense_categories);
-        this.updateConsumptionHeatmapChart(data.consumption_heatmap);
+        this.renderConsumptionCalendar(data.consumption_heatmap);
         this.updateTopMerchantsChart(data.top_merchants);
     }
     
@@ -650,25 +580,7 @@ export default class FinancialDashboard extends BasePage {
         container.innerHTML = html;
     }
     
-    updateConsumptionHeatmapChart(heatmapData) {
-        if (!heatmapData || heatmapData.length === 0) {
-            // 清空图表数据
-            this.charts.consumptionHeatmap.data.datasets[0].data = [];
-            this.charts.consumptionHeatmap.update();
-            return;
-        }
-        
-        // 修正：转换数据格式，并对半径进行缩放以获得更好的视觉效果
-        const scatterData = heatmapData.map(point => ({
-            x: point.weekday,
-            y: point.hour,
-            r: 5 + Math.sqrt(point.amount), // 缩放半径：基础值5 + 金额的平方根
-            _amount: point.amount // 将原始金额存储在自定义属性中，用于tooltip
-        }));
-        
-        this.charts.consumptionHeatmap.data.datasets[0].data = scatterData;
-        this.charts.consumptionHeatmap.update();
-    }
+
     
     updateTopMerchantsChart(merchantsData) {
         if (!merchantsData || merchantsData.length === 0) {
@@ -688,6 +600,127 @@ export default class FinancialDashboard extends BasePage {
         this.charts.topMerchants.data.datasets[0].data = data;
         this.charts.topMerchants.data.datasets[0].transactionCounts = transactionCounts;
         this.charts.topMerchants.update();
+    }
+    
+    renderConsumptionCalendar(dailyData) {
+        const container = document.getElementById('consumption-calendar-view');
+        if (!container) {
+            console.error('消费日历容器未找到');
+            return;
+        }
+        
+        // 清空容器
+        container.innerHTML = '';
+        
+        if (!dailyData || dailyData.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i data-lucide="calendar" class="lucide-icon icon-lg text-muted"></i>
+                    <p class="mt-2">暂无消费数据</p>
+                </div>
+            `;
+            // 重新初始化Lucide图标
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            return;
+        }
+        
+        // 创建日期到金额的映射
+        const dataMap = new Map();
+        dailyData.forEach(item => {
+            dataMap.set(item.date, item.amount);
+        });
+        
+        // 获取日期范围
+        const dates = dailyData.map(item => new Date(item.date));
+        const startDate = new Date(Math.min(...dates));
+        const endDate = new Date(Math.max(...dates));
+        
+        // 计算颜色映射规则
+        const amounts = dailyData.map(item => item.amount);
+        const maxAmount = Math.max(...amounts);
+        const getColorClass = (amount) => {
+            if (amount === 0) return 'bg-light';
+            const ratio = amount / maxAmount;
+            if (ratio <= 0.2) return 'bg-success-100';
+            if (ratio <= 0.4) return 'bg-success-300';
+            if (ratio <= 0.6) return 'bg-success-500';
+            if (ratio <= 0.8) return 'bg-success-700';
+            return 'bg-success-900';
+        };
+        
+        // 创建日历网格
+        const calendarGrid = document.createElement('div');
+        calendarGrid.className = 'd-flex flex-wrap gap-1';
+        
+        // 计算需要显示的周数
+        const firstDayOfWeek = new Date(startDate);
+        firstDayOfWeek.setDate(startDate.getDate() - startDate.getDay() + 1); // 调整到周一
+        
+        const lastDayOfWeek = new Date(endDate);
+        lastDayOfWeek.setDate(endDate.getDate() + (6 - endDate.getDay()) + 1); // 调整到周日
+        
+        // 按周生成日历
+        const currentDate = new Date(firstDayOfWeek);
+        while (currentDate <= lastDayOfWeek) {
+            // 创建一周的列容器
+            const weekColumn = document.createElement('div');
+            weekColumn.className = 'd-flex flex-column gap-1';
+            
+            // 生成一周的7天
+            for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+                const daySquare = document.createElement('div');
+                daySquare.className = 'day-square rounded';
+                
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const amount = dataMap.get(dateStr) || 0;
+                
+                // 设置颜色
+                daySquare.classList.add(getColorClass(amount));
+                
+                // 设置Bootstrap Tooltip
+                daySquare.setAttribute('data-bs-toggle', 'tooltip');
+                daySquare.setAttribute('data-bs-placement', 'top');
+                daySquare.setAttribute('data-bs-title', 
+                    `${currentDate.toLocaleDateString('zh-CN')}: ¥${amount.toLocaleString()}`
+                );
+                
+                // 如果日期不在数据范围内，使用较淡的颜色
+                if (currentDate < startDate || currentDate > endDate) {
+                    daySquare.classList.remove(getColorClass(amount));
+                    daySquare.classList.add('bg-light', 'opacity-25');
+                }
+                
+                weekColumn.appendChild(daySquare);
+                
+                // 移动到下一天
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            calendarGrid.appendChild(weekColumn);
+        }
+        
+        // 添加标题和说明
+        const header = document.createElement('div');
+        header.className = 'mb-3';
+        header.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">每个方块代表一天的消费金额，颜色越深消费越多</small>
+                <small class="text-muted">最高: ¥${maxAmount.toLocaleString()}</small>
+            </div>
+        `;
+        
+        container.appendChild(header);
+        container.appendChild(calendarGrid);
+        
+        // 初始化Bootstrap Tooltips
+        if (typeof bootstrap !== 'undefined') {
+            const tooltipTriggerList = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltipTriggerList.forEach(tooltipTriggerEl => {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
     }
 }
 

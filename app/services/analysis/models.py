@@ -50,9 +50,8 @@ class TopExpenseCategory:
 
 @dataclass
 class HeatmapPoint:
-    """热力图数据点"""
-    weekday: int  # 0-6, 0=周一, 6=周日
-    hour: int     # 0-23
+    """热力图数据点（已适配日历视图）"""
+    date: str     # YYYY-MM-DD
     amount: float
 
 @dataclass

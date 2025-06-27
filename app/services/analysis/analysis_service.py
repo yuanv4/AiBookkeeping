@@ -209,53 +209,48 @@ class AnalysisService:
             raise 
     
     def get_consumption_heatmap_data(self, start_date: date, end_date: date) -> list:
-        """获取消费时段热力图数据
+        """获取消费日历热力图数据
         
-        按星期几和小时分组统计支出金额，用于生成消费时段热力图。
+        按日期分组统计支出金额，用于生成GitHub风格的日历热力图。
         
         Args:
             start_date: 开始日期
             end_date: 结束日期
             
         Returns:
-            list: 热力图数据，格式为 [{'weekday': 0-6, 'hour': 0-23, 'amount': float}]
+            list: 热力图数据，格式为 [{'date': 'YYYY-MM-DD', 'amount': float}]
         """
         try:
-            # 查询支出交易，按星期几和小时分组
-            # 使用数据库函数提取星期几(0=周日,1=周一...6=周六)和小时
+            # 查询支出交易，按日期分组
             heatmap_query = self.db.query(
-                func.extract('dow', Transaction.created_at).label('weekday'),  # 星期几
-                func.extract('hour', Transaction.created_at).label('hour'),    # 小时
+                Transaction.date,
                 func.sum(func.abs(Transaction.amount)).label('total_amount')   # 支出总额（绝对值）
             ).filter(
                 Transaction.amount < 0,  # 只统计支出
                 Transaction.date >= start_date,
                 Transaction.date <= end_date
             ).group_by(
-                func.extract('dow', Transaction.created_at),
-                func.extract('hour', Transaction.created_at)
+                Transaction.date
+            ).order_by(
+                Transaction.date
             ).all()
             
             # 转换为前端需要的数据格式
             heatmap_data = []
-            for weekday, hour, amount in heatmap_query:
-                # 将PostgreSQL的星期几格式(0=周日)转换为前端期望的格式(0=周一)
-                adjusted_weekday = (int(weekday) + 6) % 7  # 0=周一, 6=周日
-                
+            for transaction_date, amount in heatmap_query:
                 heatmap_data.append({
-                    'weekday': adjusted_weekday,
-                    'hour': int(hour),
+                    'date': transaction_date.isoformat(),
                     'amount': float(amount or 0)
                 })
             
-            self.logger.debug(f"获取消费热力图数据: {len(heatmap_data)}个数据点")
+            self.logger.debug(f"获取消费日历热力图数据: {len(heatmap_data)}个数据点")
             return heatmap_data
             
         except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 获取消费热力图数据失败: {e}")
+            self.logger.error(f"数据库查询异常 - 获取消费日历热力图数据失败: {e}")
             raise
         except Exception as e:
-            self.logger.error(f"获取消费热力图数据失败: {e}")
+            self.logger.error(f"获取消费日历热力图数据失败: {e}")
             raise
     
     def get_top_merchants_data(self, start_date: date, end_date: date, limit: int = 10) -> list:

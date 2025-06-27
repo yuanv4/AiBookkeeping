@@ -217,4 +217,20 @@ body {
     width: 1px !important;
     height: 1px !important;
     overflow: hidden !important;
+}
+
+/* ========================================
+   消费日历热力图样式
+   ======================================== */
+
+/* 日历方块基础样式 */
+.day-square {
+    width: 1rem;
+    height: 1rem;
+    transition: transform 0.1s ease-in-out;
+    cursor: pointer;
+}
+
+.day-square:hover {
+    transform: scale(1.2);
 } 

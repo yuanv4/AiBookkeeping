@@ -111,11 +111,10 @@ class ReportingService:
             # 8. 计算支出分类排行（Top 5）
             top_expense_categories = self._calculate_top_expense_categories(start_date, end_date, 5)
             
-            # 9. 获取消费时段热力图数据
+            # 9. 获取消费日历热力图数据
             heatmap_data = self.analysis_service.get_consumption_heatmap_data(start_date, end_date)
             consumption_heatmap = [HeatmapPoint(
-                weekday=point['weekday'],
-                hour=point['hour'],
+                date=point['date'],
                 amount=point['amount']
             ) for point in heatmap_data]
             
