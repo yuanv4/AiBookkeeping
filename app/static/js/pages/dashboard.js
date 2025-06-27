@@ -477,7 +477,17 @@ export default class FinancialDashboard extends BasePage {
                 <h6 class="mb-1">${data.category}</h6>
                 <small class="text-muted">共 ${data.total_count} 笔交易</small>
             </div>
-            <div class="transaction-list">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>描述</th>
+                            <th>对手方</th>
+                            <th class="text-end">金额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
         `;
         
         data.transactions.forEach(transaction => {
@@ -500,22 +510,22 @@ export default class FinancialDashboard extends BasePage {
             const shortDescription = description.length > 20 ? description.substring(0, 20) + '...' : description;
             
             html += `
-                <div class="transaction-item">
-                    <div class="transaction-info">
-                        <div class="transaction-counterparty" title="${counterparty}">${counterparty}</div>
-                        <div class="transaction-meta">
-                            <span class="transaction-date">${formattedDate}</span>
-                            <span class="transaction-description" title="${description}">${shortDescription}</span>
-                        </div>
-                    </div>
-                    <div class="transaction-amount ${amountClass}">
+                <tr>
+                    <td>${formattedDate}</td>
+                    <td title="${description}">${shortDescription}</td>
+                    <td title="${counterparty}">${counterparty}</td>
+                    <td class="text-end ${amountClass}">
                         ${amountSign}¥${Math.abs(transaction.amount).toLocaleString('zh-CN', {minimumFractionDigits: 2})}
-                    </div>
-                </div>
+                    </td>
+                </tr>
             `;
         });
         
-        html += '</div>';
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
         container.innerHTML = html;
     }
 }
