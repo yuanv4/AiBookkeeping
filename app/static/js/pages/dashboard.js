@@ -216,29 +216,58 @@ export default class FinancialDashboard extends BasePage {
             }
         });
         
-        // 支出构成图（带点击事件）
-        this.charts.expenseComposition = new Chart(document.getElementById('expenseCompositionChart'), {
-            type: 'doughnut',
+        // 支出分类排行图（带点击事件）
+        this.charts.expenseTopCategories = new Chart(document.getElementById('expenseTopCategoriesChart'), {
+            type: 'bar',
             data: {
                 labels: [],
                 datasets: [{
+                    label: '支出金额',
                     data: [],
-                    backgroundColor: this.getChartColors()
+                    backgroundColor: getCSSColor('--bs-danger-100'),
+                    borderColor: getCSSColor('--bs-danger'),
+                    borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                indexAxis: 'y', // 水平条形图
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        display: false
+                    },
+                    datalabels: {
+                        display: true,
+                        anchor: 'end',
+                        align: 'right',
+                        offset: 4,
+                        font: {
+                            size: 10
+                        },
+                        color: '#6c757d',
+                        formatter: function(value, context) {
+                            // 显示金额和百分比
+                            const percentage = context.dataset.percentages ? context.dataset.percentages[context.dataIndex] : 0;
+                            return `¥${value.toLocaleString()} (${percentage}%)`;
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '¥' + value.toLocaleString();
+                            }
+                        }
                     }
                 },
                 onClick: (event, elements) => {
-                    console.log('图表点击事件触发:', elements);
+                    console.log('支出排行图表点击事件触发:', elements);
                     if (elements.length > 0) {
                         const index = elements[0].index;
-                        const label = this.charts.expenseComposition.data.labels[index];
+                        const label = this.charts.expenseTopCategories.data.labels[index];
                         console.log('点击的分类:', label, '索引:', index);
                         this.fetchCategoryTransactions(label);
                     }
@@ -255,7 +284,7 @@ export default class FinancialDashboard extends BasePage {
         this.updateNetWorthChart(data.net_worth_trend);
         this.updateCashFlowChart(data.cash_flow);
         this.updateIncomeCompositionChart(data.income_composition);
-        this.updateExpenseCompositionChart(data.expense_composition);
+        this.updateExpenseTopCategoriesChart(data.top_expense_categories);
     }
     
     updateCoreMetrics(metrics) {
@@ -263,6 +292,9 @@ export default class FinancialDashboard extends BasePage {
         document.getElementById('totalIncome').textContent = '¥' + metrics.total_income.toLocaleString('zh-CN', {minimumFractionDigits: 2});
         document.getElementById('totalExpense').textContent = '¥' + metrics.total_expense.toLocaleString('zh-CN', {minimumFractionDigits: 2});
         document.getElementById('netIncome').textContent = '¥' + metrics.net_income.toLocaleString('zh-CN', {minimumFractionDigits: 2});
+        
+        // 更新应急储备月数
+        this.updateEmergencyReserveMonths(metrics.emergency_reserve_months);
         
         // 更新变化百分比
         this.updateChangeIndicator('incomeChange', metrics.income_change_percentage);
@@ -278,6 +310,20 @@ export default class FinancialDashboard extends BasePage {
         
         element.textContent = `${sign}${absPercentage.toFixed(1)}%`;
         element.className = `stat-change ${color}`;
+    }
+    
+    updateEmergencyReserveMonths(months) {
+        const element = document.getElementById('emergencyReserveMonths');
+        if (!element) return;
+        
+        if (months === -1) {
+            element.textContent = '无限';
+        } else if (months === 0) {
+            element.textContent = '0个月';
+        } else {
+            const roundedMonths = Math.round(months * 10) / 10; // 保留一位小数
+            element.textContent = `${roundedMonths}个月`;
+        }
     }
     
     updateNetWorthChart(trendData) {
@@ -361,25 +407,28 @@ export default class FinancialDashboard extends BasePage {
         this.charts.incomeComposition.update();
     }
     
-    updateExpenseCompositionChart(compositionData) {
-        console.log('更新支出构成图表:', compositionData);
+    updateExpenseTopCategoriesChart(topCategoriesData) {
+        console.log('更新支出分类排行图表:', topCategoriesData);
         
-        if (!compositionData || compositionData.length === 0) {
+        if (!topCategoriesData || topCategoriesData.length === 0) {
             // 清空图表数据
-            this.charts.expenseComposition.data.labels = [];
-            this.charts.expenseComposition.data.datasets[0].data = [];
-            this.charts.expenseComposition.update();
-            console.log('支出构成图表标签: []');
+            this.charts.expenseTopCategories.data.labels = [];
+            this.charts.expenseTopCategories.data.datasets[0].data = [];
+            this.charts.expenseTopCategories.data.datasets[0].percentages = [];
+            this.charts.expenseTopCategories.update();
+            console.log('支出分类排行图表标签: []');
             return;
         }
         
-        const labels = compositionData.map(item => item.name);
-        const data = compositionData.map(item => item.amount);
+        const labels = topCategoriesData.map(item => item.name);
+        const data = topCategoriesData.map(item => item.amount);
+        const percentages = topCategoriesData.map(item => item.percentage);
         
-        this.charts.expenseComposition.data.labels = labels;
-        this.charts.expenseComposition.data.datasets[0].data = data;
-        this.charts.expenseComposition.update();
-        console.log('支出构成图表标签:', labels);
+        this.charts.expenseTopCategories.data.labels = labels;
+        this.charts.expenseTopCategories.data.datasets[0].data = data;
+        this.charts.expenseTopCategories.data.datasets[0].percentages = percentages;
+        this.charts.expenseTopCategories.update();
+        console.log('支出分类排行图表标签:', labels);
     }
     
     async fetchCategoryTransactions(category) {

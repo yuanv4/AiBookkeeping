@@ -20,7 +20,7 @@ from .analysis_service import AnalysisService
 from .utils import validate_date_range
 from .models import (
     Period, CoreMetrics, CompositionItem, 
-    TrendPoint, DashboardData
+    TrendPoint, DashboardData, TopExpenseCategory
 )
 
 logger = logging.getLogger(__name__)
@@ -104,6 +104,12 @@ class ReportingService:
             # 6. 支出构成分析
             expense_composition = self._calculate_composition_direct(start_date, end_date, 'expense')
             
+            # 7. 计算应急储备月数
+            emergency_reserve_months = self.analysis_service.calculate_emergency_reserve_months()
+            
+            # 8. 计算支出分类排行（Top 5）
+            top_expense_categories = self._calculate_top_expense_categories(start_date, end_date, 5)
+            
             # 构建并返回数据类实例
             return DashboardData(
                 period=Period(
@@ -119,11 +125,13 @@ class ReportingService:
                     net_income=current_metrics['net_income'],
                     income_change_percentage=income_change,
                     expense_change_percentage=expense_change,
-                    net_change_percentage=net_change
+                    net_change_percentage=net_change,
+                    emergency_reserve_months=emergency_reserve_months
                 ),
                 cash_flow=cash_flow_data,
                 income_composition=income_composition,
-                expense_composition=expense_composition
+                expense_composition=expense_composition,
+                top_expense_categories=top_expense_categories
             )
             
         except ValueError as e:
@@ -146,11 +154,13 @@ class ReportingService:
                     net_income=0.0,
                     income_change_percentage=0.0,
                     expense_change_percentage=0.0,
-                    net_change_percentage=0.0
+                    net_change_percentage=0.0,
+                    emergency_reserve_months=0
                 ),
                 cash_flow=[],
                 income_composition=[],
-                expense_composition=[]
+                expense_composition=[],
+                top_expense_categories=[]
             )
     
     # ==================== 核心报告方法 ====================
@@ -462,4 +472,56 @@ class ReportingService:
             
         except Exception as e:
             self.logger.error(f"计算净资产趋势失败: {e}", exc_info=True)
+            return []
+
+    def _calculate_top_expense_categories(self, start_date: date, end_date: date, top_n: int) -> List[TopExpenseCategory]:
+        """计算支出分类排行（Top N）
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            top_n: 要返回的前N个分类
+            
+        Returns:
+            List[TopExpenseCategory]: 支出分类排行
+        """
+        try:
+            # 按描述分组聚合支出数据
+            results = self.db.query(
+                func.coalesce(Transaction.description, '未分类').label('name'),
+                func.sum(func.abs(Transaction.amount)).label('amount'),
+                func.count(Transaction.id).label('count')
+            ).filter(
+                Transaction.amount < 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                func.coalesce(Transaction.description, '未分类')
+            ).order_by(
+                func.sum(func.abs(Transaction.amount)).desc()
+            ).limit(top_n).all()
+
+            if not results:
+                return []
+
+            # 计算总支出用于百分比计算
+            total_expense = sum(float(r.amount) for r in results)
+
+            # 构建TopExpenseCategory列表
+            top_categories = []
+            for r in results:
+                amount = float(r.amount)
+                percentage = (amount / total_expense * 100) if total_expense > 0 else 0
+                
+                top_categories.append(TopExpenseCategory(
+                    name=r.name,
+                    amount=amount,
+                    percentage=round(percentage, 1),
+                    count=r.count
+                ))
+
+            return top_categories
+            
+        except Exception as e:
+            self.logger.error(f"计算支出分类排行失败: {e}")
             return []

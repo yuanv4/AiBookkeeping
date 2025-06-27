@@ -32,11 +32,13 @@ def dashboard():
                 'net_income': 0.0,
                 'income_change_percentage': 0.0,
                 'expense_change_percentage': 0.0,
-                'net_change_percentage': 0.0
+                'net_change_percentage': 0.0,
+                'emergency_reserve_months': 0.0
             },
             'cash_flow': [],
             'income_composition': [],
-            'expense_composition': []
+            'expense_composition': [],
+            'top_expense_categories': []
         }
         return render_template('dashboard.html',
                              page_title='财务健康仪表盘',

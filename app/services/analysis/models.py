@@ -24,6 +24,7 @@ class CoreMetrics:
     income_change_percentage: float
     expense_change_percentage: float
     net_change_percentage: float
+    emergency_reserve_months: float
 
 @dataclass
 class CompositionItem:
@@ -40,6 +41,14 @@ class TrendPoint:
     value: float
 
 @dataclass
+class TopExpenseCategory:
+    """支出分类排行项目"""
+    name: str
+    amount: float
+    percentage: float
+    count: int
+
+@dataclass
 class DashboardData:
     """仪表盘完整数据"""
     period: Period
@@ -47,4 +56,5 @@ class DashboardData:
     core_metrics: CoreMetrics
     cash_flow: List[TrendPoint]
     income_composition: List[CompositionItem]
-    expense_composition: List[CompositionItem] 
+    expense_composition: List[CompositionItem]
+    top_expense_categories: List[TopExpenseCategory] 

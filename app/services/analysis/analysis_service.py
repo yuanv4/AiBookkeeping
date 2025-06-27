@@ -132,4 +132,78 @@ class AnalysisService:
         """
         if previous == 0:
             return 100.0 if current > 0 else 0.0
-        return ((current - previous) / previous) * 100.0 
+        return ((current - previous) / previous) * 100.0
+
+    def calculate_daily_average_expense(self, start_date: date, end_date: date) -> float:
+        """计算指定时间范围内的日均支出
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            
+        Returns:
+            float: 日均支出金额（正数）
+        """
+        try:
+            # 计算时间范围内的总支出（负数金额的绝对值）
+            total_expense = self.db.query(
+                func.sum(func.abs(Transaction.amount))
+            ).filter(
+                Transaction.amount < 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).scalar() or 0
+            
+            # 计算天数
+            days = (end_date - start_date).days + 1  # 包含结束日期
+            
+            if days <= 0:
+                return 0.0
+                
+            daily_average = float(total_expense) / days
+            self.logger.debug(f"计算日均支出: 总支出={total_expense}, 天数={days}, 日均={daily_average}")
+            
+            return daily_average
+            
+        except SQLAlchemyError as e:
+            self.logger.error(f"数据库查询异常 - 计算日均支出失败: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"计算日均支出失败: {e}")
+            raise
+
+    def calculate_emergency_reserve_months(self, daily_average_expense: float = None, 
+                                        calculation_period_days: int = 90) -> float:
+        """计算应急储备月数
+        
+        Args:
+            daily_average_expense: 日均支出，如果为None则自动计算过去90天的日均支出
+            calculation_period_days: 用于计算日均支出的天数，默认90天
+            
+        Returns:
+            float: 应急储备月数，如果日均支出为0则返回-1表示无限
+        """
+        try:
+            # 获取当前总资产作为应急储备资金
+            current_assets = self.get_current_total_assets()
+            
+            # 如果没有提供日均支出，则计算过去指定天数的日均支出
+            if daily_average_expense is None:
+                end_date = date.today()
+                start_date = end_date - timedelta(days=calculation_period_days - 1)
+                daily_average_expense = self.calculate_daily_average_expense(start_date, end_date)
+            
+            # 处理日均支出为0的情况
+            if daily_average_expense <= 0:
+                self.logger.debug("日均支出为0，应急储备月数设为无限")
+                return -1.0  # 返回-1表示无限月数
+            
+            # 计算应急储备月数（按30天/月计算）
+            reserve_months = current_assets / (daily_average_expense * 30)
+            self.logger.debug(f"计算应急储备月数: 总资产={current_assets}, 日均支出={daily_average_expense}, 储备月数={reserve_months}")
+            
+            return reserve_months
+            
+        except Exception as e:
+            self.logger.error(f"计算应急储备月数失败: {e}")
+            raise 
