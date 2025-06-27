@@ -16,24 +16,30 @@ export default class TransactionsPage extends BasePage {
     }
     
     init() {
-        super.init();
+        // 先绑定元素和设置事件监听器
+        this.bindElements();
+        this.setupEventListeners();
+        
+        // 然后加载数据
         this.loadPageData();
+        
+        // 最后渲染页面（此时数据已加载）
+        this.renderPage();
     }
     
     bindElements() {
         this.elements = {
-            // 数据元素
-            pageDataElement: document.getElementById('current-page-data'),
-            transactionsDataElement: document.getElementById('transactions-data'),
+            // 统一数据元素
+            pageDataElement: document.getElementById('page-data'),
             
             // 表格元素
-            tableBody: document.getElementById('transactions-body'),
-            noDataElement: document.getElementById('no-data'),
+            tableBody: document.getElementById('transactions-table-body'),
+            noDataElement: document.getElementById('transactions-table-no-data'),
             tableContainer: document.querySelector('.table-responsive'),
             
             // 分页元素
-            pagination: document.getElementById('pagination'),
-            paginationContainer: document.getElementById('pagination-container'),
+            pagination: document.getElementById('transactions-table-pagination'),
+            paginationContainer: document.getElementById('transactions-table-pagination-container'),
             
             // 筛选元素
             filterForm: document.querySelector('.filter-form'),
@@ -46,26 +52,32 @@ export default class TransactionsPage extends BasePage {
             activeFiltersBadges: document.getElementById('active-filters-badges'),
             
             // 统计元素
-            filteredCountElement: document.getElementById('filtered-count')
+            filteredCountElement: document.getElementById('transactions-table-filtered-count')
         };
     }
     
     loadPageData() {
-        // 加载分页信息
+        // 从统一数据源加载数据
         if (this.elements.pageDataElement) {
-            this.currentPage = parseInt(this.elements.pageDataElement.getAttribute('data-page') || '1');
-            this.itemsPerPage = parseInt(this.elements.pageDataElement.getAttribute('data-limit') || '20');
-            this.totalPages = parseInt(this.elements.pageDataElement.getAttribute('data-pages') || '1');
-        }
-        
-        // 加载交易数据
-        if (this.elements.transactionsDataElement) {
             try {
-                const transactionsJson = this.elements.transactionsDataElement.getAttribute('data-transactions');
-                this.transactions = JSON.parse(transactionsJson || '[]');
+                const initialDataJson = this.elements.pageDataElement.getAttribute('data-initial-data');
+                const initialData = JSON.parse(initialDataJson || '{}');
+                
+                // 加载交易数据
+                this.transactions = initialData.transactions || [];
+                
+                // 加载分页信息 - 修正字段名以匹配serialize_pagination过滤器
+                const pagination = initialData.pagination || {};
+                this.currentPage = parseInt(pagination.current_page || '1');
+                this.itemsPerPage = parseInt(pagination.per_page || '20');
+                this.totalPages = parseInt(pagination.total_pages || '1');
+                
             } catch (error) {
-                console.error('解析交易数据时出错:', error);
+                console.error('解析页面数据时出错:', error);
                 this.transactions = [];
+                this.currentPage = 1;
+                this.itemsPerPage = 20;
+                this.totalPages = 1;
             }
         }
     }
@@ -156,17 +168,15 @@ export default class TransactionsPage extends BasePage {
         const amount = parseFloat(transaction.amount || 0);
         const balance = parseFloat(transaction.balance || 0);
         
+        // 根据模板中的表头顺序：['日期', '账户', '金额', '余额', '对手信息', '摘要']
         const rowHtml = `
             <tr>
-                <td>${index + 1}</td>
                 <td>${escapeHtml(transaction.date || '')}</td>
-                <td>${escapeHtml(transaction.transaction_type || '')}</td>
-                <td>${escapeHtml(transaction.counterparty || '')}</td>
+                <td>${escapeHtml(transaction.account_name || transaction.account_number || '')}</td>
                 <td class="${amount >= 0 ? 'positive' : 'negative'}">${amount.toFixed(2)}</td>
                 <td>${balance.toFixed(2)}</td>
-                <td>${escapeHtml(transaction.currency || '')}</td>
-                <td>${escapeHtml(transaction.account_number || '')}</td>
-                <td>${escapeHtml(transaction.account_name || '')}</td>
+                <td>${escapeHtml(transaction.counterparty || '')}</td>
+                <td>${escapeHtml(transaction.transaction_type || '')}</td>
             </tr>
         `;
         
@@ -175,7 +185,9 @@ export default class TransactionsPage extends BasePage {
     
     showNoData() {
         if (this.elements.noDataElement) {
-            this.elements.noDataElement.style.setProperty('display', 'flex', 'important');
+            // 使用Bootstrap类操作而不是直接设置CSS
+            this.elements.noDataElement.classList.remove('d-none');
+            this.elements.noDataElement.classList.add('d-flex');
         }
         if (this.elements.paginationContainer) {
             this.elements.paginationContainer.style.display = 'none';
@@ -187,7 +199,9 @@ export default class TransactionsPage extends BasePage {
     
     showTableData() {
         if (this.elements.noDataElement) {
-            this.elements.noDataElement.style.setProperty('display', 'none', 'important');
+            // 使用Bootstrap类操作而不是直接设置CSS
+            this.elements.noDataElement.classList.add('d-none');
+            this.elements.noDataElement.classList.remove('d-flex');
         }
         if (this.elements.paginationContainer) {
             this.elements.paginationContainer.style.display = 'block';
@@ -216,7 +230,8 @@ export default class TransactionsPage extends BasePage {
             if (this.elements.tableBody) {
                 const rows = this.elements.tableBody.querySelectorAll('tr');
                 rows.forEach(row => {
-                    const amountCell = row.querySelector('td:nth-child(5)');
+                    // 金额列现在是第3列（td:nth-child(3)）
+                    const amountCell = row.querySelector('td:nth-child(3)');
                     if (amountCell) {
                         const amount = parseFloat(amountCell.textContent.replace(/[^\d.-]/g, ''));
                         if (amount > 0) {
@@ -226,7 +241,8 @@ export default class TransactionsPage extends BasePage {
                         }
                     }
                     
-                    const typeCell = row.querySelector('td:nth-child(3) .badge');
+                    // 交易类型列现在是第6列（td:nth-child(6)）
+                    const typeCell = row.querySelector('td:nth-child(6) .badge');
                     if (typeCell) {
                         typeCell.classList.add('transaction-badge');
                     }
