@@ -290,16 +290,12 @@ export default class FinancialDashboard extends BasePage {
     
     updateCoreMetrics(metrics) {
         document.getElementById('currentAssets').textContent = '¥' + metrics.current_total_assets.toLocaleString('zh-CN', {minimumFractionDigits: 2});
-        document.getElementById('totalIncome').textContent = '¥' + metrics.total_income.toLocaleString('zh-CN', {minimumFractionDigits: 2});
-        document.getElementById('totalExpense').textContent = '¥' + metrics.total_expense.toLocaleString('zh-CN', {minimumFractionDigits: 2});
         document.getElementById('netIncome').textContent = '¥' + metrics.net_income.toLocaleString('zh-CN', {minimumFractionDigits: 2});
         
         // 更新应急储备月数
         this.updateEmergencyReserveMonths(metrics.emergency_reserve_months);
         
         // 更新变化百分比
-        this.updateChangeIndicator('incomeChange', metrics.income_change_percentage);
-        this.updateChangeIndicator('expenseChange', metrics.expense_change_percentage);
         this.updateChangeIndicator('netChange', metrics.net_change_percentage);
     }
     

@@ -51,11 +51,9 @@
     </div>
     
     <!-- KPI 指标卡片 -->
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-5 g-4 mb-4">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4">
         <div class="col">{{ stat_card("dollar-sign", "¥0.00", "当前总资产", "primary", "", "currentAssets") }}</div>
         <div class="col">{{ stat_card("shield-check", "0个月", "应急储备月数", "warning", "", "emergencyReserveMonths") }}</div>
-        <div class="col">{{ stat_card("trending-up", "¥0.00", "期间总收入", "success", "", "totalIncome", "--", "incomeChange") }}</div>
-        <div class="col">{{ stat_card("trending-down", "¥0.00", "期间总支出", "danger", "", "totalExpense", "--", "expenseChange") }}</div>
         <div class="col">{{ stat_card("calculator", "¥0.00", "期间净收支", "info", "", "netIncome", "--", "netChange") }}</div>
     </div>
     
