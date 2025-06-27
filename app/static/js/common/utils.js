@@ -110,7 +110,7 @@ export function showNotification(message, type = 'info', duration = 5000) {
 export function getCSSColor(cssVar) {
     try {
         const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
-        return value || '#000000';
+        return value;
     } catch (error) {
         console.warn(`无法获取CSS变量 ${cssVar}:`, error);
         return '#000000';

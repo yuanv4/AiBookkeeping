@@ -242,6 +242,7 @@ export default class FinancialDashboard extends BasePage {
                         anchor: 'end',
                         align: 'right',
                         offset: 4,
+                        clamp: true,
                         font: {
                             size: 10
                         },
