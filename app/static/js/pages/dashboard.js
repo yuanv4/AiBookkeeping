@@ -3,7 +3,7 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { formatDate, showNotification, apiService } from '../common/utils.js';
+import { formatDate, showNotification, apiService, getCSSColor } from '../common/utils.js';
 
 export default class FinancialDashboard extends BasePage {
     constructor() {
@@ -48,6 +48,19 @@ export default class FinancialDashboard extends BasePage {
     }
     
 
+    
+    getChartColors() {
+        return [
+            getCSSColor('--bs-primary'),
+            getCSSColor('--bs-success'),
+            getCSSColor('--bs-warning'),
+            getCSSColor('--bs-info'),
+            getCSSColor('--bs-danger'),
+            getCSSColor('--bs-secondary'),
+            getCSSColor('--bs-primary-600'),
+            getCSSColor('--bs-success-600')
+        ];
+    }
     
     setupEventListeners() {
         // 预设时间按钮
@@ -137,8 +150,8 @@ export default class FinancialDashboard extends BasePage {
                 datasets: [{
                     label: '净资产',
                     data: [],
-                    borderColor: 'rgb(54, 162, 235)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    borderColor: getCSSColor('--bs-primary'),
+                    backgroundColor: getCSSColor('--bs-primary-100'),
                     fill: true,
                     tension: 0.4
                 }]
@@ -171,17 +184,28 @@ export default class FinancialDashboard extends BasePage {
                 labels: [],
                 datasets: [
                     {
-                        label: '收入',
+                        label: '净现金流',
                         data: [],
-                        backgroundColor: 'rgba(40, 167, 69, 0.8)',
-                        borderColor: 'rgb(40, 167, 69)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: '支出',
-                        data: [],
-                        backgroundColor: 'rgba(220, 53, 69, 0.8)',
-                        borderColor: 'rgb(220, 53, 69)',
+                        backgroundColor: function(context) {
+                            // 检查是否有有效的解析数据
+                            if (!context.parsed || context.parsed.y === undefined) {
+                                return getCSSColor('--bs-primary-100'); // 默认颜色
+                            }
+                            const value = context.parsed.y;
+                            return value >= 0 ? 
+                                getCSSColor('--bs-success-200') : 
+                                getCSSColor('--bs-danger-100');
+                        },
+                        borderColor: function(context) {
+                            // 检查是否有有效的解析数据
+                            if (!context.parsed || context.parsed.y === undefined) {
+                                return getCSSColor('--bs-primary'); // 默认颜色
+                            }
+                            const value = context.parsed.y;
+                            return value >= 0 ? 
+                                getCSSColor('--bs-success') : 
+                                getCSSColor('--bs-danger');
+                        },
                         borderWidth: 1
                     }
                 ]
@@ -209,10 +233,7 @@ export default class FinancialDashboard extends BasePage {
                 labels: [],
                 datasets: [{
                     data: [],
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-                    ]
+                    backgroundColor: this.getChartColors()
                 }]
             },
             options: {
@@ -233,10 +254,7 @@ export default class FinancialDashboard extends BasePage {
                 labels: [],
                 datasets: [{
                     data: [],
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-                    ]
+                    backgroundColor: this.getChartColors()
                 }]
             },
             options: {
@@ -303,7 +321,7 @@ export default class FinancialDashboard extends BasePage {
         }
         
         const labels = trendData.map(item => new Date(item.date).toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'}));
-        const data = trendData.map(item => item.balance);
+        const data = trendData.map(item => item.value);
         
         this.charts.netWorth.data.labels = labels;
         this.charts.netWorth.data.datasets[0].data = data;
@@ -311,17 +329,31 @@ export default class FinancialDashboard extends BasePage {
     }
     
     updateCashFlowChart(cashFlowData) {
+        if (!cashFlowData || cashFlowData.length === 0) {
+            // 清空图表数据
+            this.charts.cashFlow.data.labels = [];
+            this.charts.cashFlow.data.datasets[0].data = [];
+            this.charts.cashFlow.update();
+            return;
+        }
+        
         const labels = cashFlowData.map(item => new Date(item.date).toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'}));
-        const incomeData = cashFlowData.map(item => item.income);
-        const expenseData = cashFlowData.map(item => item.expense);
+        const netFlowData = cashFlowData.map(item => item.value);
         
         this.charts.cashFlow.data.labels = labels;
-        this.charts.cashFlow.data.datasets[0].data = incomeData;
-        this.charts.cashFlow.data.datasets[1].data = expenseData;
+        this.charts.cashFlow.data.datasets[0].data = netFlowData;
         this.charts.cashFlow.update();
     }
     
     updateIncomeCompositionChart(compositionData) {
+        if (!compositionData || compositionData.length === 0) {
+            // 清空图表数据
+            this.charts.incomeComposition.data.labels = [];
+            this.charts.incomeComposition.data.datasets[0].data = [];
+            this.charts.incomeComposition.update();
+            return;
+        }
+        
         const labels = compositionData.map(item => item.name);
         const data = compositionData.map(item => item.amount);
         
@@ -332,6 +364,16 @@ export default class FinancialDashboard extends BasePage {
     
     updateExpenseCompositionChart(compositionData) {
         console.log('更新支出构成图表:', compositionData);
+        
+        if (!compositionData || compositionData.length === 0) {
+            // 清空图表数据
+            this.charts.expenseComposition.data.labels = [];
+            this.charts.expenseComposition.data.datasets[0].data = [];
+            this.charts.expenseComposition.update();
+            console.log('支出构成图表标签: []');
+            return;
+        }
+        
         const labels = compositionData.map(item => item.name);
         const data = compositionData.map(item => item.amount);
         

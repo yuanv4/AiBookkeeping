@@ -6,7 +6,7 @@
 
 from typing import List, Dict, Any, Optional
 from decimal import Decimal
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import logging
 
@@ -329,6 +329,9 @@ class ReportingService:
     def _calculate_net_worth_trend_direct(self, start_date: date, end_date: date) -> List[TrendPoint]:
         """直接通过数据库查询计算净资产趋势
         
+        优化后: 采用单次查询获取每日资产净变动，然后在内存中计算趋势，
+        避免了在循环中执行N+1次数据库查询的问题。
+        
         Args:
             start_date: 开始日期
             end_date: 结束日期
@@ -337,30 +340,54 @@ class ReportingService:
             List[TrendPoint]: 净资产趋势数据
         """
         try:
-            # 获取指定日期范围内每天的日期
-            from datetime import timedelta
+            # 1. 获取起始日期的前一天的总资产作为基准值
+            previous_day = start_date - timedelta(days=1)
+            initial_assets = self.analysis_service.get_total_assets_at_date(previous_day)
             
+            # 2. 一次性获取指定日期范围内每日的资产净变动
+            daily_changes = self.db.query(
+                Transaction.date,
+                func.sum(Transaction.amount).label('net_change')
+            ).filter(
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            ).group_by(
+                Transaction.date
+            ).order_by(
+                Transaction.date
+            ).all()
+            
+            # 将查询结果转为字典以便快速查找
+            changes_map = {row.date: float(row.net_change) for row in daily_changes}
+            
+            # 3. 在内存中迭代计算每日的净资产
             trend_data = []
-            current_date = start_date
+            current_assets = initial_assets
             
+            current_date = start_date
             while current_date <= end_date:
-                # 获取截至当前日期的总资产
-                total_assets = self.analysis_service.get_total_assets_at_date(current_date)
+                # 获取当天的净变动，如果没有交易则为0
+                net_change = changes_map.get(current_date, 0.0)
+                current_assets += net_change
                 
                 trend_data.append(TrendPoint(
                     date=current_date.isoformat(),
-                    value=total_assets
+                    value=round(current_assets, 2)
                 ))
                 
                 current_date += timedelta(days=1)
-            
+                
+            # 如果没有生成任何趋势数据（例如，数据库为空），返回一个基于初始值的点
+            if not trend_data:
+                return [TrendPoint(date=start_date.isoformat(), value=round(initial_assets, 2))]
+
             return trend_data
             
         except Exception as e:
             self.logger.error(f"计算净资产趋势失败: {e}")
-            # 返回默认数据
+            # 异常情况下，返回一个基于当前总资产的单点数据，保证图表有内容
             current_assets = self.analysis_service.get_current_total_assets()
             return [TrendPoint(
                 date=start_date.isoformat(),
-                value=current_assets
+                value=round(current_assets, 2)
             )]
