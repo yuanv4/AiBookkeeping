@@ -641,13 +641,14 @@ export default class FinancialDashboard extends BasePage {
         const amounts = dailyData.map(item => item.amount);
         const maxAmount = Math.max(...amounts);
         const getColorClass = (amount) => {
-            if (amount === 0) return 'bg-light';
+            if (amount <= 0) return 'bg-light'; // 无消费或0消费
+            
+            // 修正：使用标准的Bootstrap背景色和不透明度工具类
             const ratio = amount / maxAmount;
-            if (ratio <= 0.2) return 'bg-success-100';
-            if (ratio <= 0.4) return 'bg-success-300';
-            if (ratio <= 0.6) return 'bg-success-500';
-            if (ratio <= 0.8) return 'bg-success-700';
-            return 'bg-success-900';
+            if (ratio < 0.25) return 'bg-success bg-opacity-25';
+            if (ratio < 0.50) return 'bg-success bg-opacity-50';
+            if (ratio < 0.75) return 'bg-success bg-opacity-75';
+            return 'bg-success'; // 默认100%不透明度
         };
         
         // 创建日历网格
@@ -671,13 +672,11 @@ export default class FinancialDashboard extends BasePage {
             // 生成一周的7天
             for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
                 const daySquare = document.createElement('div');
-                daySquare.className = 'day-square rounded';
-                
                 const dateStr = currentDate.toISOString().split('T')[0];
                 const amount = dataMap.get(dateStr) || 0;
                 
-                // 设置颜色
-                daySquare.classList.add(getColorClass(amount));
+                // 修正：将多个类名作为单独的参数添加到classList中
+                daySquare.classList.add('day-square', 'rounded', ...getColorClass(amount).split(' '));
                 
                 // 设置Bootstrap Tooltip
                 daySquare.setAttribute('data-bs-toggle', 'tooltip');
@@ -688,8 +687,7 @@ export default class FinancialDashboard extends BasePage {
                 
                 // 如果日期不在数据范围内，使用较淡的颜色
                 if (currentDate < startDate || currentDate > endDate) {
-                    daySquare.classList.remove(getColorClass(amount));
-                    daySquare.classList.add('bg-light', 'opacity-25');
+                    daySquare.className = 'day-square rounded bg-light opacity-25';
                 }
                 
                 weekColumn.appendChild(daySquare);
