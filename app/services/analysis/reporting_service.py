@@ -58,8 +58,16 @@ class ReportingService:
             # 验证日期范围
             validate_date_range(start_date, end_date)
             
-            # 计算上一个同等时长的周期，用于对比
+            # 计算时间跨度，决定数据聚合粒度（三级策略）
             period_days = (end_date - start_date).days
+            if period_days <= 7:
+                granularity = 'day'
+            elif period_days <= 90:
+                granularity = 'week'
+            else:
+                granularity = 'month'
+            
+            # 计算上一个同等时长的周期，用于对比
             prev_end_date = start_date - relativedelta(days=1)
             prev_start_date = prev_end_date - relativedelta(days=period_days)
             
@@ -84,11 +92,11 @@ class ReportingService:
                 previous_metrics['net_income']
             )
             
-            # 3. 净资产趋势数据
-            net_worth_trend = self._calculate_net_worth_trend_direct(start_date, end_date)
+            # 3. 净资产趋势数据（根据粒度调整）
+            net_worth_trend = self._calculate_net_worth_trend_direct(start_date, end_date, granularity)
             
-            # 4. 资金流分析数据（按日聚合）
-            cash_flow_data = self._calculate_cash_flow_direct(start_date, end_date)
+            # 4. 资金流分析数据（根据粒度调整）
+            cash_flow_data = self._calculate_cash_flow_direct(start_date, end_date, granularity)
             
             # 5. 收入构成分析
             income_composition = self._calculate_composition_direct(start_date, end_date, 'income')
@@ -288,37 +296,76 @@ class ReportingService:
             self.logger.error(f"计算{transaction_type}构成失败: {e}")
             return []
     
-    def _calculate_cash_flow_direct(self, start_date: date, end_date: date) -> List[TrendPoint]:
-        """直接通过数据库查询计算每日资金流净值
+    def _calculate_cash_flow_direct(self, start_date: date, end_date: date, granularity: str = 'day') -> List[TrendPoint]:
+        """直接通过数据库查询计算资金流净值
         
         Args:
             start_date: 开始日期
             end_date: 结束日期
+            granularity: 聚合粒度，'day' 或 'month'
             
         Returns:
-            List[TrendPoint]: 每日资金流数据
+            List[TrendPoint]: 资金流数据
         """
         try:
-            # 按日期分组计算每日净流入
-            results = self.db.query(
-                Transaction.date,
-                func.sum(Transaction.amount).label('net_flow')
-            ).filter(
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            ).group_by(
-                Transaction.date
-            ).order_by(
-                Transaction.date
-            ).all()
+            if granularity == 'month':
+                # 按月分组计算月度净流入
+                results = self.db.query(
+                    func.strftime('%Y-%m', Transaction.date).label('period'),
+                    func.sum(Transaction.amount).label('net_flow')
+                ).filter(
+                    Transaction.date >= start_date,
+                    Transaction.date <= end_date
+                ).group_by(
+                    func.strftime('%Y-%m', Transaction.date)
+                ).order_by(
+                    func.strftime('%Y-%m', Transaction.date)
+                ).all()
+            elif granularity == 'week':
+                # 按周分组计算周度净流入
+                results = self.db.query(
+                    func.strftime('%Y-W%W', Transaction.date).label('period'),
+                    func.sum(Transaction.amount).label('net_flow')
+                ).filter(
+                    Transaction.date >= start_date,
+                    Transaction.date <= end_date
+                ).group_by(
+                    func.strftime('%Y-W%W', Transaction.date)
+                ).order_by(
+                    func.strftime('%Y-W%W', Transaction.date)
+                ).all()
+            else:
+                # 按日期分组计算每日净流入
+                results = self.db.query(
+                    Transaction.date,
+                    func.sum(Transaction.amount).label('net_flow')
+                ).filter(
+                    Transaction.date >= start_date,
+                    Transaction.date <= end_date
+                ).group_by(
+                    Transaction.date
+                ).order_by(
+                    Transaction.date
+                ).all()
             
             # 构建TrendPoint列表
             cash_flow_data = []
             for r in results:
-                cash_flow_data.append(TrendPoint(
-                    date=r.date.isoformat(),
-                    value=float(r.net_flow)
-                ))
+                if granularity == 'month':
+                    cash_flow_data.append(TrendPoint(
+                        date=r.period,
+                        value=float(r.net_flow)
+                    ))
+                elif granularity == 'week':
+                    cash_flow_data.append(TrendPoint(
+                        date=r.period,
+                        value=float(r.net_flow)
+                    ))
+                else:
+                    cash_flow_data.append(TrendPoint(
+                        date=r.date.isoformat(),
+                        value=float(r.net_flow)
+                    ))
             
             return cash_flow_data
             
@@ -326,68 +373,93 @@ class ReportingService:
             self.logger.error(f"计算资金流失败: {e}")
             return []
     
-    def _calculate_net_worth_trend_direct(self, start_date: date, end_date: date) -> List[TrendPoint]:
+    def _calculate_net_worth_trend_direct(self, start_date: date, end_date: date, granularity: str = 'day') -> List[TrendPoint]:
         """直接通过数据库查询计算净资产趋势
-        
-        优化后: 采用单次查询获取每日资产净变动，然后在内存中计算趋势，
-        避免了在循环中执行N+1次数据库查询的问题。
-        
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            
-        Returns:
-            List[TrendPoint]: 净资产趋势数据
+
+        最终修正版: 采用基于`balance_after`的每日资产历史构建模型，
+        确保在所有时间范围和粒度下数据的一致性和准确性。
         """
         try:
-            # 1. 获取起始日期的前一天的总资产作为基准值
-            previous_day = start_date - timedelta(days=1)
-            initial_assets = self.analysis_service.get_total_assets_at_date(previous_day)
-            
-            # 2. 一次性获取指定日期范围内每日的资产净变动
-            daily_changes = self.db.query(
+            # 1. 一次性获取所需时间范围内所有账户的交易历史
+            # 为了构建准确历史，需要从第一笔交易开始
+            all_transactions = self.db.query(
+                Transaction.account_id,
                 Transaction.date,
-                func.sum(Transaction.amount).label('net_change')
-            ).filter(
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            ).group_by(
-                Transaction.date
-            ).order_by(
-                Transaction.date
-            ).all()
+                Transaction.balance_after
+            ).order_by(Transaction.date, Transaction.created_at).all()
+
+            if not all_transactions:
+                return []
+
+            # 2. 在内存中构建完整的每日资产历史
+            # 这是为了避免在循环中执行N+1次数据库查询
+            first_tx_date = all_transactions[0].date
             
-            # 将查询结果转为字典以便快速查找
-            changes_map = {row.date: float(row.net_change) for row in daily_changes}
-            
-            # 3. 在内存中迭代计算每日的净资产
-            trend_data = []
-            current_assets = initial_assets
-            
-            current_date = start_date
+            txs_by_date = {}
+            for tx in all_transactions:
+                txs_by_date.setdefault(tx.date, []).append(tx)
+
+            daily_assets_history = {}
+            latest_balances = {}
+            total_assets = Decimal('0.0')
+
+            current_date = first_tx_date
             while current_date <= end_date:
-                # 获取当天的净变动，如果没有交易则为0
-                net_change = changes_map.get(current_date, 0.0)
-                current_assets += net_change
+                if current_date in txs_by_date:
+                    for tx in txs_by_date[current_date]:
+                        old_balance = latest_balances.get(tx.account_id, Decimal('0.0'))
+                        total_assets -= old_balance
+                        total_assets += tx.balance_after
+                        latest_balances[tx.account_id] = tx.balance_after
                 
-                trend_data.append(TrendPoint(
-                    date=current_date.isoformat(),
-                    value=round(current_assets, 2)
-                ))
+                if current_date >= start_date:
+                    daily_assets_history[current_date] = total_assets
                 
                 current_date += timedelta(days=1)
+            
+            # 3. 根据粒度对每日资产历史进行采样
+            trend_data = []
+            
+            # 重新从start_date开始循环以进行采样
+            current_date = start_date
+            while current_date <= end_date:
+                current_assets = daily_assets_history.get(current_date, Decimal('0.0'))
+                is_last_day = (current_date == end_date)
                 
-            # 如果没有生成任何趋势数据（例如，数据库为空），返回一个基于初始值的点
-            if not trend_data:
-                return [TrendPoint(date=start_date.isoformat(), value=round(initial_assets, 2))]
+                if granularity == 'day':
+                    trend_data.append(TrendPoint(date=current_date.isoformat(), value=round(current_assets, 2)))
+                
+                elif granularity == 'week':
+                    is_end_of_week = (current_date.weekday() == 6)
+                    if is_end_of_week or is_last_day:
+                        week_str = current_date.strftime('%Y-W%W')
+                        if not trend_data or trend_data[-1].date != week_str:
+                             trend_data.append(TrendPoint(date=week_str, value=round(current_assets, 2)))
+
+                elif granularity == 'month':
+                    next_day = current_date + timedelta(days=1)
+                    is_end_of_month = (next_day.month != current_date.month)
+                    if is_end_of_month or is_last_day:
+                        month_str = current_date.strftime('%Y-%m')
+                        if not trend_data or trend_data[-1].date != month_str:
+                            trend_data.append(TrendPoint(date=month_str, value=round(current_assets, 2)))
+
+                current_date += timedelta(days=1)
+
+            # 4. 如果采样后仍然没有数据（例如，时间范围内没有交易）
+            if not trend_data and start_date <= end_date:
+                # 获取该区间的初始值
+                initial_assets = self.analysis_service.get_total_assets_at_date(start_date - timedelta(days=1))
+                if granularity == 'month':
+                    date_format = start_date.strftime('%Y-%m')
+                elif granularity == 'week':
+                    date_format = start_date.strftime('%Y-W%W')
+                else:
+                    date_format = start_date.isoformat()
+                return [TrendPoint(date=date_format, value=round(initial_assets, 2))]
 
             return trend_data
             
         except Exception as e:
-            self.logger.error(f"计算净资产趋势失败: {e}")
-            # 异常情况下，返回一个基于当前总资产的单点数据，保证图表有内容
-            current_assets = self.analysis_service.get_current_total_assets()
-            return [TrendPoint(
-                date=start_date.isoformat(),
-                value=round(current_assets, 2)
-            )]
+            self.logger.error(f"计算净资产趋势失败: {e}", exc_info=True)
+            return []

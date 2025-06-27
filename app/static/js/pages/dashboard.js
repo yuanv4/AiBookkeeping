@@ -41,13 +41,7 @@ export default class FinancialDashboard extends BasePage {
         
         this.currentDateRange.end = formatDate(today);
         this.currentDateRange.start = formatDate(thirtyDaysAgo);
-        
-        // 设置日期输入框的值
-        document.getElementById('startDate').value = this.currentDateRange.start;
-        document.getElementById('endDate').value = this.currentDateRange.end;
     }
-    
-
     
     getChartColors() {
         return [
@@ -73,19 +67,6 @@ export default class FinancialDashboard extends BasePage {
                 e.target.classList.add('active');
             });
         });
-        
-        // 自定义日期范围应用按钮
-        document.getElementById('applyDateRange').addEventListener('click', () => {
-            this.handleCustomDateRange();
-        });
-        
-        // 日期输入框回车键
-        document.getElementById('startDate').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.handleCustomDateRange();
-        });
-        document.getElementById('endDate').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.handleCustomDateRange();
-        });
     }
     
     handlePresetPeriod(days) {
@@ -94,34 +75,6 @@ export default class FinancialDashboard extends BasePage {
         
         this.currentDateRange.start = formatDate(startDate);
         this.currentDateRange.end = formatDate(today);
-        
-        // 更新日期输入框
-        document.getElementById('startDate').value = this.currentDateRange.start;
-        document.getElementById('endDate').value = this.currentDateRange.end;
-        
-        // 更新数据
-        this.fetchDashboardData();
-    }
-    
-    handleCustomDateRange() {
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
-        
-        if (!startDate || !endDate) {
-            showNotification('请选择完整的日期范围', 'warning');
-            return;
-        }
-        
-        if (new Date(startDate) > new Date(endDate)) {
-            showNotification('开始日期不能晚于结束日期', 'warning');
-            return;
-        }
-        
-        this.currentDateRange.start = startDate;
-        this.currentDateRange.end = endDate;
-        
-        // 清除预设按钮的选中状态
-        document.querySelectorAll('[data-period]').forEach(btn => btn.classList.remove('active'));
         
         // 更新数据
         this.fetchDashboardData();
@@ -138,8 +91,6 @@ export default class FinancialDashboard extends BasePage {
             console.error('获取仪表盘数据失败:', result.error);
         }
     }
-    
-
     
     initializeCharts() {
         // 净资产趋势图
@@ -162,6 +113,24 @@ export default class FinancialDashboard extends BasePage {
                 plugins: {
                     legend: {
                         display: false
+                    },
+                    datalabels: {
+                        display: 'auto',
+                        align: 'top',
+                        anchor: 'end',
+                        offset: 8,
+                        font: {
+                            size: 10
+                        },
+                        color: '#6c757d',
+                        formatter: function(value) {
+                            // 格式化为紧凑的货币格式
+                            return '¥' + value.toLocaleString('zh-CN', {
+                                notation: 'compact',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 1
+                            });
+                        }
                     }
                 },
                 scales: {
@@ -320,7 +289,22 @@ export default class FinancialDashboard extends BasePage {
             return;
         }
         
-        const labels = trendData.map(item => new Date(item.date).toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'}));
+        // 智能处理日期格式：日度(YYYY-MM-DD)、周度(YYYY-Www)、月度(YYYY-MM)
+        const labels = trendData.map(item => {
+            if (item.date.includes('-W')) {
+                // 周度数据格式 YYYY-Www (例如 2024-W23)
+                const [year, weekStr] = item.date.split('-W');
+                const weekNum = weekStr.padStart(2, '0');
+                return `${year}年 第${weekNum}周`;
+            } else if (item.date.includes('-') && item.date.split('-').length === 2) {
+                // 月度数据格式 YYYY-MM
+                const [year, month] = item.date.split('-');
+                return `${year}年${month}月`;
+            } else {
+                // 日度数据格式 YYYY-MM-DD
+                return new Date(item.date).toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'});
+            }
+        });
         const data = trendData.map(item => item.value);
         
         this.charts.netWorth.data.labels = labels;
@@ -337,7 +321,22 @@ export default class FinancialDashboard extends BasePage {
             return;
         }
         
-        const labels = cashFlowData.map(item => new Date(item.date).toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'}));
+        // 智能处理日期格式：日度(YYYY-MM-DD)、周度(YYYY-Www)、月度(YYYY-MM)
+        const labels = cashFlowData.map(item => {
+            if (item.date.includes('-W')) {
+                // 周度数据格式 YYYY-Www (例如 2024-W23)
+                const [year, weekStr] = item.date.split('-W');
+                const weekNum = weekStr.padStart(2, '0');
+                return `${year}年 第${weekNum}周`;
+            } else if (item.date.includes('-') && item.date.split('-').length === 2) {
+                // 月度数据格式 YYYY-MM
+                const [year, month] = item.date.split('-');
+                return `${year}年${month}月`;
+            } else {
+                // 日度数据格式 YYYY-MM-DD
+                return new Date(item.date).toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'});
+            }
+        });
         const netFlowData = cashFlowData.map(item => item.value);
         
         this.charts.cashFlow.data.labels = labels;
