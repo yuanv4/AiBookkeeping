@@ -49,12 +49,6 @@ class TopExpenseCategory:
     count: int
 
 @dataclass
-class HeatmapPoint:
-    """热力图数据点（已适配日历视图）"""
-    date: str     # YYYY-MM-DD
-    amount: float
-
-@dataclass
 class MerchantRanking:
     """商家排行项目"""
     merchant_name: str
@@ -71,5 +65,4 @@ class DashboardData:
     income_composition: List[CompositionItem]
     expense_composition: List[CompositionItem]
     top_expense_categories: List[TopExpenseCategory]
-    consumption_heatmap: List[HeatmapPoint]
     top_merchants: List[MerchantRanking] 

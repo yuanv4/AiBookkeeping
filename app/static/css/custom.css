@@ -210,7 +210,10 @@ body {
     fill: none;
 }
 
-/* 图标文本无障碍支持 */
+/* ========================================
+   icon-text无障碍支持
+   ======================================== */
+
 .icon-text {
     position: absolute !important;
     clip: rect(0, 0, 0, 0) !important;
@@ -219,18 +222,8 @@ body {
     overflow: hidden !important;
 }
 
-/* ========================================
-   消费日历热力图样式
-   ======================================== */
-
-/* 日历方块基础样式 */
-.day-square {
-    width: 1rem;
-    height: 1rem;
-    transition: transform 0.1s ease-in-out;
-    cursor: pointer;
-}
-
-.day-square:hover {
-    transform: scale(1.2);
+/* Dashboard Transaction Details Scroll */
+.transaction-details {
+    max-height: 280px; /* Aligns with the chart height + card padding */
+    overflow-y: auto;
 } 

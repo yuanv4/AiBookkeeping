@@ -37,10 +37,10 @@ export default class FinancialDashboard extends BasePage {
     
     setDefaultDateRange() {
         const today = new Date();
-        const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         
         this.currentDateRange.end = formatDate(today);
-        this.currentDateRange.start = formatDate(thirtyDaysAgo);
+        this.currentDateRange.start = formatDate(startOfMonth);
     }
     
     getChartColors() {
@@ -69,12 +69,29 @@ export default class FinancialDashboard extends BasePage {
         });
     }
     
-    handlePresetPeriod(days) {
+    handlePresetPeriod(period) {
         const today = new Date();
-        const startDate = new Date(today.getTime() - parseInt(days) * 24 * 60 * 60 * 1000);
-        
+        let startDate;
+
+        switch (period) {
+            case 'week':
+                const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
+                const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // adjust when day is Sunday
+                startDate = new Date(today.setDate(diff));
+                break;
+            case 'month':
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                break;
+            case 'year':
+                startDate = new Date(today.getFullYear(), 0, 1);
+                break;
+            default:
+                // 默认回到当月
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        }
+
         this.currentDateRange.start = formatDate(startDate);
-        this.currentDateRange.end = formatDate(today);
+        this.currentDateRange.end = formatDate(new Date()); // 确保结束日期是今天
         
         // 更新数据
         this.fetchDashboardData();
@@ -339,12 +356,11 @@ export default class FinancialDashboard extends BasePage {
         this.updateCashFlowChart(data.cash_flow);
         this.updateIncomeCompositionChart(data.income_composition);
         this.updateExpenseTopCategoriesChart(data.top_expense_categories);
-        this.renderConsumptionCalendar(data.consumption_heatmap);
         this.updateTopMerchantsChart(data.top_merchants);
     }
     
     updateCoreMetrics(metrics) {
-        document.getElementById('currentAssets').textContent = '¥' + metrics.current_total_assets.toLocaleString('zh-CN', {minimumFractionDigits: 2});
+        document.getElementById('currentAssets').textContent = `¥${Number(metrics.current_total_assets).toLocaleString()}`;
         document.getElementById('netIncome').textContent = '¥' + metrics.net_income.toLocaleString('zh-CN', {minimumFractionDigits: 2});
         
         // 更新应急储备月数
@@ -580,146 +596,24 @@ export default class FinancialDashboard extends BasePage {
         container.innerHTML = html;
     }
     
-
-    
     updateTopMerchantsChart(merchantsData) {
-        if (!merchantsData || merchantsData.length === 0) {
-            // 清空图表数据
-            this.charts.topMerchants.data.labels = [];
-            this.charts.topMerchants.data.datasets[0].data = [];
-            this.charts.topMerchants.data.datasets[0].transactionCounts = [];
-            this.charts.topMerchants.update();
+        if (!this.charts.topMerchants) {
+            console.error('商家排行图表未初始化');
             return;
         }
-        
-        const labels = merchantsData.map(item => item.merchant_name);
-        const data = merchantsData.map(item => item.amount);
-        const transactionCounts = merchantsData.map(item => item.transaction_count);
-        
+
+        const labels = merchantsData.map(d => d.merchant_name);
+        const data = merchantsData.map(d => d.amount);
+
         this.charts.topMerchants.data.labels = labels;
         this.charts.topMerchants.data.datasets[0].data = data;
-        this.charts.topMerchants.data.datasets[0].transactionCounts = transactionCounts;
         this.charts.topMerchants.update();
     }
-    
-    renderConsumptionCalendar(dailyData) {
-        const container = document.getElementById('consumption-calendar-view');
-        if (!container) {
-            console.error('消费日历容器未找到');
-            return;
-        }
-        
-        // 清空容器
-        container.innerHTML = '';
-        
-        if (!dailyData || dailyData.length === 0) {
-            container.innerHTML = `
-                <div class="text-center text-muted py-4">
-                    <i data-lucide="calendar" class="lucide-icon icon-lg text-muted"></i>
-                    <p class="mt-2">暂无消费数据</p>
-                </div>
-            `;
-            // 重新初始化Lucide图标
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-            return;
-        }
-        
-        // 创建日期到金额的映射
-        const dataMap = new Map();
-        dailyData.forEach(item => {
-            dataMap.set(item.date, item.amount);
-        });
-        
-        // 获取日期范围
-        const dates = dailyData.map(item => new Date(item.date));
-        const startDate = new Date(Math.min(...dates));
-        const endDate = new Date(Math.max(...dates));
-        
-        // 计算颜色映射规则
-        const amounts = dailyData.map(item => item.amount);
-        const maxAmount = Math.max(...amounts);
-        const getColorClass = (amount) => {
-            if (amount <= 0) return 'bg-light'; // 无消费或0消费
-            
-            // 修正：使用标准的Bootstrap背景色和不透明度工具类
-            const ratio = amount / maxAmount;
-            if (ratio < 0.25) return 'bg-success bg-opacity-25';
-            if (ratio < 0.50) return 'bg-success bg-opacity-50';
-            if (ratio < 0.75) return 'bg-success bg-opacity-75';
-            return 'bg-success'; // 默认100%不透明度
-        };
-        
-        // 创建日历网格
-        const calendarGrid = document.createElement('div');
-        calendarGrid.className = 'd-flex flex-wrap gap-1';
-        
-        // 计算需要显示的周数
-        const firstDayOfWeek = new Date(startDate);
-        firstDayOfWeek.setDate(startDate.getDate() - startDate.getDay() + 1); // 调整到周一
-        
-        const lastDayOfWeek = new Date(endDate);
-        lastDayOfWeek.setDate(endDate.getDate() + (6 - endDate.getDay()) + 1); // 调整到周日
-        
-        // 按周生成日历
-        const currentDate = new Date(firstDayOfWeek);
-        while (currentDate <= lastDayOfWeek) {
-            // 创建一周的列容器
-            const weekColumn = document.createElement('div');
-            weekColumn.className = 'd-flex flex-column gap-1';
-            
-            // 生成一周的7天
-            for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-                const daySquare = document.createElement('div');
-                const dateStr = currentDate.toISOString().split('T')[0];
-                const amount = dataMap.get(dateStr) || 0;
-                
-                // 修正：将多个类名作为单独的参数添加到classList中
-                daySquare.classList.add('day-square', 'rounded', ...getColorClass(amount).split(' '));
-                
-                // 设置Bootstrap Tooltip
-                daySquare.setAttribute('data-bs-toggle', 'tooltip');
-                daySquare.setAttribute('data-bs-placement', 'top');
-                daySquare.setAttribute('data-bs-title', 
-                    `${currentDate.toLocaleDateString('zh-CN')}: ¥${amount.toLocaleString()}`
-                );
-                
-                // 如果日期不在数据范围内，使用较淡的颜色
-                if (currentDate < startDate || currentDate > endDate) {
-                    daySquare.className = 'day-square rounded bg-light opacity-25';
-                }
-                
-                weekColumn.appendChild(daySquare);
-                
-                // 移动到下一天
-                currentDate.setDate(currentDate.getDate() + 1);
-            }
-            
-            calendarGrid.appendChild(weekColumn);
-        }
-        
-        // 添加标题和说明
-        const header = document.createElement('div');
-        header.className = 'mb-3';
-        header.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center">
-                <small class="text-muted">每个方块代表一天的消费金额，颜色越深消费越多</small>
-                <small class="text-muted">最高: ¥${maxAmount.toLocaleString()}</small>
-            </div>
-        `;
-        
-        container.appendChild(header);
-        container.appendChild(calendarGrid);
-        
-        // 初始化Bootstrap Tooltips
-        if (typeof bootstrap !== 'undefined') {
-            const tooltipTriggerList = container.querySelectorAll('[data-bs-toggle="tooltip"]');
-            tooltipTriggerList.forEach(tooltipTriggerEl => {
-                new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        }
-    }
 }
+
+// 初始化页面
+document.addEventListener('DOMContentLoaded', () => {
+    new FinancialDashboard().init();
+});
 
  

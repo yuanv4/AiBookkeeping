@@ -21,7 +21,7 @@ from .utils import validate_date_range
 from .models import (
     Period, CoreMetrics, CompositionItem, 
     TrendPoint, DashboardData, TopExpenseCategory,
-    HeatmapPoint, MerchantRanking
+    MerchantRanking
 )
 
 logger = logging.getLogger(__name__)
@@ -111,13 +111,6 @@ class ReportingService:
             # 8. 计算支出分类排行（Top 5）
             top_expense_categories = self._calculate_top_expense_categories(start_date, end_date, 5)
             
-            # 9. 获取消费日历热力图数据
-            heatmap_data = self.analysis_service.get_consumption_heatmap_data(start_date, end_date)
-            consumption_heatmap = [HeatmapPoint(
-                date=point['date'],
-                amount=point['amount']
-            ) for point in heatmap_data]
-            
             # 10. 获取主要支出商家排行数据
             merchants_data = self.analysis_service.get_top_merchants_data(start_date, end_date, 10)
             top_merchants = [MerchantRanking(
@@ -148,7 +141,6 @@ class ReportingService:
                 income_composition=income_composition,
                 expense_composition=expense_composition,
                 top_expense_categories=top_expense_categories,
-                consumption_heatmap=consumption_heatmap,
                 top_merchants=top_merchants
             )
             
@@ -179,7 +171,6 @@ class ReportingService:
                 income_composition=[],
                 expense_composition=[],
                 top_expense_categories=[],
-                consumption_heatmap=[],
                 top_merchants=[]
             )
     

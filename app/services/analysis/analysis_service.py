@@ -208,55 +208,10 @@ class AnalysisService:
             self.logger.error(f"计算应急储备月数失败: {e}")
             raise 
     
-    def get_consumption_heatmap_data(self, start_date: date, end_date: date) -> list:
-        """获取消费日历热力图数据
-        
-        按日期分组统计支出金额，用于生成GitHub风格的日历热力图。
-        
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            
-        Returns:
-            list: 热力图数据，格式为 [{'date': 'YYYY-MM-DD', 'amount': float}]
-        """
-        try:
-            # 查询支出交易，按日期分组
-            heatmap_query = self.db.query(
-                Transaction.date,
-                func.sum(func.abs(Transaction.amount)).label('total_amount')   # 支出总额（绝对值）
-            ).filter(
-                Transaction.amount < 0,  # 只统计支出
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            ).group_by(
-                Transaction.date
-            ).order_by(
-                Transaction.date
-            ).all()
-            
-            # 转换为前端需要的数据格式
-            heatmap_data = []
-            for transaction_date, amount in heatmap_query:
-                heatmap_data.append({
-                    'date': transaction_date.isoformat(),
-                    'amount': float(amount or 0)
-                })
-            
-            self.logger.debug(f"获取消费日历热力图数据: {len(heatmap_data)}个数据点")
-            return heatmap_data
-            
-        except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 获取消费日历热力图数据失败: {e}")
-            raise
-        except Exception as e:
-            self.logger.error(f"获取消费日历热力图数据失败: {e}")
-            raise
-    
     def get_top_merchants_data(self, start_date: date, end_date: date, limit: int = 10) -> list:
         """获取主要支出商家排行数据
         
-        按商家名称分组统计支出金额，返回支出最高的商家列表。
+        按商家名称分组统计支出金额和交易次数。
         
         Args:
             start_date: 开始日期

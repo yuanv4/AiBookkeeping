@@ -30,10 +30,9 @@
                             <div class="d-flex gap-2 align-items-center">
                                 <!-- 预设时间按钮 -->
                                 <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" data-period="7">近7天</button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm active" data-period="30">近30天</button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" data-period="90">近3个月</button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" data-period="365">近一年</button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" data-period="week">本周</button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm active" data-period="month">本月</button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" data-period="year">本年</button>
                                 </div>
                             </div>
                         </div>
@@ -84,16 +83,9 @@
         </div>
     </div>
     
-    <!-- 模块四：深度消费分析 -->
+    <!-- 模块四：消费分析 -->
     <div class="row mb-4">
-        <div class="col-lg-8">
-            {% call card("消费日历", "calendar") %}
-            <div id="consumption-calendar-view" class="consumption-calendar-container p-2">
-                <!-- 日历将由JS动态生成 -->
-            </div>
-            {% endcall %}
-        </div>
-        <div class="col-lg-4">
+        <div class="col-lg-12">
             {{ chart_container("主要支出商家 (TOP 10)", "topMerchantsChart", "300px", "bar-chart") }}
         </div>
     </div>
