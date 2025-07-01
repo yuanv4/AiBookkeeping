@@ -65,23 +65,85 @@ def get_cash_flow_data():
 
 @main_bp.route('/api/dashboard/expense-analysis')
 def get_expense_analysis_data():
-    """获取支出分析数据的API接口"""
+    """获取支出分析数据的API接口
+    
+    支持两种调用模式：
+    1. 增强模式：传入target_month参数，返回完整的支出结构透视数据
+    2. 兼容模式：传入start_date和end_date参数，返回原有的支出分析数据
+    """
     try:
-        start_date_str = request.args.get('start_date')
-        end_date_str = request.args.get('end_date')
+        target_month_str = request.args.get('target_month')
         
-        if not start_date_str or not end_date_str:
-            return jsonify({'error': '缺少必要的日期参数'}), 400
+        # 新的增强模式：基于目标月份的完整支出分析
+        if target_month_str:
+            try:
+                # 解析目标月份 (格式: YYYY-MM)
+                target_month = datetime.strptime(target_month_str, '%Y-%m').date()
+                
+                # 调用增强的支出分析方法
+                enhanced_data = current_app.reporting_service.get_enhanced_expense_analysis_data(target_month)
+                
+                # 转换为JSON可序列化的字典
+                return jsonify({
+                    'target_month': enhanced_data.target_month,
+                    'total_expense': enhanced_data.total_expense,
+                    'expense_trend': [
+                        {'date': trend.date, 'value': trend.value, 'category': trend.category}
+                        for trend in enhanced_data.expense_trend
+                    ],
+                    'recurring_expenses': [
+                        {
+                            'category': recurring.category,
+                            'amount': recurring.amount,
+                            'frequency': recurring.frequency,
+                            'confidence_score': recurring.confidence_score,
+                            'last_occurrence': recurring.last_occurrence,
+                            'count': recurring.count
+                        }
+                        for recurring in enhanced_data.recurring_expenses
+                    ],
+                    'flexible_composition': [
+                        {
+                            'name': comp.name,
+                            'amount': comp.amount,
+                            'percentage': comp.percentage,
+                            'count': comp.count
+                        }
+                        for comp in enhanced_data.flexible_composition
+                    ],
+                    'top_expense_categories': [
+                        {
+                            'category': cat.category,
+                            'total_amount': cat.total_amount,
+                            'percentage': cat.percentage,
+                            'count': cat.count
+                        }
+                        for cat in enhanced_data.top_categories
+                    ],
+                    'recurring_transactions': enhanced_data.recurring_transactions or [],
+                    'flexible_transactions': enhanced_data.flexible_transactions or []
+                })
+                
+            except ValueError:
+                return jsonify({'error': '目标月份格式错误，请使用 YYYY-MM 格式'}), 400
         
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        
-        data = current_app.reporting_service.get_expense_analysis_data(start_date, end_date)
-        
-        return jsonify(data)
+        # 原有的兼容模式：基于日期范围的支出分析
+        else:
+            start_date_str = request.args.get('start_date')
+            end_date_str = request.args.get('end_date')
+            
+            if not start_date_str or not end_date_str:
+                return jsonify({'error': '缺少必要的日期参数，请提供 target_month 或 start_date+end_date'}), 400
+            
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            
+            data = current_app.reporting_service.get_expense_analysis_data(start_date, end_date)
+            
+            return jsonify(data)
         
     except ValueError:
-        return jsonify({'error': '日期格式错误，请使用 YYYY-MM-DD 格式'}), 400
+        return jsonify({'error': '日期格式错误，请使用正确的日期格式'}), 400
     except Exception as e:
         current_app.logger.error(f"获取支出分析数据失败: {str(e)}")
         return jsonify({'error': '服务器内部错误'}), 500

@@ -49,6 +49,35 @@ class TopExpenseCategory:
     count: int
 
 @dataclass
+class RecurringExpense:
+    """周期性支出项目"""
+    category: str
+    amount: float
+    frequency: str  # 'monthly', 'weekly', 'quarterly'
+    confidence_score: float  # 0-100的置信度分数
+    last_occurrence: str  # 最近一次发生日期
+    count: int  # 识别到的交易次数
+
+@dataclass
+class ExpenseTrend:
+    """支出趋势数据点"""
+    date: str
+    value: float
+    category: str = "total"  # 可以是 'total', 'recurring', 'flexible'
+
+@dataclass
+class ExpenseAnalysisData:
+    """支出分析综合数据"""
+    target_month: str
+    total_expense: float
+    expense_trend: List[ExpenseTrend]  # 近6个月趋势
+    recurring_expenses: List[RecurringExpense]  # 周期性支出排行
+    flexible_composition: List[CompositionItem]  # 弹性支出分类占比
+    top_categories: List[TopExpenseCategory]  # 支出分类排行（保持向后兼容）
+    recurring_transactions: List[dict] = None  # 周期性支出交易明细
+    flexible_transactions: List[dict] = None  # 弹性支出交易明细
+
+@dataclass
 class DashboardData:
     """仪表盘完整数据"""
     period: Period

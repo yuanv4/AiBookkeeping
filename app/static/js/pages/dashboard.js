@@ -120,16 +120,8 @@ export default class FinancialDashboard extends BasePage {
         });
         this.cashFlowModule.init();
 
-        // 初始化支出模块
-        this.expenseModule = new DashboardModule({
-            name: 'expense',
-            controlsId: 'expense-module-controls',
-            apiEndpoint: '/api/dashboard/expense-analysis',
-            dataUpdater: (data) => {
-                this.updateExpenseAnalysisModule(data.top_expense_categories);
-            }
-        });
-        this.expenseModule.init();
+        // 初始化支出结构透视模块（月份选择器）
+        this.initializeExpenseModule();
     }
     
     getChartColors() {
@@ -167,67 +159,50 @@ export default class FinancialDashboard extends BasePage {
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
         
-        // 支出分类排行图（带点击事件）
-        this.charts.expenseTopCategories = new Chart(document.getElementById('expenseTopCategoriesChart'), {
-            type: 'doughnut',
+
+
+        // 近6个月支出趋势图
+        this.charts.expenseTrend = new Chart(document.getElementById('expenseTrendChart'), {
+            type: 'bar',
             data: { 
                 labels: [], 
                 datasets: [{ 
+                    label: '支出金额', 
                     data: [], 
-                    backgroundColor: this.getChartColors(),
-                    borderColor: getCSSColor('--bs-body-bg'),
-                    borderWidth: 2,
-                    hoverOffset: 8
+                    borderColor: getCSSColor('--bs-warning'), 
+                    backgroundColor: getCSSColor('--bs-warning-200'),
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false
                 }] 
             },
-            options: {
+            options: { 
                 responsive: true, 
-                maintainAspectRatio: false, 
-                cutout: '60%',
-                layout: {
-                    padding: {
-                        top: 50,
-                        bottom: 50,
-                        left: 50,
-                        right: 50
-                    }
-                },
+                maintainAspectRatio: false,
                 plugins: { 
                     legend: { display: false },
-                    datalabels: {
-                        formatter: (value, context) => {
-                            const label = context.chart.data.labels[context.dataIndex];
-                            const sum = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                            const percentage = sum > 0 ? ((value / sum) * 100).toFixed(1) + '%' : '0%';
-                            // 返回一个多行标签，显示分类和百分比
-                            return `${label} (${percentage})`;
-                        },
-                        color: getCSSColor('--bs-body-color'),
-                        anchor: 'end',
-                        align: 'end',
-                        offset: 15,
-                        textAlign: 'left'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed !== null) {
-                                    const value = context.parsed;
-                                    const sum = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = sum > 0 ? ((value / sum) * 100).toFixed(2) + '%' : '0%';
-                                    label += `¥${value.toLocaleString('zh-CN')} (${percentage})`;
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                }
+                    datalabels: { 
+                        display: 'auto', 
+                        align: 'top', 
+                        anchor: 'end', 
+                        offset: 8, 
+                        font: { size: 10 }, 
+                        color: '#6c757d', 
+                        formatter: (value) => '¥' + value.toLocaleString('zh-CN', { notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: 1 }) 
+                    } 
+                }, 
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { 
+                            callback: (value) => '¥' + value.toLocaleString() 
+                        } 
+                    } 
+                } 
             }
         });
+
+
     }
 
     updateDashboard(data) {
@@ -281,46 +256,251 @@ export default class FinancialDashboard extends BasePage {
         this.charts.incomeComposition.update();
     }
 
-    updateExpenseAnalysisModule(topCategoriesData) {
-        if (!topCategoriesData) return;
+    /**
+     * 初始化支出结构透视模块
+     * 包含月份选择器和数据获取逻辑
+     */
+    initializeExpenseModule() {
+        this.currentExpenseMonth = new Date(); // 默认当前月份
+        this.initializeMonthSelector();
+        this.loadExpenseAnalysisData();
+    }
 
-        // 更新图表
-        if (this.charts.expenseTopCategories) {
-            this.charts.expenseTopCategories.data.labels = topCategoriesData.map(d => d.category);
-            this.charts.expenseTopCategories.data.datasets[0].data = topCategoriesData.map(d => d.total_amount);
-            this.charts.expenseTopCategories.update();
+    /**
+     * 初始化月份选择器
+     */
+    initializeMonthSelector() {
+        const selector = document.getElementById('expense-month-selector');
+        if (!selector) return;
+
+        // 生成最近12个月的选项
+        const currentDate = new Date();
+        for (let i = 0; i < 12; i++) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+            const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const text = `${date.getFullYear()}年${date.getMonth() + 1}月`;
+            
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = text;
+            if (i === 0) option.selected = true; // 默认选中当前月
+            
+            selector.appendChild(option);
         }
 
-        // 更新表格
-        const tableBody = document.getElementById('expense-top-categories-table-body');
-        if (tableBody) {
-            tableBody.innerHTML = ''; // 清空现有内容
+        // 添加变化事件监听器
+        selector.addEventListener('change', (e) => {
+            const selectedMonth = e.target.value;
+            this.currentExpenseMonth = new Date(selectedMonth + '-01');
+            this.loadExpenseAnalysisData();
+        });
+    }
 
-            if (topCategoriesData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">当前时段无支出数据</td></tr>`;
-                return;
+    /**
+     * 加载支出分析数据
+     */
+    async loadExpenseAnalysisData() {
+        try {
+            const monthStr = `${this.currentExpenseMonth.getFullYear()}-${String(this.currentExpenseMonth.getMonth() + 1).padStart(2, '0')}`;
+            const url = `/api/dashboard/expense-analysis?target_month=${monthStr}`;
+            
+            const result = await apiService.get(url);
+            
+            if (result.success) {
+                this.updateExpenseAnalysisModule(result.data);
+            } else {
+                console.error('获取支出分析数据失败:', result.error);
+                showNotification('获取支出分析数据失败', 'error');
             }
-
-            const totalExpense = topCategoriesData.reduce((sum, item) => sum + item.total_amount, 0);
-
-            topCategoriesData.forEach((item, index) => {
-                const percentage = totalExpense > 0 ? ((item.total_amount / totalExpense) * 100).toFixed(1) : 0;
-                const row = document.createElement('tr');
-
-                row.innerHTML = `
-                    <td class="text-center">${index + 1}</td>
-                    <td>
-                        <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${item.category}">
-                            ${item.category}
-                        </span>
-                    </td>
-                    <td class="text-end">¥${item.total_amount.toLocaleString('zh-CN')}</td>
-                    <td class="text-end">${percentage}%</td>
-                `;
-                
-                tableBody.appendChild(row);
-            });
+        } catch (error) {
+            console.error('支出分析数据加载异常:', error);
+            showNotification('支出分析数据加载异常', 'error');
         }
+    }
+
+    /**
+     * 更新支出分析模块的所有组件
+     */
+    updateExpenseAnalysisModule(data) {
+        if (!data) return;
+
+        // 更新总支出显示
+        this.updateTotalExpense(data.total_expense || 0);
+
+        // 更新近6个月趋势图
+        this.updateExpenseTrendChart(data.expense_trend || []);
+
+        // 更新支出分类排行Top10表格
+        this.updateExpenseTopCategoriesTable(data.top_expense_categories || []);
+
+        // 更新固定周期性支出明细表格
+        this.updateRecurringExpensesTable(data.recurring_transactions || []);
+
+        // 更新弹性支出明细表格
+        this.updateFlexibleExpensesTable(data.flexible_transactions || []);
+    }
+
+    /**
+     * 更新总支出显示
+     */
+    updateTotalExpense(totalExpense) {
+        const element = document.getElementById('total-expense-amount');
+        if (element) {
+            element.textContent = `¥${totalExpense.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+    }
+
+    /**
+     * 更新近6个月支出趋势图
+     */
+    updateExpenseTrendChart(trendData) {
+        if (!this.charts.expenseTrend || !trendData) return;
+
+        const labels = trendData.map(d => {
+            const date = new Date(d.date);
+            return `${date.getMonth() + 1}月`;
+        });
+        const values = trendData.map(d => d.value);
+
+        this.charts.expenseTrend.data.labels = labels;
+        this.charts.expenseTrend.data.datasets[0].data = values;
+        this.charts.expenseTrend.update();
+    }
+
+
+
+    /**
+     * 更新支出分类排行Top10表格
+     */
+    updateExpenseTopCategoriesTable(topCategoriesData) {
+        const tableBody = document.getElementById('expense-top-categories-table-body');
+        if (!tableBody) return;
+
+        tableBody.innerHTML = '';
+
+        if (!topCategoriesData || topCategoriesData.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">当前月份无支出数据</td></tr>`;
+            return;
+        }
+
+        const totalExpense = topCategoriesData.reduce((sum, item) => sum + item.total_amount, 0);
+
+        // 限制显示前10项
+        const top10Data = topCategoriesData.slice(0, 10);
+
+        top10Data.forEach((item, index) => {
+            const percentage = totalExpense > 0 ? ((item.total_amount / totalExpense) * 100).toFixed(1) : 0;
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                <td class="text-center">${index + 1}</td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${item.category}">
+                        ${item.category}
+                    </span>
+                </td>
+                <td class="text-end">¥${item.total_amount.toLocaleString('zh-CN')}</td>
+                <td class="text-end">${percentage}%</td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+    }
+
+    /**
+     * 更新固定周期性支出明细表格
+     */
+    updateRecurringExpensesTable(recurringTransactions) {
+        const tableBody = document.getElementById('recurring-expenses-table-body');
+        if (!tableBody) return;
+
+        tableBody.innerHTML = '';
+
+        if (!recurringTransactions || recurringTransactions.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">暂无固定周期性支出</td></tr>`;
+            return;
+        }
+
+        recurringTransactions.slice(0, 10).forEach((transaction) => {
+            const row = document.createElement('tr');
+            
+            // 格式化日期
+            const dateStr = new Date(transaction.date).toLocaleDateString('zh-CN');
+            
+            // 格式化金额（支出显示为负数）
+            const amount = transaction.amount || 0;
+            const amountStr = amount < 0 ? `¥${Math.abs(amount).toLocaleString('zh-CN')}` : `¥${amount.toLocaleString('zh-CN')}`;
+
+            row.innerHTML = `
+                <td>${dateStr}</td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 80px;" title="${transaction.account_name || ''}">
+                        ${transaction.account_name || ''}
+                    </span>
+                </td>
+                <td class="text-end text-danger">${amountStr}</td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 100px;" title="${transaction.counterparty || ''}">
+                        ${transaction.counterparty || ''}
+                    </span>
+                </td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${transaction.description || ''}">
+                        ${transaction.description || ''}
+                    </span>
+                </td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+    }
+
+    /**
+     * 更新弹性支出明细表格
+     */
+    updateFlexibleExpensesTable(flexibleTransactions) {
+        const tableBody = document.getElementById('flexible-expenses-table-body');
+        if (!tableBody) return;
+
+        tableBody.innerHTML = '';
+
+        if (!flexibleTransactions || flexibleTransactions.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">暂无弹性支出</td></tr>`;
+            return;
+        }
+
+        flexibleTransactions.slice(0, 10).forEach((transaction) => {
+            const row = document.createElement('tr');
+            
+            // 格式化日期
+            const dateStr = new Date(transaction.date).toLocaleDateString('zh-CN');
+            
+            // 格式化金额（支出显示为负数）
+            const amount = transaction.amount || 0;
+            const amountStr = amount < 0 ? `¥${Math.abs(amount).toLocaleString('zh-CN')}` : `¥${amount.toLocaleString('zh-CN')}`;
+
+            row.innerHTML = `
+                <td>${dateStr}</td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 80px;" title="${transaction.account_name || ''}">
+                        ${transaction.account_name || ''}
+                    </span>
+                </td>
+                <td class="text-end text-danger">${amountStr}</td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 100px;" title="${transaction.counterparty || ''}">
+                        ${transaction.counterparty || ''}
+                    </span>
+                </td>
+                <td>
+                    <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${transaction.description || ''}">
+                        ${transaction.description || ''}
+                    </span>
+                </td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
     }
 }
 
