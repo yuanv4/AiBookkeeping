@@ -8,12 +8,8 @@ from . import main_bp
 def dashboard():
     """现金流健康仪表盘页面"""
     try:
-        # 设置默认时间范围为过去30天
-        end_date = date.today()
-        start_date = end_date - relativedelta(days=30)
-        
         # 获取初始数据
-        dashboard_data = current_app.reporting_service.get_financial_dashboard_data(start_date, end_date)
+        dashboard_data = current_app.reporting_service.get_initial_dashboard_data()
         
         return render_template('dashboard.html',
                              page_title='现金流健康仪表盘',
@@ -44,31 +40,50 @@ def dashboard():
                              page_title='现金流健康仪表盘',
                              dashboard_data=empty_data)
 
-@main_bp.route('/dashboard-data')
-def get_dashboard_data():
-    """获取仪表盘数据的API接口"""
+@main_bp.route('/api/dashboard/cash-flow')
+def get_cash_flow_data():
+    """获取资金流分析数据的API接口"""
     try:
-        # 获取查询参数
         start_date_str = request.args.get('start_date')
         end_date_str = request.args.get('end_date')
         
         if not start_date_str or not end_date_str:
             return jsonify({'error': '缺少必要的日期参数'}), 400
         
-        # 解析日期
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            return jsonify({'error': '日期格式错误，请使用 YYYY-MM-DD 格式'}), 400
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
         
-        # 获取数据
-        dashboard_data = current_app.reporting_service.get_financial_dashboard_data(start_date, end_date)
+        data = current_app.reporting_service.get_cash_flow_data(start_date, end_date)
         
-        return jsonify(dashboard_data)
+        return jsonify(data)
         
+    except ValueError:
+        return jsonify({'error': '日期格式错误，请使用 YYYY-MM-DD 格式'}), 400
     except Exception as e:
-        current_app.logger.error(f"获取仪表盘数据失败: {str(e)}")
+        current_app.logger.error(f"获取资金流数据失败: {str(e)}")
+        return jsonify({'error': '服务器内部错误'}), 500
+
+@main_bp.route('/api/dashboard/expense-analysis')
+def get_expense_analysis_data():
+    """获取支出分析数据的API接口"""
+    try:
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+        
+        if not start_date_str or not end_date_str:
+            return jsonify({'error': '缺少必要的日期参数'}), 400
+        
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        
+        data = current_app.reporting_service.get_expense_analysis_data(start_date, end_date)
+        
+        return jsonify(data)
+        
+    except ValueError:
+        return jsonify({'error': '日期格式错误，请使用 YYYY-MM-DD 格式'}), 400
+    except Exception as e:
+        current_app.logger.error(f"获取支出分析数据失败: {str(e)}")
         return jsonify({'error': '服务器内部错误'}), 500
 
 @main_bp.route('/category-transactions')

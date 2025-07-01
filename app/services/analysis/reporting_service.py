@@ -20,8 +20,7 @@ from .analysis_service import AnalysisService
 from .utils import validate_date_range
 from .models import (
     Period, CoreMetrics, CompositionItem, 
-    TrendPoint, DashboardData, TopExpenseCategory,
-    MerchantRanking
+    TrendPoint, DashboardData, TopExpenseCategory
 )
 
 logger = logging.getLogger(__name__)
@@ -45,117 +44,60 @@ class ReportingService:
     
     # ==================== 仪表盘数据聚合 ====================
     
-    def get_financial_dashboard_data(self, start_date: date, end_date: date) -> DashboardData:
-        """获取现金流健康仪表盘数据
-        
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
+    def get_initial_dashboard_data(self) -> DashboardData:
+        """获取现金流健康仪表盘的初始静态数据
             
         Returns:
-            DashboardData: 仪表盘所需的全部数据
+            DashboardData: 仪表盘所需的静态和全时段数据
         """
         try:
-            # 验证日期范围
-            validate_date_range(start_date, end_date)
-            
-            # 计算时间跨度，决定数据聚合粒度（三级策略）
-            period_days = (end_date - start_date).days
-            if period_days <= 7:
-                granularity = 'day'
-            elif period_days <= 90:
-                granularity = 'week'
-            else:
-                granularity = 'month'
-            
-            # 计算上一个同等时长的周期，用于对比
-            prev_end_date = start_date - relativedelta(days=1)
-            prev_start_date = prev_end_date - relativedelta(days=period_days)
-            
-            # 1. 计算核心指标（当前周期和上一周期）
-            current_metrics = self._calculate_core_metrics_direct(start_date, end_date)
-            previous_metrics = self._calculate_core_metrics_direct(prev_start_date, prev_end_date)
-            
-            # 获取当前总现金
+            # 1. 核心全时段指标
             current_total_assets = self.analysis_service.get_current_total_assets()
-            
-            # 2. 计算变化百分比
-            income_change = self.analysis_service.calculate_change_percentage(
-                current_metrics['total_income'], 
-                previous_metrics['total_income']
-            )
-            expense_change = self.analysis_service.calculate_change_percentage(
-                current_metrics['total_expense'], 
-                previous_metrics['total_expense']
-            )
-            net_change = self.analysis_service.calculate_change_percentage(
-                current_metrics['net_income'], 
-                previous_metrics['net_income']
-            )
-            
-            # 3. 净现金趋势数据（根据粒度调整）
-            net_worth_trend = self._calculate_net_worth_trend_direct(start_date, end_date, granularity)
-            
-            # 4. 资金流分析数据（根据粒度调整）
-            cash_flow_data = self._calculate_cash_flow_direct(start_date, end_date, granularity)
-            
-            # 5. 收入构成分析
-            income_composition = self._calculate_composition_direct(start_date, end_date, 'income')
-            
-            # 6. 支出构成分析
-            expense_composition = self._calculate_composition_direct(start_date, end_date, 'expense')
-            
-            # 7. 计算应急储备月数
             emergency_reserve_months = self.analysis_service.calculate_emergency_reserve_months()
-            
-            # 8. 计算支出分类排行（Top 5）
-            top_expense_categories = self._calculate_top_expense_categories(start_date, end_date, 5)
-            
-            # 10. 获取主要支出商家排行数据
-            merchants_data = self.analysis_service.get_top_merchants_data(start_date, end_date, 10)
-            top_merchants = [MerchantRanking(
-                merchant_name=merchant['merchant_name'],
-                amount=merchant['amount'],
-                transaction_count=merchant['transaction_count']
-            ) for merchant in merchants_data]
-            
+            all_time_net_income = self.analysis_service.get_all_time_net_income()
+
+            # 2. 净现金趋势数据 (固定过去12个月)
+            end_date = date.today()
+            start_date = end_date - relativedelta(months=12)
+            # 确保即使在少于12个月数据的情况下也能正常显示
+            first_transaction_date = self.db.query(func.min(Transaction.date)).scalar()
+            if first_transaction_date and start_date < first_transaction_date:
+                start_date = first_transaction_date
+
+            net_worth_trend = self._calculate_net_worth_trend_direct(start_date, end_date, 'month')
+
             # 构建并返回数据类实例
             return DashboardData(
                 period=Period(
                     start_date=start_date.isoformat(),
                     end_date=end_date.isoformat(),
-                    days=period_days
+                    days=(end_date - start_date).days
                 ),
                 net_worth_trend=net_worth_trend,
                 core_metrics=CoreMetrics(
                     current_total_assets=current_total_assets,
-                    total_income=current_metrics['total_income'],
-                    total_expense=current_metrics['total_expense'],
-                    net_income=current_metrics['net_income'],
-                    income_change_percentage=income_change,
-                    expense_change_percentage=expense_change,
-                    net_change_percentage=net_change,
+                    total_income=0, # 不再在此处计算
+                    total_expense=0, # 不再在此处计算
+                    net_income=all_time_net_income, # 使用全时段净收入
+                    income_change_percentage=0,
+                    expense_change_percentage=0,
+                    net_change_percentage=0,
                     emergency_reserve_months=emergency_reserve_months
                 ),
-                cash_flow=cash_flow_data,
-                income_composition=income_composition,
-                expense_composition=expense_composition,
-                top_expense_categories=top_expense_categories,
-                top_merchants=top_merchants
+                cash_flow=[],
+                income_composition=[],
+                expense_composition=[],
+                top_expense_categories=[]
             )
             
         except ValueError as e:
             self.logger.error(f"数据验证失败: {e}")
             raise
         except Exception as e:
-            self.logger.error(f"获取仪表盘数据失败: {e}")
+            self.logger.error(f"获取仪表盘初始数据失败: {e}")
             # 返回默认的空数据结构
             return DashboardData(
-                period=Period(
-                    start_date=start_date.isoformat(),
-                    end_date=end_date.isoformat(),
-                    days=0
-                ),
+                period=Period(start_date='', end_date='', days=0),
                 net_worth_trend=[],
                 core_metrics=CoreMetrics(
                     current_total_assets=0.0,
@@ -170,10 +112,63 @@ class ReportingService:
                 cash_flow=[],
                 income_composition=[],
                 expense_composition=[],
-                top_expense_categories=[],
-                top_merchants=[]
+                top_expense_categories=[]
             )
-    
+
+    def get_cash_flow_data(self, start_date: date, end_date: date) -> Dict[str, Any]:
+        """获取资金流分析和收入构成数据
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            
+        Returns:
+            Dict[str, Any]: 包含资金流和收入构成数据的字典
+        """
+        try:
+            validate_date_range(start_date, end_date)
+            
+            period_days = (end_date - start_date).days
+            if period_days <= 7:
+                granularity = 'day'
+            elif period_days <= 90:
+                granularity = 'week'
+            else:
+                granularity = 'month'
+            
+            cash_flow_data = self._calculate_cash_flow_direct(start_date, end_date, granularity)
+            income_composition = self._calculate_composition_direct(start_date, end_date, 'income')
+            
+            return {
+                'cash_flow': cash_flow_data,
+                'income_composition': income_composition
+            }
+        except Exception as e:
+            self.logger.error(f"获取资金流数据失败: {e}")
+            raise
+
+    def get_expense_analysis_data(self, start_date: date, end_date: date) -> Dict[str, Any]:
+        """获取支出分析数据
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            
+        Returns:
+            Dict[str, Any]: 包含支出分析数据的字典
+        """
+        try:
+            validate_date_range(start_date, end_date)
+            
+            top_expense_categories = self._calculate_top_expense_categories(start_date, end_date, 10)
+            
+            return {
+                'top_expense_categories': top_expense_categories
+            }
+        except Exception as e:
+            self.logger.error(f"获取支出分析数据失败: {e}")
+            raise
+
     # ==================== 核心报告方法 ====================
     
     def get_category_transactions(self, category: str, start_date: date, end_date: date) -> List[Dict[str, Any]]:
@@ -525,8 +520,8 @@ class ReportingService:
                 percentage = (amount / total_expense * 100) if total_expense > 0 else 0
                 
                 top_categories.append(TopExpenseCategory(
-                    name=r.name,
-                    amount=amount,
+                    category=r.name,
+                    total_amount=amount,
                     percentage=round(percentage, 1),
                     count=r.count
                 ))

@@ -17,31 +17,6 @@
          style="display: none;">
     </div>
     
-    <!-- 时间范围选择器 -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <h6 class="card-title mb-0">{{ icon("calendar", "sm", "", "me-2") }}时间范围</h6>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="d-flex gap-2 align-items-center">
-                                <!-- 预设时间按钮 -->
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" data-period="week">本周</button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm active" data-period="month">本月</button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" data-period="year">本年</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- 模块一：核心健康指标 -->
     <div class="row mb-4">
         <div class="col-12">
@@ -53,10 +28,22 @@
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4">
         <div class="col">{{ stat_card("dollar-sign", "¥0.00", "当前总现金", "primary", "", "currentAssets") }}</div>
         <div class="col">{{ stat_card("shield-check", "0个月", "应急储备月数", "warning", "", "emergencyReserveMonths") }}</div>
-        <div class="col">{{ stat_card("calculator", "¥0.00", "期间净收支", "info", "", "netIncome", "--", "netChange") }}</div>
+        <div class="col">{{ stat_card("calculator", "¥0.00", "累计净收支", "info", "", "netIncome", "--", "netChange") }}</div>
     </div>
     
     <!-- 模块二：资金流分析 -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">{{ icon("bar-chart", "md", "", "me-2") }}资金流分析</h5>
+            <div id="cashflow-module-controls">
+                 <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-period="week">本周</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm active" data-period="month">本月</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-period="year">本年</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row mb-4">
         <div class="col-lg-8">
             {{ chart_container("资金流分析", "cashFlowChart", "250px", "bar-chart") }}
@@ -67,26 +54,46 @@
     </div>
     
     <!-- 模块三：支出结构透视 -->
-    <div class="row mb-4">
-        <div class="col-lg-6">
-            {{ chart_container("支出分类排行 (TOP 5)", "expenseTopCategoriesChart", "250px", "bar-chart") }}
-        </div>
-        <div class="col-lg-6">
-            {% call card("交易明细", "list") %}
-            <div id="transactionDetails" class="transaction-details">
-                <div class="text-center text-muted py-4">
-                    {{ icon("hand", "lg", "text-muted") }}
-                    <p class="mt-2">点击左侧图表查看对应分类的交易明细</p>
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">{{ icon("pie-chart", "md", "", "me-2") }}支出结构透视</h5>
+            <div id="expense-module-controls">
+                 <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-period="week">本周</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm active" data-period="month">本月</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-period="year">本年</button>
                 </div>
             </div>
-            {% endcall %}
         </div>
     </div>
-    
-    <!-- 模块四：消费分析 -->
     <div class="row mb-4">
-        <div class="col-lg-12">
-            {{ chart_container("主要支出商家 (TOP 10)", "topMerchantsChart", "300px", "bar-chart") }}
+        <div class="col-lg-7">
+            {{ chart_container("支出分类占比", "expenseTopCategoriesChart", "300px", "pie-chart") }}
+        </div>
+        <div class="col-lg-5">
+            {% call card("支出分类排行", "list") %}
+            <div class="table-responsive">
+                <table class="table table-hover table-sm small">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">分类</th>
+                            <th scope="col" class="text-end">金额</th>
+                            <th scope="col" class="text-end">占比</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expense-top-categories-table-body">
+                        <!-- JS动态生成 -->
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                {{ icon("loader-2", "lg", "spinner") }}
+                                <p class="mt-2 mb-0">加载中...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            {% endcall %}
         </div>
     </div>
     
@@ -116,5 +123,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-<script type="module" src="{{ url_for('static', filename='js/main/dashboard.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/pages/dashboard.js') }}"></script>
 {% endblock %} 

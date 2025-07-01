@@ -118,6 +118,22 @@ class AnalysisService:
             self.logger.error(f"获取指定日期总现金失败: {e}")
             raise
     
+    def get_all_time_net_income(self) -> float:
+        """计算所有时间范围内的总净收入
+        
+        Returns:
+            float: 总净收入
+        """
+        try:
+            total_net_income = self.db.query(func.sum(Transaction.amount)).scalar() or 0
+            return float(total_net_income)
+        except SQLAlchemyError as e:
+            self.logger.error(f"数据库查询异常 - 计算总净收入失败: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"计算总净收入失败: {e}")
+            raise
+
     def calculate_change_percentage(self, current: float, previous: float) -> float:
         """计算变化百分比
         
@@ -173,12 +189,12 @@ class AnalysisService:
             raise
 
     def calculate_emergency_reserve_months(self, daily_average_expense: float = None, 
-                                        calculation_period_days: int = 90) -> float:
+                                        calculation_period_days: int = None) -> float:
         """计算应急储备月数
         
         Args:
-            daily_average_expense: 日均支出，如果为None则自动计算过去90天的日均支出
-            calculation_period_days: 用于计算日均支出的天数，默认90天
+            daily_average_expense: 日均支出，如果为None则自动计算
+            calculation_period_days: 用于计算日均支出的天数。如果为None，则使用全部历史数据。
             
         Returns:
             float: 应急储备月数，如果日均支出为0则返回-1表示无限
@@ -187,10 +203,18 @@ class AnalysisService:
             # 获取当前总现金作为应急储备资金
             current_assets = self.get_current_total_assets()
             
-            # 如果没有提供日均支出，则计算过去指定天数的日均支出
+            # 如果没有提供日均支出，则进行计算
             if daily_average_expense is None:
                 end_date = date.today()
-                start_date = end_date - timedelta(days=calculation_period_days - 1)
+                if calculation_period_days:
+                    start_date = end_date - timedelta(days=calculation_period_days - 1)
+                else:
+                    # 如果未指定天数，则从第一笔交易开始计算
+                    first_transaction_date = self.db.query(func.min(Transaction.date)).scalar()
+                    if not first_transaction_date:
+                        return -1.0 # 没有交易，无法计算
+                    start_date = first_transaction_date
+                
                 daily_average_expense = self.calculate_daily_average_expense(start_date, end_date)
             
             # 处理日均支出为0的情况
@@ -207,53 +231,3 @@ class AnalysisService:
         except Exception as e:
             self.logger.error(f"计算应急储备月数失败: {e}")
             raise 
-    
-    def get_top_merchants_data(self, start_date: date, end_date: date, limit: int = 10) -> list:
-        """获取主要支出商家排行数据
-        
-        按商家名称分组统计支出金额和交易次数。
-        
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            limit: 返回的商家数量限制，默认10个
-            
-        Returns:
-            list: 商家排行数据，格式为 [{'merchant_name': str, 'amount': float, 'transaction_count': int}]
-        """
-        try:
-            # 查询支出交易，按商家名称分组
-            merchants_query = self.db.query(
-                Transaction.merchant_name,
-                func.sum(func.abs(Transaction.amount)).label('total_amount'),     # 支出总额
-                func.count(Transaction.id).label('transaction_count')            # 交易次数
-            ).filter(
-                Transaction.amount < 0,  # 只统计支出
-                Transaction.date >= start_date,
-                Transaction.date <= end_date,
-                Transaction.merchant_name.isnot(None),  # 排除没有商家名称的交易
-                Transaction.merchant_name != ''         # 排除空字符串
-            ).group_by(
-                Transaction.merchant_name
-            ).order_by(
-                func.sum(func.abs(Transaction.amount)).desc()  # 按支出总额降序排列
-            ).limit(limit).all()
-            
-            # 转换为前端需要的数据格式
-            merchants_data = []
-            for merchant_name, total_amount, transaction_count in merchants_query:
-                merchants_data.append({
-                    'merchant_name': merchant_name,
-                    'amount': float(total_amount or 0),
-                    'transaction_count': int(transaction_count or 0)
-                })
-            
-            self.logger.debug(f"获取主要支出商家数据: {len(merchants_data)}个商家")
-            return merchants_data
-            
-        except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 获取主要支出商家数据失败: {e}")
-            raise
-        except Exception as e:
-            self.logger.error(f"获取主要支出商家数据失败: {e}")
-            raise

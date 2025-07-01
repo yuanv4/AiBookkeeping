@@ -65,8 +65,8 @@ def validate_date_range(start_date, end_date) -> None:
     Raises:
         ValueError: 日期范围无效时抛出
     """
-    if start_date >= end_date:
-        raise ValueError("开始日期必须早于结束日期")
+    if start_date > end_date:
+        raise ValueError("开始日期不能晚于结束日期")
     
     date_diff = (end_date - start_date).days
     if date_diff > MAX_DATE_RANGE_DAYS:
