@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 # 导入核心分析服务和工具函数
 from .analysis_service import AnalysisService
+from .calculation_helpers import CalculationHelpers
 from .utils import validate_date_range
 from .models import (
     Period, CoreMetrics, CompositionItem, 
@@ -65,7 +66,7 @@ class ReportingService:
             if first_transaction_date and start_date < first_transaction_date:
                 start_date = first_transaction_date
 
-            net_worth_trend = self._calculate_net_worth_trend_direct(start_date, end_date, 'month')
+            net_worth_trend = CalculationHelpers.calculate_net_worth_trend(self.db, start_date, end_date, 'month')
 
             # 构建并返回数据类实例
             return DashboardData(
@@ -354,96 +355,7 @@ class ReportingService:
             self.logger.error(f"计算资金流失败: {e}")
             return []
     
-    def _calculate_net_worth_trend_direct(self, start_date: date, end_date: date, granularity: str = 'day') -> List[TrendPoint]:
-        """直接通过数据库查询计算净现金趋势
 
-        最终修正版: 采用基于`balance_after`的每日现金历史构建模型，
-        确保在所有时间范围和粒度下数据的一致性和准确性。
-        """
-        try:
-            # 1. 一次性获取所需时间范围内所有账户的交易历史
-            # 为了构建准确历史，需要从第一笔交易开始
-            all_transactions = self.db.query(
-                Transaction.account_id,
-                Transaction.date,
-                Transaction.balance_after
-            ).order_by(Transaction.date, Transaction.created_at).all()
-
-            if not all_transactions:
-                return []
-
-            # 2. 在内存中构建完整的每日现金历史
-            # 这是为了避免在循环中执行N+1次数据库查询
-            first_tx_date = all_transactions[0].date
-            
-            txs_by_date = {}
-            for tx in all_transactions:
-                txs_by_date.setdefault(tx.date, []).append(tx)
-
-            daily_assets_history = {}
-            latest_balances = {}
-            total_assets = Decimal('0.0')
-
-            current_date = first_tx_date
-            while current_date <= end_date:
-                if current_date in txs_by_date:
-                    for tx in txs_by_date[current_date]:
-                        old_balance = latest_balances.get(tx.account_id, Decimal('0.0'))
-                        total_assets -= old_balance
-                        total_assets += tx.balance_after
-                        latest_balances[tx.account_id] = tx.balance_after
-                
-                if current_date >= start_date:
-                    daily_assets_history[current_date] = total_assets
-                
-                current_date += timedelta(days=1)
-            
-            # 3. 根据粒度对每日现金历史进行采样
-            trend_data = []
-            
-            # 重新从start_date开始循环以进行采样
-            current_date = start_date
-            while current_date <= end_date:
-                current_assets = daily_assets_history.get(current_date, Decimal('0.0'))
-                is_last_day = (current_date == end_date)
-                
-                if granularity == 'day':
-                    trend_data.append(TrendPoint(date=current_date.isoformat(), value=round(current_assets, 2)))
-                
-                elif granularity == 'week':
-                    is_end_of_week = (current_date.weekday() == 6)
-                    if is_end_of_week or is_last_day:
-                        week_str = current_date.strftime('%Y-W%W')
-                        if not trend_data or trend_data[-1].date != week_str:
-                             trend_data.append(TrendPoint(date=week_str, value=round(current_assets, 2)))
-
-                elif granularity == 'month':
-                    next_day = current_date + timedelta(days=1)
-                    is_end_of_month = (next_day.month != current_date.month)
-                    if is_end_of_month or is_last_day:
-                        month_str = current_date.strftime('%Y-%m')
-                        if not trend_data or trend_data[-1].date != month_str:
-                            trend_data.append(TrendPoint(date=month_str, value=round(current_assets, 2)))
-
-                current_date += timedelta(days=1)
-
-            # 4. 如果采样后仍然没有数据（例如，时间范围内没有交易）
-            if not trend_data and start_date <= end_date:
-                # 获取该区间的初始值
-                initial_assets = self.analysis_service.get_total_assets_at_date(start_date - timedelta(days=1))
-                if granularity == 'month':
-                    date_format = start_date.strftime('%Y-%m')
-                elif granularity == 'week':
-                    date_format = start_date.strftime('%Y-W%W')
-                else:
-                    date_format = start_date.isoformat()
-                return [TrendPoint(date=date_format, value=round(initial_assets, 2))]
-
-            return trend_data
-            
-        except Exception as e:
-            self.logger.error(f"计算净现金趋势失败: {e}", exc_info=True)
-            return []
 
     def _calculate_top_expense_categories(self, start_date: date, end_date: date, top_n: int) -> List[TopExpenseCategory]:
         """计算支出分类排行（Top N）
@@ -497,128 +409,7 @@ class ReportingService:
             self.logger.error(f"计算支出分类排行失败: {e}")
             return []
 
-    def _identify_recurring_expenses(self) -> List[RecurringExpense]:
-        """识别周期性支出
-        
-        使用智能模糊匹配算法，基于商家名称相似度、金额波动范围和时间间隔规律性
-        来识别固定周期性支出。基于数据库中所有历史交易数据进行分析。
-        
-        Returns:
-            List[RecurringExpense]: 识别出的周期性支出列表
-        """
-        try:
-            # 1. 获取数据库中所有支出交易（全量数据分析）
-            expense_transactions = self.db.query(
-                Transaction.counterparty,
-                Transaction.description,
-                Transaction.amount,
-                Transaction.date
-            ).filter(
-                Transaction.amount < 0  # 只查询支出交易
-            ).order_by(Transaction.date).all()
 
-            if not expense_transactions:
-                return []
-
-            # 2. 按商家+描述组合进行分组
-            expense_groups = {}
-            for tx in expense_transactions:
-                # 创建组合键：商家名称 + 交易描述
-                key = f"{tx.counterparty or ''}|{tx.description or ''}"
-                if key not in expense_groups:
-                    expense_groups[key] = []
-                expense_groups[key].append({
-                    'amount': abs(float(tx.amount)),
-                    'date': tx.date,
-                    'counterparty': tx.counterparty or '未知商家',
-                    'description': tx.description or '未分类'
-                })
-
-            # 3. 分析每个组合的周期性特征
-            recurring_expenses = []
-            for key, transactions in expense_groups.items():
-                if len(transactions) < 3:  # 至少需要3次交易才能判断周期性
-                    continue
-                
-                # 计算时间间隔
-                dates = [tx['date'] for tx in transactions]
-                dates.sort()
-                intervals = []
-                for i in range(1, len(dates)):
-                    interval = (dates[i] - dates[i-1]).days
-                    intervals.append(interval)
-                
-                if not intervals:
-                    continue
-                
-                # 计算金额统计
-                amounts = [tx['amount'] for tx in transactions]
-                avg_amount = sum(amounts) / len(amounts)
-                amount_variance = sum((amt - avg_amount) ** 2 for amt in amounts) / len(amounts)
-                amount_cv = (amount_variance ** 0.5) / avg_amount if avg_amount > 0 else 1  # 变异系数
-                
-                # 计算时间间隔统计
-                avg_interval = sum(intervals) / len(intervals)
-                interval_variance = sum((intv - avg_interval) ** 2 for intv in intervals) / len(intervals)
-                interval_cv = (interval_variance ** 0.5) / avg_interval if avg_interval > 0 else 1
-                
-                # 4. 周期性判断逻辑
-                confidence_score = 0
-                frequency = 'unknown'
-                
-                # 金额稳定性评分 (0-40分)
-                if amount_cv < 0.1:  # 变异系数小于10%
-                    confidence_score += 40
-                elif amount_cv < 0.2:  # 变异系数小于20%
-                    confidence_score += 25
-                elif amount_cv < 0.3:  # 变异系数小于30%
-                    confidence_score += 10
-                
-                # 时间间隔规律性评分 (0-60分)
-                if 28 <= avg_interval <= 32:  # 月度周期 (28-32天)
-                    frequency = 'monthly'
-                    if interval_cv < 0.15:  # 间隔很规律
-                        confidence_score += 60
-                    elif interval_cv < 0.25:
-                        confidence_score += 40
-                    else:
-                        confidence_score += 20
-                elif 6 <= avg_interval <= 8:  # 周度周期 (6-8天)
-                    frequency = 'weekly'
-                    if interval_cv < 0.2:
-                        confidence_score += 50
-                    elif interval_cv < 0.3:
-                        confidence_score += 30
-                    else:
-                        confidence_score += 15
-                elif 85 <= avg_interval <= 95:  # 季度周期 (85-95天)
-                    frequency = 'quarterly'
-                    if interval_cv < 0.2:
-                        confidence_score += 45
-                    elif interval_cv < 0.3:
-                        confidence_score += 25
-                    else:
-                        confidence_score += 10
-                
-                # 只保留置信度大于60分的周期性支出
-                if confidence_score >= 60:
-                    category = transactions[0]['description'] or transactions[0]['counterparty']
-                    recurring_expenses.append(RecurringExpense(
-                        category=category,
-                        amount=round(avg_amount, 2),
-                        frequency=frequency,
-                        confidence_score=round(confidence_score, 1),
-                        last_occurrence=dates[-1].isoformat(),
-                        count=len(transactions)
-                    ))
-            
-            # 5. 按金额排序并返回前10个
-            recurring_expenses.sort(key=lambda x: x.amount, reverse=True)
-            return recurring_expenses[:10]
-            
-        except Exception as e:
-            self.logger.error(f"识别周期性支出失败: {e}")
-            return []
 
     def _calculate_expense_trend_6months(self, target_month: date) -> List[ExpenseTrend]:
         """计算近6个月支出趋势
@@ -675,104 +466,7 @@ class ReportingService:
             self.logger.error(f"计算支出趋势失败: {e}")
             return []
 
-    def _calculate_flexible_expense_composition(self, target_month: date) -> List[CompositionItem]:
-        """计算弹性支出分类占比
-        
-        从指定目标月份的支出中排除周期性支出，计算剩余支出的分类占比。
-        
-        Args:
-            target_month: 目标月份
-            
-        Returns:
-            List[CompositionItem]: 弹性支出分类占比数据
-        """
-        try:
-            # 1. 计算目标月份的时间范围
-            month_start = target_month.replace(day=1)
-            if target_month.month == 12:
-                month_end = target_month.replace(year=target_month.year + 1, month=1, day=1) - timedelta(days=1)
-            else:
-                month_end = target_month.replace(month=target_month.month + 1, day=1) - timedelta(days=1)
-            
-            # 2. 识别周期性支出模式（基于全量历史数据）
-            recurring_expenses = self._identify_recurring_expenses()
-            
-            # 4. 构建周期性支出的过滤条件
-            # 收集所有被识别为周期性的商家和描述组合
-            recurring_patterns = set()
-            for recurring in recurring_expenses:
-                # 由于周期性识别是基于商家+描述组合，我们需要重建这个组合
-                # 但是RecurringExpense只有category字段，这里做简化处理
-                # 将category作为描述或商家名称来匹配
-                recurring_patterns.add(recurring.category)
-            
-            # 5. 查询目标月份的所有支出
-            month_expenses = self.db.query(
-                func.coalesce(Transaction.description, '未分类').label('name'),
-                Transaction.counterparty,
-                func.sum(func.abs(Transaction.amount)).label('amount'),
-                func.count(Transaction.id).label('count')
-            ).filter(
-                Transaction.amount < 0,
-                Transaction.date >= month_start,
-                Transaction.date <= month_end
-            ).group_by(
-                func.coalesce(Transaction.description, '未分类'),
-                Transaction.counterparty
-            ).all()
-            
-            if not month_expenses:
-                return []
-            
-            # 6. 排除周期性支出，聚合弹性支出
-            flexible_groups = {}
-            for expense in month_expenses:
-                category = expense.name
-                counterparty = expense.counterparty or ''
-                
-                # 检查是否为周期性支出
-                is_recurring = False
-                for pattern in recurring_patterns:
-                    if (pattern == category or 
-                        pattern == counterparty or 
-                        pattern in f"{counterparty}|{category}"):
-                        is_recurring = True
-                        break
-                
-                # 如果不是周期性支出，加入弹性支出统计
-                if not is_recurring:
-                    if category not in flexible_groups:
-                        flexible_groups[category] = {
-                            'amount': 0.0,
-                            'count': 0
-                        }
-                    flexible_groups[category]['amount'] += float(expense.amount)
-                    flexible_groups[category]['count'] += expense.count
-            
-            if not flexible_groups:
-                return []
-            
-            # 7. 计算总金额和百分比
-            total_flexible = sum(group['amount'] for group in flexible_groups.values())
-            
-            composition_items = []
-            for category, data in flexible_groups.items():
-                percentage = (data['amount'] / total_flexible * 100) if total_flexible > 0 else 0
-                
-                composition_items.append(CompositionItem(
-                    name=category,
-                    amount=round(data['amount'], 2),
-                    percentage=round(percentage, 1),
-                    count=data['count']
-                ))
-            
-            # 8. 按金额排序并返回前10个
-            composition_items.sort(key=lambda x: x.amount, reverse=True)
-            return composition_items[:10]
-            
-        except Exception as e:
-            self.logger.error(f"计算弹性支出分类占比失败: {e}")
-            return []
+
 
     def _get_recurring_expense_transactions(self, target_month: date, recurring_expenses: List[RecurringExpense]) -> List[Dict[str, Any]]:
         """获取周期性支出的具体交易明细
@@ -792,18 +486,15 @@ class ReportingService:
             else:
                 month_end = target_month.replace(month=target_month.month + 1, day=1) - timedelta(days=1)
             
-            # 构建周期性支出的分类集合
-            recurring_categories = {recurring.category for recurring in recurring_expenses}
+            # 构建周期性支出的组合键集合
+            recurring_combination_keys = {recurring.combination_key for recurring in recurring_expenses}
             
-            # 查询目标月份内符合周期性分类的交易
+            # 查询目标月份内符合周期性组合键的交易（使用SQLite兼容的字符串连接）
             transactions = self.db.query(Transaction).filter(
                 Transaction.amount < 0,
                 Transaction.date >= month_start,
                 Transaction.date <= month_end,
-                or_(
-                    Transaction.description.in_(recurring_categories),
-                    Transaction.counterparty.in_(recurring_categories)
-                )
+                (func.coalesce(Transaction.counterparty, '') + '|' + func.coalesce(Transaction.description, '')).in_(recurring_combination_keys)
             ).order_by(Transaction.date.desc()).limit(50).all()
             
             return [{
@@ -897,10 +588,10 @@ class ReportingService:
             expense_trend = self._calculate_expense_trend_6months(target_month)
             
             # 4. 识别周期性支出（基于全量历史数据）
-            recurring_expenses = self._identify_recurring_expenses()
+            recurring_expenses = CalculationHelpers.identify_recurring_expenses(self.db)
             
             # 5. 计算弹性支出分类占比
-            flexible_composition = self._calculate_flexible_expense_composition(target_month)
+            flexible_composition = CalculationHelpers.calculate_flexible_expense_composition(self.db, target_month)
             
             # 6. 获取交易明细
             recurring_transactions = self._get_recurring_expense_transactions(target_month, recurring_expenses)

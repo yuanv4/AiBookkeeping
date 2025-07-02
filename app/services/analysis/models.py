@@ -57,6 +57,7 @@ class RecurringExpense:
     confidence_score: float  # 0-100的置信度分数
     last_occurrence: str  # 最近一次发生日期
     count: int  # 识别到的交易次数
+    combination_key: str  # 完整的组合键，用于精确匹配
 
 @dataclass
 class ExpenseTrend:

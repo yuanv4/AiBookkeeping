@@ -5,6 +5,7 @@
 
 from .analysis_service import AnalysisService
 from .reporting_service import ReportingService
+from .calculation_helpers import CalculationHelpers
 from .models import (
     Period, CoreMetrics, CompositionItem, 
     TrendPoint, DashboardData
@@ -13,6 +14,7 @@ from .models import (
 __all__ = [
     'AnalysisService',
     'ReportingService',
+    'CalculationHelpers',
     'Period',
     'CoreMetrics', 
     'CompositionItem',
