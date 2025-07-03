@@ -147,8 +147,13 @@ class CalculationHelpers:
     def identify_recurring_expenses(db: Session) -> List[RecurringExpense]:
         """识别周期性支出
         
-        使用智能模糊匹配算法，基于商家名称相似度、金额波动范围和时间间隔规律性
-        来识别固定周期性支出。基于数据库中所有历史交易数据进行分析。
+        使用智能匹配算法，基于商家名称（counterparty）、金额波动范围和时间间隔规律性
+        来识别固定支出。基于数据库中所有历史交易数据进行分析。
+        
+        算法核心：
+        - 以商家名称（counterparty）作为分组键，忽略支付方式（description）的差异
+        - 通过时间间隔规律性、金额稳定性等多维度判断周期性特征
+        - 支持月度、季度、周度等不同频率的周期性支出识别
         
         Args:
             db: 数据库会话
@@ -170,11 +175,11 @@ class CalculationHelpers:
             if not expense_transactions:
                 return []
 
-            # 2. 按商家+描述组合进行分组
+            # 2. 按商家进行分组
             expense_groups = {}
             for tx in expense_transactions:
-                # 创建组合键：商家名称 + 交易描述
-                key = f"{tx.counterparty or ''}|{tx.description or ''}"
+                # 使用商家名称作为组合键
+                key = tx.counterparty or '未知商家'
                 if key not in expense_groups:
                     expense_groups[key] = []
                 expense_groups[key].append({
@@ -267,7 +272,7 @@ class CalculationHelpers:
                         confidence_score=round(confidence_score, 1),
                         last_occurrence=last_transaction_date.isoformat(),
                         count=len(transactions),
-                        combination_key=key  # 保存完整的组合键用于精确匹配
+                        combination_key=key  # 保存商家名称用于精确匹配
                     ))
 
             # 6. 按总金额排序并返回
@@ -283,6 +288,7 @@ class CalculationHelpers:
         """计算弹性支出分类占比
         
         从指定目标月份的支出中排除周期性支出，计算剩余支出的分类占比。
+        周期性支出的识别基于商家名称（counterparty）进行匹配。
         
         Args:
             db: 数据库会话
@@ -331,14 +337,8 @@ class CalculationHelpers:
                 category = expense.category
                 counterparty = expense.counterparty
                 
-                # 检查是否为周期性支出
-                is_recurring = False
-                for pattern in recurring_patterns:
-                    if (pattern == category or 
-                        pattern == counterparty or 
-                        pattern in f"{counterparty}|{category}"):
-                        is_recurring = True
-                        break
+                # 检查是否为周期性支出（基于counterparty匹配）
+                is_recurring = counterparty in recurring_patterns
                 
                 # 如果不是周期性支出，加入弹性支出统计
                 if not is_recurring:

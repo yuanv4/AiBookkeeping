@@ -335,7 +335,7 @@ export default class FinancialDashboard extends BasePage {
         // 更新支出分类排行Top10表格
         this.updateExpenseTopCategoriesTable(data.top_expense_categories || []);
 
-        // 更新固定周期性支出明细表格（现在显示分组统计）
+        // 更新固定支出明细表格（现在显示分组统计）
         this.updateRecurringExpensesTable(data.recurring_expenses || [], data.recurring_transactions || []);
 
         // 更新弹性支出明细表格
@@ -410,7 +410,7 @@ export default class FinancialDashboard extends BasePage {
     }
 
     /**
-     * 更新固定周期性支出分组统计表格
+     * 更新固定支出分组统计表格
      */
     updateRecurringExpensesTable(recurringExpenses, recurringTransactions) {
         const tableBody = document.getElementById('recurring-expenses-table-body');
@@ -419,7 +419,7 @@ export default class FinancialDashboard extends BasePage {
         tableBody.innerHTML = '';
 
         if (!recurringExpenses || recurringExpenses.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">暂无固定周期性支出</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">暂无固定支出</td></tr>`;
             return;
         }
 
@@ -453,12 +453,11 @@ export default class FinancialDashboard extends BasePage {
 
             row.innerHTML = `
                 <td>
-                    <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${expense.category}">
-                        ${expense.category}
+                    <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${expense.combination_key}">
+                        ${expense.combination_key}
                     </span>
                 </td>
                 <td class="text-end">¥${expense.total_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td class="text-end">¥${expense.amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td>${frequencyText}</td>
                 <td class="text-center">
                     <span class="badge ${expense.confidence_score >= 80 ? 'bg-success' : expense.confidence_score >= 60 ? 'bg-warning' : 'bg-secondary'}">
@@ -534,7 +533,7 @@ export default class FinancialDashboard extends BasePage {
         detailsRow.className = 'transaction-details-row';
         
         const detailsCell = document.createElement('td');
-        detailsCell.colSpan = 8;
+        detailsCell.colSpan = 7;
         detailsCell.className = 'p-0';
         
         // 创建明细表格

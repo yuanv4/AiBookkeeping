@@ -489,18 +489,18 @@ class ReportingService:
             # 构建周期性支出的组合键集合
             recurring_combination_keys = {recurring.combination_key for recurring in recurring_expenses}
             
-            # 查询目标月份内符合周期性组合键的交易（使用SQLite兼容的字符串连接）
+            # 查询目标月份内符合周期性组合键的交易（基于counterparty匹配）
             transactions = self.db.query(Transaction).filter(
                 Transaction.amount < 0,
                 Transaction.date >= month_start,
                 Transaction.date <= month_end,
-                (func.coalesce(Transaction.counterparty, '') + '|' + func.coalesce(Transaction.description, '')).in_(recurring_combination_keys)
+                func.coalesce(Transaction.counterparty, '未知商家').in_(recurring_combination_keys)
             ).order_by(Transaction.date.desc()).all()
             
             # 按组合键分组交易明细
             grouped_transactions = {}
             for tx in transactions:
-                combination_key = f"{tx.counterparty or ''}|{tx.description or ''}"
+                combination_key = tx.counterparty or '未知商家'
                 if combination_key not in grouped_transactions:
                     grouped_transactions[combination_key] = []
                 
