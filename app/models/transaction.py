@@ -201,7 +201,6 @@ class Transaction(BaseModel):
 
         result['account_name'] = self.account.account_name if self.account else None
         result['bank_name'] = self.account.bank.name if self.account and self.account.bank else None
-        result['transaction_type'] = self.get_transaction_type()
         result['merchant_name'] = self.merchant_name
         return result
     

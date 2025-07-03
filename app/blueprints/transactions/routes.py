@@ -6,7 +6,7 @@ from . import transactions_bp
 
 @transactions_bp.route('/') # 蓝图根路径对应 /transactions/
 @handle_errors(template='transactions.html', 
-               default_data={'data': {'transactions': [], 'accounts': [], 'transaction_types': [], 'currencies': [], 'current_filters': {}}, 'pagination': None, 'total_count': 0}, 
+               default_data={'data': {'transactions': [], 'accounts': [], 'currencies': [], 'current_filters': {}}, 'pagination': None, 'total_count': 0}, 
                log_prefix="交易记录页面")
 def transactions_list_route(): # 重命名函数
     """交易记录页面"""
@@ -57,8 +57,6 @@ def transactions_list_route(): # 重命名函数
     total_transactions = pagination.total
 
     accounts = current_app.account_service.get_all_accounts()
-    
-    transaction_types_for_filter = current_app.transaction_service.get_all_transaction_types()
 
     currencies_for_filter = current_app.transaction_service.get_all_currencies()
 
@@ -78,7 +76,6 @@ def transactions_list_route(): # 重命名函数
     data_for_template = {
         'transactions': transactions_data,
         'accounts': accounts,
-        'transaction_types': transaction_types_for_filter,
         'currencies': currencies_for_filter,
         'current_filters': current_filters
     }
@@ -87,7 +84,6 @@ def transactions_list_route(): # 重命名函数
         'transactions.html', 
         transactions=transactions_data,
         accounts=accounts,
-        transaction_types=transaction_types_for_filter,
         currencies=currencies_for_filter,
         current_filters=current_filters,
         pagination=pagination,

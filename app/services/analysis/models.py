@@ -52,7 +52,8 @@ class TopExpenseCategory:
 class RecurringExpense:
     """周期性支出项目"""
     category: str
-    amount: float
+    total_amount: float  # 历史累计总金额
+    amount: float  # 平均金额（保持向后兼容）
     frequency: str  # 'monthly', 'weekly', 'quarterly'
     confidence_score: float  # 0-100的置信度分数
     last_occurrence: str  # 最近一次发生日期

@@ -256,8 +256,12 @@ class CalculationHelpers:
                     if not category or category == '未分类':
                         category = transactions[0]['counterparty']
                     
+                    # 计算总金额
+                    total_amount = sum(amounts)
+                    
                     recurring_expenses.append(RecurringExpense(
                         category=category,
+                        total_amount=round(total_amount, 2),
                         amount=round(avg_amount, 2),
                         frequency=frequency,
                         confidence_score=round(confidence_score, 1),
@@ -266,8 +270,8 @@ class CalculationHelpers:
                         combination_key=key  # 保存完整的组合键用于精确匹配
                     ))
 
-            # 6. 按置信度排序并返回
-            recurring_expenses.sort(key=lambda x: x.confidence_score, reverse=True)
+            # 6. 按总金额排序并返回
+            recurring_expenses.sort(key=lambda x: x.total_amount, reverse=True)
             return recurring_expenses
             
         except Exception as e:

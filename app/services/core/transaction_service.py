@@ -247,13 +247,7 @@ class TransactionService:
             self.logger.error(f"Error deleting transaction {transaction_id}: {e}")
             raise
     
-    def get_all_transaction_types(self) -> List[str]:
-        """Get all transaction types.
-        
-        Returns:
-            List[str]: List of available transaction types ['income', 'expense', 'transfer']
-        """
-        return ['income', 'expense', 'transfer']
+
 
     def get_all_currencies(self) -> List[str]:
         """Get all distinct currencies from transactions.

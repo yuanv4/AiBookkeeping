@@ -469,14 +469,14 @@ class ReportingService:
 
 
     def _get_recurring_expense_transactions(self, target_month: date, recurring_expenses: List[RecurringExpense]) -> List[Dict[str, Any]]:
-        """获取周期性支出的具体交易明细
+        """获取周期性支出的具体交易明细（按组合键分组）
         
         Args:
             target_month: 目标月份
             recurring_expenses: 识别出的周期性支出列表
             
         Returns:
-            List[Dict[str, Any]]: 周期性支出的交易明细
+            List[Dict[str, Any]]: 按组合键分组的周期性支出交易明细
         """
         try:
             # 计算目标月份的时间范围
@@ -495,16 +495,33 @@ class ReportingService:
                 Transaction.date >= month_start,
                 Transaction.date <= month_end,
                 (func.coalesce(Transaction.counterparty, '') + '|' + func.coalesce(Transaction.description, '')).in_(recurring_combination_keys)
-            ).order_by(Transaction.date.desc()).limit(50).all()
+            ).order_by(Transaction.date.desc()).all()
             
-            return [{
-                'id': tx.id,
-                'date': tx.date.isoformat(),
-                'account_name': tx.account.account_name if tx.account else '',
-                'amount': float(tx.amount),
-                'counterparty': tx.counterparty or '',
-                'description': tx.description or ''
-            } for tx in transactions]
+            # 按组合键分组交易明细
+            grouped_transactions = {}
+            for tx in transactions:
+                combination_key = f"{tx.counterparty or ''}|{tx.description or ''}"
+                if combination_key not in grouped_transactions:
+                    grouped_transactions[combination_key] = []
+                
+                grouped_transactions[combination_key].append({
+                    'id': tx.id,
+                    'date': tx.date.isoformat(),
+                    'account_name': tx.account.account_name if tx.account else '',
+                    'amount': float(tx.amount),
+                    'counterparty': tx.counterparty or '',
+                    'description': tx.description or ''
+                })
+            
+            # 转换为前端需要的格式
+            result = []
+            for combination_key, tx_list in grouped_transactions.items():
+                result.append({
+                    'combination_key': combination_key,
+                    'transactions': tx_list[:10]  # 限制每组最多10条交易明细
+                })
+            
+            return result
             
         except Exception as e:
             self.logger.error(f"获取周期性支出交易明细失败: {e}")
@@ -597,6 +614,37 @@ class ReportingService:
             recurring_transactions = self._get_recurring_expense_transactions(target_month, recurring_expenses)
             flexible_transactions = self._get_flexible_expense_transactions(target_month, flexible_composition)
             
+            # 6.1. 过滤出当月实际发生的周期性支出
+            current_month_recurring_keys = {group.get('combination_key') for group in recurring_transactions}
+            current_month_recurring_expenses = [
+                expense for expense in recurring_expenses 
+                if expense.combination_key in current_month_recurring_keys
+            ]
+            
+            # 6.2. 重新计算当月实际总金额
+            for expense in current_month_recurring_expenses:
+                # 找到对应的交易明细分组
+                matching_group = next(
+                    (group for group in recurring_transactions 
+                     if group.get('combination_key') == expense.combination_key), 
+                    None
+                )
+                
+                if matching_group and matching_group.get('transactions'):
+                    # 计算当月实际总金额
+                    current_month_total = sum(
+                        abs(float(tx.get('amount', 0))) 
+                        for tx in matching_group['transactions']
+                    )
+                    # 更新total_amount为当月实际金额
+                    expense.total_amount = round(current_month_total, 2)
+                else:
+                    # 如果没有找到交易明细，设为0
+                    expense.total_amount = 0.0
+            
+            # 6.3. 按当月总金额重新排序
+            current_month_recurring_expenses.sort(key=lambda x: x.total_amount, reverse=True)
+            
             # 7. 计算支出分类排行（保持向后兼容）
             top_categories = self._calculate_top_expense_categories(month_start, month_end, 10)
             
@@ -605,7 +653,7 @@ class ReportingService:
                 target_month=target_month.strftime('%Y-%m'),
                 total_expense=round(total_expense, 2),
                 expense_trend=expense_trend,
-                recurring_expenses=recurring_expenses,
+                recurring_expenses=current_month_recurring_expenses,
                 flexible_composition=flexible_composition,
                 top_categories=top_categories,
                 recurring_transactions=recurring_transactions,

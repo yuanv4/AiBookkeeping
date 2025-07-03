@@ -94,11 +94,13 @@ def get_expense_analysis_data():
                     'recurring_expenses': [
                         {
                             'category': recurring.category,
+                            'total_amount': recurring.total_amount,
                             'amount': recurring.amount,
                             'frequency': recurring.frequency,
                             'confidence_score': recurring.confidence_score,
                             'last_occurrence': recurring.last_occurrence,
-                            'count': recurring.count
+                            'count': recurring.count,
+                            'combination_key': recurring.combination_key
                         }
                         for recurring in enhanced_data.recurring_expenses
                     ],

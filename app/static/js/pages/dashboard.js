@@ -307,6 +307,8 @@ export default class FinancialDashboard extends BasePage {
             const result = await apiService.get(url);
             
             if (result.success) {
+                // 保存完整的支出分析数据供展开功能使用
+                this.currentData.expenseAnalysisData = result.data;
                 this.updateExpenseAnalysisModule(result.data);
             } else {
                 console.error('获取支出分析数据失败:', result.error);
@@ -333,8 +335,8 @@ export default class FinancialDashboard extends BasePage {
         // 更新支出分类排行Top10表格
         this.updateExpenseTopCategoriesTable(data.top_expense_categories || []);
 
-        // 更新固定周期性支出明细表格
-        this.updateRecurringExpensesTable(data.recurring_transactions || []);
+        // 更新固定周期性支出明细表格（现在显示分组统计）
+        this.updateRecurringExpensesTable(data.recurring_expenses || [], data.recurring_transactions || []);
 
         // 更新弹性支出明细表格
         this.updateFlexibleExpensesTable(data.flexible_transactions || []);
@@ -408,51 +410,189 @@ export default class FinancialDashboard extends BasePage {
     }
 
     /**
-     * 更新固定周期性支出明细表格
+     * 更新固定周期性支出分组统计表格
      */
-    updateRecurringExpensesTable(recurringTransactions) {
+    updateRecurringExpensesTable(recurringExpenses, recurringTransactions) {
         const tableBody = document.getElementById('recurring-expenses-table-body');
         if (!tableBody) return;
 
         tableBody.innerHTML = '';
 
-        if (!recurringTransactions || recurringTransactions.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">暂无固定周期性支出</td></tr>`;
+        if (!recurringExpenses || recurringExpenses.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">暂无固定周期性支出</td></tr>`;
             return;
         }
 
-        recurringTransactions.slice(0, 10).forEach((transaction) => {
+        // 构建交易明细映射表
+        const transactionsByKey = {};
+        if (recurringTransactions) {
+            recurringTransactions.forEach(group => {
+                transactionsByKey[group.combination_key] = group.transactions || [];
+            });
+        }
+
+        // 显示分组统计信息
+        recurringExpenses.forEach((expense, index) => {
             const row = document.createElement('tr');
+            row.className = 'recurring-expense-row';
+            row.dataset.combinationKey = expense.combination_key || '';
             
-            // 格式化日期
-            const dateStr = new Date(transaction.date).toLocaleDateString('zh-CN');
-            
-            // 格式化金额（支出显示为负数）
-            const amount = transaction.amount || 0;
-            const amountStr = amount < 0 ? `¥${Math.abs(amount).toLocaleString('zh-CN')}` : `¥${amount.toLocaleString('zh-CN')}`;
+            // 频率显示转换
+            const frequencyText = {
+                'monthly': '月度',
+                'weekly': '周度', 
+                'quarterly': '季度',
+                'unknown': '未知'
+            }[expense.frequency] || expense.frequency;
+
+            // 置信度百分比
+            const confidencePercentage = `${expense.confidence_score}%`;
+
+            // 格式化最近发生日期
+            const lastOccurrence = new Date(expense.last_occurrence).toLocaleDateString('zh-CN');
 
             row.innerHTML = `
-                <td>${dateStr}</td>
                 <td>
-                    <span class="d-inline-block text-truncate" style="max-width: 80px;" title="${transaction.account_name || ''}">
-                        ${transaction.account_name || ''}
+                    <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${expense.category}">
+                        ${expense.category}
                     </span>
                 </td>
-                <td class="text-end text-danger">${amountStr}</td>
-                <td>
-                    <span class="d-inline-block text-truncate" style="max-width: 100px;" title="${transaction.counterparty || ''}">
-                        ${transaction.counterparty || ''}
+                <td class="text-end">¥${expense.total_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td class="text-end">¥${expense.amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td>${frequencyText}</td>
+                <td class="text-center">
+                    <span class="badge ${expense.confidence_score >= 80 ? 'bg-success' : expense.confidence_score >= 60 ? 'bg-warning' : 'bg-secondary'}">
+                        ${confidencePercentage}
                     </span>
                 </td>
-                <td>
-                    <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${transaction.description || ''}">
-                        ${transaction.description || ''}
-                    </span>
+                <td class="text-center">${expense.count}</td>
+                <td>${lastOccurrence}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary toggle-details-btn" 
+                            data-combination-key="${expense.combination_key || ''}"
+                            title="查看交易明细">
+                        ▼
+                    </button>
                 </td>
             `;
             
             tableBody.appendChild(row);
+
+            // 为展开按钮添加事件监听器
+            const toggleBtn = row.querySelector('.toggle-details-btn');
+            toggleBtn.addEventListener('click', (e) => {
+                this.toggleTransactionDetails(e.target.closest('button'));
+            });
         });
+    }
+
+    /**
+     * 切换交易明细的显示/隐藏
+     */
+    toggleTransactionDetails(button) {
+        const combinationKey = button.dataset.combinationKey;
+        const row = button.closest('tr');
+        const tableBody = row.parentNode;
+        
+        // 查找是否已有明细行
+        let detailsRow = row.nextElementSibling;
+        const isDetailsRow = detailsRow && detailsRow.classList.contains('transaction-details-row');
+        
+        if (isDetailsRow) {
+            // 已展开，收起明细
+            detailsRow.remove();
+            button.innerHTML = '▼';
+            button.title = '查看交易明细';
+        } else {
+            // 未展开，显示明细
+            const detailsRowElement = this.createTransactionDetailsRow(combinationKey);
+            if (detailsRowElement) {
+                row.insertAdjacentElement('afterend', detailsRowElement);
+                button.innerHTML = '▲';
+                button.title = '收起明细';
+            }
+        }
+    }
+
+    /**
+     * 创建交易明细行
+     */
+    createTransactionDetailsRow(combinationKey) {
+        // 从当前数据中查找交易明细
+        const expenseData = this.currentData.expenseAnalysisData || {};
+        const recurringTransactions = expenseData.recurring_transactions || [];
+        
+        const transactionGroup = recurringTransactions.find(group => 
+            group.combination_key === combinationKey
+        );
+        
+        if (!transactionGroup || !transactionGroup.transactions || transactionGroup.transactions.length === 0) {
+            return null;
+        }
+
+        const detailsRow = document.createElement('tr');
+        detailsRow.className = 'transaction-details-row';
+        
+        const detailsCell = document.createElement('td');
+        detailsCell.colSpan = 8;
+        detailsCell.className = 'p-0';
+        
+        // 创建明细表格
+        const detailsTable = document.createElement('div');
+        detailsTable.className = 'table-responsive bg-light';
+        
+        let detailsHtml = `
+            <table class="table table-sm table-borderless mb-0 small">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="text-muted" style="padding-left: 2rem;">日期</th>
+                        <th class="text-muted">账户</th>
+                        <th class="text-muted text-end">金额</th>
+                        <th class="text-muted">对手信息</th>
+                        <th class="text-muted">摘要</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        transactionGroup.transactions.forEach(transaction => {
+            const dateStr = new Date(transaction.date).toLocaleDateString('zh-CN');
+            const amount = Math.abs(transaction.amount || 0);
+            const amountStr = `¥${amount.toLocaleString('zh-CN')}`;
+            
+            detailsHtml += `
+                <tr>
+                    <td style="padding-left: 2rem;">${dateStr}</td>
+                    <td>
+                        <span class="d-inline-block text-truncate" style="max-width: 80px;" title="${transaction.account_name || ''}">
+                            ${transaction.account_name || ''}
+                        </span>
+                    </td>
+                    <td class="text-end text-danger">${amountStr}</td>
+                    <td>
+                        <span class="d-inline-block text-truncate" style="max-width: 100px;" title="${transaction.counterparty || ''}">
+                            ${transaction.counterparty || ''}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${transaction.description || ''}">
+                            ${transaction.description || ''}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        detailsHtml += `
+                </tbody>
+            </table>
+        `;
+        
+        detailsTable.innerHTML = detailsHtml;
+        detailsCell.appendChild(detailsTable);
+        detailsRow.appendChild(detailsCell);
+        
+        return detailsRow;
     }
 
     /**

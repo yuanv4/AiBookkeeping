@@ -70,7 +70,7 @@
     
     <!-- 第一行：总支出信息 -->
     <div class="row mb-4">
-        <div class="col-lg-6">
+        <div class="col-lg-12">
             {% call card("总支出", "dollar-sign") %}
             <div class="row">
                 <div class="col-12">
@@ -86,7 +86,7 @@
 
     <!-- 第二行：支出分类排行Top10 -->
     <div class="row mb-4">
-        <div class="col-lg-6">
+        <div class="col-lg-12">
             {% call card("支出分类排行Top10", "list") %}
             <div class="table-responsive">
                 <table class="table table-hover table-sm small">
@@ -119,26 +119,29 @@
             {{ chart_container("近6个月支出趋势", "expenseTrendChart", "250px", "bar-chart") }}
         </div>
     </div>
-    
-    <!-- 第四行：周期性支出和非固定支出明细 -->
+
+    <!-- 第四行：周期性支出 -->
     <div class="row mb-4">
-        <div class="col-lg-6">
-            {% call card("固定周期性支出明细", "repeat") %}
+        <div class="col-lg-12">
+            {% call card("固定周期性支出", "repeat") %}
             <div class="table-responsive">
                 <table class="table table-hover table-sm small">
                     <thead>
                         <tr>
-                            <th scope="col">日期</th>
-                            <th scope="col">账户</th>
-                            <th scope="col" class="text-end">金额</th>
-                            <th scope="col">对手信息</th>
-                            <th scope="col">摘要</th>
+                            <th scope="col">分类名称</th>
+                            <th scope="col" class="text-end">总金额</th>
+                            <th scope="col" class="text-end">平均金额</th>
+                            <th scope="col">频率</th>
+                            <th scope="col" class="text-center">置信度</th>
+                            <th scope="col" class="text-center">交易次数</th>
+                            <th scope="col">最近发生</th>
+                            <th scope="col" class="text-center">操作</th>
                         </tr>
                     </thead>
                     <tbody id="recurring-expenses-table-body">
                         <!-- JS动态生成 -->
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
+                            <td colspan="8" class="text-center text-muted py-4">
                                 {{ icon("loader-2", "lg", "spinner") }}
                                 <p class="mt-2 mb-0">加载中...</p>
                             </td>
@@ -148,7 +151,11 @@
             </div>
             {% endcall %}
         </div>
-        <div class="col-lg-6">
+    </div>
+    
+    <!-- 第五行：弹性支出明细 -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
             {% call card("弹性支出明细", "shuffle") %}
             <div class="table-responsive">
                 <table class="table table-hover table-sm small">

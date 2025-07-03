@@ -176,7 +176,7 @@ export default class TransactionsPage extends BasePage {
                 <td class="${amount >= 0 ? 'positive' : 'negative'}">${amount.toFixed(2)}</td>
                 <td>${balance.toFixed(2)}</td>
                 <td>${escapeHtml(transaction.counterparty || '')}</td>
-                <td>${escapeHtml(transaction.transaction_type || '')}</td>
+                <td>${escapeHtml(transaction.description || '')}</td>
             </tr>
         `;
         
@@ -268,7 +268,6 @@ export default class TransactionsPage extends BasePage {
         this.elements.activeFiltersBadges.innerHTML = '';
         
         const filterLabels = {
-            'type': '交易类型',
             'account_number': '银行/卡号',
             'search': '关键词',
             'start_date': '开始日期',
@@ -373,7 +372,6 @@ export default class TransactionsPage extends BasePage {
     applyFilters() {
         // 获取筛选值
         const filters = {
-            'type': this.getFilterValue('type_filter'),
             'account_number': this.getFilterValue('account_number_filter'),
             'search': this.getFilterValue('counterparty_filter'),
             'start_date': this.getFilterValue('start_date_filter'),
@@ -404,7 +402,7 @@ export default class TransactionsPage extends BasePage {
     
     resetFilters() {
         const filterFields = [
-            'type_filter', 'account_number_filter', 'counterparty_filter',
+            'account_number_filter', 'counterparty_filter',
             'start_date_filter', 'end_date_filter', 'min_amount_filter',
             'max_amount_filter', 'account_name_filter', 'currency_filter',
             'distinct_filter'
