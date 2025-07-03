@@ -353,6 +353,17 @@ export default class FinancialDashboard extends BasePage {
     }
 
     /**
+     * 格式化频率天数为用户友好的显示文本
+     */
+    formatFrequencyDays(days) {
+        if (!days || days <= 0) return '不规律';
+        if (days <= 10) return `${days}天`;
+        if (days <= 35) return `${days}天`;
+        if (days <= 100) return `约${Math.round(days/7)}周`;
+        return `约${Math.round(days/30)}个月`;
+    }
+
+    /**
      * 更新近6个月支出趋势图
      */
     updateExpenseTrendChart(trendData) {
@@ -438,12 +449,7 @@ export default class FinancialDashboard extends BasePage {
             row.dataset.combinationKey = expense.combination_key || '';
             
             // 频率显示转换
-            const frequencyText = {
-                'monthly': '月度',
-                'weekly': '周度', 
-                'quarterly': '季度',
-                'unknown': '未知'
-            }[expense.frequency] || expense.frequency;
+            const frequencyText = this.formatFrequencyDays(expense.frequency);
 
             // 置信度百分比
             const confidencePercentage = `${expense.confidence_score}%`;
@@ -457,7 +463,6 @@ export default class FinancialDashboard extends BasePage {
                         ${expense.combination_key}
                     </span>
                 </td>
-                <td class="text-end">¥${expense.total_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td>${frequencyText}</td>
                 <td class="text-center">
                     <span class="badge ${expense.confidence_score >= 80 ? 'bg-success' : expense.confidence_score >= 60 ? 'bg-warning' : 'bg-secondary'}">
@@ -466,6 +471,7 @@ export default class FinancialDashboard extends BasePage {
                 </td>
                 <td class="text-center">${expense.count}</td>
                 <td>${lastOccurrence}</td>
+                <td class="text-end">¥${expense.total_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-primary toggle-details-btn" 
                             data-combination-key="${expense.combination_key || ''}"

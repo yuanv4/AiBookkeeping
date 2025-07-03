@@ -151,5 +151,4 @@ def get_transactions(self, filters: Dict[str, Any]) -> List[Transaction]:
 - 宏导入语法：{% from "macros.html" import icon, nav_link %}
 - 图标宏调用：{{ icon("landmark", "md", "text-primary") }}
 - 导航宏调用：{{ nav_link('route_name', '显示文本', 'icon-name') }}
-
 - 复杂组件可创建独立宏文件，按功能模块组织

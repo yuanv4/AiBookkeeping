@@ -54,7 +54,7 @@ class RecurringExpense:
     category: str
     total_amount: float  # 历史累计总金额
     amount: float  # 平均金额（保持向后兼容）
-    frequency: str  # 'monthly', 'weekly', 'quarterly'
+    frequency: int  # 周期天数，如30表示每30天一次
     confidence_score: float  # 0-100的置信度分数
     last_occurrence: str  # 最近一次发生日期
     count: int  # 识别到的交易次数

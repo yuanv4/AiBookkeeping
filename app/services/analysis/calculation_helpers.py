@@ -153,7 +153,7 @@ class CalculationHelpers:
         算法核心：
         - 以商家名称（counterparty）作为分组键，忽略支付方式（description）的差异
         - 通过时间间隔规律性、金额稳定性等多维度判断周期性特征
-        - 支持月度、季度、周度等不同频率的周期性支出识别
+        - 精确记录支付周期天数，支持任意频率的周期性支出识别
         
         Args:
             db: 数据库会话
@@ -219,22 +219,11 @@ class CalculationHelpers:
 
                 # 4. 周期性判断规则
                 confidence_score = 0.0
-                frequency = 'unknown'
+                frequency = round(avg_interval) if avg_interval > 0 else 0
                 
                 # 规则1：时间间隔规律性（权重40%）
                 if interval_cv < 0.3:  # 时间间隔变异系数 < 30%
                     confidence_score += 40.0
-                    
-                    # 判断频率类型
-                    if 25 <= avg_interval <= 35:  # 月度：28-32天
-                        frequency = 'monthly'
-                        confidence_score += 10.0
-                    elif 80 <= avg_interval <= 100:  # 季度：85-95天
-                        frequency = 'quarterly'  
-                        confidence_score += 8.0
-                    elif 6 <= avg_interval <= 8:  # 周度：7天左右
-                        frequency = 'weekly'
-                        confidence_score += 6.0
 
                 # 规则2：金额稳定性（权重35%）
                 if amount_cv < 0.2:  # 金额变异系数 < 20%
