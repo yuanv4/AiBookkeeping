@@ -84,34 +84,7 @@
         </div>
     </div>
 
-    <!-- 第二行：支出分类排行Top10 -->
-    <div class="row mb-4">
-        <div class="col-lg-12">
-            {% call card("支出分类排行Top10", "list") %}
-            <div class="table-responsive">
-                <table class="table table-hover table-sm small">
-                    <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">分类</th>
-                            <th scope="col" class="text-end">金额</th>
-                            <th scope="col" class="text-end">占比</th>
-                        </tr>
-                    </thead>
-                    <tbody id="expense-top-categories-table-body">
-                        <!-- JS动态生成 -->
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-4">
-                                {{ icon("loader-2", "lg", "spinner") }}
-                                <p class="mt-2 mb-0">加载中...</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            {% endcall %}
-        </div>
-    </div>
+
     
     <!-- 第三行：近6个月支出趋势 -->
     <div class="row mb-4">

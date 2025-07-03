@@ -33,8 +33,7 @@ def dashboard():
             },
             'cash_flow': [],
             'income_composition': [],
-            'expense_composition': [],
-            'top_expense_categories': []
+            'expense_composition': []
         }
         return render_template('dashboard.html',
                              page_title='现金流健康仪表盘',
@@ -113,15 +112,7 @@ def get_expense_analysis_data():
                         }
                         for comp in enhanced_data.flexible_composition
                     ],
-                    'top_expense_categories': [
-                        {
-                            'category': cat.category,
-                            'total_amount': cat.total_amount,
-                            'percentage': cat.percentage,
-                            'count': cat.count
-                        }
-                        for cat in enhanced_data.top_categories
-                    ],
+                    'top_expense_categories': [],
                     'recurring_transactions': enhanced_data.recurring_transactions or [],
                     'flexible_transactions': enhanced_data.flexible_transactions or []
                 })

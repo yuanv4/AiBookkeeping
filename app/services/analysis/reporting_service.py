@@ -21,7 +21,7 @@ from .calculation_helpers import CalculationHelpers
 from .utils import validate_date_range
 from .models import (
     Period, CoreMetrics, CompositionItem, 
-    TrendPoint, DashboardData, TopExpenseCategory,
+    TrendPoint, DashboardData,
     RecurringExpense, ExpenseTrend, ExpenseAnalysisData
 )
 
@@ -88,8 +88,7 @@ class ReportingService:
                 ),
                 cash_flow=[],
                 income_composition=[],
-                expense_composition=[],
-                top_expense_categories=[]
+                expense_composition=[]
             )
             
         except ValueError as e:
@@ -113,8 +112,7 @@ class ReportingService:
                 ),
                 cash_flow=[],
                 income_composition=[],
-                expense_composition=[],
-                top_expense_categories=[]
+                expense_composition=[]
             )
 
     def get_cash_flow_data(self, start_date: date, end_date: date) -> Dict[str, Any]:
@@ -162,10 +160,8 @@ class ReportingService:
         try:
             validate_date_range(start_date, end_date)
             
-            top_expense_categories = self._calculate_top_expense_categories(start_date, end_date, 10)
-            
             return {
-                'top_expense_categories': top_expense_categories
+                'top_expense_categories': []
             }
         except Exception as e:
             self.logger.error(f"获取支出分析数据失败: {e}")
@@ -357,57 +353,7 @@ class ReportingService:
     
 
 
-    def _calculate_top_expense_categories(self, start_date: date, end_date: date, top_n: int) -> List[TopExpenseCategory]:
-        """计算支出分类排行（Top N）
-        
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            top_n: 要返回的前N个分类
-            
-        Returns:
-            List[TopExpenseCategory]: 支出分类排行
-        """
-        try:
-            # 按描述分组聚合支出数据
-            results = self.db.query(
-                func.coalesce(Transaction.description, '未分类').label('name'),
-                func.sum(func.abs(Transaction.amount)).label('amount'),
-                func.count(Transaction.id).label('count')
-            ).filter(
-                Transaction.amount < 0,
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            ).group_by(
-                func.coalesce(Transaction.description, '未分类')
-            ).order_by(
-                func.sum(func.abs(Transaction.amount)).desc()
-            ).limit(top_n).all()
 
-            if not results:
-                return []
-
-            # 计算总支出用于百分比计算
-            total_expense = sum(float(r.amount) for r in results)
-
-            # 构建TopExpenseCategory列表
-            top_categories = []
-            for r in results:
-                amount = float(r.amount)
-                percentage = (amount / total_expense * 100) if total_expense > 0 else 0
-                
-                top_categories.append(TopExpenseCategory(
-                    category=r.name,
-                    total_amount=amount,
-                    percentage=round(percentage, 1),
-                    count=r.count
-                ))
-
-            return top_categories
-            
-        except Exception as e:
-            self.logger.error(f"计算支出分类排行失败: {e}")
-            return []
 
 
 
@@ -645,8 +591,7 @@ class ReportingService:
             # 6.3. 按当月总金额重新排序
             current_month_recurring_expenses.sort(key=lambda x: x.total_amount, reverse=True)
             
-            # 7. 计算支出分类排行（保持向后兼容）
-            top_categories = self._calculate_top_expense_categories(month_start, month_end, 10)
+
             
             # 8. 构建综合分析数据
             return ExpenseAnalysisData(
@@ -655,7 +600,6 @@ class ReportingService:
                 expense_trend=expense_trend,
                 recurring_expenses=current_month_recurring_expenses,
                 flexible_composition=flexible_composition,
-                top_categories=top_categories,
                 recurring_transactions=recurring_transactions,
                 flexible_transactions=flexible_transactions
             )
@@ -669,7 +613,6 @@ class ReportingService:
                 expense_trend=[],
                 recurring_expenses=[],
                 flexible_composition=[],
-                top_categories=[],
                 recurring_transactions=[],
                 flexible_transactions=[]
             )

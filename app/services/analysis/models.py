@@ -41,13 +41,7 @@ class TrendPoint:
     date: str
     value: Decimal
 
-@dataclass
-class TopExpenseCategory:
-    """支出分类排行项目"""
-    category: str
-    total_amount: Decimal
-    percentage: Decimal
-    count: int
+
 
 @dataclass
 class RecurringExpense:
@@ -76,7 +70,6 @@ class ExpenseAnalysisData:
     expense_trend: List[ExpenseTrend]  # 近6个月趋势
     recurring_expenses: List[RecurringExpense]  # 周期性支出排行
     flexible_composition: List[CompositionItem]  # 弹性支出分类占比
-    top_categories: List[TopExpenseCategory]  # 支出分类排行（保持向后兼容）
     recurring_transactions: List[dict] = None  # 周期性支出交易明细
     flexible_transactions: List[dict] = None  # 弹性支出交易明细
 
@@ -88,5 +81,4 @@ class DashboardData:
     core_metrics: CoreMetrics
     cash_flow: List[TrendPoint]
     income_composition: List[CompositionItem]
-    expense_composition: List[CompositionItem]
-    top_expense_categories: List[TopExpenseCategory] 
+    expense_composition: List[CompositionItem] 

@@ -332,8 +332,7 @@ export default class FinancialDashboard extends BasePage {
         // 更新近6个月趋势图
         this.updateExpenseTrendChart(data.expense_trend || []);
 
-        // 更新支出分类排行Top10表格
-        this.updateExpenseTopCategoriesTable(data.top_expense_categories || []);
+
 
         // 更新固定支出明细表格（现在显示分组统计）
         this.updateRecurringExpensesTable(data.recurring_expenses || [], data.recurring_transactions || []);
@@ -382,43 +381,7 @@ export default class FinancialDashboard extends BasePage {
 
 
 
-    /**
-     * 更新支出分类排行Top10表格
-     */
-    updateExpenseTopCategoriesTable(topCategoriesData) {
-        const tableBody = document.getElementById('expense-top-categories-table-body');
-        if (!tableBody) return;
 
-        tableBody.innerHTML = '';
-
-        if (!topCategoriesData || topCategoriesData.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">当前月份无支出数据</td></tr>`;
-            return;
-        }
-
-        const totalExpense = topCategoriesData.reduce((sum, item) => sum + item.total_amount, 0);
-
-        // 限制显示前10项
-        const top10Data = topCategoriesData.slice(0, 10);
-
-        top10Data.forEach((item, index) => {
-            const percentage = totalExpense > 0 ? ((item.total_amount / totalExpense) * 100).toFixed(1) : 0;
-            const row = document.createElement('tr');
-
-            row.innerHTML = `
-                <td class="text-center">${index + 1}</td>
-                <td>
-                    <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${item.category}">
-                        ${item.category}
-                    </span>
-                </td>
-                <td class="text-end">¥${item.total_amount.toLocaleString('zh-CN')}</td>
-                <td class="text-end">${percentage}%</td>
-            `;
-            
-            tableBody.appendChild(row);
-        });
-    }
 
     /**
      * 更新固定支出分组统计表格
