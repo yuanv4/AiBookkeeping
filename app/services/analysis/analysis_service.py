@@ -14,6 +14,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import over
 
+from .database_helpers import DatabaseQueryHelper
+from .utils import normalize_decimal
+
 logger = logging.getLogger(__name__)
 
 class AnalysisService:
@@ -38,36 +41,17 @@ class AnalysisService:
             float: 当前总现金
         """
         try:
-            # 使用窗口函数获取每个账户的最新余额
-            window_func = over(
-                func.row_number(),
-                partition_by=Transaction.account_id,
-                order_by=[Transaction.date.desc(), Transaction.created_at.desc()]
-            )
+            # 使用DatabaseQueryHelper获取每个账户的最新余额
+            balance_dict = DatabaseQueryHelper.get_latest_balance_by_account(self.db)
             
-            # 子查询：获取每个账户的最新交易记录
-            latest_balances = self.db.query(
-                Transaction.account_id,
-                Transaction.balance_after
-            ).add_columns(
-                window_func.label('rn')
-            ).subquery()
-            
-            # 主查询：获取每个账户的最新余额并求和
-            total_assets = self.db.query(
-                func.sum(latest_balances.c.balance_after)
-            ).filter(
-                latest_balances.c.rn == 1
-            ).scalar() or 0
+            # 计算总现金
+            total_assets = sum(balance_dict.values())
             
             result = float(total_assets)
             self.logger.debug(f"计算总现金: {result}")
             
             return result
             
-        except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 获取当前总现金失败: {e}")
-            raise
         except Exception as e:
             self.logger.error(f"获取当前总现金失败: {e}")
             raise
@@ -82,38 +66,17 @@ class AnalysisService:
             float: 截至指定日期的总现金
         """
         try:
-            # 使用窗口函数获取每个账户在指定日期前的最新余额
-            window_func = over(
-                func.row_number(),
-                partition_by=Transaction.account_id,
-                order_by=[Transaction.date.desc(), Transaction.created_at.desc()]
-            )
+            # 使用DatabaseQueryHelper获取指定日期前每个账户的最新余额
+            balance_dict = DatabaseQueryHelper.get_latest_balance_by_account(self.db, target_date)
             
-            # 子查询：获取每个账户在指定日期前的最新交易记录
-            latest_balances = self.db.query(
-                Transaction.account_id,
-                Transaction.balance_after
-            ).filter(
-                Transaction.date <= target_date
-            ).add_columns(
-                window_func.label('rn')
-            ).subquery()
-            
-            # 主查询：获取每个账户的最新余额并求和
-            total_assets = self.db.query(
-                func.sum(latest_balances.c.balance_after)
-            ).filter(
-                latest_balances.c.rn == 1
-            ).scalar() or 0
+            # 计算总现金
+            total_assets = sum(balance_dict.values())
             
             result = float(total_assets)
             self.logger.debug(f"计算截至{target_date}的总现金: {result}")
             
             return result
             
-        except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 获取指定日期总现金失败: {e}")
-            raise
         except Exception as e:
             self.logger.error(f"获取指定日期总现金失败: {e}")
             raise
