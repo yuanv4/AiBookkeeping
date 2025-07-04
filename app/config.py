@@ -41,6 +41,12 @@ class Config:
         self.LOG_FORMAT = os.environ.get('LOG_FORMAT', '%(asctime)s %(levelname)s %(name)s %(message)s')
         self.LOG_DATE_FORMAT = os.environ.get('LOG_DATE_FORMAT', '%Y-%m-%d %H:%M:%S')
         
+        # 周期性支出识别算法配置
+        self.RECURRING_EXPENSE_METHOD = os.environ.get('RECURRING_EXPENSE_METHOD', 'adaptive')
+        self.RECURRING_EXPENSE_PERCENTILE = self._get_int('RECURRING_EXPENSE_PERCENTILE', 25)
+        self.RECURRING_EXPENSE_ZSCORE_THRESHOLD = self._get_float('RECURRING_EXPENSE_ZSCORE_THRESHOLD', 1.0)
+        self.RECURRING_EXPENSE_MIN_SCORE = self._get_float('RECURRING_EXPENSE_MIN_SCORE', 60.0)
+        
         # 生产环境配置验证
         if self.FLASK_ENV == 'production':
             if not os.environ.get('SECRET_KEY') or os.environ.get('SECRET_KEY') == 'dev-secret-key-change-in-production':
@@ -66,6 +72,13 @@ class Config:
         if not value:
             return default
         return [item.strip() for item in value.split(separator) if item.strip()]
+    
+    def _get_float(self, key, default=0.0):
+        """从环境变量获取浮点数值"""
+        try:
+            return float(os.environ.get(key, default))
+        except (ValueError, TypeError):
+            return default
     
     def init_app(self, app):
         """初始化应用配置"""

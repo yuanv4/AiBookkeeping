@@ -551,7 +551,14 @@ class ReportingService:
             expense_trend = self._calculate_expense_trend_6months(target_month)
             
             # 4. 识别周期性支出（基于全量历史数据）
-            recurring_expenses = CalculationHelpers.identify_recurring_expenses(self.db)
+            # 根据配置选择算法方法
+            from flask import current_app
+            method = getattr(current_app.config, 'RECURRING_EXPENSE_METHOD', 'adaptive')
+            
+            if method == 'adaptive':
+                recurring_expenses = CalculationHelpers.identify_recurring_expenses_adaptive(self.db)
+            else:
+                recurring_expenses = CalculationHelpers.identify_recurring_expenses(self.db)
             
             # 5. 计算弹性支出分类占比
             flexible_composition = CalculationHelpers.calculate_flexible_expense_composition(self.db, target_month)
