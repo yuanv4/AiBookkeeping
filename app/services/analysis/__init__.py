@@ -5,12 +5,13 @@
 
 from .analysis_service import AnalysisService
 from .reporting_service import ReportingService
-from .calculation_helpers import CalculationHelpers
-from .database_helpers import DatabaseQueryHelper
-from .models import (
+from .expense_analyzer import CalculationHelpers
+from .query_helpers import DatabaseQueryHelper
+from .dto import (
     Period, CoreMetrics, CompositionItem, 
     TrendPoint, DashboardData
 )
+from .validators import get_month_date_range, get_expense_transactions
 
 __all__ = [
     'AnalysisService',
@@ -21,5 +22,7 @@ __all__ = [
     'CoreMetrics', 
     'CompositionItem',
     'TrendPoint',
-    'DashboardData'
+    'DashboardData',
+    'get_month_date_range',
+    'get_expense_transactions'
 ] 

@@ -51,9 +51,10 @@ from sqlalchemy import func, case, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from .models import (
+from .dto import (
     CompositionItem, TrendPoint, RecurringExpense, ExpenseTrend
 )
+from .validators import get_month_date_range, get_expense_transactions
 
 logger = logging.getLogger(__name__)
 
@@ -326,92 +327,64 @@ class CalculationHelpers:
         return CalculationHelpers.identify_recurring_expenses_adaptive(db)
     
     @staticmethod
-    def calculate_flexible_expense_composition(db: Session, target_month: date) -> List[CompositionItem]:
+    def calculate_flexible_expense_composition(db: Session, target_month: date, recurring_expenses: List[RecurringExpense] = None) -> List[CompositionItem]:
         """计算弹性支出分类占比
         
-        从指定目标月份的支出中排除周期性支出，计算剩余支出的分类占比。
-        周期性支出的识别基于商家名称（counterparty）进行匹配。
+        使用简单补集策略：从指定目标月份的支出中排除周期性支出，计算剩余支出的分类占比。
+        基于counterparty字段进行匹配，确保与固定支出逻辑一致。
         
         Args:
             db: 数据库会话
             target_month: 目标分析月份
+            recurring_expenses: 周期性支出列表，如果为None则自动识别
             
         Returns:
             List[CompositionItem]: 弹性支出分类占比列表
         """
         try:
             # 1. 计算目标月份的时间范围
-            month_start = target_month.replace(day=1)
-            if target_month.month == 12:
-                month_end = target_month.replace(year=target_month.year + 1, month=1, day=1) - timedelta(days=1)
-            else:
-                month_end = target_month.replace(month=target_month.month + 1, day=1) - timedelta(days=1)
+            month_start, month_end = get_month_date_range(target_month)
             
-            # 2. 识别周期性支出模式（基于全量历史数据）
-            recurring_expenses = CalculationHelpers.identify_recurring_expenses(db)
+            # 2. 获取周期性支出模式（如果未提供则自动识别）
+            if recurring_expenses is None:
+                recurring_expenses = CalculationHelpers.identify_recurring_expenses(db)
             
-            # 3. 获取目标月份的所有支出交易
-            month_expenses = db.query(
-                func.coalesce(Transaction.description, '未分类').label('category'),
-                func.coalesce(Transaction.counterparty, '未知商家').label('counterparty'),
+            # 3. 构建周期性支出的组合键集合
+            recurring_combination_keys = {recurring.combination_key for recurring in recurring_expenses}
+            
+            # 4. 查询非固定支出，按counterparty分组统计
+            # 简单补集逻辑：所有支出 - 固定支出 = 弹性支出
+            flexible_expenses = db.query(
+                func.coalesce(Transaction.counterparty, '未知商家').label('category'),
                 func.sum(func.abs(Transaction.amount)).label('amount'),
                 func.count(Transaction.id).label('count')
             ).filter(
                 Transaction.amount < 0,
                 Transaction.date >= month_start,
-                Transaction.date <= month_end
+                Transaction.date <= month_end,
+                ~func.coalesce(Transaction.counterparty, '未知商家').in_(recurring_combination_keys)
             ).group_by(
-                func.coalesce(Transaction.description, '未分类'),
                 func.coalesce(Transaction.counterparty, '未知商家')
-            ).all()
+            ).order_by(func.sum(func.abs(Transaction.amount)).desc()).limit(10).all()
             
-            if not month_expenses:
+            if not flexible_expenses:
                 return []
             
-            # 4. 构建周期性支出匹配模式
-            recurring_patterns = set()
-            for recurring in recurring_expenses:
-                recurring_patterns.add(recurring.category)
-            
-            # 5. 按分类聚合支出（排除周期性支出）
-            flexible_groups = {}
-            for expense in month_expenses:
-                category = expense.category
-                counterparty = expense.counterparty
-                
-                # 检查是否为周期性支出（基于counterparty匹配）
-                is_recurring = counterparty in recurring_patterns
-                
-                # 如果不是周期性支出，加入弹性支出统计
-                if not is_recurring:
-                    if category not in flexible_groups:
-                        flexible_groups[category] = {
-                            'amount': 0.0,
-                            'count': 0
-                        }
-                    flexible_groups[category]['amount'] += float(expense.amount)
-                    flexible_groups[category]['count'] += expense.count
-            
-            if not flexible_groups:
-                return []
-            
-            # 6. 计算总金额和百分比
-            total_flexible = sum(group['amount'] for group in flexible_groups.values())
+            # 5. 计算总金额和百分比
+            total_flexible = sum(float(expense.amount) for expense in flexible_expenses)
             
             composition_items = []
-            for category, data in flexible_groups.items():
-                percentage = (data['amount'] / total_flexible * 100) if total_flexible > 0 else 0
+            for expense in flexible_expenses:
+                percentage = (float(expense.amount) / total_flexible * 100) if total_flexible > 0 else 0
                 
                 composition_items.append(CompositionItem(
-                    name=category,
-                    amount=round(data['amount'], 2),
+                    name=expense.category,
+                    amount=round(float(expense.amount), 2),
                     percentage=round(percentage, 1),
-                    count=data['count']
+                    count=expense.count
                 ))
             
-            # 7. 按金额排序并返回前10个
-            composition_items.sort(key=lambda x: x.amount, reverse=True)
-            return composition_items[:10]
+            return composition_items
             
         except Exception as e:
             logger.error(f"计算弹性支出分类占比失败: {e}")

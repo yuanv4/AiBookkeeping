@@ -14,7 +14,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import over
 
-from .utils import normalize_decimal
+from .validators import normalize_decimal
+from .validators import get_expense_transactions
 
 logger = logging.getLogger(__name__)
 

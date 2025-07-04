@@ -17,9 +17,9 @@ from sqlalchemy.orm import Session
 
 # 导入核心分析服务和工具函数
 from .analysis_service import AnalysisService
-from .calculation_helpers import CalculationHelpers
-from .utils import validate_date_range
-from .models import (
+from .expense_analyzer import CalculationHelpers
+from .validators import validate_date_range, get_month_date_range, get_expense_transactions
+from .dto import (
     Period, CoreMetrics, CompositionItem, 
     TrendPoint, DashboardData,
     RecurringExpense, ExpenseTrend, ExpenseAnalysisData
@@ -426,11 +426,7 @@ class ReportingService:
         """
         try:
             # 计算目标月份的时间范围
-            month_start = target_month.replace(day=1)
-            if target_month.month == 12:
-                month_end = target_month.replace(year=target_month.year + 1, month=1, day=1) - timedelta(days=1)
-            else:
-                month_end = target_month.replace(month=target_month.month + 1, day=1) - timedelta(days=1)
+            month_start, month_end = get_month_date_range(target_month)
             
             # 构建周期性支出的组合键集合
             recurring_combination_keys = {recurring.combination_key for recurring in recurring_expenses}
@@ -473,35 +469,32 @@ class ReportingService:
             self.logger.error(f"获取周期性支出交易明细失败: {e}")
             return []
 
-    def _get_flexible_expense_transactions(self, target_month: date, flexible_composition: List[CompositionItem]) -> List[Dict[str, Any]]:
+    def _get_flexible_expense_transactions(self, target_month: date, recurring_expenses: List[RecurringExpense]) -> List[Dict[str, Any]]:
         """获取弹性支出的具体交易明细
+        
+        使用简单补集策略：弹性支出 = 所有支出 - 固定支出
         
         Args:
             target_month: 目标月份
-            flexible_composition: 弹性支出分类数据
+            recurring_expenses: 识别出的周期性支出列表
             
         Returns:
             List[Dict[str, Any]]: 弹性支出的交易明细
         """
         try:
             # 计算目标月份的时间范围
-            month_start = target_month.replace(day=1)
-            if target_month.month == 12:
-                month_end = target_month.replace(year=target_month.year + 1, month=1, day=1) - timedelta(days=1)
-            else:
-                month_end = target_month.replace(month=target_month.month + 1, day=1) - timedelta(days=1)
+            month_start, month_end = get_month_date_range(target_month)
             
-            # 构建弹性支出的分类集合
-            flexible_categories = {comp.name for comp in flexible_composition}
+            # 构建周期性支出的组合键集合
+            recurring_combination_keys = {recurring.combination_key for recurring in recurring_expenses}
             
-            # 查询目标月份内符合弹性分类的交易，按金额绝对值排序取前10
+            # 查询非固定支出交易，按金额绝对值排序取前10
+            # 简单补集逻辑：所有支出 - 固定支出 = 弹性支出
             transactions = self.db.query(Transaction).filter(
                 Transaction.amount < 0,
                 Transaction.date >= month_start,
                 Transaction.date <= month_end,
-                or_(
-                    func.coalesce(Transaction.description, '未分类').in_(flexible_categories)
-                )
+                ~func.coalesce(Transaction.counterparty, '未知商家').in_(recurring_combination_keys)
             ).order_by(func.abs(Transaction.amount).desc()).limit(10).all()
             
             return [{
@@ -530,11 +523,7 @@ class ReportingService:
         """
         try:
             # 1. 计算目标月份的时间范围
-            month_start = target_month.replace(day=1)
-            if target_month.month == 12:
-                month_end = target_month.replace(year=target_month.year + 1, month=1, day=1) - timedelta(days=1)
-            else:
-                month_end = target_month.replace(month=target_month.month + 1, day=1) - timedelta(days=1)
+            month_start, month_end = get_month_date_range(target_month)
             
             # 2. 计算目标月份的总支出
             total_expense_result = self.db.query(
@@ -560,12 +549,12 @@ class ReportingService:
             else:
                 recurring_expenses = CalculationHelpers.identify_recurring_expenses(self.db)
             
-            # 5. 计算弹性支出分类占比
-            flexible_composition = CalculationHelpers.calculate_flexible_expense_composition(self.db, target_month)
+            # 5. 计算弹性支出分类占比（传递周期性支出参数）
+            flexible_composition = CalculationHelpers.calculate_flexible_expense_composition(self.db, target_month, recurring_expenses)
             
             # 6. 获取交易明细
             recurring_transactions = self._get_recurring_expense_transactions(target_month, recurring_expenses)
-            flexible_transactions = self._get_flexible_expense_transactions(target_month, flexible_composition)
+            flexible_transactions = self._get_flexible_expense_transactions(target_month, recurring_expenses)
             
             # 6.1. 过滤出当月实际发生的周期性支出
             current_month_recurring_keys = {group.get('combination_key') for group in recurring_transactions}

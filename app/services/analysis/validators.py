@@ -3,8 +3,13 @@
 提供分析服务的通用工具函数和配置常量。
 """
 
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Optional
 from decimal import Decimal, InvalidOperation
+from datetime import date, timedelta
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+
+from app.models import Transaction
 
 # ==================== 配置常量 ====================
 
@@ -85,3 +90,49 @@ def validate_date_range(start_date, end_date) -> None:
     date_diff = (end_date - start_date).days
     if date_diff > MAX_DATE_RANGE_DAYS:
         raise ValueError(f"查询范围不能超过{MAX_DATE_RANGE_DAYS}天")
+
+# ==================== 公共计算工具 ====================
+
+def get_month_date_range(target_month: date) -> tuple[date, date]:
+    """获取指定月份的开始和结束日期
+    
+    Args:
+        target_month: 目标月份
+        
+    Returns:
+        tuple[date, date]: (月份开始日期, 月份结束日期)
+    """
+    month_start = target_month.replace(day=1)
+    if target_month.month == 12:
+        month_end = target_month.replace(year=target_month.year + 1, month=1, day=1) - timedelta(days=1)
+    else:
+        month_end = target_month.replace(month=target_month.month + 1, day=1) - timedelta(days=1)
+    
+    return month_start, month_end
+
+def get_expense_transactions(db: Session, start_date: Optional[date] = None, 
+                           end_date: Optional[date] = None, 
+                           counterparty: Optional[str] = None) -> List[Transaction]:
+    """获取支出交易记录
+    
+    Args:
+        db: 数据库会话
+        start_date: 开始日期，可选
+        end_date: 结束日期，可选
+        counterparty: 交易对方，可选
+        
+    Returns:
+        List[Transaction]: 支出交易记录列表
+    """
+    query = db.query(Transaction).filter(Transaction.amount < 0)
+    
+    if start_date:
+        query = query.filter(Transaction.date >= start_date)
+    
+    if end_date:
+        query = query.filter(Transaction.date <= end_date)
+    
+    if counterparty:
+        query = query.filter(Transaction.counterparty == counterparty)
+    
+    return query.order_by(Transaction.date).all()

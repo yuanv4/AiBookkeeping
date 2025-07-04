@@ -14,8 +14,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import over
 
-from .database_helpers import DatabaseQueryHelper
-from .utils import normalize_decimal
+from .query_helpers import DatabaseQueryHelper
+from .validators import normalize_decimal
 
 logger = logging.getLogger(__name__)
 
