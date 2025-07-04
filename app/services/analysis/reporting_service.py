@@ -494,7 +494,7 @@ class ReportingService:
             # 构建弹性支出的分类集合
             flexible_categories = {comp.name for comp in flexible_composition}
             
-            # 查询目标月份内符合弹性分类的交易
+            # 查询目标月份内符合弹性分类的交易，按金额绝对值排序取前10
             transactions = self.db.query(Transaction).filter(
                 Transaction.amount < 0,
                 Transaction.date >= month_start,
@@ -502,7 +502,7 @@ class ReportingService:
                 or_(
                     func.coalesce(Transaction.description, '未分类').in_(flexible_categories)
                 )
-            ).order_by(Transaction.date.desc()).limit(50).all()
+            ).order_by(func.abs(Transaction.amount).desc()).limit(10).all()
             
             return [{
                 'id': tx.id,

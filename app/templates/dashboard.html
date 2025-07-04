@@ -93,27 +93,27 @@
         </div>
     </div>
 
-    <!-- 第四行：周期性支出 -->
+    <!-- 第四行：固定支出排行 -->
     <div class="row mb-4">
         <div class="col-lg-12">
-            {% call card("固定支出", "repeat") %}
+            {% call card("固定支出排行", "repeat") %}
             <div class="table-responsive">
                 <table class="table table-hover table-sm small">
                     <thead>
                         <tr>
+                            <th scope="col" class="text-center">排名</th>
                             <th scope="col">商户信息</th>
                             <th scope="col">频率</th>
                             <th scope="col" class="text-center">置信度</th>
                             <th scope="col" class="text-center">交易次数</th>
                             <th scope="col">最近发生</th>
-                            <th scope="col" class="text-end">总金额</th>
-                            <th scope="col" class="text-center">操作</th>
+                            <th scope="col" class="text-end">金额</th>
                         </tr>
                     </thead>
                     <tbody id="recurring-expenses-table-body">
                         <!-- JS动态生成 -->
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
+                            <td colspan="9" class="text-center text-muted py-4">
                                 {{ icon("loader-2", "lg", "spinner") }}
                                 <p class="mt-2 mb-0">加载中...</p>
                             </td>
@@ -125,25 +125,26 @@
         </div>
     </div>
     
-    <!-- 第五行：弹性支出明细 -->
+    <!-- 第五行：弹性支出排行 -->
     <div class="row mb-4">
         <div class="col-lg-12">
-            {% call card("弹性支出明细", "shuffle") %}
+            {% call card("弹性支出排行Top10", "shuffle") %}
             <div class="table-responsive">
                 <table class="table table-hover table-sm small">
                     <thead>
                         <tr>
+                            <th scope="col" class="text-center">排名</th>
                             <th scope="col">日期</th>
                             <th scope="col">账户</th>
-                            <th scope="col" class="text-end">金额</th>
                             <th scope="col">对手信息</th>
                             <th scope="col">摘要</th>
+                            <th scope="col" class="text-end">金额</th>
                         </tr>
                     </thead>
                     <tbody id="flexible-expenses-table-body">
                         <!-- JS动态生成 -->
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
+                            <td colspan="6" class="text-center text-muted py-4">
                                 {{ icon("loader-2", "lg", "spinner") }}
                                 <p class="mt-2 mb-0">加载中...</p>
                             </td>

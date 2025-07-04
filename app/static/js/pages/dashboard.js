@@ -363,6 +363,15 @@ export default class FinancialDashboard extends BasePage {
     }
 
     /**
+     * 获取排名样式类
+     */
+    getRankClass(rank) {
+        if (rank <= 3) return 'bg-warning text-dark'; // 前三名
+        if (rank <= 10) return 'bg-primary'; // 前10名
+        return 'bg-secondary'; // 其他排名
+    }
+
+    /**
      * 更新近6个月支出趋势图
      */
     updateExpenseTrendChart(trendData) {
@@ -393,7 +402,7 @@ export default class FinancialDashboard extends BasePage {
         tableBody.innerHTML = '';
 
         if (!recurringExpenses || recurringExpenses.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">暂无固定支出</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-3">暂无固定支出</td></tr>`;
             return;
         }
 
@@ -408,8 +417,15 @@ export default class FinancialDashboard extends BasePage {
         // 显示分组统计信息
         recurringExpenses.forEach((expense, index) => {
             const row = document.createElement('tr');
-            row.className = 'recurring-expense-row';
+            row.className = 'recurring-expense-row clickable-row';
             row.dataset.combinationKey = expense.combination_key || '';
+            row.tabIndex = '0';
+            row.setAttribute('role', 'button');
+            row.setAttribute('aria-expanded', 'false');
+            
+            // 排名计算
+            const rank = index + 1;
+            const rankClass = this.getRankClass(rank);
             
             // 频率显示转换
             const frequencyText = this.formatFrequencyDays(expense.frequency);
@@ -421,6 +437,9 @@ export default class FinancialDashboard extends BasePage {
             const lastOccurrence = new Date(expense.last_occurrence).toLocaleDateString('zh-CN');
 
             row.innerHTML = `
+                <td class="text-center">
+                    <span class="badge ${rankClass}">${rank}</span>
+                </td>
                 <td>
                     <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${expense.combination_key}">
                         ${expense.combination_key}
@@ -434,22 +453,25 @@ export default class FinancialDashboard extends BasePage {
                 </td>
                 <td class="text-center">${expense.count}</td>
                 <td>${lastOccurrence}</td>
-                <td class="text-end">¥${expense.total_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary toggle-details-btn" 
-                            data-combination-key="${expense.combination_key || ''}"
-                            title="查看交易明细">
-                        ▼
-                    </button>
+                <td class="text-end text-danger position-relative">
+                    ¥${expense.total_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <span class="expand-indicator"></span>
                 </td>
             `;
             
             tableBody.appendChild(row);
 
-            // 为展开按钮添加事件监听器
-            const toggleBtn = row.querySelector('.toggle-details-btn');
-            toggleBtn.addEventListener('click', (e) => {
-                this.toggleTransactionDetails(e.target.closest('button'));
+            // 为整行添加点击事件监听器
+            row.addEventListener('click', (e) => {
+                this.toggleTransactionDetails(row);
+            });
+
+            // 添加键盘导航支持
+            row.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.toggleTransactionDetails(row);
+                }
             });
         });
     }
@@ -457,9 +479,8 @@ export default class FinancialDashboard extends BasePage {
     /**
      * 切换交易明细的显示/隐藏
      */
-    toggleTransactionDetails(button) {
-        const combinationKey = button.dataset.combinationKey;
-        const row = button.closest('tr');
+    toggleTransactionDetails(row) {
+        const combinationKey = row.dataset.combinationKey;
         const tableBody = row.parentNode;
         
         // 查找是否已有明细行
@@ -469,15 +490,13 @@ export default class FinancialDashboard extends BasePage {
         if (isDetailsRow) {
             // 已展开，收起明细
             detailsRow.remove();
-            button.innerHTML = '▼';
-            button.title = '查看交易明细';
+            row.setAttribute('aria-expanded', 'false');
         } else {
             // 未展开，显示明细
             const detailsRowElement = this.createTransactionDetailsRow(combinationKey);
             if (detailsRowElement) {
                 row.insertAdjacentElement('afterend', detailsRowElement);
-                button.innerHTML = '▲';
-                button.title = '收起明细';
+                row.setAttribute('aria-expanded', 'true');
             }
         }
     }
@@ -573,28 +592,31 @@ export default class FinancialDashboard extends BasePage {
         tableBody.innerHTML = '';
 
         if (!flexibleTransactions || flexibleTransactions.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">暂无弹性支出</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">暂无弹性支出</td></tr>`;
             return;
         }
 
-        flexibleTransactions.slice(0, 10).forEach((transaction) => {
+        flexibleTransactions.forEach((transaction, index) => {
             const row = document.createElement('tr');
+            const rank = index + 1; // 排名从1开始
             
             // 格式化日期
             const dateStr = new Date(transaction.date).toLocaleDateString('zh-CN');
             
             // 格式化金额（支出显示为负数）
             const amount = transaction.amount || 0;
-            const amountStr = amount < 0 ? `¥${Math.abs(amount).toLocaleString('zh-CN')}` : `¥${amount.toLocaleString('zh-CN')}`;
+            const amountStr = amount < 0 ? `¥${Math.abs(amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `¥${amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             row.innerHTML = `
+                <td class="text-center">
+                    <span class="badge ${this.getRankClass(rank)}">${rank}</span>
+                </td>
                 <td>${dateStr}</td>
                 <td>
                     <span class="d-inline-block text-truncate" style="max-width: 80px;" title="${transaction.account_name || ''}">
                         ${transaction.account_name || ''}
                     </span>
                 </td>
-                <td class="text-end text-danger">${amountStr}</td>
                 <td>
                     <span class="d-inline-block text-truncate" style="max-width: 100px;" title="${transaction.counterparty || ''}">
                         ${transaction.counterparty || ''}
@@ -605,6 +627,7 @@ export default class FinancialDashboard extends BasePage {
                         ${transaction.description || ''}
                     </span>
                 </td>
+                <td class="text-end text-danger">${amountStr}</td>
             `;
             
             tableBody.appendChild(row);

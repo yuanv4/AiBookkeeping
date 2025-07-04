@@ -172,11 +172,23 @@ export default class TransactionsPage extends BasePage {
         const rowHtml = `
             <tr>
                 <td>${escapeHtml(transaction.date || '')}</td>
-                <td>${escapeHtml(transaction.account_name || transaction.account_number || '')}</td>
-                <td class="${amount >= 0 ? 'positive' : 'negative'}">${amount.toFixed(2)}</td>
-                <td>${balance.toFixed(2)}</td>
-                <td>${escapeHtml(transaction.counterparty || '')}</td>
-                <td>${escapeHtml(transaction.description || '')}</td>
+                <td>
+                    <span class="d-inline-block transaction-cell-truncate-sm" title="${escapeHtml(transaction.account_name || transaction.account_number || '')}">
+                        ${escapeHtml(transaction.account_name || transaction.account_number || '')}
+                    </span>
+                </td>
+                <td class="text-end transaction-amount ${amount >= 0 ? 'positive' : 'negative'}">${amount.toFixed(2)}</td>
+                <td class="text-end">${balance.toFixed(2)}</td>
+                <td>
+                    <span class="d-inline-block transaction-cell-truncate-md" title="${escapeHtml(transaction.counterparty || '')}">
+                        ${escapeHtml(transaction.counterparty || '')}
+                    </span>
+                </td>
+                <td>
+                    <span class="d-inline-block transaction-cell-truncate" title="${escapeHtml(transaction.description || '')}">
+                        ${escapeHtml(transaction.description || '')}
+                    </span>
+                </td>
             </tr>
         `;
         
