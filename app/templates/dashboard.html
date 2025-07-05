@@ -66,7 +66,32 @@
     <!-- 第三行：近6个月支出趋势 -->
     <div class="row mb-4">
         <div class="col-12">
-            {{ chart_container("近6个月支出趋势", "expenseTrendChart", "250px", "bar-chart") }}
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="me-2 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem;">
+                            {{ icon("bar-chart", "sm", "text-primary") }}
+                        </div>
+                        <h6 class="mb-0 fw-bold">近6个月支出趋势</h6>
+                        <span class="ms-2 text-muted small" id="expense-trend-range"></span>
+                    </div>
+                    <div class="chart-actions">
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary" id="prev-trend-months">
+                                {{ icon("chevron-left", "sm") }}
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="next-trend-months">
+                                {{ icon("chevron-right", "sm") }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative" style="height: 250px;">
+                        <canvas id="expenseTrendChart" class="w-100 h-100"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

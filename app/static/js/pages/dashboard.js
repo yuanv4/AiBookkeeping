@@ -95,6 +95,7 @@ export default class FinancialDashboard extends BasePage {
         super();
         this.charts = {};
         this.currentData = {};
+        this.trendChartBaseMonth = new Date(); // 添加：趋势图表的基准月份（结束月份）
     }
     
     init() {
@@ -196,7 +197,7 @@ export default class FinancialDashboard extends BasePage {
                                 return '点击选择此月份';
                             }
                         }
-                    }
+                    } 
                 }, 
                 scales: { 
                     y: { 
@@ -214,9 +215,9 @@ export default class FinancialDashboard extends BasePage {
                         if (trendData[clickedIndex]) {
                             const dateStr = trendData[clickedIndex].date;
                             this.selectMonthFromTrendChart(dateStr);
-                        }
-                    }
-                }
+                        } 
+                    } 
+                } 
             }
         });
 
@@ -281,7 +282,154 @@ export default class FinancialDashboard extends BasePage {
     initializeExpenseModule() {
         this.currentExpenseMonth = new Date(); // 默认当前月份
         this.selectedTrendMonth = null; // 跟踪当前选中的月份索引
+        this.trendChartBaseMonth = new Date(); // 趋势图的基准月份
+        this.setupTrendNavigation(); // 设置趋势图导航
         this.loadExpenseAnalysisData();
+    }
+
+    /**
+     * 设置趋势图导航按钮
+     */
+    setupTrendNavigation() {
+        // 添加翻页按钮事件监听
+        const prevButton = document.getElementById('prev-trend-months');
+        const nextButton = document.getElementById('next-trend-months');
+        
+        if (prevButton) {
+            prevButton.addEventListener('click', () => this.navigateTrendMonths('prev'));
+        }
+        
+        if (nextButton) {
+            nextButton.addEventListener('click', () => this.navigateTrendMonths('next'));
+        }
+        
+        // 初始化趋势图标题
+        this.updateTrendDateRangeText();
+    }
+
+    /**
+     * 导航趋势图月份
+     * @param {string} direction - 导航方向：'prev' 或 'next'
+     */
+    navigateTrendMonths(direction) {
+        // 根据方向调整基准月份
+        if (direction === 'prev') {
+            // 向前翻页：基准月份减去6个月
+            this.trendChartBaseMonth = new Date(
+                this.trendChartBaseMonth.getFullYear(),
+                this.trendChartBaseMonth.getMonth() - 6,
+                1
+            );
+        } else if (direction === 'next') {
+            // 向后翻页：基准月份加上6个月，但不超过当前月份
+            const newBaseMonth = new Date(
+                this.trendChartBaseMonth.getFullYear(),
+                this.trendChartBaseMonth.getMonth() + 6,
+                1
+            );
+            
+            const currentMonth = new Date();
+            currentMonth.setDate(1); // 设置为当月1日
+            
+            if (newBaseMonth > currentMonth) {
+                this.trendChartBaseMonth = currentMonth;
+            } else {
+                this.trendChartBaseMonth = newBaseMonth;
+            }
+        }
+        
+        // 重新加载趋势图数据
+        this.loadTrendChartData();
+        
+        // 更新日期范围文本
+        this.updateTrendDateRangeText();
+    }
+
+    /**
+     * 更新趋势图日期范围文本
+     */
+    updateTrendDateRangeText() {
+        const rangeElement = document.getElementById('expense-trend-range');
+        if (!rangeElement) return;
+        
+        // 计算起始月份（当前基准月份减5个月）
+        const startMonth = new Date(
+            this.trendChartBaseMonth.getFullYear(),
+            this.trendChartBaseMonth.getMonth() - 5,
+            1
+        );
+        
+        // 格式化日期范围
+        const startMonthText = `${startMonth.getFullYear()}年${startMonth.getMonth() + 1}月`;
+        const endMonthText = `${this.trendChartBaseMonth.getFullYear()}年${this.trendChartBaseMonth.getMonth() + 1}月`;
+        
+        rangeElement.textContent = `(${startMonthText} - ${endMonthText})`;
+        
+        // 处理按钮禁用状态
+        this.updateTrendNavigationButtons();
+    }
+
+    /**
+     * 更新趋势图导航按钮状态
+     */
+    updateTrendNavigationButtons() {
+        const prevButton = document.getElementById('prev-trend-months');
+        const nextButton = document.getElementById('next-trend-months');
+        
+        if (nextButton) {
+            // 如果基准月份是当前月份，则禁用"下一页"按钮
+            const currentMonth = new Date();
+            currentMonth.setDate(1); // 设置为当月1日
+            
+            const isCurrentMonth = this.trendChartBaseMonth.getFullYear() === currentMonth.getFullYear() && 
+                                this.trendChartBaseMonth.getMonth() === currentMonth.getMonth();
+            
+            nextButton.disabled = isCurrentMonth;
+        }
+        
+        // "上一页"按钮始终启用，因为我们可以无限往前查看历史数据
+    }
+
+    /**
+     * 加载趋势图数据
+     */
+    async loadTrendChartData() {
+        try {
+            // 格式化基准月份
+            const monthStr = `${this.trendChartBaseMonth.getFullYear()}-${String(this.trendChartBaseMonth.getMonth() + 1).padStart(2, '0')}`;
+            const url = `/api/dashboard/expense-analysis?target_month=${monthStr}`;
+            
+            // 显示加载状态
+            const chartCanvas = document.getElementById('expenseTrendChart');
+            if (chartCanvas) {
+                chartCanvas.style.opacity = '0.5';
+            }
+            
+            const result = await apiService.get(url);
+            
+            if (result.success && result.data && result.data.expense_trend) {
+                // 更新趋势图
+                this.updateExpenseTrendChart(result.data.expense_trend);
+                
+                // 保存趋势数据供高亮显示使用
+                if (!this.currentData.expenseAnalysisData) {
+                    this.currentData.expenseAnalysisData = {};
+                }
+                this.currentData.expenseAnalysisData.expense_trend = result.data.expense_trend;
+                
+                // 更新高亮显示
+                this.updateExpenseTrendChartHighlight();
+            } else {
+                console.error('获取支出趋势数据失败:', result.error);
+            }
+            
+            // 恢复显示
+            if (chartCanvas) {
+                chartCanvas.style.opacity = '1';
+            }
+        } catch (error) {
+            console.error('加载趋势图数据异常:', error);
+        }
     }
 
     /**
@@ -302,8 +450,11 @@ export default class FinancialDashboard extends BasePage {
                 // 保存选中的月份字符串用于高亮显示
                 this.selectedTrendMonth = dateStr;
                 
-                // 重新加载数据
-                this.loadExpenseAnalysisData();
+                // 重新加载详情数据，但不重新加载趋势图数据
+                this.loadMonthlyDetailsData();
+                
+                // 高亮显示选中的月份
+                this.updateExpenseTrendChartHighlight();
                 
                 // 显示通知
                 showNotification(`已选择 ${year}年${month + 1}月 的数据`, 'info', 2000);
@@ -311,6 +462,87 @@ export default class FinancialDashboard extends BasePage {
         } catch (error) {
             console.error('选择月份出错:', error);
         }
+    }
+
+    /**
+     * 更新趋势图高亮显示
+     */
+    updateExpenseTrendChartHighlight() {
+        if (!this.charts.expenseTrend) return;
+        
+        // 获取当前数据
+        const datasets = this.charts.expenseTrend.data.datasets;
+        if (!datasets || datasets.length === 0) return;
+        
+        // 检查当前趋势图是否包含选中的月份
+        const trendData = this.currentData.expenseAnalysisData?.expense_trend || [];
+        
+        // 更新背景颜色数组
+        const backgroundColors = trendData.map(d => {
+            // 如果有选中的月份且与当前数据项匹配，则高亮显示
+            if (this.selectedTrendMonth && d.date === this.selectedTrendMonth) {
+                return getCSSColor('--bs-warning'); // 高亮颜色
+            }
+            return getCSSColor('--bs-warning-200'); // 默认颜色
+        });
+        
+        // 更新数据集的背景颜色
+        datasets[0].backgroundColor = backgroundColors;
+        
+        // 更新图表
+        this.charts.expenseTrend.update();
+    }
+
+    /**
+     * 加载选定月份的详情数据
+     */
+    async loadMonthlyDetailsData() {
+        try {
+            // 只加载选中月份的详细数据
+            const monthStr = `${this.currentExpenseMonth.getFullYear()}-${String(this.currentExpenseMonth.getMonth() + 1).padStart(2, '0')}`;
+            const url = `/api/dashboard/expense-analysis?target_month=${monthStr}`;
+            
+            const result = await apiService.get(url);
+            
+            if (result.success) {
+                // 更新详情数据
+                
+                // 保存完整的数据用于展开交易明细功能
+                if (!this.currentData.expenseAnalysisData) {
+                    this.currentData.expenseAnalysisData = {};
+                }
+                // 只更新详情相关的数据，保留趋势图数据
+                const trendData = this.currentData.expenseAnalysisData.expense_trend || [];
+                this.currentData.expenseAnalysisData = {
+                    ...result.data,
+                    expense_trend: trendData
+                };
+                
+                // 更新UI组件
+                this.updateMonthlyDetails(result.data);
+            } else {
+                console.error('获取月度详情数据失败:', result.error);
+                showNotification('获取月度详情数据失败', 'error');
+            }
+        } catch (error) {
+            console.error('月度详情数据加载异常:', error);
+        }
+    }
+
+    /**
+     * 更新月度详情数据
+     */
+    updateMonthlyDetails(data) {
+        if (!data) return;
+        
+        // 更新总支出显示
+        this.updateTotalExpense(data.total_expense || 0);
+        
+        // 更新固定支出明细表格
+        this.updateRecurringExpensesTable(data.recurring_expenses || [], data.recurring_transactions || []);
+        
+        // 更新弹性支出明细表格
+        this.updateFlexibleExpensesTable(data.flexible_transactions || []);
     }
 
     /**
@@ -326,7 +558,18 @@ export default class FinancialDashboard extends BasePage {
             if (result.success) {
                 // 保存完整的支出分析数据供展开功能使用
                 this.currentData.expenseAnalysisData = result.data;
-                this.updateExpenseAnalysisModule(result.data);
+                
+                // 初始化趋势图
+                this.updateExpenseTrendChart(result.data.expense_trend || []);
+                
+                // 设置初始趋势图基准月份
+                this.trendChartBaseMonth = new Date(this.currentExpenseMonth);
+                
+                // 更新日期范围文本
+                this.updateTrendDateRangeText();
+                
+                // 更新详情数据
+                this.updateMonthlyDetails(result.data);
             } else {
                 console.error('获取支出分析数据失败:', result.error);
                 showNotification('获取支出分析数据失败', 'error');
@@ -335,27 +578,6 @@ export default class FinancialDashboard extends BasePage {
             console.error('支出分析数据加载异常:', error);
             showNotification('支出分析数据加载异常', 'error');
         }
-    }
-
-    /**
-     * 更新支出分析模块的所有组件
-     */
-    updateExpenseAnalysisModule(data) {
-        if (!data) return;
-
-        // 更新总支出显示
-        this.updateTotalExpense(data.total_expense || 0);
-
-        // 更新近6个月趋势图
-        this.updateExpenseTrendChart(data.expense_trend || []);
-
-
-
-        // 更新固定支出明细表格（现在显示分组统计）
-        this.updateRecurringExpensesTable(data.recurring_expenses || [], data.recurring_transactions || []);
-
-        // 更新弹性支出明细表格
-        this.updateFlexibleExpensesTable(data.flexible_transactions || []);
     }
 
     /**
@@ -400,24 +622,15 @@ export default class FinancialDashboard extends BasePage {
         });
         const values = trendData.map(d => d.value);
         
-        // 设置高亮显示当前选中月份的颜色
-        const backgroundColors = trendData.map(d => {
-            // 如果有选中的月份且与当前数据项匹配，则高亮显示
-            if (this.selectedTrendMonth && d.date === this.selectedTrendMonth) {
-                return getCSSColor('--bs-warning'); // 高亮颜色
-            }
-            return getCSSColor('--bs-warning-200'); // 默认颜色
-        });
+        // 设置默认颜色（不再处理高亮，由updateExpenseTrendChartHighlight负责）
+        const defaultColor = getCSSColor('--bs-warning-200');
+        const backgroundColors = new Array(trendData.length).fill(defaultColor);
 
         this.charts.expenseTrend.data.labels = labels;
         this.charts.expenseTrend.data.datasets[0].data = values;
         this.charts.expenseTrend.data.datasets[0].backgroundColor = backgroundColors;
         this.charts.expenseTrend.update();
     }
-
-
-
-
 
     /**
      * 更新固定支出分组统计表格
