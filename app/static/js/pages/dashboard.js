@@ -189,7 +189,14 @@ export default class FinancialDashboard extends BasePage {
                         font: { size: 10 }, 
                         color: '#6c757d', 
                         formatter: (value) => '¥' + value.toLocaleString('zh-CN', { notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: 1 }) 
-                    } 
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: (tooltipItems) => {
+                                return '点击选择此月份';
+                            }
+                        }
+                    }
                 }, 
                 scales: { 
                     y: { 
@@ -198,7 +205,18 @@ export default class FinancialDashboard extends BasePage {
                             callback: (value) => '¥' + value.toLocaleString() 
                         } 
                     } 
-                } 
+                },
+                onClick: (event, elements, chart) => {
+                    // 处理柱状图点击事件
+                    if (elements && elements.length > 0) {
+                        const clickedIndex = elements[0].index;
+                        const trendData = this.currentData.expenseAnalysisData?.expense_trend || [];
+                        if (trendData[clickedIndex]) {
+                            const dateStr = trendData[clickedIndex].date;
+                            this.selectMonthFromTrendChart(dateStr);
+                        }
+                    }
+                }
             }
         });
 
@@ -258,42 +276,41 @@ export default class FinancialDashboard extends BasePage {
 
     /**
      * 初始化支出结构透视模块
-     * 包含月份选择器和数据获取逻辑
+     * 包含数据获取逻辑
      */
     initializeExpenseModule() {
         this.currentExpenseMonth = new Date(); // 默认当前月份
-        this.initializeMonthSelector();
+        this.selectedTrendMonth = null; // 跟踪当前选中的月份索引
         this.loadExpenseAnalysisData();
     }
 
     /**
-     * 初始化月份选择器
+     * 通过趋势图选择月份
+     * @param {string} dateStr 格式为YYYY-MM的日期字符串
      */
-    initializeMonthSelector() {
-        const selector = document.getElementById('expense-month-selector');
-        if (!selector) return;
-
-        // 生成最近12个月的选项
-        const currentDate = new Date();
-        for (let i = 0; i < 12; i++) {
-            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-            const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            const text = `${date.getFullYear()}年${date.getMonth() + 1}月`;
-            
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = text;
-            if (i === 0) option.selected = true; // 默认选中当前月
-            
-            selector.appendChild(option);
+    selectMonthFromTrendChart(dateStr) {
+        try {
+            // 解析日期字符串为Date对象 (格式: YYYY-MM)
+            const dateParts = dateStr.split('-');
+            if (dateParts.length >= 2) {
+                const year = parseInt(dateParts[0], 10);
+                const month = parseInt(dateParts[1], 10) - 1; // 月份从0开始
+                
+                // 更新当前选择的月份
+                this.currentExpenseMonth = new Date(year, month, 1);
+                
+                // 保存选中的月份字符串用于高亮显示
+                this.selectedTrendMonth = dateStr;
+                
+                // 重新加载数据
+                this.loadExpenseAnalysisData();
+                
+                // 显示通知
+                showNotification(`已选择 ${year}年${month + 1}月 的数据`, 'info', 2000);
+            }
+        } catch (error) {
+            console.error('选择月份出错:', error);
         }
-
-        // 添加变化事件监听器
-        selector.addEventListener('change', (e) => {
-            const selectedMonth = e.target.value;
-            this.currentExpenseMonth = new Date(selectedMonth + '-01');
-            this.loadExpenseAnalysisData();
-        });
     }
 
     /**
@@ -382,9 +399,19 @@ export default class FinancialDashboard extends BasePage {
             return `${date.getMonth() + 1}月`;
         });
         const values = trendData.map(d => d.value);
+        
+        // 设置高亮显示当前选中月份的颜色
+        const backgroundColors = trendData.map(d => {
+            // 如果有选中的月份且与当前数据项匹配，则高亮显示
+            if (this.selectedTrendMonth && d.date === this.selectedTrendMonth) {
+                return getCSSColor('--bs-warning'); // 高亮颜色
+            }
+            return getCSSColor('--bs-warning-200'); // 默认颜色
+        });
 
         this.charts.expenseTrend.data.labels = labels;
         this.charts.expenseTrend.data.datasets[0].data = values;
+        this.charts.expenseTrend.data.datasets[0].backgroundColor = backgroundColors;
         this.charts.expenseTrend.update();
     }
 
