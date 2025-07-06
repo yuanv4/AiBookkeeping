@@ -68,6 +68,9 @@ class ReportingService:
 
             net_worth_trend = CalculationHelpers.calculate_net_worth_trend(self.db, start_date, end_date, 'month')
 
+            # 3. 获取最新交易月份
+            latest_transaction_month = self.get_latest_transaction_month()
+            
             # 构建并返回数据类实例
             return DashboardData(
                 period=Period(
@@ -88,7 +91,8 @@ class ReportingService:
                 ),
                 cash_flow=[],
                 income_composition=[],
-                expense_composition=[]
+                expense_composition=[],
+                latest_transaction_month=latest_transaction_month.strftime('%Y-%m') if latest_transaction_month else None
             )
             
         except ValueError as e:
@@ -112,7 +116,8 @@ class ReportingService:
                 ),
                 cash_flow=[],
                 income_composition=[],
-                expense_composition=[]
+                expense_composition=[],
+                latest_transaction_month=None
             )
 
     def get_cash_flow_data(self, start_date: date, end_date: date) -> Dict[str, Any]:
@@ -212,7 +217,21 @@ class ReportingService:
     
     # ==================== 私有辅助方法 ====================
     
-
+    def get_latest_transaction_month(self) -> Optional[date]:
+        """获取数据库中最新交易数据的月份
+        
+        Returns:
+            Optional[date]: 最新交易月份，如果没有数据则返回None
+        """
+        try:
+            latest_transaction_date = self.db.query(func.max(Transaction.date)).scalar()
+            if latest_transaction_date:
+                # 返回该月份的第一天
+                return latest_transaction_date.replace(day=1)
+            return None
+        except Exception as e:
+            self.logger.error(f"获取最新交易月份失败: {e}")
+            return None
     
     def _calculate_composition_direct(self, start_date: date, end_date: date, transaction_type: str) -> List[CompositionItem]:
         """直接通过数据库查询计算收入或支出构成
@@ -357,23 +376,23 @@ class ReportingService:
 
 
 
-    def _calculate_expense_trend_6months(self, target_month: date) -> List[ExpenseTrend]:
-        """计算近6个月支出趋势
+    def _calculate_expense_trend_12months(self, target_month: date) -> List[ExpenseTrend]:
+        """计算近12个月支出趋势
         
-        从指定目标月份向前推算6个月，计算每月的总支出金额。
+        从指定目标月份向前推算12个月，计算每月的总支出金额。
         
         Args:
             target_month: 目标月份（通常是当前月份）
             
         Returns:
-            List[ExpenseTrend]: 近6个月的支出趋势数据
+            List[ExpenseTrend]: 近12个月的支出趋势数据
         """
         try:
-            # 计算6个月的时间范围
+            # 计算12个月的时间范围
             end_month = target_month.replace(day=1)  # 目标月份的第一天
-            start_month = end_month - relativedelta(months=5)  # 往前推5个月，总共6个月
+            start_month = end_month - relativedelta(months=11)  # 往前推11个月，总共12个月
             
-            # 查询近6个月的支出数据，按月分组
+            # 查询近12个月的支出数据，按月分组
             monthly_expenses = self.db.query(
                 func.strftime('%Y-%m', Transaction.date).label('month'),
                 func.sum(func.abs(Transaction.amount)).label('total_expense')
@@ -387,14 +406,14 @@ class ReportingService:
                 func.strftime('%Y-%m', Transaction.date)
             ).all()
             
-            # 构建完整的6个月数据（包括没有交易的月份）
+            # 构建完整的12个月数据（包括没有交易的月份）
             expense_trends = []
             current_month = start_month
             
             # 将查询结果转换为字典便于查找
             expense_dict = {r.month: float(r.total_expense) for r in monthly_expenses}
             
-            for i in range(6):
+            for i in range(12):
                 month_str = current_month.strftime('%Y-%m')
                 expense_amount = expense_dict.get(month_str, 0.0)
                 
@@ -536,8 +555,8 @@ class ReportingService:
             
             total_expense = float(total_expense_result or 0)
             
-            # 3. 计算近6个月支出趋势
-            expense_trend = self._calculate_expense_trend_6months(target_month)
+            # 3. 计算近12个月支出趋势
+            expense_trend = self._calculate_expense_trend_12months(target_month)
             
             # 4. 识别周期性支出（基于全量历史数据）
             # 根据配置选择算法方法

@@ -67,7 +67,7 @@ class ExpenseAnalysisData:
     """支出分析综合数据"""
     target_month: str
     total_expense: Decimal
-    expense_trend: List[ExpenseTrend]  # 近6个月趋势
+    expense_trend: List[ExpenseTrend]  # 近12个月趋势
     recurring_expenses: List[RecurringExpense]  # 周期性支出排行
     flexible_composition: List[CompositionItem]  # 弹性支出分类占比
     recurring_transactions: List[dict] = None  # 周期性支出交易明细
@@ -81,4 +81,5 @@ class DashboardData:
     core_metrics: CoreMetrics
     cash_flow: List[TrendPoint]
     income_composition: List[CompositionItem]
-    expense_composition: List[CompositionItem] 
+    expense_composition: List[CompositionItem]
+    latest_transaction_month: str = None  # 最新交易月份，格式：YYYY-MM 

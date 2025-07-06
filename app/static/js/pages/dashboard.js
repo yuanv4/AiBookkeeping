@@ -106,23 +106,38 @@ export default class FinancialDashboard extends BasePage {
             this.currentData = JSON.parse(dataContainer.dataset.initialData);
         }
         
+        // 设置默认月份：优先使用后端提供的最新交易月份，否则使用当前月份
+        this.setDefaultMonth();
+        
         this.initializeCharts();
         this.updateDashboard(this.currentData);
 
-        // 初始化资金流模块
-        this.cashFlowModule = new DashboardModule({
-            name: 'cashFlow',
-            controlsId: 'cashflow-module-controls',
-            apiEndpoint: '/api/dashboard/cash-flow',
-            dataUpdater: (data) => {
-                this.updateCashFlowChart(data.cash_flow);
-                this.updateIncomeCompositionChart(data.income_composition);
-            }
-        });
-        this.cashFlowModule.init();
-
         // 初始化支出结构透视模块（月份选择器）
         this.initializeExpenseModule();
+    }
+    
+    /**
+     * 设置默认月份
+     * 优先使用后端提供的最新交易月份，如果没有则使用当前月份
+     */
+    setDefaultMonth() {
+        // 从初始数据中获取最新交易月份
+        const latestMonthStr = this.currentData?.latest_transaction_month;
+        
+        if (latestMonthStr) {
+            // 解析最新交易月份字符串 (格式: YYYY-MM)
+            const [year, month] = latestMonthStr.split('-').map(Number);
+            if (year && month) {
+                this.trendChartBaseMonth = new Date(year, month - 1, 1); // 月份从0开始
+                console.log(`使用最新交易月份作为默认月份: ${year}年${month}月`);
+            } else {
+                this.trendChartBaseMonth = new Date();
+                console.log('最新交易月份格式错误，使用当前月份');
+            }
+        } else {
+            this.trendChartBaseMonth = new Date();
+            console.log('未获取到最新交易月份，使用当前月份');
+        }
     }
     
     getChartColors() {
@@ -146,23 +161,7 @@ export default class FinancialDashboard extends BasePage {
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: 'auto', align: 'top', anchor: 'end', offset: 8, font: { size: 10 }, color: '#6c757d', formatter: (value) => '¥' + value.toLocaleString('zh-CN', { notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: 1 }) } }, scales: { y: { beginAtZero: false, ticks: { callback: (value) => '¥' + value.toLocaleString() } } } }
         });
         
-        // 资金流分析图
-        this.charts.cashFlow = new Chart(document.getElementById('cashFlowChart'), {
-            type: 'bar',
-            data: { labels: [], datasets: [ { label: '净现金流', data: [], backgroundColor: (context) => { if (!context.parsed || context.parsed.y === undefined) return getCSSColor('--bs-primary-100'); const value = context.parsed.y; return value >= 0 ? getCSSColor('--bs-success-100') : getCSSColor('--bs-danger-100'); }, borderColor: (context) => { if (!context.parsed || context.parsed.y === undefined) return getCSSColor('--bs-primary'); const value = context.parsed.y; return value >= 0 ? getCSSColor('--bs-success') : getCSSColor('--bs-danger'); }, borderWidth: 1 } ] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: (value) => '¥' + value.toLocaleString() } } } }
-        });
-        
-        // 收入构成图
-        this.charts.incomeComposition = new Chart(document.getElementById('incomeCompositionChart'), {
-            type: 'doughnut',
-            data: { labels: [], datasets: [{ data: [], backgroundColor: this.getChartColors() }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-        });
-        
-
-
-        // 近6个月支出趋势图
+        // 近12个月支出趋势图
         this.charts.expenseTrend = new Chart(document.getElementById('expenseTrendChart'), {
             type: 'bar',
             data: { 
@@ -174,7 +173,11 @@ export default class FinancialDashboard extends BasePage {
                     backgroundColor: getCSSColor('--bs-warning-200'),
                     borderWidth: 1,
                     borderRadius: 4,
-                    borderSkipped: false
+                    borderSkipped: false,
+                    shadowOffsetX: 0,
+                    shadowOffsetY: 2,
+                    shadowBlur: 4,
+                    shadowColor: 'rgba(0, 0, 0, 0.3)'
                 }] 
             },
             options: { 
@@ -220,15 +223,12 @@ export default class FinancialDashboard extends BasePage {
                 } 
             }
         });
-
-
     }
 
     updateDashboard(data) {
         if (!data) return;
         this.updateCoreMetrics(data.core_metrics);
         this.updateNetWorthChart(data.net_worth_trend);
-        // The rest of the charts are updated by their respective modules
     }
 
     updateCoreMetrics(metrics) {
@@ -261,28 +261,15 @@ export default class FinancialDashboard extends BasePage {
         this.charts.netWorth.update();
     }
 
-    updateCashFlowChart(cashFlowData) {
-        if (!cashFlowData || !this.charts.cashFlow) return;
-        this.charts.cashFlow.data.labels = cashFlowData.map(d => d.date);
-        this.charts.cashFlow.data.datasets[0].data = cashFlowData.map(d => d.value);
-        this.charts.cashFlow.update();
-    }
-
-    updateIncomeCompositionChart(compositionData) {
-        if (!compositionData || !this.charts.incomeComposition) return;
-        this.charts.incomeComposition.data.labels = compositionData.map(d => d.label);
-        this.charts.incomeComposition.data.datasets[0].data = compositionData.map(d => d.value);
-        this.charts.incomeComposition.update();
-    }
-
     /**
      * 初始化支出结构透视模块
      * 包含数据获取逻辑
      */
     initializeExpenseModule() {
-        this.currentExpenseMonth = new Date(); // 默认当前月份
+        // 使用已设置的基准月份作为当前支出月份
+        this.currentExpenseMonth = new Date(this.trendChartBaseMonth);
         this.selectedTrendMonth = null; // 跟踪当前选中的月份索引
-        this.trendChartBaseMonth = new Date(); // 趋势图的基准月份
+        // trendChartBaseMonth已在setDefaultMonth()中设置
         this.setupTrendNavigation(); // 设置趋势图导航
         this.loadExpenseAnalysisData();
     }
@@ -314,25 +301,39 @@ export default class FinancialDashboard extends BasePage {
     navigateTrendMonths(direction) {
         // 根据方向调整基准月份
         if (direction === 'prev') {
-            // 向前翻页：基准月份减去6个月
+            // 向前翻页：基准月份减去12个月
             this.trendChartBaseMonth = new Date(
                 this.trendChartBaseMonth.getFullYear(),
-                this.trendChartBaseMonth.getMonth() - 6,
+                this.trendChartBaseMonth.getMonth() - 12,
                 1
             );
         } else if (direction === 'next') {
-            // 向后翻页：基准月份加上6个月，但不超过当前月份
+            // 向后翻页：基准月份加上12个月，但不超过最新交易月份
             const newBaseMonth = new Date(
                 this.trendChartBaseMonth.getFullYear(),
-                this.trendChartBaseMonth.getMonth() + 6,
+                this.trendChartBaseMonth.getMonth() + 12,
                 1
             );
             
-            const currentMonth = new Date();
-            currentMonth.setDate(1); // 设置为当月1日
+            // 获取最新交易月份作为上限
+            const latestMonthStr = this.currentData?.latest_transaction_month;
+            let latestMonth;
             
-            if (newBaseMonth > currentMonth) {
-                this.trendChartBaseMonth = currentMonth;
+            if (latestMonthStr) {
+                const [year, month] = latestMonthStr.split('-').map(Number);
+                if (year && month) {
+                    latestMonth = new Date(year, month - 1, 1); // 月份从0开始
+                }
+            }
+            
+            // 如果没有获取到最新月份，则使用当前月份作为上限
+            if (!latestMonth) {
+                latestMonth = new Date();
+                latestMonth.setDate(1); // 设置为当月1日
+            }
+            
+            if (newBaseMonth > latestMonth) {
+                this.trendChartBaseMonth = latestMonth;
             } else {
                 this.trendChartBaseMonth = newBaseMonth;
             }
@@ -352,10 +353,10 @@ export default class FinancialDashboard extends BasePage {
         const rangeElement = document.getElementById('expense-trend-range');
         if (!rangeElement) return;
         
-        // 计算起始月份（当前基准月份减5个月）
+        // 计算起始月份（当前基准月份减11个月）
         const startMonth = new Date(
             this.trendChartBaseMonth.getFullYear(),
-            this.trendChartBaseMonth.getMonth() - 5,
+            this.trendChartBaseMonth.getMonth() - 11,
             1
         );
         
@@ -377,14 +378,28 @@ export default class FinancialDashboard extends BasePage {
         const nextButton = document.getElementById('next-trend-months');
         
         if (nextButton) {
-            // 如果基准月份是当前月份，则禁用"下一页"按钮
-            const currentMonth = new Date();
-            currentMonth.setDate(1); // 设置为当月1日
+            // 获取最新交易月份作为上限
+            const latestMonthStr = this.currentData?.latest_transaction_month;
+            let latestMonth;
             
-            const isCurrentMonth = this.trendChartBaseMonth.getFullYear() === currentMonth.getFullYear() && 
-                                this.trendChartBaseMonth.getMonth() === currentMonth.getMonth();
+            if (latestMonthStr) {
+                const [year, month] = latestMonthStr.split('-').map(Number);
+                if (year && month) {
+                    latestMonth = new Date(year, month - 1, 1); // 月份从0开始
+                }
+            }
             
-            nextButton.disabled = isCurrentMonth;
+            // 如果没有获取到最新月份，则使用当前月份作为上限
+            if (!latestMonth) {
+                latestMonth = new Date();
+                latestMonth.setDate(1); // 设置为当月1日
+            }
+            
+            // 如果基准月份是最新月份，则禁用"下一页"按钮
+            const isLatestMonth = this.trendChartBaseMonth.getFullYear() === latestMonth.getFullYear() && 
+                                this.trendChartBaseMonth.getMonth() === latestMonth.getMonth();
+            
+            nextButton.disabled = isLatestMonth;
         }
         
         // "上一页"按钮始终启用，因为我们可以无限往前查看历史数据
@@ -477,17 +492,37 @@ export default class FinancialDashboard extends BasePage {
         // 检查当前趋势图是否包含选中的月份
         const trendData = this.currentData.expenseAnalysisData?.expense_trend || [];
         
-        // 更新背景颜色数组
-        const backgroundColors = trendData.map(d => {
+        // 更新背景颜色和边框颜色数组
+        const backgroundColors = [];
+        const borderColors = [];
+        const borderWidths = [];
+        const shadows = [];
+        
+        trendData.forEach(d => {
             // 如果有选中的月份且与当前数据项匹配，则高亮显示
             if (this.selectedTrendMonth && d.date === this.selectedTrendMonth) {
-                return getCSSColor('--bs-warning'); // 高亮颜色
+                backgroundColors.push(getCSSColor('--bs-warning')); // 高亮背景色
+                borderColors.push(getCSSColor('--bs-dark')); // 深色边框
+                borderWidths.push(3); // 加粗边框
+                shadows.push(true); // 添加阴影效果
+            } else {
+                backgroundColors.push(getCSSColor('--bs-warning-200')); // 默认背景色
+                borderColors.push(getCSSColor('--bs-warning')); // 默认边框色
+                borderWidths.push(1); // 默认边框宽度
+                shadows.push(false); // 无阴影
             }
-            return getCSSColor('--bs-warning-200'); // 默认颜色
         });
         
-        // 更新数据集的背景颜色
+        // 更新数据集的样式
         datasets[0].backgroundColor = backgroundColors;
+        datasets[0].borderColor = borderColors;
+        datasets[0].borderWidth = borderWidths;
+        
+        // 为选中的柱状图添加阴影效果
+        datasets[0].shadowOffsetX = shadows.map(hasShadow => hasShadow ? 0 : 0);
+        datasets[0].shadowOffsetY = shadows.map(hasShadow => hasShadow ? 4 : 0);
+        datasets[0].shadowBlur = shadows.map(hasShadow => hasShadow ? 8 : 0);
+        datasets[0].shadowColor = shadows.map(hasShadow => hasShadow ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0)');
         
         // 更新图表
         this.charts.expenseTrend.update();
@@ -565,11 +600,17 @@ export default class FinancialDashboard extends BasePage {
                 // 设置初始趋势图基准月份
                 this.trendChartBaseMonth = new Date(this.currentExpenseMonth);
                 
+                // 设置默认选中月份（初始化时选中当前月份）
+                this.selectedTrendMonth = monthStr;
+                
                 // 更新日期范围文本
                 this.updateTrendDateRangeText();
                 
                 // 更新详情数据
                 this.updateMonthlyDetails(result.data);
+                
+                // 确保选中效果显示
+                this.updateExpenseTrendChartHighlight();
             } else {
                 console.error('获取支出分析数据失败:', result.error);
                 showNotification('获取支出分析数据失败', 'error');
@@ -611,7 +652,7 @@ export default class FinancialDashboard extends BasePage {
     }
 
     /**
-     * 更新近6个月支出趋势图
+     * 更新近12个月支出趋势图
      */
     updateExpenseTrendChart(trendData) {
         if (!this.charts.expenseTrend || !trendData) return;
@@ -622,14 +663,27 @@ export default class FinancialDashboard extends BasePage {
         });
         const values = trendData.map(d => d.value);
         
-        // 设置默认颜色（不再处理高亮，由updateExpenseTrendChartHighlight负责）
-        const defaultColor = getCSSColor('--bs-warning-200');
-        const backgroundColors = new Array(trendData.length).fill(defaultColor);
+        // 设置默认样式
+        const defaultBackgroundColor = getCSSColor('--bs-warning-200');
+        const defaultBorderColor = getCSSColor('--bs-warning');
+        const backgroundColors = new Array(trendData.length).fill(defaultBackgroundColor);
+        const borderColors = new Array(trendData.length).fill(defaultBorderColor);
+        const borderWidths = new Array(trendData.length).fill(1);
+        const shadows = new Array(trendData.length).fill(false);
 
         this.charts.expenseTrend.data.labels = labels;
         this.charts.expenseTrend.data.datasets[0].data = values;
         this.charts.expenseTrend.data.datasets[0].backgroundColor = backgroundColors;
+        this.charts.expenseTrend.data.datasets[0].borderColor = borderColors;
+        this.charts.expenseTrend.data.datasets[0].borderWidth = borderWidths;
+        this.charts.expenseTrend.data.datasets[0].shadowOffsetX = shadows.map(() => 0);
+        this.charts.expenseTrend.data.datasets[0].shadowOffsetY = shadows.map(() => 0);
+        this.charts.expenseTrend.data.datasets[0].shadowBlur = shadows.map(() => 0);
+        this.charts.expenseTrend.data.datasets[0].shadowColor = shadows.map(() => 'rgba(0, 0, 0, 0)');
         this.charts.expenseTrend.update();
+        
+        // 更新高亮显示
+        this.updateExpenseTrendChartHighlight();
     }
 
     /**
