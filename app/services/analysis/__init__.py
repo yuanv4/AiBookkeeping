@@ -1,28 +1,40 @@
 """分析服务模块
 
 提供现金流分析和报告生成相关的服务。
+
+主要组件:
+- FinancialAnalysisService: 统一的财务分析服务，提供核心分析功能
+- ExpenseAnalyzer: 复杂算法实现，包含周期性支出识别等高级分析
+- dto: 数据传输对象，定义分析服务使用的数据结构
+
+使用示例:
+    from app.services.analysis import FinancialAnalysisService
+
+    service = FinancialAnalysisService()
+    dashboard_data = service.get_dashboard_initial_data()
 """
 
-from .analysis_service import AnalysisService
-from .reporting_service import ReportingService
-from .expense_analyzer import CalculationHelpers
-from .query_helpers import DatabaseQueryHelper
+from .financial_analysis_service import FinancialAnalysisService
+from .expense_analyzer import ExpenseAnalyzer, RecurringExpense, ExpenseTrend, ExpenseAnalysisData
 from .dto import (
-    Period, CoreMetrics, CompositionItem, 
-    TrendPoint, DashboardData
+    Period,
+    CoreMetrics,
+    CompositionItem,
+    TrendPoint,
+    DashboardData
 )
-from .validators import get_month_date_range, get_expense_transactions
+
+
 
 __all__ = [
-    'AnalysisService',
-    'ReportingService',
-    'CalculationHelpers',
-    'DatabaseQueryHelper',
+    'FinancialAnalysisService',
+    'ExpenseAnalyzer',
     'Period',
-    'CoreMetrics', 
+    'CoreMetrics',
     'CompositionItem',
     'TrendPoint',
-    'DashboardData',
-    'get_month_date_range',
-    'get_expense_transactions'
-] 
+    'RecurringExpense',
+    'ExpenseTrend',
+    'ExpenseAnalysisData',
+    'DashboardData'
+]

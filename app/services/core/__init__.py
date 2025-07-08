@@ -11,7 +11,7 @@ from .file_processor_service import FileProcessorService
 
 # 导入新的分析服务以便于使用
 try:
-    from ..analysis import AnalysisService, ReportingService
+    from ..analysis import FinancialAnalysisService
     _ANALYSIS_SERVICES_AVAILABLE = True
 except ImportError:
     _ANALYSIS_SERVICES_AVAILABLE = False
@@ -25,4 +25,4 @@ __all__ = [
 
 # 如果分析服务可用，也导出它们
 if _ANALYSIS_SERVICES_AVAILABLE:
-    __all__.extend(['AnalysisService', 'ReportingService'])
+    __all__.extend(['FinancialAnalysisService'])

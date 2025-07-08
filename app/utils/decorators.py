@@ -4,17 +4,20 @@
 """
 
 import functools
-from flask import current_app, render_template, jsonify, request
+from flask import current_app
 from typing import Callable, Any, Optional
+from .error_handler import ErrorHandler
 
 
 def handle_errors(func_or_template=None, *,
-                 template: Optional[str] = None, 
+                 template: Optional[str] = None,
                  error_key: str = 'error',
                  default_data: Optional[dict] = None,
                  log_prefix: str = ""):
     """通用错误处理装饰器
-    
+
+    使用统一的ErrorHandler来处理错误响应。
+
     Args:
         func_or_template: 被装饰的函数或模板路径
         template: 错误时渲染的模板路径
@@ -28,33 +31,25 @@ def handle_errors(func_or_template=None, *,
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                # 记录错误日志
-                error_msg = f"{log_prefix}{func.__name__}错误: {str(e)}"
-                current_app.logger.error(error_msg, exc_info=True)
-                
-                # 根据请求类型返回不同格式的错误响应
-                if request.is_json or '/api/' in request.path:
-                    return jsonify({
-                        'success': False,
-                        'error': str(e),
-                        'data': default_data or {}
-                    }), 500
-                
-                # HTML 响应
-                if template:
-                    context = default_data or {}
-                    context[error_key] = str(e)
-                    return render_template(template, **context)
-                
-                # 如果没有指定模板，重新抛出异常
-                raise
-                
+                # 添加日志前缀信息
+                if log_prefix:
+                    current_app.logger.error(f"{log_prefix}{func.__name__}错误: {str(e)}")
+
+                # 使用统一的错误处理器
+                return ErrorHandler.create_error_response(
+                    error=e,
+                    status_code=500,
+                    template=template,
+                    error_key=error_key,
+                    default_data=default_data
+                )
+
         return wrapper
-    
+
     # 如果直接使用 @handle_errors (不带括号)
     if func_or_template is not None and callable(func_or_template):
         return decorator(func_or_template)
-    
+
     # 如果使用 @handle_errors() (带括号)
     return decorator
 

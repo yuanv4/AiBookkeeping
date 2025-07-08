@@ -8,7 +8,7 @@ class Config:
         # 基础配置
         self.APP_NAME = '银行账单分析系统'
         self.SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
-        self.DEBUG = self._get_bool('DEBUG', False)
+        self.DEBUG = self._get_env_value('DEBUG', False, bool)
 
         # 环境配置
         self.FLASK_ENV = os.environ.get('FLASK_CONFIG', 'development')
@@ -29,54 +29,58 @@ class Config:
 
         # 文件上传配置
         self.UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
-        allowed_extensions = self._get_list('ALLOWED_EXTENSIONS', 
-                                          ['xlsx', 'xls'])
+        allowed_extensions = self._get_env_value('ALLOWED_EXTENSIONS',
+                                               ['xlsx', 'xls'], list)
         self.ALLOWED_EXTENSIONS = set(allowed_extensions)
-        
+
         # 日志配置
         self.LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
         self.LOG_FILE = os.environ.get('LOG_FILE', 'logs/app.log')
-        self.LOG_MAX_BYTES = self._get_int('LOG_MAX_BYTES', 10 * 1024 * 1024)
-        self.LOG_BACKUP_COUNT = self._get_int('LOG_BACKUP_COUNT', 5)
+        self.LOG_MAX_BYTES = self._get_env_value('LOG_MAX_BYTES', 10 * 1024 * 1024, int)
+        self.LOG_BACKUP_COUNT = self._get_env_value('LOG_BACKUP_COUNT', 5, int)
         self.LOG_FORMAT = os.environ.get('LOG_FORMAT', '%(asctime)s %(levelname)s %(name)s %(message)s')
         self.LOG_DATE_FORMAT = os.environ.get('LOG_DATE_FORMAT', '%Y-%m-%d %H:%M:%S')
-        
+
         # 周期性支出识别算法配置
         self.RECURRING_EXPENSE_METHOD = os.environ.get('RECURRING_EXPENSE_METHOD', 'adaptive')
-        self.RECURRING_EXPENSE_PERCENTILE = self._get_int('RECURRING_EXPENSE_PERCENTILE', 25)
-        self.RECURRING_EXPENSE_ZSCORE_THRESHOLD = self._get_float('RECURRING_EXPENSE_ZSCORE_THRESHOLD', 1.0)
-        self.RECURRING_EXPENSE_MIN_SCORE = self._get_float('RECURRING_EXPENSE_MIN_SCORE', 60.0)
+        self.RECURRING_EXPENSE_PERCENTILE = self._get_env_value('RECURRING_EXPENSE_PERCENTILE', 25, int)
+        self.RECURRING_EXPENSE_ZSCORE_THRESHOLD = self._get_env_value('RECURRING_EXPENSE_ZSCORE_THRESHOLD', 1.0, float)
+        self.RECURRING_EXPENSE_MIN_SCORE = self._get_env_value('RECURRING_EXPENSE_MIN_SCORE', 60.0, float)
         
         # 生产环境配置验证
         if self.FLASK_ENV == 'production':
             if not os.environ.get('SECRET_KEY') or os.environ.get('SECRET_KEY') == 'dev-secret-key-change-in-production':
                 raise ValueError("生产环境中未设置有效的 SECRET_KEY 环境变量")
     
-    def _get_bool(self, key, default=False):
-        """从环境变量获取布尔值"""
-        value = os.environ.get(key, str(default)).lower()
-        return value in ('true', '1', 'yes', 'on')
-    
-    def _get_int(self, key, default=0):
-        """从环境变量获取整数值"""
-        try:
-            return int(os.environ.get(key, default))
-        except (ValueError, TypeError):
+    def _get_env_value(self, key, default=None, value_type=str, **kwargs):
+        """从环境变量获取指定类型的值
+
+        Args:
+            key: 环境变量键名
+            default: 默认值
+            value_type: 值类型 (str, int, float, bool, list)
+            **kwargs: 额外参数，如separator用于list类型
+        """
+        raw_value = os.environ.get(key)
+
+        # 如果环境变量不存在，返回默认值
+        if raw_value is None:
             return default
-    
-    def _get_list(self, key, default=None, separator=','):
-        """从环境变量获取列表值"""
-        if default is None:
-            default = []
-        value = os.environ.get(key, '')
-        if not value:
-            return default
-        return [item.strip() for item in value.split(separator) if item.strip()]
-    
-    def _get_float(self, key, default=0.0):
-        """从环境变量获取浮点数值"""
+
         try:
-            return float(os.environ.get(key, default))
+            if value_type == bool:
+                return raw_value.lower() in ('true', '1', 'yes', 'on')
+            elif value_type == int:
+                return int(raw_value)
+            elif value_type == float:
+                return float(raw_value)
+            elif value_type == list:
+                separator = kwargs.get('separator', ',')
+                if not raw_value:
+                    return default or []
+                return [item.strip() for item in raw_value.split(separator) if item.strip()]
+            else:  # str or other types
+                return raw_value
         except (ValueError, TypeError):
             return default
     

@@ -1,6 +1,6 @@
 """计算辅助工具
 
-提取自ReportingService的复杂计算逻辑，专门处理重型数据分析任务。
+提取自FinancialAnalysisService的复杂计算逻辑，专门处理重型数据分析任务。
 使用静态方法设计，便于在不同服务中复用计算逻辑。
 
 周期性支出识别算法说明：
@@ -45,23 +45,97 @@ from dateutil.relativedelta import relativedelta
 import logging
 import statistics
 import numpy as np
+from dataclasses import dataclass
 
 from app.models import Transaction, db
 from sqlalchemy import func, case, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from .dto import (
-    CompositionItem, TrendPoint, RecurringExpense, ExpenseTrend
-)
-from .validators import get_month_date_range, get_expense_transactions
+from .dto import CompositionItem, TrendPoint
+
+# 为了保持向后兼容性，这些数据类从 dto.py 移动到这里
+@dataclass
+class RecurringExpense:
+    """周期性支出项目"""
+    category: str
+    total_amount: Decimal  # 历史累计总金额
+    amount: Decimal  # 平均金额（保持向后兼容）
+    frequency: int  # 周期天数，如30表示每30天一次
+    confidence_score: Decimal  # 0-100的置信度分数
+    last_occurrence: str  # 最近一次发生日期
+    count: int  # 识别到的交易次数
+    combination_key: str  # 完整的组合键，用于精确匹配
+
+@dataclass
+class ExpenseTrend:
+    """支出趋势数据点"""
+    date: str
+    value: Decimal
+    category: str = "total"  # 可以是 'total', 'recurring', 'flexible'
+
+@dataclass
+class ExpenseAnalysisData:
+    """支出分析综合数据"""
+    target_month: str
+    total_expense: Decimal
+    expense_trend: List[ExpenseTrend]  # 近12个月趋势
+    recurring_expenses: List[RecurringExpense]  # 周期性支出排行
+    flexible_composition: List[CompositionItem]  # 弹性支出分类占比
+    recurring_transactions: List[dict] = None  # 周期性支出交易明细
+    flexible_transactions: List[dict] = None  # 弹性支出交易明细
 
 logger = logging.getLogger(__name__)
 
-class CalculationHelpers:
+# 工具函数（从 validators.py 移动过来）
+def get_month_date_range(target_month: date) -> Tuple[date, date]:
+    """获取指定月份的日期范围
+    
+    Args:
+        target_month: 目标月份的任意日期
+        
+    Returns:
+        tuple[date, date]: (月份开始日期, 月份结束日期)
+    """
+    month_start = target_month.replace(day=1)
+    if target_month.month == 12:
+        month_end = target_month.replace(year=target_month.year + 1, month=1, day=1) - timedelta(days=1)
+    else:
+        month_end = target_month.replace(month=target_month.month + 1, day=1) - timedelta(days=1)
+    
+    return month_start, month_end
+
+def get_expense_transactions(db: Session, start_date: Optional[date] = None, 
+                           end_date: Optional[date] = None, 
+                           counterparty: Optional[str] = None) -> List[Transaction]:
+    """获取支出交易记录
+    
+    Args:
+        db: 数据库会话
+        start_date: 开始日期，可选
+        end_date: 结束日期，可选
+        counterparty: 交易对方，可选
+        
+    Returns:
+        List[Transaction]: 支出交易记录列表
+    """
+    query = db.query(Transaction).filter(Transaction.amount < 0)
+    
+    if start_date:
+        query = query.filter(Transaction.date >= start_date)
+    
+    if end_date:
+        query = query.filter(Transaction.date <= end_date)
+    
+    if counterparty:
+        query = query.filter(Transaction.counterparty == counterparty)
+    
+    return query.order_by(Transaction.date).all()
+
+class ExpenseAnalyzer:
     """计算辅助工具类
     
-    专门处理复杂的数据计算逻辑，从ReportingService中提取最重型的方法。
+    专门处理复杂的数据计算逻辑，从FinancialAnalysisService中提取最重型的方法。
     使用静态方法设计，保持无状态和高度可复用性。
     """
     
@@ -324,7 +398,7 @@ class CalculationHelpers:
             List[RecurringExpense]: 识别出的周期性支出列表
         """
         # 调用新的自适应算法
-        return CalculationHelpers.identify_recurring_expenses_adaptive(db)
+        return ExpenseAnalyzer.identify_recurring_expenses_adaptive(db)
     
     @staticmethod
     def calculate_flexible_expense_composition(db: Session, target_month: date, recurring_expenses: List[RecurringExpense] = None) -> List[CompositionItem]:
@@ -347,7 +421,7 @@ class CalculationHelpers:
             
             # 2. 获取周期性支出模式（如果未提供则自动识别）
             if recurring_expenses is None:
-                recurring_expenses = CalculationHelpers.identify_recurring_expenses(db)
+                recurring_expenses = ExpenseAnalyzer.identify_recurring_expenses(db)
             
             # 3. 构建周期性支出的组合键集合
             recurring_combination_keys = {recurring.combination_key for recurring in recurring_expenses}
@@ -438,13 +512,13 @@ class CalculationHelpers:
                 if len(transactions) < 3:
                     continue
                     
-                features = CalculationHelpers.extract_merchant_features(transactions)
+                features = ExpenseAnalyzer.extract_merchant_features(transactions)
                 if features:
                     all_features.append(features)
                     merchant_features[key] = features
 
             # 4. 计算自适应阈值
-            thresholds = CalculationHelpers.calculate_adaptive_threshold(all_features)
+            thresholds = ExpenseAnalyzer.calculate_adaptive_threshold(all_features)
             
             # 5. 基于阈值判断周期性支出
             recurring_expenses = []
@@ -495,7 +569,7 @@ class CalculationHelpers:
                     frequency = round(statistics.mean(intervals), 1) if intervals else 0
                     
                     # 确定支出类别
-                    category = CalculationHelpers._determine_expense_category(key, avg_amount, frequency)
+                    category = ExpenseAnalyzer._determine_expense_category(key, avg_amount, frequency)
                     
                     recurring_expenses.append(RecurringExpense(
                         category=category,
@@ -549,4 +623,4 @@ class CalculationHelpers:
         elif frequency <= 30 and avg_amount <= 1000:
             return '月度支出'
         else:
-            return '其他' 
+            return '其他'
