@@ -17,8 +17,8 @@
 - 类型安全的数据传输对象
 """
 
-from typing import List, Dict, Any, Optional, Union
-from decimal import Decimal, InvalidOperation
+from typing import List, Dict, Any, Optional
+from decimal import Decimal
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 import logging
@@ -29,15 +29,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import over
 
-# 导入复杂算法模块（保持不变）
+# 导入复杂算法模块和数据类
 from .expense_analyzer import ExpenseAnalyzer
 from .dto import (
-    Period, CoreMetrics, CompositionItem, 
-    TrendPoint, DashboardData
+    Period, CoreMetrics, CompositionItem,
+    TrendPoint, DashboardData, RecurringExpense, ExpenseTrend, ExpenseAnalysisData
 )
-from .expense_analyzer import (
-    RecurringExpense, ExpenseTrend, ExpenseAnalysisData
-)
+from .utils import normalize_decimal, validate_date_range, get_month_date_range, calculate_change_percentage
 
 logger = logging.getLogger(__name__)
 
@@ -60,97 +58,7 @@ class FinancialAnalysisService:
         self.db = db_session or db.session
         self.logger = logging.getLogger(__name__)
     
-    # ==================== 数据类型转换工具 ====================
-    
-    def normalize_decimal(self, value: Union[int, float, str, Decimal]) -> Decimal:
-        """统一Decimal转换逻辑
-        
-        Args:
-            value: 需要转换的数值
-            
-        Returns:
-            Decimal: 转换后的Decimal对象
-            
-        Raises:
-            ValueError: 转换失败时抛出
-        """
-        try:
-            if value is None:
-                return Decimal('0.00')
-            
-            if isinstance(value, Decimal):
-                return value.quantize(Decimal('0.01'))
-            
-            # 转换为Decimal并保留2位小数
-            decimal_value = Decimal(str(value))
-            return decimal_value.quantize(Decimal('0.01'))
-            
-        except (InvalidOperation, ValueError, TypeError) as e:
-            raise ValueError(f"无法转换为Decimal类型: {value}, 错误: {e}")
-    
-    def validate_decimal_precision(self, value: Decimal, max_digits: int = 15, decimal_places: int = 2) -> None:
-        """验证Decimal精度
-        
-        Args:
-            value: 需要验证的Decimal值
-            max_digits: 最大总位数
-            decimal_places: 小数位数
-            
-        Raises:
-            ValueError: 精度验证失败时抛出
-        """
-        if not isinstance(value, Decimal):
-            raise ValueError("值必须是Decimal类型")
-        
-        # 获取数值的符号、数字和指数
-        sign, digits, exponent = value.as_tuple()
-        
-        # 检查总位数
-        if len(digits) > max_digits:
-            raise ValueError(f"总位数不能超过{max_digits}位")
-        
-        # 检查小数位数
-        if exponent < -decimal_places:
-            raise ValueError(f"小数位数不能超过{decimal_places}位")
-    
-    def validate_date_range(self, start_date: date, end_date: date) -> None:
-        """验证日期范围
-        
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            
-        Raises:
-            ValueError: 日期范围无效时抛出
-        """
-        if start_date > end_date:
-            raise ValueError("开始日期不能晚于结束日期")
-        
-        date_diff = (end_date - start_date).days
-        if date_diff > MAX_DATE_RANGE_DAYS:
-            raise ValueError(f"查询范围不能超过{MAX_DATE_RANGE_DAYS}天")
-    
-    def get_month_date_range(self, target_month: date) -> tuple[date, date]:
-        """获取指定月份的开始和结束日期
-        
-        Args:
-            target_month: 目标月份
-            
-        Returns:
-            tuple[date, date]: (月初日期, 月末日期)
-        """
-        # 获取月初
-        start_date = target_month.replace(day=1)
-        
-        # 获取下个月的第一天，然后减去一天得到本月最后一天
-        if target_month.month == 12:
-            next_month = target_month.replace(year=target_month.year + 1, month=1, day=1)
-        else:
-            next_month = target_month.replace(month=target_month.month + 1, day=1)
-        
-        end_date = next_month - timedelta(days=1)
-        
-        return start_date, end_date
+
     
     # ==================== 数据库查询辅助方法 ====================
     
@@ -199,7 +107,7 @@ class FinancialAnalysisService:
             # 转换为字典格式，确保余额为Decimal类型
             balance_dict = {}
             for account_id, balance_after in results:
-                balance_dict[account_id] = self.normalize_decimal(balance_after)
+                balance_dict[account_id] = normalize_decimal(balance_after)
             
             self.logger.debug(f"获取最新余额完成，账户数量: {len(balance_dict)}")
             return balance_dict
@@ -211,29 +119,7 @@ class FinancialAnalysisService:
             self.logger.error(f"获取最新余额失败: {e}")
             raise
     
-    def get_expense_transactions(self, start_date: date, end_date: date) -> List[Transaction]:
-        """获取指定时间范围内的支出交易
-        
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            
-        Returns:
-            List[Transaction]: 支出交易列表
-        """
-        try:
-            return self.db.query(Transaction).filter(
-                Transaction.amount < 0,
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            ).order_by(Transaction.date.desc()).all()
-            
-        except SQLAlchemyError as e:
-            self.logger.error(f"数据库查询异常 - 获取支出交易失败: {e}")
-            raise
-        except Exception as e:
-            self.logger.error(f"获取支出交易失败: {e}")
-            raise
+
     
     def get_transactions_by_criteria(self, filters: Dict[str, Any]) -> List[Transaction]:
         """通用交易查询
@@ -342,7 +228,7 @@ class FinancialAnalysisService:
             for period, total_amount, transaction_count in results:
                 aggregated_data.append({
                     'period': period,
-                    'total_amount': self.normalize_decimal(total_amount or 0),
+                    'total_amount': normalize_decimal(total_amount or 0),
                     'transaction_count': transaction_count
                 })
             
@@ -421,21 +307,7 @@ class FinancialAnalysisService:
             self.logger.error(f"计算总净收入失败: {e}")
             raise
 
-    def calculate_change_percentage(self, current: float, previous: float) -> float:
-        """计算变化百分比
-        
-        统一的变化百分比计算逻辑，处理除零情况。
-        
-        Args:
-            current: 当前值
-            previous: 之前值
-            
-        Returns:
-            float: 变化百分比
-        """
-        if previous == 0:
-            return 100.0 if current > 0 else 0.0
-        return ((current - previous) / previous) * 100.0
+
 
     def calculate_daily_average_expense(self, start_date: date, end_date: date) -> float:
         """计算指定时间范围内的日均支出
@@ -609,7 +481,7 @@ class FinancialAnalysisService:
             Dict[str, Any]: 包含资金流和收入构成数据的字典
         """
         try:
-            self.validate_date_range(start_date, end_date)
+            validate_date_range(start_date, end_date)
             
             period_days = (end_date - start_date).days
             if period_days <= 7:
@@ -645,7 +517,7 @@ class FinancialAnalysisService:
         """
         try:
             # 获取目标月份的日期范围
-            start_date, end_date = self.get_month_date_range(target_month)
+            start_date, end_date = get_month_date_range(target_month)
             
             # 计算目标月份总支出
             total_expense = self.db.query(
@@ -674,7 +546,7 @@ class FinancialAnalysisService:
 
             return ExpenseAnalysisData(
                 target_month=target_month.strftime('%Y-%m'),
-                total_expense=self.normalize_decimal(total_expense),
+                total_expense=normalize_decimal(total_expense),
                 expense_trend=expense_trend,
                 recurring_expenses=recurring_expenses,
                 flexible_composition=flexible_composition,
@@ -785,8 +657,8 @@ class FinancialAnalysisService:
             composition_items = []
             for result in results:
                 name = result.description or '未分类'
-                amount = self.normalize_decimal(result.total_amount)
-                percentage = self.normalize_decimal(
+                amount = normalize_decimal(result.total_amount)
+                percentage = normalize_decimal(
                     (result.total_amount / total_amount * 100) if total_amount > 0 else 0
                 )
                 
@@ -842,7 +714,7 @@ class FinancialAnalysisService:
             for result in results:
                 trend_points.append(TrendPoint(
                     date=result.period.isoformat(),
-                    value=self.normalize_decimal(result.net_flow)
+                    value=normalize_decimal(result.net_flow)
                 ))
             
             return trend_points
@@ -881,7 +753,7 @@ class FinancialAnalysisService:
             for result in results:
                 expense_trends.append(ExpenseTrend(
                     date=result.month,  # 现在已经是字符串格式 'YYYY-MM'
-                    value=self.normalize_decimal(result.total_expense),
+                    value=normalize_decimal(result.total_expense),
                     category='total'
                 ))
             

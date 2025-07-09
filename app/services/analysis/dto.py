@@ -43,8 +43,35 @@ class TrendPoint:
 
 
 
-# 注意：为了保持向后兼容性，这些复杂的数据类被移动到 expense_analyzer.py 中
-# 如果需要使用 RecurringExpense, ExpenseTrend, ExpenseAnalysisData，请从 expense_analyzer 模块导入
+@dataclass
+class RecurringExpense:
+    """周期性支出项目"""
+    category: str
+    total_amount: Decimal  # 历史累计总金额
+    amount: Decimal  # 平均金额（保持向后兼容）
+    frequency: int  # 周期天数，如30表示每30天一次
+    confidence_score: Decimal  # 0-100的置信度分数
+    last_occurrence: str  # 最近一次发生日期
+    count: int  # 识别到的交易次数
+    combination_key: str  # 完整的组合键，用于精确匹配
+
+@dataclass
+class ExpenseTrend:
+    """支出趋势数据点"""
+    date: str
+    value: Decimal
+    category: str = "total"  # 可以是 'total', 'recurring', 'flexible'
+
+@dataclass
+class ExpenseAnalysisData:
+    """支出分析综合数据"""
+    target_month: str
+    total_expense: Decimal
+    expense_trend: List[ExpenseTrend]  # 近12个月趋势
+    recurring_expenses: List[RecurringExpense]  # 周期性支出排行
+    flexible_composition: List[CompositionItem]  # 弹性支出分类占比
+    recurring_transactions: List[dict] = None  # 周期性支出交易明细
+    flexible_transactions: List[dict] = None  # 弹性支出交易明细
 
 @dataclass
 class DashboardData:
