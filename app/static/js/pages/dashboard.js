@@ -874,8 +874,6 @@ export default class FinancialDashboard extends BasePage {
         
         return detailsRow;
     }
-
-
 }
 
 // 初始化页面

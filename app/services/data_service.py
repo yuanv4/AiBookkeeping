@@ -400,24 +400,3 @@ class DataService:
             return self.db.query(Transaction).filter(Transaction.id == -1).paginate(
                 page=1, per_page=per_page, error_out=False
             )
-
-    # 便捷方法
-    def get_income_transactions(self, start_date: date, end_date: date,
-                              account_id: Optional[int] = None) -> List[Transaction]:
-        """获取收入交易记录（向后兼容方法）"""
-        return self.get_transactions_by_type('income', start_date, end_date, account_id)
-
-    def get_expense_transactions(self, start_date: date, end_date: date,
-                               account_id: Optional[int] = None) -> List[Transaction]:
-        """获取支出交易记录（向后兼容方法）"""
-        return self.get_transactions_by_type('expense', start_date, end_date, account_id)
-
-    def search_transactions(self, keyword: str, account_id: int = None,
-                          start_date: date = None, end_date: date = None) -> List[Transaction]:
-        """搜索交易记录"""
-        return Transaction.search(
-            keyword=keyword,
-            account_id=account_id,
-            start_date=start_date,
-            end_date=end_date
-        )

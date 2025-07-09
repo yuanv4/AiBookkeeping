@@ -21,6 +21,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .data_service import DataService
+from app.utils.expense_algorithm import ExpenseAlgorithm
 from .models import (
     Period, CompositionItem, TrendPoint, PeriodSummary,
     AccountSummary, DashboardData, ExpenseItem,
@@ -38,7 +39,7 @@ class ReportService:
     
     def __init__(self, data_service: DataService = None, db_session: Optional[Session] = None):
         """初始化报告服务
-        
+
         Args:
             data_service: 数据服务实例
             db_session: 数据库会话，如果为None则使用默认会话
@@ -46,6 +47,7 @@ class ReportService:
         self.data_service = data_service or DataService()
         self.db = db_session or db.session
         self.logger = logging.getLogger(__name__)
+        self.expense_algorithm = ExpenseAlgorithm()
 
     # ==================== 基础财务指标 ====================
     
@@ -382,4 +384,137 @@ class ReportService:
             return summary
         except Exception as e:
             self.logger.error(f"Error getting account summary: {e}")
+            return []
+
+    # ==================== 支出分析算法 ====================
+
+    def get_fixed_expenses_analysis(self) -> Dict[str, Any]:
+        """
+        获取固定支出分析数据
+
+        Returns:
+            包含日常固定支出和大额固定支出的分析结果
+        """
+        try:
+            self.logger.info("开始执行固定支出分析")
+
+            # 获取所有有重复交易的商户
+            merchants = self.db.query(Transaction.counterparty, func.count(Transaction.id).label('count')).filter(
+                Transaction.amount < 0,
+                Transaction.counterparty.isnot(None)
+            ).group_by(Transaction.counterparty).having(
+                func.count(Transaction.id) >= 3
+            ).all()
+
+            self.logger.info(f"找到 {len(merchants)} 个有重复交易的商户")
+
+            # 分析每个商户
+            results = []
+            for merchant_info in merchants:
+                merchant_name = merchant_info.counterparty
+
+                transactions = self.db.query(Transaction).filter(
+                    Transaction.amount < 0,
+                    Transaction.counterparty == merchant_name
+                ).order_by(Transaction.date.asc()).all()
+
+                if len(transactions) >= 3:
+                    try:
+                        score_info = self.expense_algorithm.calculate_optimized_score(transactions)
+                        if score_info and score_info['total_score'] > 0:
+                            score_info['merchant'] = merchant_name
+                            score_info['last_date'] = transactions[-1].date
+                            results.append(score_info)
+                    except Exception as e:
+                        self.logger.error(f"分析商户 {merchant_name} 时出错: {e}")
+                        continue
+
+            self.logger.info(f"成功分析 {len(results)} 个商户")
+
+            # 按总评分排序
+            results.sort(key=lambda x: x['total_score'], reverse=True)
+
+            # 分类固定支出
+            try:
+                daily_fixed_merchants, large_fixed_merchants = self.expense_algorithm.classify_fixed_expenses(results)
+                self.logger.info(f"分类结果: 日常固定支出 {len(daily_fixed_merchants)} 个，大额固定支出 {len(large_fixed_merchants)} 个")
+            except Exception as e:
+                self.logger.error(f"分类固定支出时出错: {e}")
+                daily_fixed_merchants, large_fixed_merchants = [], []
+
+            # 计算月度数据
+            try:
+                daily_monthly_data = self._get_monthly_expenses(daily_fixed_merchants) if daily_fixed_merchants else []
+                large_monthly_data = self._get_monthly_expenses(large_fixed_merchants) if large_fixed_merchants else []
+                self.logger.info(f"月度数据: 日常 {len(daily_monthly_data)} 个月，大额 {len(large_monthly_data)} 个月")
+            except Exception as e:
+                self.logger.error(f"计算月度数据时出错: {e}")
+                daily_monthly_data, large_monthly_data = [], []
+
+            result = {
+                'daily_fixed_expenses': {
+                    'merchants': [r for r in results if r['merchant'] in daily_fixed_merchants],
+                    'monthly_data': daily_monthly_data,
+                    'monthly_average': sum(d['amount'] for d in daily_monthly_data) / len(daily_monthly_data) if daily_monthly_data else 0
+                },
+                'large_fixed_expenses': {
+                    'merchants': [r for r in results if r['merchant'] in large_fixed_merchants],
+                    'monthly_data': large_monthly_data,
+                    'monthly_average': sum(d['amount'] for d in large_monthly_data) / len(large_monthly_data) if large_monthly_data else 0
+                },
+                'algorithm_summary': {
+                    'total_merchants_analyzed': len(merchants),
+                    'fixed_merchants_identified': len(daily_fixed_merchants) + len(large_fixed_merchants),
+                    'daily_fixed_count': len(daily_fixed_merchants),
+                    'large_fixed_count': len(large_fixed_merchants)
+                }
+            }
+
+            self.logger.info("固定支出分析完成")
+            return result
+        except Exception as e:
+            self.logger.error(f"Error in fixed expenses analysis: {e}")
+            return {
+                'daily_fixed_expenses': {'merchants': [], 'monthly_data': [], 'monthly_average': 0},
+                'large_fixed_expenses': {'merchants': [], 'monthly_data': [], 'monthly_average': 0},
+                'algorithm_summary': {'total_merchants_analyzed': 0, 'fixed_merchants_identified': 0}
+            }
+
+    def _get_monthly_expenses(self, merchant_names: List[str]) -> List[Dict[str, Any]]:
+        """
+        获取指定商户的月度支出数据
+
+        Args:
+            merchant_names: 商户名称列表
+
+        Returns:
+            月度支出数据列表
+        """
+        if not merchant_names:
+            return []
+
+        try:
+            monthly_data = self.db.query(
+                func.strftime('%Y-%m', Transaction.date).label('month'),
+                func.sum(func.abs(Transaction.amount)).label('amount'),
+                func.count(Transaction.id).label('transaction_count')
+            ).filter(
+                Transaction.amount < 0,
+                Transaction.counterparty.in_(merchant_names)
+            ).group_by(
+                func.strftime('%Y-%m', Transaction.date)
+            ).order_by(
+                func.strftime('%Y-%m', Transaction.date).desc()
+            ).all()
+
+            return [
+                {
+                    'month': record.month,
+                    'amount': float(record.amount),
+                    'transaction_count': record.transaction_count
+                }
+                for record in monthly_data
+            ]
+        except Exception as e:
+            self.logger.error(f"Error getting monthly expenses: {e}")
             return []

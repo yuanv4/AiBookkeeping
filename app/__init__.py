@@ -114,6 +114,10 @@ def _register_blueprints(app):
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.logger.info("已注册 settings_bp, 前缀 /settings")
 
+    from .blueprints.expense_analysis import expense_analysis_bp
+    app.register_blueprint(expense_analysis_bp, url_prefix='/expense-analysis')
+    app.logger.info("已注册 expense_analysis_bp, 前缀 /expense-analysis")
+
 
 def create_app():
     """创建Flask应用实例

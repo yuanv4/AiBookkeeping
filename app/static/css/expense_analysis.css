@@ -1,0 +1,209 @@
+/* 支出分析页面专用样式 */
+
+/* 商户卡片样式 */
+.merchant-card {
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.merchant-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    border-color: rgba(13, 110, 253, 0.2) !important;
+}
+
+/* 商户图标容器 */
+.merchant-icon {
+    transition: all 0.2s ease;
+}
+
+.merchant-card:hover .merchant-icon {
+    transform: scale(1.1);
+}
+
+/* 商户名称 */
+.merchant-name {
+    color: #212529;
+    transition: color 0.2s ease;
+}
+
+.merchant-card:hover .merchant-name {
+    color: #0d6efd;
+}
+
+/* 评分进度条样式 */
+.score-progress .progress {
+    background-color: #f8f9fa;
+    border-radius: 2px;
+}
+
+.score-progress .progress-bar {
+    transition: width 0.3s ease;
+    border-radius: 2px;
+}
+
+/* 评分颜色 */
+.progress-bar.bg-success {
+    background: linear-gradient(90deg, #198754, #20c997) !important;
+}
+
+.progress-bar.bg-warning {
+    background: linear-gradient(90deg, #fd7e14, #ffc107) !important;
+}
+
+.progress-bar.bg-danger {
+    background: linear-gradient(90deg, #dc3545, #fd5e53) !important;
+}
+
+/* 商户金额样式 */
+.merchant-amount {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* 详情按钮样式 */
+.merchant-card .btn-outline-primary {
+    border-width: 1px;
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.merchant-card .btn-outline-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0.125rem 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* 查看更多按钮样式 */
+#daily-fixed-more .btn,
+#large-fixed-more .btn {
+    transition: all 0.2s ease;
+    border-radius: 20px;
+    padding: 0.5rem 1.5rem;
+}
+
+#daily-fixed-more .btn:hover,
+#large-fixed-more .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.25rem 0.5rem rgba(13, 110, 253, 0.25);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .merchant-card .card-body {
+        padding: 1rem !important;
+    }
+    
+    .merchant-icon {
+        width: 2rem !important;
+        height: 2rem !important;
+    }
+    
+    .merchant-amount {
+        font-size: 1rem;
+    }
+    
+    .merchant-card .btn-outline-primary {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+/* 加载动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.merchant-card {
+    animation: fadeInUp 0.3s ease forwards;
+}
+
+/* 为不同的商户卡片添加延迟动画 */
+.merchant-card:nth-child(1) { animation-delay: 0.1s; }
+.merchant-card:nth-child(2) { animation-delay: 0.2s; }
+.merchant-card:nth-child(3) { animation-delay: 0.3s; }
+.merchant-card:nth-child(4) { animation-delay: 0.4s; }
+.merchant-card:nth-child(5) { animation-delay: 0.5s; }
+.merchant-card:nth-child(6) { animation-delay: 0.6s; }
+.merchant-card:nth-child(7) { animation-delay: 0.7s; }
+.merchant-card:nth-child(8) { animation-delay: 0.8s; }
+
+/* 图表容器优化 */
+.chart-container {
+    min-height: 350px;
+}
+
+/* 图表交互样式 */
+#monthly-trend-chart {
+    cursor: pointer;
+}
+
+/* 月份状态提示样式 */
+#month-status-row {
+    animation: slideInDown 0.3s ease;
+}
+
+#month-status-row .card {
+    border-left: 4px solid #0dcaf0;
+    background: linear-gradient(135deg, rgba(13, 202, 240, 0.05) 0%, rgba(13, 202, 240, 0.02) 100%);
+}
+
+#selected-month-text {
+    font-weight: 600;
+    color: #0dcaf0;
+    font-size: 1.1rem;
+}
+
+/* 重置按钮样式 */
+#month-status-row .btn-outline-secondary {
+    transition: all 0.2s ease;
+    border-radius: 20px;
+}
+
+#month-status-row .btn-outline-secondary:hover {
+    transform: scale(1.05);
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+/* 滑入动画 */
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 统计卡片悬停效果 */
+.stat-card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
+}
+
+/* 页面标题区域 */
+.page-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    color: white !important;
+}
+
+.page-header p {
+    color: rgba(255, 255, 255, 0.8) !important;
+}

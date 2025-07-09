@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, card, chart_container, page_header, stat_card, merchant_card %}
+
+{% block title %}支出分析 - {{ config.APP_NAME }}{% endblock %}
+
+{# 备份说明：原文件包含内嵌JavaScript代码，现已移除以消除与独立JS文件的重复 #}
+
+{% block content %}
+<div class="page-container">
+    {{ page_header("支出分析", "基于智能算法的固定支出识别与分析", "pie-chart") }}
+
+    <!-- 加载状态 -->
+    <div id="loading-state" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+        <p class="mt-3 text-muted">正在分析支出数据...</p>
+    </div>
+
+    <!-- 主要内容 -->
+    <div id="main-content" style="display: none;">
+        <!-- KPI 指标卡片 -->
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 mb-4">
+            <div class="col">{{ stat_card("coffee", "¥0", "日常固定支出", "primary", "", "daily-fixed-amount", "--", "daily-fixed-merchants") }}</div>
+            <div class="col">{{ stat_card("home", "¥0", "大额固定支出", "warning", "", "large-fixed-amount", "--", "large-fixed-merchants") }}</div>
+            <div class="col">{{ stat_card("trending-up", "¥0", "总固定支出", "info", "", "total-fixed-amount", "--", "total-fixed-merchants") }}</div>
+            <div class="col">{{ stat_card("activity", "0%", "算法识别", "secondary", "", "algorithm-accuracy", "--", "analyzed-merchants") }}</div>
+        </div>
+
+        <!-- 月度趋势图表 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                {{ chart_container("月度固定支出趋势", "monthly-trend-chart", "350px") }}
+            </div>
+        </div>
+
+        <!-- 月份选择状态提示 -->
+        <div class="row mb-4" id="month-status-row" style="display: none;">
+            <div class="col-12">
+                {% call card("", "calendar", "", "p-3") %}
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <div class="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;">
+                                    {{ icon("filter", "sm", "text-info") }}
+                                </div>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">当前查看月份</h6>
+                                <span class="text-muted" id="selected-month-text">--</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="expenseAnalysisPage.resetMonthFilter()">
+                            {{ icon("x", "sm", "me-1") }}查看全部数据
+                        </button>
+                    </div>
+                {% endcall %}
+            </div>
+        </div>
+
+        <!-- 固定支出详情 -->
+        <div class="row">
+            <!-- 日常固定支出 -->
+            <div class="col-lg-6 mb-4">
+                {% call card("日常固定支出", "coffee", "", "p-0") %}
+                    <div class="px-3 pt-0 pb-2">
+                        <small class="text-muted">餐饮、交通、通信等高频小额支出</small>
+                    </div>
+                    <div id="daily-fixed-list" class="px-3 pb-3">
+                        <!-- 动态加载 -->
+                    </div>
+                    <div id="daily-fixed-more" class="px-3 pb-3 text-center d-none">
+                        <button class="btn btn-outline-primary btn-sm" onclick="expenseAnalysisPage.showMoreDailyExpenses()">
+                            {{ icon("chevron-down", "sm", "me-1") }}查看更多
+                        </button>
+                    </div>
+                {% endcall %}
+            </div>
+
+            <!-- 大额固定支出 -->
+            <div class="col-lg-6 mb-4">
+                {% call card("大额固定支出", "home", "", "p-0") %}
+                    <div class="px-3 pt-0 pb-2">
+                        <small class="text-muted">房租、保险、医疗等大额支出</small>
+                    </div>
+                    <div id="large-fixed-list" class="px-3 pb-3">
+                        <!-- 动态加载 -->
+                    </div>
+                    <div id="large-fixed-more" class="px-3 pb-3 text-center d-none">
+                        <button class="btn btn-outline-primary btn-sm" onclick="expenseAnalysisPage.showMoreLargeExpenses()">
+                            {{ icon("chevron-down", "sm", "me-1") }}查看更多
+                        </button>
+                    </div>
+                {% endcall %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 错误状态 -->
+    <div id="error-state" class="text-center py-5" style="display: none;">
+        <div class="text-danger mb-3">
+            {{ icon('alert-circle', 'fs-1') }}
+        </div>
+        <h5 class="text-danger">数据加载失败</h5>
+        <p class="text-muted mb-3" id="error-message">请稍后重试或联系管理员</p>
+        <button class="btn btn-primary" onclick="location.reload()">
+            {{ icon('refresh-cw', 'me-2') }}
+            重新加载
+        </button>
+    </div>
+</div>
+
+<!-- 商户详情模态框 -->
+<div class="modal fade" id="merchantDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    {{ icon('store', 'me-2') }}
+                    商户详情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="merchant-detail-content">
+                    <!-- 动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/expense_analysis.css') }}">
+{% endblock %}
+
+{% block page_vendor_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // 注册Chart.js插件
+    if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+        Chart.register(ChartDataLabels);
+    }
+</script>
+{% endblock %}
+
+{% block page_scripts %}
+<script type="module" src="{{ url_for('static', filename='js/pages/expense_analysis.js') }}"></script>
+{% endblock %}

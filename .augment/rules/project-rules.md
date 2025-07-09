@@ -1,7 +1,6 @@
 ---
-description: 
-globs: 
-alwaysApply: true
+type: "always_apply"
+description: "globs:"
 ---
 # AiBookkeeping 项目 Cursor 规则
 # ==========================================
@@ -145,6 +144,7 @@ def get_transactions(self, filters: Dict[str, Any]) -> List[Transaction]:
 - 响应式设计：col-sm-*, col-md-*, col-lg-*网格系统
 - 组件状态：btn-primary, alert-success, text-danger等语义化类
 - 自定义样式位置：app/static/css/custom.css，不覆盖Bootstrap核心
+- 禁止在模板文件中使用硬编码的CSS值。
 
 ## 14. 模板宏组件化 (P3)
 - 通用组件定义在macros.html：图标、导航链接、表单字段等
