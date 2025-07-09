@@ -4,6 +4,8 @@ from app.utils.decorators import handle_errors
 
 from . import transactions_bp
 
+# 使用新的统一服务架构
+
 @transactions_bp.route('/') # 蓝图根路径对应 /transactions/
 @handle_errors(template='transactions.html', 
                default_data={'data': {'transactions': [], 'accounts': [], 'currencies': [], 'current_filters': {}}, 'pagination': None, 'total_count': 0}, 
@@ -46,8 +48,8 @@ def transactions_list_route(): # 重命名函数
     if account_name_req:
         filters['account_name'] = account_name_req
 
-    # 使用Flask-SQLAlchemy分页获取交易记录
-    pagination = current_app.transaction_service.get_transactions_paginated(
+    # 使用 DataService 获取分页交易记录
+    pagination = current_app.data_service.get_transactions_paginated(
         filters=filters,
         page=page,
         per_page=limit
@@ -56,9 +58,9 @@ def transactions_list_route(): # 重命名函数
     transactions_data = [t.to_dict() for t in pagination.items]
     total_transactions = pagination.total
 
-    accounts = current_app.account_service.get_all_accounts()
-
-    currencies_for_filter = current_app.transaction_service.get_all_currencies()
+    # 使用 DataService 获取账户和货币信息
+    accounts = current_app.data_service.get_all_accounts()
+    currencies_for_filter = current_app.data_service.get_all_currencies()
 
     current_filters = {
         'account_number': account_number_req,

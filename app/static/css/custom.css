@@ -308,8 +308,7 @@ body {
     font-size: 0.75rem;
 }
 
-/* 与弹性支出排行保持一致的样式 */
-.flexible-expenses-table .ranking-column,
+/* 固定支出排行样式 */
 .recurring-expenses-table .ranking-column {
     text-align: center;
     font-weight: 600;

@@ -41,12 +41,6 @@ class Config:
         self.LOG_FORMAT = os.environ.get('LOG_FORMAT', '%(asctime)s %(levelname)s %(name)s %(message)s')
         self.LOG_DATE_FORMAT = os.environ.get('LOG_DATE_FORMAT', '%Y-%m-%d %H:%M:%S')
 
-        # 周期性支出识别算法配置
-        self.RECURRING_EXPENSE_METHOD = os.environ.get('RECURRING_EXPENSE_METHOD', 'adaptive')
-        self.RECURRING_EXPENSE_PERCENTILE = self._get_env_value('RECURRING_EXPENSE_PERCENTILE', 25, int)
-        self.RECURRING_EXPENSE_ZSCORE_THRESHOLD = self._get_env_value('RECURRING_EXPENSE_ZSCORE_THRESHOLD', 1.0, float)
-        self.RECURRING_EXPENSE_MIN_SCORE = self._get_env_value('RECURRING_EXPENSE_MIN_SCORE', 60.0, float)
-        
         # 生产环境配置验证
         if self.FLASK_ENV == 'production':
             if not os.environ.get('SECRET_KEY') or os.environ.get('SECRET_KEY') == 'dev-secret-key-change-in-production':

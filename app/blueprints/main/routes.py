@@ -19,48 +19,7 @@ def _parse_target_month(target_month_str):
     return datetime.strptime(target_month_str, '%Y-%m').date()
 
 
-def _convert_enhanced_data_to_dict(enhanced_data):
-    """将增强的支出分析数据转换为JSON可序列化的字典
 
-    Args:
-        enhanced_data: 增强的支出分析数据对象
-
-    Returns:
-        JSON可序列化的字典
-    """
-    return {
-        'target_month': enhanced_data.target_month,
-        'total_expense': enhanced_data.total_expense,
-        'expense_trend': [
-            {'date': trend.date, 'value': trend.value, 'category': trend.category}
-            for trend in enhanced_data.expense_trend
-        ],
-        'recurring_expenses': [
-            {
-                'category': recurring.category,
-                'total_amount': recurring.total_amount,
-                'amount': recurring.amount,
-                'frequency': recurring.frequency,
-                'confidence_score': recurring.confidence_score,
-                'last_occurrence': recurring.last_occurrence,
-                'count': recurring.count,
-                'combination_key': recurring.combination_key
-            }
-            for recurring in enhanced_data.recurring_expenses
-        ],
-        'flexible_composition': [
-            {
-                'name': comp.name,
-                'amount': comp.amount,
-                'percentage': comp.percentage,
-                'count': comp.count
-            }
-            for comp in enhanced_data.flexible_composition
-        ],
-        'top_expense_categories': [],
-        'recurring_transactions': enhanced_data.recurring_transactions or [],
-        'flexible_transactions': enhanced_data.flexible_transactions or []
-    }
 
 
 def _handle_enhanced_expense_analysis(target_month_str):
@@ -74,14 +33,33 @@ def _handle_enhanced_expense_analysis(target_month_str):
     """
     try:
         target_month = _parse_target_month(target_month_str)
-        enhanced_data = current_app.reporting_service.get_expense_analysis_data(target_month)
-        return jsonify(_convert_enhanced_data_to_dict(enhanced_data))
+
+        # 计算目标月份的开始和结束日期
+        from calendar import monthrange
+        start_date = target_month.replace(day=1)
+        last_day = monthrange(target_month.year, target_month.month)[1]
+        end_date = target_month.replace(day=last_day)
+
+        # 使用新的 ReportService 获取支出构成数据
+        expense_composition = current_app.report_service.get_expense_composition(start_date, end_date)
+
+        # 转换为前端期望的格式
+        enhanced_data = {
+            'expense_composition': expense_composition,
+            'period': {
+                'start_date': start_date.strftime('%Y-%m-%d'),
+                'end_date': end_date.strftime('%Y-%m-%d'),
+                'month': target_month.strftime('%Y-%m')
+            }
+        }
+
+        return jsonify(enhanced_data)
     except ValueError:
         return jsonify({'error': '目标月份格式错误，请使用 YYYY-MM 格式'}), 400
 
 
-def _handle_legacy_expense_analysis(start_date_str, end_date_str):
-    """处理兼容模式的支出分析请求
+def _handle_expense_analysis(start_date_str, end_date_str):
+    """处理支出分析请求
 
     Args:
         start_date_str: 开始日期字符串
@@ -96,16 +74,17 @@ def _handle_legacy_expense_analysis(start_date_str, end_date_str):
     start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
     end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
 
-    data = current_app.reporting_service.get_expense_analysis_data(start_date, end_date)
-    return jsonify(data)
+    # 使用 ReportService 获取支出分析数据
+    data = current_app.report_service.get_expense_composition(start_date, end_date)
+    return jsonify({'expense_composition': data})
 
 @main_bp.route('/')
 @main_bp.route('/dashboard')
 def dashboard():
     """现金流健康仪表盘页面"""
     try:
-        # 获取初始数据
-        dashboard_data = current_app.reporting_service.get_initial_dashboard_data()
+        # 使用新的 ReportService 获取仪表盘数据
+        dashboard_data = current_app.report_service.get_dashboard_data()
         
         return render_template('dashboard.html',
                              page_title='现金流健康仪表盘',
@@ -147,9 +126,18 @@ def get_cash_flow_data():
         
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        
-        data = current_app.reporting_service.get_cash_flow_data(start_date, end_date)
-        
+
+        # 使用新的 ReportService 获取期间汇总和月度趋势
+        period_summary = current_app.report_service.get_period_summary(start_date, end_date)
+        monthly_trend = current_app.report_service.get_monthly_trend(months=12)
+
+        # 转换为前端期望的现金流数据格式
+        data = {
+            'period_summary': period_summary,
+            'monthly_trend': monthly_trend,
+            'cash_flow': monthly_trend  # 月度趋势可以作为现金流数据
+        }
+
         return jsonify(data)
         
     except ValueError:
@@ -173,11 +161,11 @@ def get_expense_analysis_data():
         if target_month_str:
             return _handle_enhanced_expense_analysis(target_month_str)
 
-        # 原有的兼容模式：基于日期范围的支出分析
+        # 基于日期范围的支出分析
         else:
             start_date_str = request.args.get('start_date')
             end_date_str = request.args.get('end_date')
-            return _handle_legacy_expense_analysis(start_date_str, end_date_str)
+            return _handle_expense_analysis(start_date_str, end_date_str)
 
     except ValueError:
         return jsonify({'error': '日期格式错误，请使用正确的日期格式'}), 400
@@ -206,8 +194,25 @@ def get_category_transactions():
         except ValueError:
             return jsonify({'error': '日期格式错误'}), 400
         
-        # 获取交易明细
-        transactions = current_app.reporting_service.get_category_transactions(category, start_date, end_date)
+        # 使用 DataService 获取交易明细
+        all_transactions = current_app.data_service.get_transactions(
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        # 按分类（交易对手）过滤交易
+        transactions = []
+        for transaction in all_transactions:
+            if transaction.counterparty and category in transaction.counterparty:
+                transactions.append({
+                    'id': transaction.id,
+                    'date': transaction.date.strftime('%Y-%m-%d'),
+                    'amount': float(transaction.amount),
+                    'description': transaction.description or '',
+                    'counterparty': transaction.counterparty or '',
+                    'account_name': transaction.account.account_name if transaction.account else ''
+                })
+
         current_app.logger.info(f"找到 {len(transactions)} 条交易记录")
         
         result = {

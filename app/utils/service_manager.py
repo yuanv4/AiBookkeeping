@@ -39,8 +39,8 @@ class ServiceManager:
         if not hasattr(app, 'extensions'):
             app.extensions = {}
         app.extensions['service_manager'] = self
-        
-        # 为了向后兼容，在app对象上提供服务访问属性
+
+        # 在app对象上提供服务管理器访问
         app.service_manager = self
     
     def register_service(self, name: str, service_instance: Any) -> None:
@@ -55,8 +55,8 @@ class ServiceManager:
         
         self._services[name] = service_instance
         self.logger.info(f"已注册服务: {name}")
-        
-        # 为了向后兼容，同时在app对象上设置属性
+
+        # 在app对象上设置服务属性以便访问
         if self.app:
             setattr(self.app, name, service_instance)
     
@@ -110,45 +110,25 @@ class ServiceManager:
     
     def register_core_services(self):
         """注册核心服务
-        
-        这个方法包含了应用启动时需要初始化的所有核心服务。
+
+        使用新的统一服务架构。
         """
         try:
-            # 导入服务类
-            from ..services.core.bank_service import BankService
-            from ..services.core.account_service import AccountService
-            from ..services.core.transaction_service import TransactionService
-            from ..services.analysis import FinancialAnalysisService
-            from ..services.extraction import get_extraction_service
-            from ..services.core.file_processor_service import FileProcessorService
-            
-            # 初始化核心服务
-            bank_service = BankService()
-            account_service = AccountService()
-            transaction_service = TransactionService()
-            reporting_service = FinancialAnalysisService()
-            extractor_service = get_extraction_service()
-            
-            # 注册服务
-            self.register_service('bank_service', bank_service)
-            self.register_service('account_service', account_service)
-            self.register_service('transaction_service', transaction_service)
-            self.register_service('reporting_service', reporting_service)
-            self.register_service('extractor_service', extractor_service)
-            
-            # 初始化文件处理服务（需要其他服务作为依赖）
-            file_processor_service = FileProcessorService(
-                extractor_service=extractor_service,
-                bank_service=bank_service,
-                account_service=account_service,
-                transaction_service=transaction_service,
-                upload_folder=self.app.config.get('UPLOAD_FOLDER', 'uploads'),
-                allowed_extensions=self.app.config.get('ALLOWED_EXTENSIONS', {'xlsx', 'xls'})
-            )
-            self.register_service('file_processor_service', file_processor_service)
-            
-            self.logger.info("核心服务注册完成")
-            
+            # 导入新的统一服务
+            from ..services import DataService, ImportService, ReportService
+
+            # 初始化新的统一服务
+            data_service = DataService()
+            import_service = ImportService(data_service)
+            report_service = ReportService(data_service)
+
+            # 注册新服务
+            self.register_service('data_service', data_service)
+            self.register_service('import_service', import_service)
+            self.register_service('report_service', report_service)
+
+            self.logger.info("核心服务注册完成（新统一架构）")
+
         except Exception as e:
             self.logger.error(f"注册核心服务时发生错误: {str(e)}")
             raise

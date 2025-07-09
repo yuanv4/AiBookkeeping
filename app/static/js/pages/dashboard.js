@@ -576,8 +576,7 @@ export default class FinancialDashboard extends BasePage {
         // 更新固定支出明细表格
         this.updateRecurringExpensesTable(data.recurring_expenses || [], data.recurring_transactions || []);
         
-        // 更新弹性支出明细表格
-        this.updateFlexibleExpensesTable(data.flexible_transactions || []);
+
     }
 
     /**
@@ -876,57 +875,7 @@ export default class FinancialDashboard extends BasePage {
         return detailsRow;
     }
 
-    /**
-     * 更新弹性支出明细表格
-     */
-    updateFlexibleExpensesTable(flexibleTransactions) {
-        const tableBody = document.getElementById('flexible-expenses-table-body');
-        if (!tableBody) return;
 
-        tableBody.innerHTML = '';
-
-        if (!flexibleTransactions || flexibleTransactions.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">暂无弹性支出</td></tr>`;
-            return;
-        }
-
-        flexibleTransactions.forEach((transaction, index) => {
-            const row = document.createElement('tr');
-            const rank = index + 1; // 排名从1开始
-            
-            // 格式化日期
-            const dateStr = new Date(transaction.date).toLocaleDateString('zh-CN');
-            
-            // 格式化金额（支出显示为负数）
-            const amount = transaction.amount || 0;
-            const amountStr = amount < 0 ? `¥${Math.abs(amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `¥${amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-            row.innerHTML = `
-                <td class="text-center">
-                    <span class="badge ${this.getRankClass(rank)}">${rank}</span>
-                </td>
-                <td>${dateStr}</td>
-                <td>
-                    <span class="d-inline-block text-truncate" style="max-width: 80px;" title="${transaction.account_name || ''}">
-                        ${transaction.account_name || ''}
-                    </span>
-                </td>
-                <td>
-                    <span class="d-inline-block text-truncate" style="max-width: 100px;" title="${transaction.counterparty || ''}">
-                        ${transaction.counterparty || ''}
-                    </span>
-                </td>
-                <td>
-                    <span class="d-inline-block text-truncate" style="max-width: 120px;" title="${transaction.description || ''}">
-                        ${transaction.description || ''}
-                    </span>
-                </td>
-                <td class="text-end text-danger">${amountStr}</td>
-            `;
-            
-            tableBody.appendChild(row);
-        });
-    }
 }
 
 // 初始化页面

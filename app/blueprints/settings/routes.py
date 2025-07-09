@@ -40,8 +40,8 @@ def upload_file_route():
         
         files = request.files.getlist('file')
 
-        # 调用服务处理文件
-        processed_files_result, message = current_app.file_processor_service.process_uploaded_files(files)
+        # 使用 ImportService 处理文件
+        processed_files_result, message = current_app.import_service.process_uploaded_files(files)
 
         if processed_files_result:
             uploaded_filenames = [f.filename for f in files if f.filename] 
