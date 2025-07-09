@@ -4,7 +4,6 @@
 {% block title %}交易记录 - {{ config.APP_NAME }}{% endblock %}
 
 {% block page_css %}
-<!-- transactions.css 已删除，样式已迁移到 Bootstrap 组件 -->
 {% endblock %}
 
 {% block content %}
@@ -38,5 +37,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-<script type="module" src="{{ url_for('static', filename='js/main/transactions.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/pages/transactions.js') }}"></script>
 {% endblock %}
