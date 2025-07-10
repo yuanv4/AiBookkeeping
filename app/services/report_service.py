@@ -451,14 +451,29 @@ class ReportService:
                 self.logger.error(f"计算月度数据时出错: {e}")
                 daily_monthly_data, large_monthly_data = [], []
 
+            # 为商户数据添加月度明细
+            daily_merchants_with_details = []
+            for r in results:
+                if r['merchant'] in daily_fixed_merchants:
+                    merchant_data = r.copy()
+                    merchant_data['monthly_details'] = self._get_merchant_monthly_details(r['merchant'])
+                    daily_merchants_with_details.append(merchant_data)
+
+            large_merchants_with_details = []
+            for r in results:
+                if r['merchant'] in large_fixed_merchants:
+                    merchant_data = r.copy()
+                    merchant_data['monthly_details'] = self._get_merchant_monthly_details(r['merchant'])
+                    large_merchants_with_details.append(merchant_data)
+
             result = {
                 'daily_fixed_expenses': {
-                    'merchants': [r for r in results if r['merchant'] in daily_fixed_merchants],
+                    'merchants': daily_merchants_with_details,
                     'monthly_data': daily_monthly_data,
                     'monthly_average': sum(d['amount'] for d in daily_monthly_data) / len(daily_monthly_data) if daily_monthly_data else 0
                 },
                 'large_fixed_expenses': {
-                    'merchants': [r for r in results if r['merchant'] in large_fixed_merchants],
+                    'merchants': large_merchants_with_details,
                     'monthly_data': large_monthly_data,
                     'monthly_average': sum(d['amount'] for d in large_monthly_data) / len(large_monthly_data) if large_monthly_data else 0
                 },
@@ -518,3 +533,59 @@ class ReportService:
         except Exception as e:
             self.logger.error(f"Error getting monthly expenses: {e}")
             return []
+
+    def _get_merchant_monthly_details(self, merchant_name: str) -> Dict[str, Dict[str, Any]]:
+        """
+        获取单个商户的月度明细数据
+
+        Args:
+            merchant_name: 商户名称
+
+        Returns:
+            按月份分组的详细交易数据
+        """
+        try:
+            # 获取该商户的所有交易记录
+            transactions = self.db.query(Transaction).filter(
+                Transaction.amount < 0,
+                Transaction.counterparty == merchant_name
+            ).order_by(Transaction.date.desc()).all()
+
+            if not transactions:
+                return {}
+
+            # 按月份分组
+            monthly_details = {}
+            for transaction in transactions:
+                month_key = transaction.date.strftime('%Y-%m')
+
+                if month_key not in monthly_details:
+                    monthly_details[month_key] = {
+                        'total_amount': 0.0,
+                        'transaction_count': 0,
+                        'avg_amount': 0.0,
+                        'transactions': []
+                    }
+
+                # 累加金额和次数
+                amount = float(abs(transaction.amount))
+                monthly_details[month_key]['total_amount'] += amount
+                monthly_details[month_key]['transaction_count'] += 1
+
+                # 添加交易明细
+                monthly_details[month_key]['transactions'].append({
+                    'date': transaction.date.strftime('%Y-%m-%d'),
+                    'amount': amount,
+                    'description': transaction.description or ''
+                })
+
+            # 计算每月平均金额
+            for month_data in monthly_details.values():
+                if month_data['transaction_count'] > 0:
+                    month_data['avg_amount'] = month_data['total_amount'] / month_data['transaction_count']
+
+            return monthly_details
+
+        except Exception as e:
+            self.logger.error(f"Error getting merchant monthly details for {merchant_name}: {e}")
+            return {}

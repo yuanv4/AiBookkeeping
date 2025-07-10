@@ -1,0 +1,235 @@
+/*
+ * AiBookkeeping - 交易记录页面样式
+ * 交易记录页面特定的样式定义
+ */
+
+/* ========================================
+   交易表格样式
+   ======================================== */
+
+.transactions-table {
+    background-color: var(--surface-card);
+    border-radius: var(--bs-border-radius);
+    overflow: hidden;
+    box-shadow: var(--bs-box-shadow-sm);
+}
+
+.transactions-table .table {
+    margin-bottom: 0;
+}
+
+.transactions-table .table th {
+    background-color: var(--bs-gray-50);
+    font-weight: var(--font-weight-semibold);
+    color: var(--bs-gray-700);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    font-size: var(--font-size-xs);
+    border-bottom: var(--border-width-medium) solid var(--bs-gray-200);
+    padding: var(--spacing-3);
+}
+
+.transactions-table .table td {
+    vertical-align: middle;
+    border-top: var(--border-width-thin) solid var(--bs-gray-200);
+    padding: var(--spacing-3);
+}
+
+.transactions-table .table tbody tr:hover {
+    background-color: var(--bs-gray-50);
+}
+
+/* ========================================
+   交易金额样式
+   ======================================== */
+
+.transaction-amount {
+    font-weight: var(--font-weight-medium);
+    font-family: var(--bs-font-monospace);
+}
+
+.transaction-amount.positive {
+    color: var(--color-amount-positive) !important;
+}
+
+.transaction-amount.negative {
+    color: var(--color-amount-negative) !important;
+}
+
+.transaction-amount.neutral {
+    color: var(--color-amount-neutral) !important;
+}
+
+/* ========================================
+   交易类型徽章
+   ======================================== */
+
+.transaction-type-badge {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--bs-border-radius-pill);
+}
+
+.transaction-type-income {
+    background-color: var(--bs-success-100);
+    color: var(--bs-success-700);
+}
+
+.transaction-type-expense {
+    background-color: var(--bs-danger-100);
+    color: var(--bs-danger-700);
+}
+
+.transaction-type-transfer {
+    background-color: var(--bs-info-100);
+    color: var(--bs-info-700);
+}
+
+/* ========================================
+   筛选栏样式
+   ======================================== */
+
+.transactions-filter {
+    background-color: var(--surface-card);
+    border-radius: var(--bs-border-radius);
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-4);
+    box-shadow: var(--bs-box-shadow-sm);
+}
+
+.filter-group {
+    margin-bottom: var(--spacing-3);
+}
+
+.filter-group:last-child {
+    margin-bottom: 0;
+}
+
+.filter-label {
+    font-weight: var(--font-weight-medium);
+    color: var(--bs-gray-700);
+    margin-bottom: var(--spacing-2);
+    display: block;
+}
+
+/* ========================================
+   分页样式
+   ======================================== */
+
+.transactions-pagination {
+    background-color: var(--surface-card);
+    border-top: var(--border-width-thin) solid var(--bs-gray-200);
+    padding: var(--spacing-4);
+}
+
+.pagination-info {
+    color: var(--bs-gray-600);
+    font-size: var(--font-size-sm);
+}
+
+/* ========================================
+   空状态样式
+   ======================================== */
+
+.transactions-empty {
+    text-align: center;
+    padding: var(--spacing-16) var(--spacing-4);
+    color: var(--bs-gray-500);
+}
+
+.transactions-empty .empty-icon {
+    font-size: 4rem;
+    color: var(--bs-gray-300);
+    margin-bottom: var(--spacing-4);
+}
+
+.transactions-empty h5 {
+    color: var(--bs-gray-600);
+    margin-bottom: var(--spacing-2);
+}
+
+.transactions-empty p {
+    color: var(--bs-gray-500);
+    margin-bottom: var(--spacing-4);
+}
+
+/* ========================================
+   导出功能样式
+   ======================================== */
+
+.export-actions {
+    display: flex;
+    gap: var(--spacing-2);
+    align-items: center;
+}
+
+.export-btn {
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-2) var(--spacing-3);
+    border-radius: var(--bs-border-radius);
+    transition: var(--bs-transition);
+}
+
+.export-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow);
+}
+
+/* ========================================
+   响应式优化
+   ======================================== */
+
+@media (max-width: 768px) {
+    .transactions-filter {
+        padding: var(--spacing-3);
+    }
+    
+    .transactions-table .table th,
+    .transactions-table .table td {
+        padding: var(--spacing-2);
+        font-size: var(--font-size-sm);
+    }
+    
+    .transaction-amount {
+        font-size: var(--font-size-sm);
+    }
+    
+    .export-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .export-btn {
+        width: 100%;
+        margin-bottom: var(--spacing-2);
+    }
+}
+
+@media (max-width: 576px) {
+    .transactions-filter {
+        padding: var(--spacing-2);
+    }
+    
+    .transactions-table .table th,
+    .transactions-table .table td {
+        padding: var(--spacing-1);
+        font-size: var(--font-size-xs);
+    }
+    
+    .filter-group {
+        margin-bottom: var(--spacing-2);
+    }
+    
+    .transactions-pagination {
+        padding: var(--spacing-2);
+    }
+    
+    .transactions-empty {
+        padding: var(--spacing-8) var(--spacing-2);
+    }
+    
+    .transactions-empty .empty-icon {
+        font-size: 3rem;
+    }
+}

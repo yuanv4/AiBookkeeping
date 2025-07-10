@@ -76,10 +76,10 @@ class ErrorHandler:
     @staticmethod
     def _get_default_error_template(status_code: int) -> str:
         """获取默认错误模板
-        
+
         Args:
             status_code: HTTP状态码
-            
+
         Returns:
             错误模板路径
         """
@@ -88,7 +88,8 @@ class ErrorHandler:
         elif status_code >= 500:
             return 'errors/500.html'
         else:
-            return 'error.html'
+            # 对于其他错误代码，使用500错误页面作为通用错误页面
+            return 'errors/500.html'
     
     @staticmethod
     def handle_404_error(error) -> Tuple[Any, int]:

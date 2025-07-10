@@ -1,0 +1,298 @@
+/*
+ * AiBookkeeping - 支出分析页面样式
+ * 支出分析页面特定的样式定义
+ */
+
+/* ========================================
+   分类汇总卡片样式
+   ======================================== */
+
+.category-summary-card {
+    transition: var(--bs-transition);
+    cursor: pointer;
+    border: var(--border-width-thin) solid var(--bs-border-color);
+    margin-bottom: var(--spacing-3);
+}
+
+.category-summary-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow-lg);
+    border-color: var(--bs-primary-200);
+}
+
+.category-summary-card .card-body {
+    transition: var(--bs-transition);
+}
+
+.category-summary-card .card-body:hover {
+    background-color: var(--bs-primary-50);
+}
+
+/* ========================================
+   分类详情展开动画
+   ======================================== */
+
+.category-details {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.category-details.collapse:not(.show) {
+    display: none;
+}
+
+.category-details.collapse.show {
+    display: block;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 500px;
+    }
+}
+
+/* ========================================
+   商户详情表格样式
+   ======================================== */
+
+.category-details .table {
+    margin-bottom: 0;
+    background-color: var(--bs-gray-50);
+}
+
+.category-details .table th {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--bs-gray-700);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    background-color: var(--bs-gray-100);
+    border-bottom: var(--border-width-medium) solid var(--bs-gray-200);
+}
+
+.category-details .table td {
+    vertical-align: middle;
+    border-top: var(--border-width-thin) solid var(--bs-gray-200);
+    background-color: var(--surface-card);
+}
+
+.category-details .table tbody tr:hover {
+    background-color: var(--bs-primary-50);
+}
+
+.category-details .table-responsive {
+    border-radius: var(--bs-border-radius);
+    overflow: hidden;
+    box-shadow: var(--bs-box-shadow-sm);
+}
+
+/* ========================================
+   图表交互样式
+   ======================================== */
+
+.chart-container {
+    min-height: 350px;
+    position: relative;
+}
+
+#monthly-trend-chart {
+    cursor: pointer;
+    transition: var(--bs-transition);
+}
+
+#monthly-trend-chart:hover {
+    opacity: 0.9;
+}
+
+/* ========================================
+   月份状态提示样式
+   ======================================== */
+
+#month-status-row {
+    animation: slideInDown 0.3s ease;
+    margin-bottom: var(--spacing-4);
+}
+
+#month-status-row .card {
+    border-left: var(--border-width-thick) solid var(--bs-info);
+    background: linear-gradient(135deg, var(--bs-info-50) 0%, var(--bs-info-100) 100%);
+    border-radius: var(--bs-border-radius);
+}
+
+#selected-month-text {
+    font-weight: var(--font-weight-semibold);
+    color: var(--bs-info);
+    font-size: var(--font-size-lg);
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   重置按钮样式
+   ======================================== */
+
+#month-status-row .btn-outline-secondary {
+    transition: var(--bs-transition);
+    border-radius: var(--bs-border-radius-pill);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-2) var(--spacing-4);
+}
+
+#month-status-row .btn-outline-secondary:hover {
+    transform: scale(1.05);
+    background-color: var(--bs-gray-600);
+    border-color: var(--bs-gray-600);
+    color: white;
+}
+
+/* ========================================
+   查看更多按钮样式
+   ======================================== */
+
+#daily-fixed-more .btn,
+#large-fixed-more .btn {
+    transition: var(--bs-transition);
+    border-radius: var(--bs-border-radius-pill);
+    padding: var(--spacing-2) var(--spacing-6);
+    font-weight: var(--font-weight-medium);
+}
+
+#daily-fixed-more .btn:hover,
+#large-fixed-more .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow-lg);
+}
+
+/* ========================================
+   大额支出金额突出显示
+   ======================================== */
+
+#large-fixed-list .merchant-amount {
+    font-size: var(--font-size-xl) !important;
+    font-weight: var(--font-weight-bold) !important;
+    font-family: var(--bs-font-monospace);
+}
+
+/* ========================================
+   加载动画
+   ======================================== */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.merchant-card {
+    animation: fadeInUp 0.3s ease forwards;
+}
+
+/* 为不同的商户卡片添加延迟动画 */
+.merchant-card:nth-child(1) { animation-delay: 0.1s; }
+.merchant-card:nth-child(2) { animation-delay: 0.2s; }
+.merchant-card:nth-child(3) { animation-delay: 0.3s; }
+.merchant-card:nth-child(4) { animation-delay: 0.4s; }
+.merchant-card:nth-child(5) { animation-delay: 0.5s; }
+.merchant-card:nth-child(6) { animation-delay: 0.6s; }
+.merchant-card:nth-child(7) { animation-delay: 0.7s; }
+.merchant-card:nth-child(8) { animation-delay: 0.8s; }
+
+/* ========================================
+   页面标题区域
+   ======================================== */
+
+.expense-analysis-header {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-primary-700) 100%);
+    color: white;
+    border-radius: var(--bs-border-radius);
+    margin-bottom: var(--spacing-6);
+    padding: var(--spacing-6);
+}
+
+.expense-analysis-header h1 {
+    color: white !important;
+    font-weight: var(--font-weight-bold);
+}
+
+.expense-analysis-header p {
+    color: rgba(255, 255, 255, 0.8) !important;
+    margin-bottom: 0;
+}
+
+/* ========================================
+   响应式调整
+   ======================================== */
+
+@media (max-width: 768px) {
+    .category-summary-card .card-body {
+        padding: var(--spacing-3) !important;
+    }
+
+    .category-summary-card h6 {
+        font-size: var(--font-size-sm);
+    }
+
+    .category-summary-card small {
+        font-size: var(--font-size-xs);
+    }
+
+    .chart-container {
+        min-height: 250px;
+    }
+
+    #large-fixed-list .merchant-amount {
+        font-size: var(--font-size-lg) !important;
+    }
+
+    .expense-analysis-header {
+        padding: var(--spacing-4);
+        margin-bottom: var(--spacing-4);
+    }
+}
+
+@media (max-width: 576px) {
+    .category-summary-card .card-body {
+        padding: var(--spacing-2) !important;
+    }
+
+    .category-summary-card {
+        margin-bottom: var(--spacing-2) !important;
+    }
+
+    .chart-container {
+        min-height: 200px;
+    }
+
+    .category-summary-card .fs-5 {
+        font-size: var(--font-size-base) !important;
+    }
+
+    .expense-analysis-header {
+        padding: var(--spacing-3);
+        margin-bottom: var(--spacing-3);
+    }
+
+    .expense-analysis-header h1 {
+        font-size: var(--font-size-2xl) !important;
+    }
+}

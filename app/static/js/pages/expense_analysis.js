@@ -64,6 +64,18 @@ class ExpenseAnalysisPage extends BasePage {
     }
 
     /**
+     * 获取评分对应的文案
+     */
+    getScoreText(score) {
+        if (score >= 90) return '极高固定性';
+        if (score >= 80) return '高固定性';
+        if (score >= 70) return '较高固定性';
+        if (score >= 60) return '中等固定性';
+        if (score >= 50) return '较低固定性';
+        return '低固定性';
+    }
+
+    /**
      * 等待Chart.js加载完成
      */
     waitForChart() {
@@ -153,6 +165,8 @@ class ExpenseAnalysisPage extends BasePage {
             };
 
             console.log('数据加载完成:', this.data);
+            console.log('固定支出数据:', this.data.fixedExpenses);
+            console.log('月度趋势数据:', this.data.monthlyTrend);
 
         } catch (error) {
             console.error('Error loading data:', error);
@@ -233,6 +247,7 @@ class ExpenseAnalysisPage extends BasePage {
     renderChart() {
         try {
             console.log('开始渲染图表');
+            console.log('当前数据状态:', this.data);
             const canvas = document.getElementById('monthly-trend-chart');
             if (!canvas) {
                 console.error('图表canvas不存在');
@@ -241,7 +256,8 @@ class ExpenseAnalysisPage extends BasePage {
 
             console.log('Canvas元素找到:', canvas);
             const ctx = canvas.getContext('2d');
-            const { monthly_trend } = this.data.monthlyTrend;
+            const monthly_trend = this.data.monthlyTrend.monthly_trend;
+            console.log('月度趋势数据:', monthly_trend);
 
             // 准备图表数据
             const labels = monthly_trend.map(item => item.month).reverse();
@@ -250,8 +266,18 @@ class ExpenseAnalysisPage extends BasePage {
 
             console.log('图表数据准备完成:', { labels, dailyData, totalData });
 
+            // 准备大额固定支出数据
+            const largeData = monthly_trend.map(item => item.large_fixed).reverse();
+
+            // 检查数据有效性
+            if (!monthly_trend || !Array.isArray(monthly_trend) || monthly_trend.length === 0) {
+                console.error('月度趋势数据无效:', monthly_trend);
+                return;
+            }
+
             // 检查Chart.js是否可用
             if (typeof Chart !== 'undefined' && Chart) {
+                console.log('Chart.js可用，开始创建图表');
                 this.chart = new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -264,23 +290,18 @@ class ExpenseAnalysisPage extends BasePage {
                                 borderColor: 'rgba(13, 110, 253, 1)',
                                 borderWidth: 1,
                                 borderRadius: 4,
-                                borderSkipped: false
+                                borderSkipped: false,
+                                stack: 'fixed-expenses'
                             },
                             {
-                                label: '总固定支出',
-                                data: totalData,
-                                backgroundColor: 'rgba(108, 117, 125, 0.3)',
-                                borderColor: 'rgba(108, 117, 125, 0.8)',
+                                label: '大额固定支出',
+                                data: largeData,
+                                backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                                borderColor: 'rgba(255, 193, 7, 1)',
                                 borderWidth: 1,
                                 borderRadius: 4,
                                 borderSkipped: false,
-                                type: 'line',
-                                fill: false,
-                                tension: 0.4,
-                                pointBackgroundColor: 'rgba(108, 117, 125, 1)',
-                                pointBorderColor: '#fff',
-                                pointBorderWidth: 2,
-                                pointRadius: 5
+                                stack: 'fixed-expenses'
                             }
                         ]
                     },
@@ -289,6 +310,7 @@ class ExpenseAnalysisPage extends BasePage {
                         maintainAspectRatio: false,
                         scales: {
                             x: {
+                                stacked: true,
                                 grid: { display: false },
                                 title: {
                                     display: true,
@@ -298,6 +320,7 @@ class ExpenseAnalysisPage extends BasePage {
                                 }
                             },
                             y: {
+                                stacked: true,
                                 beginAtZero: true,
                                 title: {
                                     display: true,
@@ -314,9 +337,18 @@ class ExpenseAnalysisPage extends BasePage {
                         plugins: {
                             legend: { position: 'top' },
                             tooltip: {
+                                mode: 'index',
+                                intersect: false,
                                 callbacks: {
                                     label: function(context) {
                                         return context.dataset.label + ': ¥' + context.parsed.y.toLocaleString();
+                                    },
+                                    footer: function(tooltipItems) {
+                                        let total = 0;
+                                        tooltipItems.forEach(function(tooltipItem) {
+                                            total += tooltipItem.parsed.y;
+                                        });
+                                        return '总计: ¥' + total.toLocaleString();
                                     },
                                     afterLabel: function(context) {
                                         return '点击查看该月份详细数据';
@@ -326,10 +358,12 @@ class ExpenseAnalysisPage extends BasePage {
                         },
                         onClick: (event, elements) => {
                             if (elements.length > 0) {
-                                const monthIndex = elements[0].index;
-                                const monthData = monthly_trend[monthIndex];
-                                console.log('点击图表月份:', monthData);
-                                this.selectMonth(monthData);
+                                const clickedIndex = elements[0].index;
+                                // 由于图表数据被reverse()，需要计算正确的原始数组索引
+                                const originalIndex = monthly_trend.length - 1 - clickedIndex;
+                                const monthData = monthly_trend[originalIndex];
+                                console.log('点击图表月份 - 点击索引:', clickedIndex, '原始索引:', originalIndex, '月份数据:', monthData);
+                                window.expenseAnalysisPage.selectMonth(monthData);
                             }
                         },
                         onHover: (event, elements) => {
@@ -461,8 +495,13 @@ class ExpenseAnalysisPage extends BasePage {
             const category = merchant.display_category || 'other';
             if (categoryData[category]) {
                 categoryData[category].merchants.push(merchant);
-                categoryData[category].totalAmount += merchant.avg_amount;
+
+                // 使用月度数据计算实际金额
+                const monthlyTotal = this.calculateMerchantMonthlyTotal(merchant);
+                categoryData[category].totalAmount += monthlyTotal;
                 categoryData[category].merchantCount++;
+
+                console.log('分类汇总 - 商户:', merchant.merchant, '分类:', category, '月度金额:', monthlyTotal);
             }
         });
 
@@ -470,7 +509,12 @@ class ExpenseAnalysisPage extends BasePage {
         Object.keys(categoryData).forEach(category => {
             const data = categoryData[category];
             data.avgAmount = data.merchantCount > 0 ? data.totalAmount / data.merchantCount : 0;
-            data.merchants.sort((a, b) => b.avg_amount - a.avg_amount);
+            // 按月度金额排序而不是平均金额
+            data.merchants.sort((a, b) => {
+                const aMonthlyTotal = this.calculateMerchantMonthlyTotal(a);
+                const bMonthlyTotal = this.calculateMerchantMonthlyTotal(b);
+                return bMonthlyTotal - aMonthlyTotal;
+            });
         });
 
         return categoryData;
@@ -604,8 +648,12 @@ class ExpenseAnalysisPage extends BasePage {
             return;
         }
 
-        // 按金额从高到低排序
-        merchants = merchants.sort((a, b) => b.avg_amount - a.avg_amount);
+        // 按月度金额从高到低排序
+        merchants = merchants.sort((a, b) => {
+            const aMonthlyTotal = this.calculateMerchantMonthlyTotal(a);
+            const bMonthlyTotal = this.calculateMerchantMonthlyTotal(b);
+            return bMonthlyTotal - aMonthlyTotal;
+        });
 
         // 确定显示数量
         const displayCount = this.showingAllLarge ? merchants.length : this.largeExpensesLimit;
@@ -613,6 +661,10 @@ class ExpenseAnalysisPage extends BasePage {
 
         // 渲染商户卡片
         container.innerHTML = displayMerchants.map(merchant => {
+            // 计算当前月份的金额
+            const monthlyAmount = this.calculateMerchantMonthlyTotal(merchant);
+            // 获取评分文案
+            const scoreText = this.getScoreText(merchant.total_score);
             const scoreColor = this.getScoreColor(merchant.total_score);
 
             return `
@@ -630,19 +682,12 @@ class ExpenseAnalysisPage extends BasePage {
                                     <span class="badge bg-light text-dark me-1">${this.getCategoryName(merchant.category)}</span>
                                     <span>${merchant.transaction_count}次交易</span>
                                 </div>
-                                <div class="score-progress mb-2">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <span class="small text-muted">评分</span>
-                                        <span class="small fw-semibold">${merchant.total_score.toFixed(1)}分</span>
-                                    </div>
-                                    <div class="progress" style="height: 4px;">
-                                        <div class="progress-bar bg-${scoreColor}" style="width: ${merchant.total_score}%"></div>
-                                    </div>
+                                <div class="score-text mb-2">
+                                    <span class="badge bg-${scoreColor} bg-opacity-10 text-${scoreColor}">${scoreText}</span>
                                 </div>
                             </div>
                             <div class="text-end flex-shrink-0">
-                                <div class="merchant-amount fw-bold text-warning">¥${merchant.avg_amount.toFixed(2)}</div>
-                                <div class="merchant-interval small text-muted">${merchant.avg_interval}天间隔</div>
+                                <div class="merchant-amount fw-bold text-warning">¥${monthlyAmount.toFixed(2)}</div>
                                 <button class="btn btn-sm btn-outline-primary mt-2" onclick="expenseAnalysisPage.showMerchantDetail('${merchant.merchant}')">
                                     <i data-lucide="eye" class="me-1" style="width: 0.875rem; height: 0.875rem;"></i>详情
                                 </button>
@@ -670,9 +715,6 @@ class ExpenseAnalysisPage extends BasePage {
         this.selectedMonth = monthData.month;
         console.log('选择月份:', monthData);
 
-        // 更新状态显示
-        this.updateMonthStatusDisplay();
-
         // 重新渲染商户列表
         this.updateMerchantLists();
 
@@ -687,12 +729,6 @@ class ExpenseAnalysisPage extends BasePage {
         this.selectedMonth = null;
         console.log('重置月份筛选');
 
-        // 隐藏状态提示
-        const statusRow = document.getElementById('month-status-row');
-        if (statusRow) {
-            statusRow.style.display = 'none';
-        }
-
         // 重新渲染商户列表
         this.updateMerchantLists();
 
@@ -700,18 +736,7 @@ class ExpenseAnalysisPage extends BasePage {
         this.removeChartHighlight();
     }
 
-    /**
-     * 更新月份状态显示
-     */
-    updateMonthStatusDisplay() {
-        const statusRow = document.getElementById('month-status-row');
-        const monthText = document.getElementById('selected-month-text');
 
-        if (statusRow && monthText && this.selectedMonth) {
-            statusRow.style.display = 'block';
-            monthText.textContent = this.selectedMonth;
-        }
-    }
 
     /**
      * 更新商户列表显示
@@ -731,8 +756,31 @@ class ExpenseAnalysisPage extends BasePage {
      */
     highlightChartMonth() {
         if (this.chart && this.selectedMonth) {
-            // 这里可以添加图表高亮逻辑
             console.log('高亮图表月份:', this.selectedMonth);
+
+            // 找到选中月份在图表中的索引
+            const monthly_trend = this.data.monthlyTrend.monthly_trend;
+            const labels = monthly_trend.map(item => item.month).reverse();
+            const selectedIndex = labels.indexOf(this.selectedMonth);
+
+            if (selectedIndex !== -1) {
+                // 更新数据集的背景色，高亮选中的月份
+                this.chart.data.datasets.forEach((dataset, datasetIndex) => {
+                    const originalColors = datasetIndex === 0
+                        ? 'rgba(13, 110, 253, 0.8)'  // 日常固定支出
+                        : 'rgba(255, 193, 7, 0.8)';  // 大额固定支出
+
+                    const highlightColors = datasetIndex === 0
+                        ? 'rgba(13, 110, 253, 1.0)'  // 高亮日常固定支出
+                        : 'rgba(255, 193, 7, 1.0)';  // 高亮大额固定支出
+
+                    dataset.backgroundColor = labels.map((_, index) =>
+                        index === selectedIndex ? highlightColors : originalColors
+                    );
+                });
+
+                this.chart.update('none'); // 无动画更新
+            }
         }
     }
 
@@ -741,8 +789,18 @@ class ExpenseAnalysisPage extends BasePage {
      */
     removeChartHighlight() {
         if (this.chart) {
-            // 这里可以添加移除高亮的逻辑
             console.log('移除图表高亮');
+
+            // 恢复原始颜色
+            this.chart.data.datasets.forEach((dataset, datasetIndex) => {
+                const originalColor = datasetIndex === 0
+                    ? 'rgba(13, 110, 253, 0.8)'  // 日常固定支出
+                    : 'rgba(255, 193, 7, 0.8)';  // 大额固定支出
+
+                dataset.backgroundColor = originalColor;
+            });
+
+            this.chart.update('none'); // 无动画更新
         }
     }
 
@@ -754,11 +812,27 @@ class ExpenseAnalysisPage extends BasePage {
             return merchants;
         }
 
-        // 这里实现按月份筛选商户的逻辑
-        // 由于当前API数据结构限制，暂时返回所有数据
-        // 在实际应用中，需要根据商户的交易时间进行筛选
-        console.log('按月份筛选商户:', this.selectedMonth);
-        return merchants;
+        console.log('按月份筛选商户:', this.selectedMonth, '原始商户数量:', merchants.length);
+
+        // 筛选在指定月份有交易的商户
+        const filteredMerchants = merchants.filter(merchant => {
+            // 检查商户是否有monthly_details数据
+            if (!merchant.monthly_details || typeof merchant.monthly_details !== 'object') {
+                console.warn('商户缺少monthly_details数据:', merchant.merchant);
+                return false;
+            }
+
+            // 检查指定月份是否有数据
+            const hasDataForMonth = this.selectedMonth in merchant.monthly_details;
+            if (hasDataForMonth) {
+                console.log('商户', merchant.merchant, '在', this.selectedMonth, '有交易数据');
+            }
+
+            return hasDataForMonth;
+        });
+
+        console.log('筛选后商户数量:', filteredMerchants.length);
+        return filteredMerchants;
     }
 
 
@@ -784,18 +858,16 @@ class ExpenseAnalysisPage extends BasePage {
             return merchant.avg_amount;
         }
 
-        // 如果有月度数据，查找对应月份的金额
-        if (this.monthlyData && this.monthlyData[this.selectedMonth]) {
-            const monthlyMerchants = this.monthlyData[this.selectedMonth].daily_fixed_expenses?.merchants || [];
-            const monthlyMerchant = monthlyMerchants.find(m => m.merchant === merchant.merchant);
-            if (monthlyMerchant) {
-                // 返回该月份的总金额（平均金额 * 交易次数）
-                return monthlyMerchant.avg_amount * monthlyMerchant.transaction_count;
-            }
+        // 使用新的monthly_details数据结构
+        if (merchant.monthly_details && merchant.monthly_details[this.selectedMonth]) {
+            const monthData = merchant.monthly_details[this.selectedMonth];
+            console.log('使用月度明细数据计算金额:', merchant.merchant, this.selectedMonth, monthData.total_amount);
+            return monthData.total_amount;
         }
 
-        // 兜底：返回平均金额 * 交易次数作为估算总金额
-        return merchant.avg_amount * merchant.transaction_count;
+        // 如果该月份没有数据，返回0（表示该月份没有交易）
+        console.log('商户', merchant.merchant, '在', this.selectedMonth, '没有交易数据，返回0');
+        return 0;
     }
 
     /**

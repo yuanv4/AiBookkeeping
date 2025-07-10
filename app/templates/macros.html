@@ -53,22 +53,39 @@
 </div>
 {% endmacro %}
 
-{% macro data_table(id, headers, title="数据明细", total=0, filtered=0, no_data_message="没有找到匹配的记录", show_pagination=true) %}
+{% macro data_table(id, headers, title="数据明细", total=0, filtered=0, no_data_message="没有找到匹配的记录", show_pagination=true, show_export=false, sortable=true, icon_name="receipt") %}
 <div class="card border-0 shadow-sm h-100">
   <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3">
     <div class="d-flex align-items-center">
       <div class="me-2 bg-light rounded-2 d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem;">
-        {{ icon("receipt", "sm", "text-primary") }}
+        {{ icon(icon_name, "sm", "text-primary") }}
       </div>
       <h6 class="card-title fw-bold mb-0">{{ title }}</h6>
     </div>
-    {% if total > 0 %}
-    <div class="d-flex align-items-center gap-2">
-      <span class="badge bg-primary rounded-pill" id="{{ id ~ '-filtered-count' }}">{{ filtered }}</span>
-      <span class="text-muted">/</span>
-      <span class="badge bg-secondary rounded-pill">{{ total }}</span>
+    <div class="d-flex align-items-center gap-3">
+      {% if total > 0 %}
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-primary rounded-pill" id="{{ id ~ '-filtered-count' }}">{{ filtered }}</span>
+        <span class="text-muted">/</span>
+        <span class="badge bg-secondary rounded-pill">{{ total }}</span>
+      </div>
+      {% endif %}
+      {% if show_export %}
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          {{ icon("download", "sm", "me-1") }}导出
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#" data-export="excel" data-table="{{ id }}">
+            {{ icon("file-spreadsheet", "sm", "me-2") }}Excel
+          </a></li>
+          <li><a class="dropdown-item" href="#" data-export="csv" data-table="{{ id }}">
+            {{ icon("file-text", "sm", "me-2") }}CSV
+          </a></li>
+        </ul>
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -76,7 +93,17 @@
         <thead class="bg-light">
           <tr>
             {% for header in headers %}
-            <th class="px-3 py-3 fw-semibold text-muted small border-0">{{ header }}</th>
+            <th class="px-3 py-3 fw-semibold text-muted small border-0 {% if sortable %}sortable{% endif %}"
+                {% if sortable %}data-sort="{{ loop.index0 }}"{% endif %}>
+              <div class="d-flex align-items-center">
+                <span>{{ header }}</span>
+                {% if sortable %}
+                <span class="sort-icon ms-1 opacity-50">
+                  {{ icon("chevrons-up-down", "xs") }}
+                </span>
+                {% endif %}
+              </div>
+            </th>
             {% endfor %}
           </tr>
         </thead>
@@ -89,11 +116,10 @@
     {% if show_pagination %}
     <!-- 分页控件 -->
     <div id="{{ id ~ '-pagination-container' }}" class="border-top bg-light p-3">
-      <nav aria-label="表格分页">
-        <ul class="pagination pagination-sm justify-content-center mb-0" id="{{ id ~ '-pagination' }}">
-          <!-- 分页按钮将通过JavaScript动态填充 -->
-        </ul>
-      </nav>
+      <div id="{{ id ~ '-pagination-component' }}">
+        <!-- 分页组件将通过JavaScript动态填充 -->
+        {{ pagination_component(1, 1, 20, total) }}
+      </div>
     </div>
     {% endif %}
     
@@ -118,8 +144,9 @@
 
 
 
-{% macro stat_card(icon_name, value, label, icon_color="primary", value_color="", value_id="", change_text="", change_id="") %}
-<div class="card h-100 shadow-sm border-0">
+{% macro stat_card(icon_name, value, label, icon_color="primary", value_color="", value_id="", change_text="", change_id="", trend="", trend_value="", clickable=false, onclick="") %}
+<div class="card h-100 shadow-sm border-0 stat-card {% if clickable %}cursor-pointer{% endif %}"
+     {% if clickable and onclick %}onclick="{{ onclick }}"{% endif %}>
   <div class="card-body p-4 d-flex align-items-center">
     <div class="me-3 bg-{{ icon_color }} rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 3rem; height: 3rem;">
       {{ icon(icon_name, "md", "text-white") }}
@@ -127,17 +154,28 @@
     <div class="flex-grow-1 min-width-0">
       <div class="fs-4 fw-bold mb-1{% if value_color %} text-{{ value_color }}{% endif %}"{% if value_id %} id="{{ value_id }}"{% endif %}>{{ value }}</div>
       <div class="text-muted small mb-1">{{ label }}</div>
-      {% if change_text %}
+
+      {% if trend and trend_value %}
+      <div class="badge bg-{% if trend == 'up' %}success{% elif trend == 'down' %}danger{% else %}secondary{% endif %} bg-opacity-10 text-{% if trend == 'up' %}success{% elif trend == 'down' %}danger{% else %}secondary{% endif %}"{% if change_id %} id="{{ change_id }}"{% endif %}>
+        {{ icon("trending-" + trend if trend in ['up', 'down'] else "minus", "sm", "me-1") }}
+        {{ trend_value }}
+      </div>
+      {% elif change_text %}
       <div class="badge bg-light text-dark"{% if change_id %} id="{{ change_id }}"{% endif %}>{{ change_text }}</div>
       {% endif %}
     </div>
+    {% if clickable %}
+    <div class="ms-2 text-muted">
+      {{ icon("chevron-right", "sm") }}
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endmacro %}
 
 
 
-{% macro chart_container(title, chart_id, height="250px", icon_name="trending-up") %}
+{% macro chart_container(title, chart_id, height="250px", icon_name="trending-up", show_toolbar=false, fullscreen=false, export_enabled=false) %}
 <div class="card border-0 shadow-sm h-100">
   <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
@@ -146,13 +184,44 @@
       </div>
       <h6 class="mb-0 fw-bold">{{ title }}</h6>
     </div>
-    <div class="chart-actions">
-      <!-- 可选的图表操作按钮 -->
+    {% if show_toolbar %}
+    <div class="chart-actions d-flex gap-1">
+      {% if export_enabled %}
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          {{ icon("download", "sm") }}
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#" data-chart-export="png" data-chart="{{ chart_id }}">
+            {{ icon("image", "sm", "me-2") }}PNG图片
+          </a></li>
+          <li><a class="dropdown-item" href="#" data-chart-export="svg" data-chart="{{ chart_id }}">
+            {{ icon("file-image", "sm", "me-2") }}SVG矢量
+          </a></li>
+          <li><a class="dropdown-item" href="#" data-chart-export="pdf" data-chart="{{ chart_id }}">
+            {{ icon("file-text", "sm", "me-2") }}PDF文档
+          </a></li>
+        </ul>
+      </div>
+      {% endif %}
+      {% if fullscreen %}
+      <button class="btn btn-sm btn-outline-secondary" data-chart-fullscreen="{{ chart_id }}">
+        {{ icon("maximize", "sm") }}
+      </button>
+      {% endif %}
+      <button class="btn btn-sm btn-outline-secondary" data-chart-refresh="{{ chart_id }}">
+        {{ icon("refresh-cw", "sm") }}
+      </button>
     </div>
+    {% endif %}
   </div>
   <div class="card-body">
-    <div class="position-relative" {% if height %}style="height: {{ height }};"{% endif %}>
+    <div class="position-relative chart-container" {% if height %}style="height: {{ height }};"{% endif %}>
       <canvas id="{{ chart_id }}" class="w-100 h-100"></canvas>
+      <!-- 加载状态 -->
+      <div id="{{ chart_id }}-loading" class="chart-loading d-none">
+        {{ loading_state("加载图表数据中...", "sm", "primary") }}
+      </div>
     </div>
   </div>
 </div>
@@ -274,5 +343,269 @@
       </div>
     </div>
   </div>
+</div>
+{% endmacro %}
+
+{# ==================== 新增组件宏 ==================== #}
+
+{% macro data_card(title, value, icon_name="", trend="", trend_value="", color="primary", size="md", clickable=false, onclick="") %}
+<!-- 数据展示卡片组件 -->
+<div class="card h-100 shadow-sm border-0 {% if clickable %}cursor-pointer{% endif %} data-card"
+     {% if clickable and onclick %}onclick="{{ onclick }}"{% endif %}>
+  <div class="card-body p-4 d-flex align-items-center">
+    {% if icon_name %}
+    <div class="me-3 bg-{{ color }} bg-opacity-10 rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+         style="width: {% if size == 'sm' %}2.5rem; height: 2.5rem{% elif size == 'lg' %}4rem; height: 4rem{% else %}3rem; height: 3rem{% endif %};">
+      {{ icon(icon_name, size, "text-" + color) }}
+    </div>
+    {% endif %}
+    <div class="flex-grow-1 min-width-0">
+      <div class="fs-{% if size == 'sm' %}5{% elif size == 'lg' %}2{% else %}4{% endif %} fw-bold mb-1 text-{{ color }}">{{ value }}</div>
+      <div class="text-muted small mb-1">{{ title }}</div>
+      {% if trend and trend_value %}
+      <div class="badge bg-{% if trend == 'up' %}success{% elif trend == 'down' %}danger{% else %}secondary{% endif %} bg-opacity-10 text-{% if trend == 'up' %}success{% elif trend == 'down' %}danger{% else %}secondary{% endif %}">
+        {{ icon("trending-" + trend if trend in ['up', 'down'] else "minus", "sm", "me-1") }}
+        {{ trend_value }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro filter_bar(filters=[], search_placeholder="搜索...", show_export=false, export_options=[]) %}
+<!-- 筛选条件栏组件 -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <!-- 搜索框 -->
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold text-muted">搜索</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0">
+            {{ icon("search", "sm", "text-muted") }}
+          </span>
+          <input type="text" class="form-control border-start-0 bg-light"
+                 placeholder="{{ search_placeholder }}" id="search-input">
+        </div>
+      </div>
+
+      <!-- 动态筛选器 -->
+      {% for filter in filters %}
+      <div class="col-md-{% if filters|length <= 2 %}4{% else %}3{% endif %}">
+        <label class="form-label small fw-semibold text-muted">{{ filter.label }}</label>
+        {% if filter.type == 'select' %}
+        <select class="form-select" id="{{ filter.id }}">
+          <option value="">全部</option>
+          {% for option in filter.options %}
+          <option value="{{ option.value }}">{{ option.label }}</option>
+          {% endfor %}
+        </select>
+        {% elif filter.type == 'date' %}
+        <input type="date" class="form-control" id="{{ filter.id }}">
+        {% elif filter.type == 'daterange' %}
+        <div class="input-group">
+          <input type="date" class="form-control" id="{{ filter.id }}-start" placeholder="开始日期">
+          <span class="input-group-text">至</span>
+          <input type="date" class="form-control" id="{{ filter.id }}-end" placeholder="结束日期">
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <!-- 操作按钮 -->
+      <div class="col-md-{% if filters|length <= 2 %}4{% else %}3{% endif %}">
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-primary" id="apply-filters">
+            {{ icon("filter", "sm", "me-1") }}筛选
+          </button>
+          <button type="button" class="btn btn-outline-secondary" id="reset-filters">
+            {{ icon("refresh-cw", "sm", "me-1") }}重置
+          </button>
+          {% if show_export %}
+          <div class="dropdown">
+            <button class="btn btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              {{ icon("download", "sm", "me-1") }}导出
+            </button>
+            <ul class="dropdown-menu">
+              {% for option in export_options %}
+              <li><a class="dropdown-item" href="#" data-export="{{ option.type }}">
+                {{ icon(option.icon, "sm", "me-2") }}{{ option.label }}
+              </a></li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro pagination_component(current_page=1, total_pages=1, page_size=20, total_items=0, page_sizes=[10, 20, 50, 100]) %}
+<!-- 分页组件 -->
+<div class="d-flex justify-content-between align-items-center">
+  <div class="d-flex align-items-center gap-3">
+    <span class="text-muted small">
+      显示 {{ ((current_page - 1) * page_size + 1) if total_items > 0 else 0 }} -
+      {{ [current_page * page_size, total_items]|min }} 条，共 {{ total_items }} 条
+    </span>
+    <div class="d-flex align-items-center gap-2">
+      <label class="form-label small mb-0 text-muted">每页显示</label>
+      <select class="form-select form-select-sm" style="width: auto;" id="page-size-select">
+        {% for size in page_sizes %}
+        <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  {% if total_pages > 1 %}
+  <nav aria-label="分页导航">
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if current_page <= 1 %}disabled{% endif %}">
+        <a class="page-link" href="#" data-page="{{ current_page - 1 }}">
+          {{ icon("chevron-left", "sm") }}
+        </a>
+      </li>
+
+      {% set start_page = [1, current_page - 2]|max %}
+      {% set end_page = [total_pages, current_page + 2]|min %}
+
+      {% if start_page > 1 %}
+      <li class="page-item">
+        <a class="page-link" href="#" data-page="1">1</a>
+      </li>
+      {% if start_page > 2 %}
+      <li class="page-item disabled">
+        <span class="page-link">...</span>
+      </li>
+      {% endif %}
+      {% endif %}
+
+      {% for page in range(start_page, end_page + 1) %}
+      <li class="page-item {% if page == current_page %}active{% endif %}">
+        <a class="page-link" href="#" data-page="{{ page }}">{{ page }}</a>
+      </li>
+      {% endfor %}
+
+      {% if end_page < total_pages %}
+      {% if end_page < total_pages - 1 %}
+      <li class="page-item disabled">
+        <span class="page-link">...</span>
+      </li>
+      {% endif %}
+      <li class="page-item">
+        <a class="page-link" href="#" data-page="{{ total_pages }}">{{ total_pages }}</a>
+      </li>
+      {% endif %}
+
+      <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
+        <a class="page-link" href="#" data-page="{{ current_page + 1 }}">
+          {{ icon("chevron-right", "sm") }}
+        </a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro loading_state(message="加载中...", size="md", theme="primary", overlay=false) %}
+<!-- 加载状态组件 -->
+<div class="text-center py-4 {% if overlay %}loading-overlay{% endif %}">
+  <div class="{% if size == 'sm' %}mb-2{% elif size == 'lg' %}mb-4{% else %}mb-3{% endif %}">
+    <div class="spinner-border text-{{ theme }} {% if size == 'sm' %}spinner-border-sm{% elif size == 'lg' %}spinner-border-lg{% endif %}" role="status">
+      <span class="visually-hidden">加载中...</span>
+    </div>
+  </div>
+  <p class="{% if size == 'sm' %}small{% elif size == 'lg' %}fs-5{% endif %} text-{{ theme == 'light' ? 'white' : 'muted' }}">{{ message }}</p>
+</div>
+{% endmacro %}
+
+{% macro empty_state(message="没有找到匹配的数据", icon_name="search-x", action_text="", action_url="", action_onclick="") %}
+<!-- 空状态组件 -->
+<div class="text-center py-5">
+  <div class="mb-3">
+    {{ icon(icon_name, "xl", "text-muted") }}
+  </div>
+  <p class="text-muted mb-3">{{ message }}</p>
+  {% if action_text %}
+  <button class="btn btn-sm btn-outline-primary"
+          {% if action_url %}onclick="window.location.href='{{ action_url }}'"{% endif %}
+          {% if action_onclick %}onclick="{{ action_onclick }}"{% endif %}>
+    {{ action_text }}
+  </button>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro breadcrumb(items=[]) %}
+<!-- 面包屑导航组件 -->
+<nav aria-label="面包屑导航" class="mb-4">
+  <ol class="breadcrumb">
+    {% for item in items %}
+    <li class="breadcrumb-item {% if loop.last %}active{% endif %}">
+      {% if not loop.last and item.url %}
+      <a href="{{ item.url }}" class="text-decoration-none">
+        {% if loop.first %}{{ icon("home", "sm", "me-1") }}{% endif %}
+        {{ item.label }}
+      </a>
+      {% else %}
+      <span>{{ item.label }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</nav>
+{% endmacro %}
+
+{% macro modal(id, title, size="", centered=true, scrollable=false, static_backdrop=true) %}
+<!-- 模态框组件 -->
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}-label" aria-hidden="true"
+     {% if static_backdrop %}data-bs-backdrop="static" data-bs-keyboard="false"{% endif %}>
+  <div class="modal-dialog {% if size %}modal-{{ size }}{% endif %} {% if centered %}modal-dialog-centered{% endif %} {% if scrollable %}modal-dialog-scrollable{% endif %}">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="{{ id }}-label">{{ title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        {{ caller() }}
+      </div>
+      {% if caller().footer is defined %}
+      <div class="modal-footer">
+        {{ caller().footer }}
+      </div>
+      {% else %}
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+        <button type="button" class="btn btn-primary" id="{{ id }}-confirm">确认</button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro alert_banner(message, type="info", dismissible=true, icon_name="", extra_classes="") %}
+<!-- 通知横幅组件 -->
+<div class="alert alert-{{ type }} {% if dismissible %}alert-dismissible fade show{% endif %} {{ extra_classes }}">
+  {% if icon_name %}
+    {{ icon(icon_name, "sm", "me-2") }}
+  {% elif type == 'success' %}
+    {{ icon("check-circle", "sm", "me-2") }}
+  {% elif type == 'danger' %}
+    {{ icon("x-circle", "sm", "me-2") }}
+  {% elif type == 'warning' %}
+    {{ icon("alert-triangle", "sm", "me-2") }}
+  {% else %}
+    {{ icon("info", "sm", "me-2") }}
+  {% endif %}
+  {{ message }}
+  {% if dismissible %}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
+  {% endif %}
 </div>
 {% endmacro %}
