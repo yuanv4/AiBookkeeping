@@ -520,7 +520,7 @@
       <span class="visually-hidden">加载中...</span>
     </div>
   </div>
-  <p class="{% if size == 'sm' %}small{% elif size == 'lg' %}fs-5{% endif %} text-{{ theme == 'light' ? 'white' : 'muted' }}">{{ message }}</p>
+  <p class="{% if size == 'sm' %}small{% elif size == 'lg' %}fs-5{% endif %} text-{% if theme == 'light' %}white{% else %}muted{% endif %}">{{ message }}</p>
 </div>
 {% endmacro %}
 
