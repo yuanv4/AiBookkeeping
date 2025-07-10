@@ -1,9 +1,79 @@
 /* 支出分析页面专用样式 */
 
+/* 分类汇总卡片样式 */
+.category-summary-card {
+    transition: all 0.2s ease;
+}
+
+.category-summary-card .card-body {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.category-summary-card .card-body:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.category-summary-card .cursor-pointer:hover {
+    transform: translateY(-1px);
+}
+
+/* 分类详情展开/收起动画 */
+.category-details {
+    transition: all 0.3s ease;
+}
+
+.category-details.collapse:not(.show) {
+    display: none;
+}
+
+.category-details.collapse.show {
+    display: block;
+}
+
+/* 商户详情表格样式 - 参照transactions.html样式 */
+.category-details .table {
+    margin-bottom: 0;
+}
+
+.category-details .table th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.category-details .table td {
+    vertical-align: middle;
+    border-top: 1px solid #dee2e6;
+}
+
+.category-details .table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.025);
+}
+
+/* 表格响应式优化 */
+.category-details .table-responsive {
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+/* 商户表格特定样式 - 与transactions.html保持一致 */
+.category-details .transaction-amount {
+    font-weight: 500;
+}
+
+.category-details .badge {
+    font-size: 0.7rem;
+    padding: 0.25em 0.5em;
+}
+
 /* 商户卡片样式 */
 .merchant-card {
     transition: all 0.2s ease;
     border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    margin-bottom: 0.75rem !important;
 }
 
 .merchant-card:hover {
@@ -90,22 +160,63 @@
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-    .merchant-card .card-body {
-        padding: 1rem !important;
+    /* 移动端样式调整 */
+    .category-summary-card .card-body {
+        padding: 0.75rem !important;
     }
-    
+
+    .category-summary-card h6 {
+        font-size: 0.9rem;
+    }
+
+    .category-summary-card small {
+        font-size: 0.75rem;
+    }
+
+    .merchant-card .card-body {
+        padding: 0.75rem !important;
+    }
+
     .merchant-icon {
         width: 2rem !important;
         height: 2rem !important;
     }
-    
+
     .merchant-amount {
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
-    
-    .merchant-card .btn-outline-primary {
+
+    .merchant-card .btn-outline-primary,
+    .merchant-card .btn-outline-success,
+    .merchant-card .btn-outline-info,
+    .merchant-card .btn-outline-warning {
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
+    }
+
+    /* 分类汇总卡片在移动端的调整 */
+    .category-summary-card {
+        margin-bottom: 1rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    /* 小屏幕进一步优化 */
+    .category-summary-card .card-body {
+        padding: 0.5rem !important;
+    }
+
+    .merchant-card .card-body {
+        padding: 0.5rem !important;
+    }
+
+    .merchant-card {
+        margin-bottom: 0.5rem !important;
+    }
+
+    /* 分类汇总卡片的金额显示优化 */
+    .category-summary-card .fs-5 {
+        font-size: 1.1rem !important;
     }
 }
 
@@ -190,6 +301,25 @@
 .stat-card:hover {
     transform: translateY(-2px);
     transition: transform 0.2s ease;
+}
+
+/* 分类汇总卡片特定样式 */
+.category-summary-card .text-primary {
+    color: #0d6efd !important;
+}
+
+.category-summary-card .text-success {
+    color: #198754 !important;
+}
+
+.category-summary-card .text-info {
+    color: #0dcaf0 !important;
+}
+
+/* 大额支出金额突出显示 */
+#large-fixed-list .merchant-amount {
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
 }
 
 /* 页面标题区域 */

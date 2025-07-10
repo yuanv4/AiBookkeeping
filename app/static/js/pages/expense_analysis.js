@@ -11,12 +11,11 @@ class ExpenseAnalysisPage extends BasePage {
         super();
         this.chart = null;
         this.data = null;
-        this.dailyExpensesLimit = 8; // 默认显示8个日常固定支出
         this.largeExpensesLimit = 6; // 默认显示6个大额固定支出
-        this.showingAllDaily = false;
         this.showingAllLarge = false;
         this.selectedMonth = null; // 当前选中的月份
         this.monthlyData = {}; // 按月份索引的数据
+        this.expandedCategories = new Set(); // 展开的分类
     }
 
     /**
@@ -377,11 +376,10 @@ class ExpenseAnalysisPage extends BasePage {
     }
 
     /**
-     * 渲染日常固定支出列表
+     * 渲染日常固定支出列表 - 单列分类汇总卡片
      */
     renderDailyFixedExpenses() {
-        const container = document.getElementById('daily-fixed-list');
-        const moreButton = document.getElementById('daily-fixed-more');
+        const container = document.getElementById('daily-fixed-categories');
         const allMerchants = this.data.fixedExpenses.daily_fixed_expenses.merchants;
 
         // 根据选中月份筛选商户数据
@@ -389,49 +387,53 @@ class ExpenseAnalysisPage extends BasePage {
 
         if (merchants.length === 0) {
             container.innerHTML = '<div class="text-muted text-center py-3">暂无日常固定支出数据</div>';
-            if (moreButton) moreButton.classList.add('d-none');
             return;
         }
 
-        // 确定显示数量
-        const displayCount = this.showingAllDaily ? merchants.length : this.dailyExpensesLimit;
-        const displayMerchants = merchants.slice(0, displayCount);
+        // 按display_category分组并计算汇总数据
+        const categoryData = this.calculateCategoryData(merchants);
 
-        // 渲染商户卡片
-        container.innerHTML = displayMerchants.map(merchant => {
-            const scoreColor = this.getScoreColor(merchant.total_score);
+        // 按总金额排序
+        const sortedCategories = Object.entries(categoryData).sort((a, b) => b[1].totalAmount - a[1].totalAmount);
+
+        // 渲染分类汇总卡片
+        container.innerHTML = sortedCategories.map(([categoryKey, data]) => {
+            const categoryInfo = this.getCategoryInfo(categoryKey);
+            const isExpanded = this.expandedCategories && this.expandedCategories.has(categoryKey);
 
             return `
-                <div class="merchant-card card border-0 shadow-sm mb-3" style="transition: all 0.2s ease;">
-                    <div class="card-body p-3">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3 flex-shrink-0">
-                                <div class="merchant-icon bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;">
-                                    ${this.getCategoryIcon(merchant.category)}
-                                </div>
-                            </div>
-                            <div class="flex-grow-1 min-width-0">
-                                <h6 class="merchant-name mb-1 fw-semibold text-truncate">${merchant.merchant}</h6>
-                                <div class="merchant-meta small text-muted mb-2">
-                                    <span class="badge bg-light text-dark me-1">${this.getCategoryName(merchant.category)}</span>
-                                    <span>${merchant.transaction_count}次交易</span>
-                                </div>
-                                <div class="score-progress mb-2">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <span class="small text-muted">评分</span>
-                                        <span class="small fw-semibold">${merchant.total_score.toFixed(1)}分</span>
+                <div class="category-summary-card mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-3 cursor-pointer" onclick="expenseAnalysisPage.toggleCategoryExpansion('${categoryKey}')">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3 bg-${categoryInfo.color} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;">
+                                        ${this.getCategoryIcon(categoryKey, categoryInfo.color)}
                                     </div>
-                                    <div class="progress" style="height: 4px;">
-                                        <div class="progress-bar bg-${scoreColor}" style="width: ${merchant.total_score}%"></div>
+                                    <div>
+                                        <h6 class="mb-1 fw-bold text-${categoryInfo.color}">${categoryInfo.name}</h6>
+                                        <small class="text-muted">${data.merchantCount}个商户 • 月均¥${data.avgAmount.toFixed(0)}</small>
                                     </div>
                                 </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="text-end me-3">
+                                        <div class="fw-bold text-${categoryInfo.color} fs-5">¥${data.totalAmount.toFixed(0)}</div>
+                                        <small class="text-muted">总支出</small>
+                                    </div>
+                                    <div class="text-${categoryInfo.color}">
+                                        ${isExpanded ?
+                                            '<i data-lucide="chevron-up" style="width: 1.25rem; height: 1.25rem;"></i>' :
+                                            '<i data-lucide="chevron-down" style="width: 1.25rem; height: 1.25rem;"></i>'
+                                        }
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-end flex-shrink-0">
-                                <div class="merchant-amount fw-bold text-primary">¥${merchant.avg_amount.toFixed(2)}</div>
-                                <div class="merchant-interval small text-muted">${merchant.avg_interval}天间隔</div>
-                                <button class="btn btn-sm btn-outline-primary mt-2" onclick="expenseAnalysisPage.showMerchantDetail('${merchant.merchant}')">
-                                    <i data-lucide="eye" class="me-1" style="width: 0.875rem; height: 0.875rem;"></i>详情
-                                </button>
+                        </div>
+                        <div class="category-details collapse ${isExpanded ? 'show' : ''}" id="category-${categoryKey}">
+                            <div class="card-body pt-0">
+                                <div id="merchants-${categoryKey}">
+                                    ${isExpanded ? this.renderCategoryMerchantDetails(data.merchants) : ''}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -439,18 +441,154 @@ class ExpenseAnalysisPage extends BasePage {
             `;
         }).join('');
 
-        // 控制"查看更多"按钮显示
-        if (moreButton) {
-            if (merchants.length > this.dailyExpensesLimit && !this.showingAllDaily) {
-                moreButton.classList.remove('d-none');
-            } else {
-                moreButton.classList.add('d-none');
+        // 重新初始化Lucide图标
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+
+    /**
+     * 计算分类汇总数据
+     */
+    calculateCategoryData(merchants) {
+        const categoryData = {
+            dining: { merchants: [], totalAmount: 0, merchantCount: 0, avgAmount: 0 },
+            transport: { merchants: [], totalAmount: 0, merchantCount: 0, avgAmount: 0 },
+            other: { merchants: [], totalAmount: 0, merchantCount: 0, avgAmount: 0 }
+        };
+
+        merchants.forEach(merchant => {
+            const category = merchant.display_category || 'other';
+            if (categoryData[category]) {
+                categoryData[category].merchants.push(merchant);
+                categoryData[category].totalAmount += merchant.avg_amount;
+                categoryData[category].merchantCount++;
+            }
+        });
+
+        // 计算平均金额并按金额排序
+        Object.keys(categoryData).forEach(category => {
+            const data = categoryData[category];
+            data.avgAmount = data.merchantCount > 0 ? data.totalAmount / data.merchantCount : 0;
+            data.merchants.sort((a, b) => b.avg_amount - a.avg_amount);
+        });
+
+        return categoryData;
+    }
+
+    /**
+     * 获取分类信息
+     */
+    getCategoryInfo(categoryKey) {
+        const categoryMap = {
+            dining: { name: '餐饮支出', color: 'primary', description: '餐厅、咖啡、外卖等' },
+            transport: { name: '交通支出', color: 'success', description: '地铁、打车、加油等' },
+            other: { name: '其他支出', color: 'info', description: '通信、购物、服务等' }
+        };
+        return categoryMap[categoryKey] || categoryMap.other;
+    }
+
+    /**
+     * 切换分类展开/收起状态
+     */
+    toggleCategoryExpansion(categoryKey) {
+        const detailsElement = document.getElementById(`category-${categoryKey}`);
+        const merchantsContainer = document.getElementById(`merchants-${categoryKey}`);
+
+        if (!detailsElement) return;
+
+        if (this.expandedCategories.has(categoryKey)) {
+            // 收起
+            this.expandedCategories.delete(categoryKey);
+            detailsElement.classList.remove('show');
+        } else {
+            // 展开
+            this.expandedCategories.add(categoryKey);
+            detailsElement.classList.add('show');
+
+            // 如果商户容器为空，则渲染商户详情
+            if (merchantsContainer && merchantsContainer.innerHTML.trim() === '') {
+                const allMerchants = this.data.fixedExpenses.daily_fixed_expenses.merchants;
+                const merchants = this.getFilteredMerchantsByMonth(allMerchants);
+                const categoryMerchants = merchants.filter(m => (m.display_category || 'other') === categoryKey);
+                merchantsContainer.innerHTML = this.renderCategoryMerchantDetails(categoryMerchants);
+
+                // 重新初始化Lucide图标
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
             }
         }
     }
 
     /**
-     * 渲染大额固定支出列表
+     * 渲染分类商户详情 - 参照transactions.html的表格样式
+     */
+    renderCategoryMerchantDetails(merchants) {
+        if (merchants.length === 0) {
+            return '<div class="text-muted text-center py-3 small">暂无商户数据</div>';
+        }
+
+        // 按总金额从高到低排序
+        const sortedMerchants = merchants.slice().sort((a, b) => {
+            const totalAmountA = this.calculateMerchantMonthlyTotal(a);
+            const totalAmountB = this.calculateMerchantMonthlyTotal(b);
+            return totalAmountB - totalAmountA;
+        });
+
+        return `
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="px-3 py-3 fw-semibold text-muted small border-0">商户名称</th>
+                            <th class="px-3 py-3 fw-semibold text-muted small border-0 text-end">总金额</th>
+                            <th class="px-3 py-3 fw-semibold text-muted small border-0 text-center d-none d-md-table-cell">交易次数</th>
+                            <th class="px-3 py-3 fw-semibold text-muted small border-0 text-center d-none d-lg-table-cell">平均间隔</th>
+                            <th class="px-3 py-3 fw-semibold text-muted small border-0 text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sortedMerchants.map(merchant => {
+                            // 计算当月总金额
+                            const totalAmount = this.calculateMerchantMonthlyTotal(merchant);
+
+                            return `
+                            <tr>
+                                <td class="px-3 py-2">
+                                    <span class="d-inline-block transaction-cell-truncate" title="${merchant.merchant}">
+                                        ${merchant.merchant}
+                                    </span>
+                                    <div class="text-muted small d-md-none">
+                                        ${merchant.transaction_count}次 • ${merchant.avg_interval}天间隔
+                                    </div>
+                                </td>
+                                <td class="px-3 py-2 text-end">
+                                    <span class="transaction-amount negative">${totalAmount.toFixed(2)}</span>
+                                </td>
+                                <td class="px-3 py-2 text-center d-none d-md-table-cell">
+                                    <span class="badge bg-light text-dark small">${merchant.transaction_count}</span>
+                                </td>
+                                <td class="px-3 py-2 text-center d-none d-lg-table-cell">
+                                    <span class="text-muted small">${merchant.avg_interval}天</span>
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="expenseAnalysisPage.showMerchantDetail('${merchant.merchant}')" title="查看详情">
+                                        <i data-lucide="eye" style="width: 0.75rem; height: 0.75rem;"></i>
+                                        <span class="d-none d-sm-inline ms-1 small">详情</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染大额固定支出列表 - 按金额从高到低排序
      */
     renderLargeFixedExpenses() {
         const container = document.getElementById('large-fixed-list');
@@ -458,13 +596,16 @@ class ExpenseAnalysisPage extends BasePage {
         const allMerchants = this.data.fixedExpenses.large_fixed_expenses.merchants;
 
         // 根据选中月份筛选商户数据
-        const merchants = this.getFilteredMerchantsByMonth(allMerchants);
+        let merchants = this.getFilteredMerchantsByMonth(allMerchants);
 
         if (merchants.length === 0) {
             container.innerHTML = '<div class="text-muted text-center py-3">暂无大额固定支出数据</div>';
             if (moreButton) moreButton.classList.add('d-none');
             return;
         }
+
+        // 按金额从高到低排序
+        merchants = merchants.sort((a, b) => b.avg_amount - a.avg_amount);
 
         // 确定显示数量
         const displayCount = this.showingAllLarge ? merchants.length : this.largeExpensesLimit;
@@ -480,7 +621,7 @@ class ExpenseAnalysisPage extends BasePage {
                         <div class="d-flex align-items-center">
                             <div class="me-3 flex-shrink-0">
                                 <div class="merchant-icon bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;">
-                                    ${this.getCategoryIcon(merchant.category)}
+                                    ${this.getCategoryIcon(merchant.category, 'warning')}
                                 </div>
                             </div>
                             <div class="flex-grow-1 min-width-0">
@@ -620,17 +761,7 @@ class ExpenseAnalysisPage extends BasePage {
         return merchants;
     }
 
-    /**
-     * 显示更多日常固定支出
-     */
-    showMoreDailyExpenses() {
-        this.showingAllDaily = true;
-        this.renderDailyFixedExpenses();
-        // 重新初始化Lucide图标
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-    }
+
 
     /**
      * 显示更多大额固定支出
@@ -645,20 +776,53 @@ class ExpenseAnalysisPage extends BasePage {
     }
 
     /**
+     * 计算商户在当前选中月份的总金额
+     */
+    calculateMerchantMonthlyTotal(merchant) {
+        // 如果没有选中月份，返回平均金额
+        if (!this.selectedMonth) {
+            return merchant.avg_amount;
+        }
+
+        // 如果有月度数据，查找对应月份的金额
+        if (this.monthlyData && this.monthlyData[this.selectedMonth]) {
+            const monthlyMerchants = this.monthlyData[this.selectedMonth].daily_fixed_expenses?.merchants || [];
+            const monthlyMerchant = monthlyMerchants.find(m => m.merchant === merchant.merchant);
+            if (monthlyMerchant) {
+                // 返回该月份的总金额（平均金额 * 交易次数）
+                return monthlyMerchant.avg_amount * monthlyMerchant.transaction_count;
+            }
+        }
+
+        // 兜底：返回平均金额 * 交易次数作为估算总金额
+        return merchant.avg_amount * merchant.transaction_count;
+    }
+
+    /**
      * 获取类别图标
      */
-    getCategoryIcon(category) {
-        const icons = {
-            'dining': '<i data-lucide="coffee" class="text-primary"></i>',
-            'transport': '<i data-lucide="car" class="text-success"></i>',
-            'daily_shopping': '<i data-lucide="shopping-cart" class="text-info"></i>',
-            'communication': '<i data-lucide="phone" class="text-warning"></i>',
-            'medical': '<i data-lucide="heart" class="text-danger"></i>',
-            'insurance': '<i data-lucide="shield" class="text-secondary"></i>',
-            'transfer': '<i data-lucide="credit-card" class="text-dark"></i>',
-            'other': '<i data-lucide="more-horizontal" class="text-muted"></i>'
-        };
-        return icons[category] || icons['other'];
+    getCategoryIcon(category, colorClass = null) {
+        // 根据display_category或原始category确定图标
+        let iconName = 'more-horizontal';
+
+        if (category === 'dining' || category.includes('dining')) {
+            iconName = 'utensils';
+        } else if (category === 'transport' || category.includes('transport')) {
+            iconName = 'car';
+        } else if (category === 'daily_shopping') {
+            iconName = 'shopping-cart';
+        } else if (category === 'communication') {
+            iconName = 'phone';
+        } else if (category === 'medical') {
+            iconName = 'heart';
+        } else if (category === 'insurance') {
+            iconName = 'shield';
+        } else if (category.includes('transfer')) {
+            iconName = 'credit-card';
+        }
+
+        const textColor = colorClass ? `text-${colorClass}` : 'text-muted';
+        return `<i data-lucide="${iconName}" class="${textColor}"></i>`;
     }
 
     /**

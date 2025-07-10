@@ -38,35 +38,58 @@ class ExpenseAlgorithm:
             if pattern in merchant_name:
                 return 'excluded', 0, True
         
-        # 高必需性商户（日常固定支出）
-        if any(keyword in merchant_name for keyword in ['餐厅', '咖啡', '早餐', '午餐', '晚餐', '肠粉', '面', '饭', '茶', '奶茶', '食堂']):
+        # 餐饮类固定支出 - 对应前端第一列
+        if any(keyword in merchant_name for keyword in ['餐厅', '咖啡', '早餐', '午餐', '晚餐', '肠粉', '面', '饭', '茶', '奶茶', '食堂', '麦当劳', '肯德基', '星巴克', '喜茶', '蜜雪冰城', '沙县', '兰州拉面', '黄焖鸡', '煲仔饭', '盖浇饭', '快餐', '外卖', '美食', '小吃', '烧烤', '火锅', '川菜', '粤菜', '湘菜']):
             return 'dining', 90, False
-        elif any(keyword in merchant_name for keyword in ['深圳通', '地铁', '公交', '打车', '高德', '滴滴', '出租', '停车']):
+        # 交通类固定支出 - 对应前端第二列
+        elif any(keyword in merchant_name for keyword in ['深圳通', '地铁', '公交', '打车', '高德', '滴滴', '出租', '停车', '加油', '中石油', '中石化', '共享单车', '摩拜', '哈啰', '青桔', '网约车', '出行', '租车', '代驾']):
             return 'transport', 95, False
-        elif any(keyword in merchant_name for keyword in ['超市', '便利店', '7-11', 'ace']):
-            return 'daily_shopping', 85, False
-        elif any(keyword in merchant_name for keyword in ['移动', '联通', '电信', '宽带', '网络', '话费']):
+        # 通信类 - 归入其他类
+        elif any(keyword in merchant_name for keyword in ['移动', '联通', '电信', '宽带', '网络', '话费', '流量']):
             return 'communication', 95, False
+        # 日常购物类 - 归入其他类
+        elif any(keyword in merchant_name for keyword in ['超市', '便利店', '7-11', 'ace', '全家', '罗森', '华润万家', '沃尔玛', '家乐福', '永辉', '大润发']):
+            return 'daily_shopping', 85, False
         
-        # 中等必需性商户（可能的固定支出）
-        elif any(keyword in merchant_name for keyword in ['商场', '天虹', '沃尔玛', '华润']):
+        # 中等必需性商户 - 归入其他类
+        elif any(keyword in merchant_name for keyword in ['商场', '天虹', '万象城', '海岸城', '购物中心']):
             return 'shopping', 70, False
-        elif any(keyword in merchant_name for keyword in ['理发', '美容', '洗衣', '维修', '快递']):
+        elif any(keyword in merchant_name for keyword in ['理发', '美容', '洗衣', '维修', '快递', '顺丰', '圆通', '中通', '申通', '韵达']):
             return 'services', 75, False
-        elif any(keyword in merchant_name for keyword in ['药店', '体检', '牙科', '眼科']):
+        elif any(keyword in merchant_name for keyword in ['药店', '体检', '牙科', '眼科', '医疗', '诊所']):
             return 'healthcare', 80, False
         
         # 大额固定支出（需要特殊处理）
-        elif any(keyword in merchant_name for keyword in ['保险', '人寿', '平安', '太平洋']):
+        elif any(keyword in merchant_name for keyword in ['保险', '人寿', '平安', '太平洋', '中国人寿', '泰康']):
             return 'insurance', 85, False
-        elif any(keyword in merchant_name for keyword in ['医院', '住院']):
+        elif any(keyword in merchant_name for keyword in ['医院', '住院', '三甲医院', '人民医院', '中医院']):
             return 'medical', 70, False
         elif '微信转账' in merchant_name:
             return 'transfer', 60, False
-        
-        # 其他商户
+
+        # 其他商户 - 对应前端第三列
         else:
             return 'other', 50, False
+
+    def get_display_category(self, category: str) -> str:
+        """
+        将内部分类转换为前端显示分类
+
+        Args:
+            category: 内部分类标识
+
+        Returns:
+            前端显示分类 ('dining', 'transport', 'other')
+        """
+        # 餐饮类
+        if category == 'dining':
+            return 'dining'
+        # 交通类
+        elif category == 'transport':
+            return 'transport'
+        # 其他类（包含通信、购物、服务、医疗等）
+        else:
+            return 'other'
     
     def analyze_transfer_pattern(self, transactions: List[Transaction]) -> Tuple[bool, str, float]:
         """
@@ -237,6 +260,7 @@ class ExpenseAlgorithm:
             'amount_reasonableness': round(amount_reasonableness, 1),
             'frequency_score': round(frequency_score, 1),
             'category': category,
+            'display_category': self.get_display_category(category),  # 添加前端显示分类
             'avg_interval': round(avg_interval, 1),
             'avg_amount': round(avg_amount, 2),
             'transaction_count': len(transactions),
