@@ -20,36 +20,21 @@ class BaseModel(db.Model):
     
     def save(self):
         """Save the model instance to the database."""
-        try:
-            db.session.add(self)
-            db.session.commit()
-            return True
-        except Exception as e:
-            db.session.rollback()
-            raise e
-    
+        db.session.add(self)
+        db.session.commit()
+
     def delete(self):
         """Delete the model instance from the database."""
-        try:
-            db.session.delete(self)
-            db.session.commit()
-            return True
-        except Exception as e:
-            db.session.rollback()
-            raise e
-    
+        db.session.delete(self)
+        db.session.commit()
+
     def update(self, **kwargs):
         """Update the model instance with provided keyword arguments."""
-        try:
-            for key, value in kwargs.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-            self.updated_at = datetime.utcnow()
-            db.session.commit()
-            return True
-        except Exception as e:
-            db.session.rollback()
-            raise e
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+        self.updated_at = datetime.utcnow()
+        db.session.commit()
     
     def to_dict(self):
         """Convert model instance to dictionary."""

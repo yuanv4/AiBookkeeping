@@ -8,7 +8,6 @@ from flask_migrate import Migrate
 # 从同一目录的 config 模块导入配置类
 from .config import Config
 from .utils.template_filters import register_template_filters
-from .utils.service_manager import ServiceManager
 from .utils.error_handler import ErrorHandler
 from .models import db
 
@@ -18,64 +17,31 @@ migrate = Migrate()
 def configure_logging(app):
     """配置应用日志"""
     log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO'))
-    
-    # 创建日志格式器
-    formatter = logging.Formatter(app.config.get('LOG_FORMAT'))
-    
-    # 配置文件处理器 - 使用RotatingFileHandler按大小轮转
+    log_format = app.config.get('LOG_FORMAT', '%(asctime)s %(levelname)s %(name)s %(message)s')
+
+    # 基本的文件和控制台输出
     log_file = app.config.get('LOG_FILE', 'logs/app.log')
     # 确保日志目录存在
     log_dir = os.path.dirname(log_file)
     if log_dir and not os.path.exists(log_dir):
         os.makedirs(log_dir, exist_ok=True)
-    
-    file_handler = RotatingFileHandler(
-        filename=log_file,
-        maxBytes=app.config.get('LOG_MAX_BYTES', 10 * 1024 * 1024),
-        backupCount=app.config.get('LOG_BACKUP_COUNT', 5),
-        encoding='utf-8'
-    )
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(log_level)
-    
-    # 配置控制台处理器
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    console_handler.setLevel(log_level)
-    
-    # 配置根日志器
+
+    # 使用基本的日志配置
     logging.basicConfig(
         level=log_level,
-        handlers=[console_handler, file_handler]
+        format=log_format,
+        handlers=[
+            logging.StreamHandler(),  # 控制台输出
+            RotatingFileHandler(
+                filename=log_file,
+                maxBytes=10 * 1024 * 1024,  # 10MB
+                backupCount=5,
+                encoding='utf-8'
+            )
+        ]
     )
-    
-    app.logger.info(f"应用以 '{app.config.get('ENV', 'unknown')}' 配置启动。日志级别: {logging.getLevelName(log_level)}")
-    app.logger.info(f"日志文件路径: {log_file}")
 
-
-def _setup_python_path(app):
-    """设置Python路径
-
-    为项目添加必要的模块路径到sys.path，以支持动态导入。
-
-    Args:
-        app: Flask应用实例
-    """
-    project_root_dir = os.path.dirname(app.root_path)  # app.root_path 是 app/
-
-    # 需要添加到sys.path的路径列表
-    paths_to_add = [
-        ('scripts', os.path.join(project_root_dir, 'scripts')),
-        ('project_root', project_root_dir)
-    ]
-
-    for path_name, path_value in paths_to_add:
-        if path_value not in sys.path:
-            sys.path.append(path_value)
-            app.logger.info(f"已将 {path_name} 路径 ({path_value}) 添加到 sys.path")
-        else:
-            app.logger.debug(f"{path_name} 路径 ({path_value}) 已存在于 sys.path 中")
-
+    app.logger.info(f"应用启动，日志级别: {logging.getLevelName(log_level)}")
 
 def _initialize_database_and_services(app):
     """初始化数据库和服务
@@ -88,12 +54,17 @@ def _initialize_database_and_services(app):
         db.create_all()
         app.logger.info("数据库表已创建")
 
-        # Initialize service manager and register services
-        service_manager = ServiceManager(app)
-        service_manager.register_core_services()
+        # 直接初始化服务 - 简化的服务管理
+        from .services import DataService, ImportService, ReportService
 
-        app.logger.info("服务层已通过ServiceManager初始化")
-
+        data_service = DataService()
+        import_service = ImportService(data_service)
+        report_service = ReportService(data_service)
+        # 将服务直接设置到app对象上
+        app.data_service = data_service
+        app.import_service = import_service
+        app.report_service = report_service
+        app.logger.info("服务层已直接初始化")
 
 def _register_blueprints(app):
     """注册蓝图
@@ -137,9 +108,6 @@ def create_app():
 
     # Configure logging
     configure_logging(app)
-
-    # 设置Python路径
-    _setup_python_path(app)
 
     # 初始化数据库和服务
     _initialize_database_and_services(app)

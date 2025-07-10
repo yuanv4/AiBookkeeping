@@ -8,7 +8,7 @@ class Config:
         # 基础配置
         self.APP_NAME = '银行账单分析系统'
         self.SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
-        self.DEBUG = self._get_env_value('DEBUG', False, bool)
+        self.DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes', 'on')
 
         # 环境配置
         self.FLASK_ENV = os.environ.get('FLASK_CONFIG', 'development')
@@ -29,15 +29,15 @@ class Config:
 
         # 文件上传配置
         self.UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
-        allowed_extensions = self._get_env_value('ALLOWED_EXTENSIONS',
-                                               ['xlsx', 'xls'], list)
+        allowed_extensions = os.getenv('ALLOWED_EXTENSIONS', 'xlsx,xls').split(',')
+        allowed_extensions = [ext.strip() for ext in allowed_extensions if ext.strip()]
         self.ALLOWED_EXTENSIONS = set(allowed_extensions)
 
         # 日志配置
         self.LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
         self.LOG_FILE = os.environ.get('LOG_FILE', 'logs/app.log')
-        self.LOG_MAX_BYTES = self._get_env_value('LOG_MAX_BYTES', 10 * 1024 * 1024, int)
-        self.LOG_BACKUP_COUNT = self._get_env_value('LOG_BACKUP_COUNT', 5, int)
+        self.LOG_MAX_BYTES = int(os.getenv('LOG_MAX_BYTES', '10485760'))  # 10MB
+        self.LOG_BACKUP_COUNT = int(os.getenv('LOG_BACKUP_COUNT', '5'))
         self.LOG_FORMAT = os.environ.get('LOG_FORMAT', '%(asctime)s %(levelname)s %(name)s %(message)s')
         self.LOG_DATE_FORMAT = os.environ.get('LOG_DATE_FORMAT', '%Y-%m-%d %H:%M:%S')
 
@@ -45,38 +45,7 @@ class Config:
         if self.FLASK_ENV == 'production':
             if not os.environ.get('SECRET_KEY') or os.environ.get('SECRET_KEY') == 'dev-secret-key-change-in-production':
                 raise ValueError("生产环境中未设置有效的 SECRET_KEY 环境变量")
-    
-    def _get_env_value(self, key, default=None, value_type=str, **kwargs):
-        """从环境变量获取指定类型的值
 
-        Args:
-            key: 环境变量键名
-            default: 默认值
-            value_type: 值类型 (str, int, float, bool, list)
-            **kwargs: 额外参数，如separator用于list类型
-        """
-        raw_value = os.environ.get(key)
-
-        # 如果环境变量不存在，返回默认值
-        if raw_value is None:
-            return default
-
-        try:
-            if value_type == bool:
-                return raw_value.lower() in ('true', '1', 'yes', 'on')
-            elif value_type == int:
-                return int(raw_value)
-            elif value_type == float:
-                return float(raw_value)
-            elif value_type == list:
-                separator = kwargs.get('separator', ',')
-                if not raw_value:
-                    return default or []
-                return [item.strip() for item in raw_value.split(separator) if item.strip()]
-            else:  # str or other types
-                return raw_value
-        except (ValueError, TypeError):
-            return default
     
     def init_app(self, app):
         """初始化应用配置"""
