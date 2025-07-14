@@ -39,8 +39,8 @@ def debug():
                 try {
                     console.log('开始测试API...');
 
-                    // 测试固定支出API
-                    const response = await fetch('/expense-analysis/api/fixed-expenses');
+                    // 测试商户分析API
+                    const response = await fetch('/expense-analysis/api/merchant-analysis');
                     console.log('API响应状态:', response.status);
 
                     if (!response.ok) {
@@ -51,20 +51,24 @@ def debug():
                     console.log('API响应数据:', data);
 
                     if (data.success) {
-                        const fixedExpenses = data.data;
-                        console.log('固定支出数据:', fixedExpenses);
+                        const analysisData = data.data;
+                        console.log('商户分析数据:', analysisData);
 
                         // 测试数据访问
-                        const dailyData = fixedExpenses.daily_fixed_expenses;
-                        console.log('日常固定支出数据:', dailyData);
+                        const categories = analysisData.categories;
+                        const summary = analysisData.summary;
+                        console.log('分类数据:', categories);
+                        console.log('汇总数据:', summary);
 
-                        const monthlyAvg = dailyData.monthly_average;
-                        console.log('月均金额:', monthlyAvg);
+                        const categoryCount = Object.keys(categories).length;
+                        const totalExpense = summary.total_expense || 0;
+                        const totalMerchants = summary.total_merchants || 0;
 
                         document.getElementById('result').innerHTML = `
                             <h2>测试成功！</h2>
-                            <p>日常固定支出月均: ${monthlyAvg}元</p>
-                            <p>商户数量: ${dailyData.merchants.length}个</p>
+                            <p>总支出: ¥${totalExpense.toFixed(2)}</p>
+                            <p>分类数量: ${categoryCount}个</p>
+                            <p>商户数量: ${totalMerchants}个</p>
                         `;
                     } else {
                         throw new Error(data.error || 'API返回失败');
@@ -87,103 +91,80 @@ def debug():
     '''
 
 
-@expense_analysis_bp.route('/api/fixed-expenses')
+@expense_analysis_bp.route('/api/merchant-analysis')
 @handle_errors
-def api_fixed_expenses():
-    """获取固定支出分析数据API"""
+def api_merchant_analysis():
+    """获取商户分类支出分析数据API"""
     try:
+        from flask import request
+        from datetime import date, datetime
+
+        # 获取查询参数
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+        category_filter = request.args.get('category_filter')
+        search_term = request.args.get('search_term')
+
+        # 解析日期参数
+        start_date = None
+        end_date = None
+
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'error': '开始日期格式错误，请使用 YYYY-MM-DD 格式'
+                }), 400
+
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'error': '结束日期格式错误，请使用 YYYY-MM-DD 格式'
+                }), 400
+
+        # 验证分类筛选参数
+        valid_categories = ['dining', 'transport', 'shopping', 'services', 'healthcare', 'finance', 'other']
+        if category_filter and category_filter not in valid_categories:
+            return jsonify({
+                'success': False,
+                'error': f'无效的分类筛选参数，支持的分类: {", ".join(valid_categories)}'
+            }), 400
+
         # 获取报告服务
         report_service = current_app.report_service
-        
-        # 获取固定支出分析数据
-        analysis_data = report_service.get_fixed_expenses_analysis()
-        
+
+        # 获取商户分类支出分析数据
+        analysis_data = report_service.get_merchant_expense_analysis(
+            start_date=start_date,
+            end_date=end_date,
+            category_filter=category_filter,
+            search_term=search_term
+        )
+
         return jsonify({
             'success': True,
-            'data': analysis_data
-        })
-        
-    except Exception as e:
-        logger.error(f"Error getting fixed expenses data: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-
-@expense_analysis_bp.route('/api/monthly-trend')
-@handle_errors
-def api_monthly_trend():
-    """获取月度趋势数据API"""
-    try:
-        # 获取报告服务
-        report_service = current_app.report_service
-        
-        # 获取固定支出分析数据
-        analysis_data = report_service.get_fixed_expenses_analysis()
-        
-        # 提取月度趋势数据
-        daily_monthly = analysis_data['daily_fixed_expenses']['monthly_data']
-        large_monthly = analysis_data['large_fixed_expenses']['monthly_data']
-        
-        # 合并月度数据
-        monthly_trend = {}
-        
-        # 添加日常固定支出数据
-        for item in daily_monthly:
-            month = item['month']
-            if month not in monthly_trend:
-                monthly_trend[month] = {
-                    'month': month,
-                    'daily_fixed': 0,
-                    'large_fixed': 0,
-                    'total_fixed': 0,
-                    'daily_transactions': 0,
-                    'large_transactions': 0
-                }
-            monthly_trend[month]['daily_fixed'] = item['amount']
-            monthly_trend[month]['daily_transactions'] = item['transaction_count']
-        
-        # 添加大额固定支出数据
-        for item in large_monthly:
-            month = item['month']
-            if month not in monthly_trend:
-                monthly_trend[month] = {
-                    'month': month,
-                    'daily_fixed': 0,
-                    'large_fixed': 0,
-                    'total_fixed': 0,
-                    'daily_transactions': 0,
-                    'large_transactions': 0
-                }
-            monthly_trend[month]['large_fixed'] = item['amount']
-            monthly_trend[month]['large_transactions'] = item['transaction_count']
-        
-        # 计算总计
-        for month_data in monthly_trend.values():
-            month_data['total_fixed'] = month_data['daily_fixed'] + month_data['large_fixed']
-        
-        # 按月份排序
-        trend_list = sorted(monthly_trend.values(), key=lambda x: x['month'], reverse=True)
-        
-        return jsonify({
-            'success': True,
-            'data': {
-                'monthly_trend': trend_list,
-                'summary': {
-                    'daily_average': analysis_data['daily_fixed_expenses']['monthly_average'],
-                    'large_average': analysis_data['large_fixed_expenses']['monthly_average'],
-                    'total_average': analysis_data['daily_fixed_expenses']['monthly_average'] + analysis_data['large_fixed_expenses']['monthly_average']
-                }
+            'data': analysis_data,
+            'filters': {
+                'start_date': start_date_str,
+                'end_date': end_date_str,
+                'category_filter': category_filter,
+                'search_term': search_term
             }
         })
-        
+
     except Exception as e:
-        logger.error(f"Error getting monthly trend data: {e}")
+        logger.error(f"Error getting merchant analysis data: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+
+
 
 
 @expense_analysis_bp.route('/api/merchant-details/<merchant_name>')
@@ -193,41 +174,15 @@ def api_merchant_details(merchant_name):
     try:
         # 获取报告服务
         report_service = current_app.report_service
-        
-        # 获取商户的所有交易记录
-        from app.models import Transaction
-        transactions = report_service.db.query(Transaction).filter(
-            Transaction.amount < 0,
-            Transaction.counterparty == merchant_name
-        ).order_by(Transaction.date.desc()).limit(20).all()
-        
-        # 转换为字典格式
-        transaction_list = []
-        for t in transactions:
-            transaction_list.append({
-                'date': t.date.strftime('%Y-%m-%d'),
-                'amount': float(abs(t.amount)),
-                'description': t.description or '',
-                'account': t.account.account_name if t.account else ''
-            })
-        
-        # 计算统计信息
-        total_amount = sum(abs(t.amount) for t in transactions)
-        avg_amount = total_amount / len(transactions) if transactions else 0
-        
+
+        # 使用商户分类服务获取商户交易详情
+        merchant_data = report_service.merchant_service.get_merchant_transactions(merchant_name)
+
         return jsonify({
             'success': True,
-            'data': {
-                'merchant_name': merchant_name,
-                'transactions': transaction_list,
-                'statistics': {
-                    'total_amount': float(total_amount),
-                    'average_amount': float(avg_amount),
-                    'transaction_count': len(transactions)
-                }
-            }
+            'data': merchant_data
         })
-        
+
     except Exception as e:
         logger.error(f"Error getting merchant details for {merchant_name}: {e}")
         return jsonify({

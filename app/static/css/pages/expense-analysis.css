@@ -1,6 +1,6 @@
 /*
- * AiBookkeeping - 支出分析页面样式
- * 支出分析页面特定的样式定义
+ * AiBookkeeping - 支出分类分析页面样式
+ * 基于商户类型的支出分类分析页面特定样式定义
  */
 
 /* ========================================
@@ -161,31 +161,18 @@
 }
 
 /* ========================================
-   查看更多按钮样式
+   商户金额显示样式
    ======================================== */
 
-#daily-fixed-more .btn,
-#large-fixed-more .btn {
-    transition: var(--bs-transition);
-    border-radius: var(--bs-border-radius-pill);
-    padding: var(--spacing-2) var(--spacing-6);
-    font-weight: var(--font-weight-medium);
-}
-
-#daily-fixed-more .btn:hover,
-#large-fixed-more .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--bs-box-shadow-lg);
-}
-
-/* ========================================
-   大额支出金额突出显示
-   ======================================== */
-
-#large-fixed-list .merchant-amount {
-    font-size: var(--font-size-xl) !important;
+.merchant-amount {
+    font-size: var(--font-size-lg) !important;
     font-weight: var(--font-weight-bold) !important;
     font-family: var(--bs-font-monospace);
+}
+
+.transaction-amount.negative {
+    color: var(--bs-danger) !important;
+    font-weight: var(--font-weight-semibold);
 }
 
 /* ========================================
@@ -240,6 +227,123 @@
 }
 
 /* ========================================
+   筛选功能样式
+   ======================================== */
+
+/* 筛选状态指示器 */
+#filter-status {
+    animation: slideInDown 0.3s ease;
+}
+
+#filter-status .badge {
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-2) var(--spacing-3);
+    border-radius: var(--bs-border-radius-pill);
+}
+
+#filter-status .btn-close {
+    font-size: 0.6rem;
+    padding: 0;
+    margin: 0;
+    width: 0.8rem;
+    height: 0.8rem;
+    opacity: 0.7;
+}
+
+#filter-status .btn-close:hover {
+    opacity: 1;
+}
+
+/* KPI卡片激活状态 */
+.stat-card.active-filter {
+    transform: translateY(-2px);
+    box-shadow: var(--bs-box-shadow-lg);
+    border: var(--border-width-medium) solid var(--bs-primary);
+}
+
+.stat-card.active-filter .bg-primary {
+    background-color: var(--bs-primary) !important;
+    box-shadow: 0 0 0 0.2rem var(--bs-primary-100);
+}
+
+.stat-card.active-filter .bg-success {
+    background-color: var(--bs-success) !important;
+    box-shadow: 0 0 0 0.2rem var(--bs-success-100);
+}
+
+.stat-card.active-filter .bg-info {
+    background-color: var(--bs-info) !important;
+    box-shadow: 0 0 0 0.2rem var(--bs-info-100);
+}
+
+/* 搜索结果高亮 */
+mark.bg-warning {
+    padding: 0.1em 0.2em;
+    border-radius: var(--bs-border-radius-sm);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* 筛选输入框样式 */
+.form-control:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem var(--bs-primary-100);
+}
+
+.input-group-text {
+    transition: var(--bs-transition);
+}
+
+.form-control:focus + .input-group-text,
+.form-control:focus ~ .input-group-text {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-50);
+}
+
+/* 筛选按钮样式 */
+#apply-filters-btn {
+    transition: var(--bs-transition);
+}
+
+#apply-filters-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow);
+}
+
+#clear-filters-btn {
+    transition: var(--bs-transition);
+}
+
+#clear-filters-btn:hover {
+    transform: scale(1.05);
+    background-color: var(--bs-gray-600);
+    border-color: var(--bs-gray-600);
+    color: white;
+}
+
+/* 图表点击反馈 */
+#monthly-trend-chart {
+    cursor: pointer;
+    transition: var(--bs-transition);
+}
+
+#monthly-trend-chart:hover {
+    opacity: 0.9;
+}
+
+/* 空状态样式 */
+.empty-filter-result {
+    padding: var(--spacing-6);
+    text-align: center;
+    color: var(--bs-gray-600);
+}
+
+.empty-filter-result i {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-3);
+    opacity: 0.5;
+}
+
+/* ========================================
    响应式调整
    ======================================== */
 
@@ -260,8 +364,8 @@
         min-height: 250px;
     }
 
-    #large-fixed-list .merchant-amount {
-        font-size: var(--font-size-lg) !important;
+    .merchant-amount {
+        font-size: var(--font-size-base) !important;
     }
 
     .expense-analysis-header {
