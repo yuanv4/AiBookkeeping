@@ -430,4 +430,49 @@ class ReportService:
                 }
             }
 
+    def get_month_expense_analysis(self, target_month: str,
+                                 category_filter: Optional[str] = None,
+                                 search_term: Optional[str] = None) -> Dict[str, Any]:
+        """
+        获取指定月份的支出分析数据，包含完整的历史月度数据
+
+        Args:
+            target_month: 目标月份 (YYYY-MM格式)
+            category_filter: 分类筛选
+            search_term: 搜索词筛选
+
+        Returns:
+            指定月份的支出分析结果，包含所有历史月度数据
+        """
+        try:
+            self.logger.info(f"开始执行月份支出分析 - 目标月份: {target_month}, 分类筛选: {category_filter}, 搜索词: {search_term}")
+
+            # 调用商户分类服务的月份分析方法
+            result = self.merchant_service.get_month_expense_analysis(
+                target_month=target_month,
+                category_filter=category_filter,
+                search_term=search_term
+            )
+
+            self.logger.info(f"月份支出分析完成 - {target_month}")
+            return result
+
+        except Exception as e:
+            self.logger.error(f"月份支出分析失败: {e}")
+            return {
+                'categories': {},
+                'summary': {
+                    'total_expense': 0.0,
+                    'analyzed_period': target_month,
+                    'total_merchants': 0,
+                    'total_transactions': 0
+                },
+                'target_month': target_month,
+                'period': {
+                    'start_date': None,
+                    'end_date': None,
+                    'month': target_month
+                }
+            }
+
 

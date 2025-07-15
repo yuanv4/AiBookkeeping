@@ -18,70 +18,7 @@
 
     <!-- 主要内容 -->
     <div id="main-content" style="display: none;">
-        <!-- 筛选条件栏 -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body">
-                <div class="row g-3 align-items-end">
-                    <!-- 搜索框 -->
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold text-muted">搜索商户</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0">
-                                {{ icon("search", "sm", "text-muted") }}
-                            </span>
-                            <input type="text" class="form-control border-start-0 bg-light"
-                                   placeholder="输入商户名称..." id="merchant-search-input">
-                        </div>
-                    </div>
-                    <!-- 时间范围选择 -->
-                    <div class="col-md-3">
-                        <label class="form-label small fw-semibold text-muted">开始日期</label>
-                        <input type="date" class="form-control" id="start-date-input">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small fw-semibold text-muted">结束日期</label>
-                        <input type="date" class="form-control" id="end-date-input">
-                    </div>
-                    <!-- 操作按钮 -->
-                    <div class="col-md-2">
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-primary btn-sm" id="apply-filters-btn" title="应用筛选">
-                                {{ icon("filter", "sm", "me-1") }}
-                                筛选
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm" id="clear-filters-btn" title="清除筛选">
-                                {{ icon("x", "sm") }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <!-- 筛选状态指示器 -->
-                <div id="filter-status" class="mt-3" style="display: none;">
-                    <div class="d-flex align-items-center gap-2">
-                        <small class="text-muted">当前筛选：</small>
-                        <div id="active-filters" class="d-flex gap-1 flex-wrap">
-                            <!-- 动态显示活跃的筛选条件 -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- KPI 指标卡片 -->
-        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 mb-4">
-            <div class="col">
-                {{ stat_card("coffee", "¥0", "餐饮支出", "primary", "", "dining-amount", "--", "dining-merchants", "", "", true, "expenseAnalysisPage.filterByCategory('dining')") }}
-            </div>
-            <div class="col">
-                {{ stat_card("car", "¥0", "交通支出", "success", "", "transport-amount", "--", "transport-merchants", "", "", true, "expenseAnalysisPage.filterByCategory('transport')") }}
-            </div>
-            <div class="col">
-                {{ stat_card("shopping-bag", "¥0", "购物支出", "info", "", "shopping-amount", "--", "shopping-merchants", "", "", true, "expenseAnalysisPage.filterByCategory('shopping')") }}
-            </div>
-            <div class="col">
-                {{ stat_card("pie-chart", "¥0", "总支出", "warning", "", "total-expense-amount", "--", "total-merchants") }}
-            </div>
-        </div>
 
         <!-- 月度趋势图表 -->
         <div class="row mb-4">

@@ -173,23 +173,36 @@ class MerchantClassificationService:
             按类别组织的支出分析数据
         """
         try:
-            # 设置默认日期范围（最近6个月）
-            if not end_date:
-                end_date = date.today()
-            if not start_date:
-                from dateutil.relativedelta import relativedelta
-                start_date = end_date - relativedelta(months=6)
-            
-            self.logger.info(f"开始分析支出数据，时间范围：{start_date} 到 {end_date}")
-            
-            # 查询所有支出交易
-            transactions = self.db.query(Transaction).filter(
+            # 设置默认日期范围（最近6个月），但允许None值表示不限制
+            use_date_filter = True
+            if start_date is None and end_date is None:
+                # 如果两个都是None，则不使用日期过滤
+                use_date_filter = False
+                self.logger.info("开始分析支出数据，不限制时间范围（获取所有历史数据）")
+            else:
+                # 设置默认值
+                if not end_date:
+                    end_date = date.today()
+                if not start_date:
+                    from dateutil.relativedelta import relativedelta
+                    start_date = end_date - relativedelta(months=6)
+                self.logger.info(f"开始分析支出数据，时间范围：{start_date} 到 {end_date}")
+
+            # 构建查询条件
+            query = self.db.query(Transaction).filter(
                 Transaction.amount < 0,
-                Transaction.date >= start_date,
-                Transaction.date <= end_date,
                 Transaction.counterparty.isnot(None),
                 Transaction.counterparty != ''
-            ).all()
+            )
+
+            # 根据需要添加日期过滤
+            if use_date_filter:
+                query = query.filter(
+                    Transaction.date >= start_date,
+                    Transaction.date <= end_date
+                )
+
+            transactions = query.all()
             
             self.logger.info(f"找到 {len(transactions)} 条支出交易记录")
             
@@ -304,6 +317,154 @@ class MerchantClassificationService:
                     'analyzed_period': f"{start_date} to {end_date}",
                     'total_merchants': 0,
                     'total_transactions': 0
+                }
+            }
+
+    def get_available_months(self) -> Dict[str, Any]:
+        """
+        获取数据库中有交易数据的所有月份列表
+
+        Returns:
+            包含月份列表和统计信息的字典
+        """
+        try:
+            from dateutil.relativedelta import relativedelta
+
+            # 查询所有支出交易
+            transactions = self.db.query(Transaction).filter(
+                Transaction.amount < 0,
+                Transaction.counterparty.isnot(None),
+                Transaction.counterparty != ''
+            ).all()
+
+            if not transactions:
+                return {
+                    'months': [],
+                    'latest_month': None,
+                    'total_months': 0,
+                    'month_stats': {}
+                }
+
+            # 按月份统计交易数据
+            month_stats = {}
+            for transaction in transactions:
+                month_key = transaction.date.strftime('%Y-%m')
+                if month_key not in month_stats:
+                    month_stats[month_key] = {
+                        'transaction_count': 0,
+                        'total_amount': 0.0
+                    }
+
+                month_stats[month_key]['transaction_count'] += 1
+                month_stats[month_key]['total_amount'] += float(abs(transaction.amount))
+
+            # 按月份排序
+            sorted_months = sorted(month_stats.keys(), reverse=True)
+
+            # 确定最佳默认月份（最新且交易数量较多的月份）
+            latest_month = sorted_months[0] if sorted_months else None
+
+            self.logger.info(f"找到 {len(sorted_months)} 个有数据的月份，最新月份: {latest_month}")
+
+            return {
+                'months': sorted_months,
+                'latest_month': latest_month,
+                'total_months': len(sorted_months),
+                'month_stats': month_stats
+            }
+
+        except Exception as e:
+            self.logger.error(f"获取可用月份失败: {e}")
+            return {
+                'months': [],
+                'latest_month': None,
+                'total_months': 0,
+                'month_stats': {}
+            }
+
+    def get_month_expense_analysis(self, target_month: str,
+                                 category_filter: Optional[str] = None,
+                                 search_term: Optional[str] = None) -> Dict[str, Any]:
+        """
+        获取指定月份的支出分析数据，返回单月数据和历史月度数据
+
+        Args:
+            target_month: 目标月份 (YYYY-MM格式)
+            category_filter: 分类筛选
+            search_term: 搜索词筛选
+
+        Returns:
+            指定月份的支出分析结果，categories为单月数据，包含monthly_data历史数据
+        """
+        try:
+            from datetime import datetime
+            from calendar import monthrange
+
+            # 解析目标月份
+            month_date = datetime.strptime(target_month, '%Y-%m').date()
+            start_date = month_date.replace(day=1)
+            last_day = monthrange(month_date.year, month_date.month)[1]
+            end_date = month_date.replace(day=last_day)
+
+            self.logger.info(f"开始分析 {target_month} 月份的支出数据（单月数据+历史月度数据）")
+
+            # 获取单月的分类数据
+            single_month_result = self.get_expense_analysis_by_category(
+                start_date=start_date,  # 限制为目标月份
+                end_date=end_date,      # 限制为目标月份
+                category_filter=category_filter,
+                search_term=search_term
+            )
+
+            # 获取完整历史数据用于生成monthly_data
+            full_history_result = self.get_expense_analysis_by_category(
+                start_date=None,  # 不限制日期以获取完整历史数据
+                end_date=None,    # 不限制日期以获取完整历史数据
+                category_filter=category_filter,
+                search_term=search_term
+            )
+
+            # 合并单月数据和历史月度数据
+            # 使用单月数据作为主要结果，但添加历史月度数据
+            result = single_month_result.copy()
+
+            # 为每个分类添加历史月度数据
+            for category in result['categories']:
+                if category in full_history_result['categories']:
+                    # 保留单月的主要数据，但添加历史月度数据
+                    result['categories'][category]['monthly_data'] = full_history_result['categories'][category].get('monthly_data', {})
+
+            # 添加月份信息
+            result['target_month'] = target_month
+            result['period'] = {
+                'start_date': start_date.strftime('%Y-%m-%d'),
+                'end_date': end_date.strftime('%Y-%m-%d'),
+                'month': target_month
+            }
+
+            # 更新汇总信息的描述
+            result['summary']['analyzed_period'] = f"{start_date} to {end_date}"
+
+            self.logger.info(f"{target_month} 月份支出分析完成，返回单月分类数据+历史月度数据")
+            self.logger.info(f"单月总支出: {result['summary']['total_expense']}, 分类数: {len(result['categories'])}")
+
+            return result
+
+        except Exception as e:
+            self.logger.error(f"月份支出分析失败: {e}")
+            return {
+                'categories': {},
+                'summary': {
+                    'total_expense': 0.0,
+                    'analyzed_period': target_month,
+                    'total_merchants': 0,
+                    'total_transactions': 0
+                },
+                'target_month': target_month,
+                'period': {
+                    'start_date': None,
+                    'end_date': None,
+                    'month': target_month
                 }
             }
 
