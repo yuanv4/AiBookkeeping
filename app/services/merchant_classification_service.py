@@ -595,32 +595,76 @@ class MerchantClassificationService:
             self.logger.error(f"获取商户详情失败: {e}")
             return []
 
-    def get_merchant_transactions(self, merchant_name: str, limit: int = 20) -> Dict[str, Any]:
+    def get_merchant_transactions(self, merchant_name: str, limit: int = 20, month: Optional[str] = None) -> Dict[str, Any]:
         """
         获取指定商户的交易记录
 
         Args:
             merchant_name: 商户名称
             limit: 返回交易数量限制
+            month: 筛选月份 (YYYY-MM格式)，如果为None则返回所有交易
 
         Returns:
             商户交易详情
         """
         try:
-            transactions = self.db.query(Transaction).filter(
+            from datetime import datetime, date
+            from dateutil.relativedelta import relativedelta
+
+            # 构建基础查询
+            query = self.db.query(Transaction).filter(
                 Transaction.amount < 0,
                 Transaction.counterparty == merchant_name
-            ).order_by(Transaction.date.desc()).limit(limit).all()
+            )
+
+            # 添加月份筛选条件
+            month_start = None
+            month_end = None
+            if month:
+                try:
+                    # 解析月份参数
+                    month_date = datetime.strptime(month, '%Y-%m').date()
+                    month_start = month_date.replace(day=1)
+                    # 计算月末日期
+                    next_month = month_start + relativedelta(months=1)
+                    month_end = next_month - relativedelta(days=1)
+
+                    # 添加日期范围筛选
+                    query = query.filter(
+                        Transaction.date >= month_start,
+                        Transaction.date <= month_end
+                    )
+
+                    self.logger.info(f"筛选商户 {merchant_name} 在 {month} 的交易记录 ({month_start} 到 {month_end})")
+
+                except ValueError as e:
+                    self.logger.error(f"月份参数格式错误: {month}, 错误: {e}")
+                    # 如果月份格式错误，继续查询所有数据但记录错误
+
+            # 执行查询
+            transactions = query.order_by(Transaction.date.desc()).limit(limit).all()
 
             if not transactions:
+                # 构建期间信息
+                period_info = "所有时间" if not month else f"{month}月"
+
                 return {
                     'merchant_name': merchant_name,
                     'category': 'other',
+                    'category_info': self.get_category_display_info('other'),
                     'transactions': [],
                     'statistics': {
                         'total_amount': 0.0,
                         'average_amount': 0.0,
                         'transaction_count': 0
+                    },
+                    'filter_info': {
+                        'filtered_month': month,
+                        'period_info': period_info,
+                        'date_range': {
+                            'start': month_start.strftime('%Y-%m-%d') if month_start else None,
+                            'end': month_end.strftime('%Y-%m-%d') if month_end else None
+                        }
                     }
                 }
 
@@ -642,6 +686,9 @@ class MerchantClassificationService:
             avg_amount = total_amount / len(transactions) if transactions else 0
             category = self.classify_merchant(merchant_name)
 
+            # 构建期间信息
+            period_info = "所有时间" if not month else f"{month}月"
+
             return {
                 'merchant_name': merchant_name,
                 'category': category,
@@ -651,18 +698,37 @@ class MerchantClassificationService:
                     'total_amount': total_amount,
                     'average_amount': avg_amount,
                     'transaction_count': len(transactions)
+                },
+                'filter_info': {
+                    'filtered_month': month,
+                    'period_info': period_info,
+                    'date_range': {
+                        'start': month_start.strftime('%Y-%m-%d') if month_start else None,
+                        'end': month_end.strftime('%Y-%m-%d') if month_end else None
+                    }
                 }
             }
 
         except Exception as e:
             self.logger.error(f"获取商户交易记录失败 {merchant_name}: {e}")
+            period_info = "所有时间" if not month else f"{month}月"
+
             return {
                 'merchant_name': merchant_name,
                 'category': 'other',
+                'category_info': self.get_category_display_info('other'),
                 'transactions': [],
                 'statistics': {
                     'total_amount': 0.0,
                     'average_amount': 0.0,
                     'transaction_count': 0
+                },
+                'filter_info': {
+                    'filtered_month': month,
+                    'period_info': period_info,
+                    'date_range': {
+                        'start': None,
+                        'end': None
+                    }
                 }
             }

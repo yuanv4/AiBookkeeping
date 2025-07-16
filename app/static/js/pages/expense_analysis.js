@@ -938,6 +938,13 @@ class ExpenseAnalysisPage {
             search: ''
         }; // 活跃的筛选条件（简化版，月份由状态管理）
 
+        // 商户详情模态框状态跟踪
+        this.merchantModalState = {
+            isOpen: false,
+            currentMerchant: null,
+            lastMonth: null
+        };
+
         // 初始化状态管理系统
         this.state = new ExpenseAnalysisState();
 
@@ -974,7 +981,11 @@ class ExpenseAnalysisPage {
             this.data = state.categoryData;
         }
 
-        // 月份筛选由状态管理系统处理，无需在activeFilters中维护
+        // 检查月份变更并处理模态框刷新
+        if (state.selectedMonth && this.merchantModalState.lastMonth !== state.selectedMonth) {
+            this.handleMonthChangeForModal(state.selectedMonth);
+            this.merchantModalState.lastMonth = state.selectedMonth;
+        }
 
         // 处理加载状态
         if (state.loading) {
@@ -987,7 +998,6 @@ class ExpenseAnalysisPage {
             // 数据加载完成后显示主要内容
             if (state.categoryData && state.selectedMonth) {
                 this.showMainContent();
-
             }
         }
 
@@ -1018,7 +1028,97 @@ class ExpenseAnalysisPage {
 
     }
 
+    /**
+     * 处理月份变更对模态框的影响
+     */
+    handleMonthChangeForModal(newMonth) {
+        // 检查商户详情模态框是否打开
+        if (this.merchantModalState.isOpen && this.merchantModalState.currentMerchant) {
+            console.log('检测到月份变更，模态框已打开，准备刷新商户详情:', {
+                merchant: this.merchantModalState.currentMerchant,
+                oldMonth: this.merchantModalState.lastMonth,
+                newMonth: newMonth
+            });
 
+            // 自动刷新商户详情数据
+            this.refreshMerchantDetailModal(this.merchantModalState.currentMerchant);
+        }
+    }
+
+    /**
+     * 刷新商户详情模态框数据
+     */
+    async refreshMerchantDetailModal(merchantName) {
+        try {
+            console.log('刷新商户详情模态框数据:', merchantName);
+
+            // 获取当前选中月份
+            const selectedMonth = this.state.selectedMonth;
+
+            // 构建API URL
+            let apiUrl = `/expense-analysis/api/merchant-details/${encodeURIComponent(merchantName)}`;
+            if (selectedMonth) {
+                apiUrl += `?month=${encodeURIComponent(selectedMonth)}`;
+            }
+
+            // 显示加载状态
+            const container = document.getElementById('merchant-detail-content');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <div class="mt-2 text-muted small">正在更新数据...</div>
+                    </div>
+                `;
+            }
+
+            // 检查缓存（刷新时使用较短的缓存时间）
+            const cacheKey = `merchant-detail-${merchantName}-${selectedMonth || 'all'}`;
+            const cachedData = this.state.getCachedData(cacheKey, 30 * 1000); // 30秒缓存
+
+            if (cachedData) {
+                console.log('使用缓存的商户详情数据进行刷新:', cachedData);
+                this.renderMerchantDetailModal(cachedData);
+                return;
+            }
+
+            // 加载新数据
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+
+            if (data.success) {
+                // 缓存数据
+                this.state.cacheData(cacheKey, data.data);
+                this.renderMerchantDetailModal(data.data);
+            } else {
+                throw new Error(data.error || '刷新商户详情失败');
+            }
+
+        } catch (error) {
+            console.error('刷新商户详情模态框失败:', error);
+
+            // 显示错误状态
+            const container = document.getElementById('merchant-detail-content');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-3 text-danger">
+                        <i data-lucide="alert-circle" style="width: 2rem; height: 2rem;"></i>
+                        <div class="mt-2">刷新失败: ${error.message}</div>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="window.expenseAnalysisPage.refreshMerchantDetailModal('${this.merchantModalState.currentMerchant}')">
+                            重试
+                        </button>
+                    </div>
+                `;
+
+                // 重新初始化图标
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+        }
+    }
 
     /**
      * 初始化页面
@@ -1144,15 +1244,70 @@ class ExpenseAnalysisPage {
         try {
             console.log('显示商户详情:', merchantName);
 
+            // 获取当前选中月份
+            const selectedMonth = this.state.selectedMonth;
+            console.log('当前选中月份:', selectedMonth);
+
+            // 更新模态框状态跟踪
+            this.merchantModalState.isOpen = true;
+            this.merchantModalState.currentMerchant = merchantName;
+            this.merchantModalState.lastMonth = selectedMonth;
+
             // 显示模态框
             const modal = new bootstrap.Modal(document.getElementById('merchantDetailModal'));
+
+            // 监听模态框关闭事件
+            const modalElement = document.getElementById('merchantDetailModal');
+            modalElement.addEventListener('hidden.bs.modal', () => {
+                this.merchantModalState.isOpen = false;
+                this.merchantModalState.currentMerchant = null;
+                console.log('商户详情模态框已关闭，状态已清理');
+            }, { once: true });
+
             modal.show();
 
+            // 显示初始加载状态
+            const container = document.getElementById('merchant-detail-content');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <div class="mt-3 text-muted">正在加载商户详情...</div>
+                    </div>
+                `;
+            }
+
+            // 构建API URL，包含月份参数
+            let apiUrl = `/expense-analysis/api/merchant-details/${encodeURIComponent(merchantName)}`;
+            if (selectedMonth) {
+                apiUrl += `?month=${encodeURIComponent(selectedMonth)}`;
+                console.log('API URL包含月份参数:', apiUrl);
+            } else {
+                console.log('未选择月份，显示所有交易数据');
+            }
+
+            // 检查缓存
+            const cacheKey = `merchant-detail-${merchantName}-${selectedMonth || 'all'}`;
+            const cachedData = this.state.getCachedData(cacheKey, 2 * 60 * 1000); // 2分钟缓存
+
+            if (cachedData) {
+                console.log('使用缓存的商户详情数据:', cachedData);
+                this.renderMerchantDetailModal(cachedData);
+                return;
+            }
+
             // 加载商户详情数据
-            const response = await fetch(`/expense-analysis/api/merchant-details/${encodeURIComponent(merchantName)}`);
+            const response = await fetch(apiUrl);
             const data = await response.json();
 
             if (data.success) {
+                console.log('商户详情数据加载成功:', data.data);
+
+                // 缓存数据
+                this.state.cacheData(cacheKey, data.data);
+
                 this.renderMerchantDetailModal(data.data);
             } else {
                 throw new Error(data.error || '获取商户详情失败');
@@ -1160,86 +1315,280 @@ class ExpenseAnalysisPage {
 
         } catch (error) {
             console.error('显示商户详情失败:', error);
+
+            // 在模态框中显示错误状态
+            const container = document.getElementById('merchant-detail-content');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="text-danger mb-3">
+                            <i data-lucide="alert-circle" style="width: 3rem; height: 3rem;"></i>
+                        </div>
+                        <h6 class="text-danger">加载失败</h6>
+                        <p class="text-muted mb-3">${error.message}</p>
+                        <button class="btn btn-primary btn-sm" onclick="window.expenseAnalysisPage.showMerchantDetail('${merchantName}')">
+                            <i data-lucide="refresh-cw" class="me-1" style="width: 1rem; height: 1rem;"></i>
+                            重新加载
+                        </button>
+                    </div>
+                `;
+
+                // 重新初始化图标
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+
             this.showToast('获取商户详情失败: ' + error.message, 'error');
         }
     }
 
     /**
-     * 渲染商户详情模态框内容
+     * 渲染商户详情模态框内容 - 渐进式信息展示
      */
     renderMerchantDetailModal(merchantData) {
         const container = document.getElementById('merchant-detail-content');
-        const { merchant_name, category_info, transactions, statistics } = merchantData;
+        const { merchant_name, category_info, transactions, statistics, filter_info } = merchantData;
+
+        // 更新模态框标题以包含月份信息
+        const modalTitle = document.getElementById('merchantDetailModalLabel');
+        if (modalTitle && filter_info) {
+            const periodText = filter_info.period_info || '所有时间';
+            modalTitle.innerHTML = `
+                <i data-lucide="store" class="me-2"></i>
+                商户详情 - ${merchant_name}
+                <small class="text-muted ms-2">(${periodText})</small>
+            `;
+        }
+
+        // 渲染简化的两层展示结构
+        const overviewHtml = this.renderMerchantOverview(merchantData);
+        const transactionsHtml = this.renderMerchantTransactions(merchantData);
 
         container.innerHTML = `
-            <div class="merchant-detail-header mb-4">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 bg-${category_info.color} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
-                        <i data-lucide="${category_info.icon}" class="text-${category_info.color}" style="width: 1.5rem; height: 1.5rem;"></i>
-                    </div>
-                    <div>
-                        <h5 class="mb-1">${merchant_name}</h5>
-                        <span class="badge bg-${category_info.color} bg-opacity-10 text-${category_info.color}">${category_info.name}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="merchant-statistics mb-4">
-                <div class="row g-3">
-                    <div class="col-4">
-                        <div class="text-center">
-                            <div class="fw-bold text-danger fs-5">¥${statistics.total_amount.toFixed(2)}</div>
-                            <small class="text-muted">总支出</small>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="text-center">
-                            <div class="fw-bold fs-5">${statistics.transaction_count}</div>
-                            <small class="text-muted">交易次数</small>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="text-center">
-                            <div class="fw-bold fs-5">¥${statistics.average_amount.toFixed(0)}</div>
-                            <small class="text-muted">平均金额</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="merchant-transactions">
-                <h6 class="mb-3">最近交易记录</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="border-0">日期</th>
-                                <th class="border-0 text-end">金额</th>
-                                <th class="border-0 d-none d-md-table-cell">描述</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${transactions.map(transaction => `
-                                <tr>
-                                    <td>${transaction.date}</td>
-                                    <td class="text-end">
-                                        <span class="transaction-amount negative">¥${transaction.amount.toFixed(2)}</span>
-                                    </td>
-                                    <td class="d-none d-md-table-cell">
-                                        <span class="text-muted small">${transaction.description || '-'}</span>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            ${overviewHtml}
+            ${transactionsHtml}
         `;
+
+        // 初始化交互事件
+        this.initializeMerchantModalInteractions();
 
         // 重新初始化Lucide图标
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
+    }
+
+    /**
+     * 渲染商户概览区域（基础层）
+     */
+    renderMerchantOverview(merchantData) {
+        const { merchant_name, category_info, statistics, filter_info } = merchantData;
+        const periodInfo = filter_info ? filter_info.period_info : '所有时间';
+
+        return `
+            <div class="merchant-overview-section">
+                <div class="merchant-header-enhanced">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="merchant-avatar-lg me-3">
+                                <i data-lucide="${category_info.icon}" class="text-${category_info.color}" style="width: 2rem; height: 2rem;"></i>
+                            </div>
+                            <div>
+                                <h4 class="merchant-name-primary">${merchant_name}</h4>
+                                <div class="merchant-meta-row">
+                                    <span class="category-badge-enhanced bg-${category_info.color} bg-opacity-10 text-${category_info.color}">${category_info.name}</span>
+                                    <span class="period-indicator">${periodInfo}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="merchant-actions">
+                            <button class="btn btn-primary btn-sm expand-toggle-btn"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#merchantTransactionsCollapse"
+                                    aria-expanded="false">
+                                <i data-lucide="list" class="me-1" style="width: 1rem; height: 1rem;"></i>
+                                查看交易记录
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="merchant-stats-grid row g-3">
+                    <div class="col-md-4">
+                        <div class="stat-card" data-stat="total">
+                            <div class="stat-value text-danger">¥${statistics.total_amount.toFixed(2)}</div>
+                            <div class="stat-label">总支出</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card" data-stat="count">
+                            <div class="stat-value text-primary">${statistics.transaction_count}</div>
+                            <div class="stat-label">交易次数</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card" data-stat="average">
+                            <div class="stat-value text-success">¥${statistics.average_amount.toFixed(0)}</div>
+                            <div class="stat-label">平均金额</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+
+
+    /**
+     * 渲染交易记录区域（详情层）
+     */
+    renderMerchantTransactions(merchantData) {
+        const { transactions, filter_info } = merchantData;
+        const hasTransactions = transactions && transactions.length > 0;
+        const periodInfo = filter_info ? filter_info.period_info : '所有时间';
+
+        return `
+            <div class="merchant-transactions-section collapse" id="merchantTransactionsCollapse">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">
+                        <i data-lucide="list" class="me-2 text-primary" style="width: 1.25rem; height: 1.25rem;"></i>
+                        交易记录
+                    </h6>
+                    <button class="btn btn-outline-secondary btn-sm expand-toggle-btn"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#merchantTransactionsCollapse"
+                            aria-expanded="true">
+                        <i data-lucide="chevron-up" class="me-1" style="width: 1rem; height: 1rem;"></i>
+                        收起
+                    </button>
+                </div>
+
+                ${hasTransactions ? `
+                    <div class="transactions-table-container">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="border-0 px-3 py-3 fw-semibold text-muted small">日期</th>
+                                        <th class="border-0 px-3 py-3 fw-semibold text-muted small d-none d-md-table-cell">账户</th>
+                                        <th class="border-0 px-3 py-3 fw-semibold text-muted small text-end">金额</th>
+                                        <th class="border-0 px-3 py-3 fw-semibold text-muted small text-end d-none d-lg-table-cell">余额</th>
+                                        <th class="border-0 px-3 py-3 fw-semibold text-muted small d-none d-md-table-cell">对手信息</th>
+                                        <th class="border-0 px-3 py-3 fw-semibold text-muted small d-none d-lg-table-cell">摘要</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${transactions.map(transaction => `
+                                        <tr>
+                                            <td class="px-3 py-2">${transaction.date}</td>
+                                            <td class="px-3 py-2 d-none d-md-table-cell">
+                                                <span class="text-muted small">${transaction.account || '-'}</span>
+                                            </td>
+                                            <td class="px-3 py-2 text-end">
+                                                <span class="transaction-amount negative">¥${transaction.amount.toFixed(2)}</span>
+                                            </td>
+                                            <td class="px-3 py-2 text-end d-none d-lg-table-cell">
+                                                <span class="text-muted small">-</span>
+                                            </td>
+                                            <td class="px-3 py-2 d-none d-md-table-cell">
+                                                <span class="text-muted small">${merchantData.merchant_name}</span>
+                                            </td>
+                                            <td class="px-3 py-2 d-none d-lg-table-cell">
+                                                <span class="text-muted small">${transaction.description || '-'}</span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="text-center py-5">
+                        <div class="text-muted mb-3">
+                            <i data-lucide="inbox" style="width: 3rem; height: 3rem; opacity: 0.5;"></i>
+                        </div>
+                        <h6 class="text-muted">暂无交易记录</h6>
+                        <p class="text-muted small mb-3">
+                            ${filter_info && filter_info.filtered_month ?
+                                `${periodInfo}没有找到该商户的交易记录` :
+                                '该商户暂无交易记录'
+                            }
+                        </p>
+                        ${filter_info && filter_info.filtered_month ?
+                            '<small class="text-muted">提示：您可以通过点击月度趋势图表切换到其他月份查看数据</small>' :
+                            ''
+                        }
+                    </div>
+                `}
+            </div>
+        `;
+    }
+
+    /**
+     * 初始化商户模态框交互事件 - 简化版两层展示
+     */
+    initializeMerchantModalInteractions() {
+        // 统计卡片点击直接展开交易记录
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const transactionsCollapse = document.getElementById('merchantTransactionsCollapse');
+                if (transactionsCollapse && !transactionsCollapse.classList.contains('show')) {
+                    const bsCollapse = new bootstrap.Collapse(transactionsCollapse);
+                    bsCollapse.show();
+
+                    // 更新按钮状态
+                    const toggleBtn = document.querySelector('[data-bs-target="#merchantTransactionsCollapse"]');
+                    if (toggleBtn) {
+                        toggleBtn.setAttribute('aria-expanded', 'true');
+                        const icon = toggleBtn.querySelector('i[data-lucide]');
+                        if (icon) {
+                            icon.setAttribute('data-lucide', 'chevron-up');
+                            if (typeof lucide !== 'undefined') {
+                                lucide.createIcons();
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+        // 展开/折叠按钮图标切换
+        document.querySelectorAll('.expand-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const icon = this.querySelector('i[data-lucide]');
+                const target = this.getAttribute('data-bs-target');
+
+                // 切换图标
+                setTimeout(() => {
+                    if (icon && target) {
+                        const targetElement = document.querySelector(target);
+                        const isShown = targetElement && targetElement.classList.contains('show');
+
+                        if (target === '#merchantTransactionsCollapse') {
+                            const newIcon = isShown ? 'chevron-down' : 'chevron-up';
+                            const newText = isShown ? '查看交易记录' : '收起';
+
+                            icon.setAttribute('data-lucide', newIcon);
+
+                            // 更新按钮文本（如果有文本节点）
+                            const textNode = Array.from(this.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+                            if (textNode && this.classList.contains('btn-primary')) {
+                                // 这是基础层的按钮
+                                textNode.textContent = isShown ? '查看交易记录' : '查看交易记录';
+                            } else if (textNode) {
+                                // 这是交易记录层的收起按钮
+                                textNode.textContent = newText;
+                            }
+
+                            if (typeof lucide !== 'undefined') {
+                                lucide.createIcons();
+                            }
+                        }
+                    }
+                }, 150);
+            });
+        });
     }
 
     /**
