@@ -11,17 +11,14 @@
 - 文件清理和错误处理
 """
 
-import re
 from pathlib import Path
 from werkzeug.utils import secure_filename
-from flask import current_app
 import logging
 import pandas as pd
-from typing import Optional, Dict, List, Any
-from functools import lru_cache
+from typing import List, Any
 
 from .data_service import DataService
-from .models import ExtractedData, ImportResult, ImportConstants
+from .models import ExtractedData, ImportConstants
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +53,6 @@ class ImportService:
         # 加载提取器
         self._extractors = []
         self._load_extractors()
-        
-        # 初始化商家识别规则
-        self._merchant_rules = self._build_merchant_rules()
 
     def _load_extractors(self):
         """加载所有可用的提取器"""
@@ -75,13 +69,27 @@ class ImportService:
         except ImportError as e:
             self.logger.error(f"无法导入提取器: {e}")
 
-    def _is_allowed_file(self, filename):
-        """检查文件是否为允许的类型"""
-        return '.' in filename and \
-               filename.rsplit('.', 1)[1].lower() in self.allowed_extensions
+    def _is_allowed_file(self, filename: str) -> bool:
+        """检查文件是否为允许的类型
 
-    def process_uploaded_files(self, uploaded_file_objects):
-        """处理通过HTTP请求上传的一批文件"""
+        Args:
+            filename: 文件名
+
+        Returns:
+            bool: 如果文件类型被允许则返回True，否则返回False
+        """
+        return ('.' in filename and
+                filename.rsplit('.', 1)[1].lower() in self.allowed_extensions)
+
+    def process_uploaded_files(self, uploaded_file_objects: List[Any]) -> tuple:
+        """处理通过HTTP请求上传的一批文件
+
+        Args:
+            uploaded_file_objects: 上传的文件对象列表
+
+        Returns:
+            tuple: (处理结果, 状态消息)
+        """
         filenames = []
         
         if not uploaded_file_objects or (uploaded_file_objects and uploaded_file_objects[0].filename == ''):
@@ -180,14 +188,15 @@ class ImportService:
             
             # 处理交易记录
             processed_count = 0
+
+            # 准备所有交易数据
+            transactions_data = []
             for transaction_dict in extracted_data.transactions:
                 try:
-                    # 使用内置商家识别功能
-                    extracted_merchant = self.extract_merchant_name(
-                        description=transaction_dict['description'],
-                        counterparty=transaction_dict['counterparty']
-                    )
-                    
+                    # 保留原始交易对方信息作为商户名称
+                    counterparty = transaction_dict['counterparty']
+                    extracted_merchant = counterparty
+
                     # 创建交易记录数据
                     transaction_data = {
                         'account_id': account.id,
@@ -199,21 +208,30 @@ class ImportService:
                         'counterparty': transaction_dict['counterparty'],
                         'merchant_name': extracted_merchant,
                     }
-                    
-                    # 检查是否已存在相同交易
-                    is_duplicate = self.data_service.is_duplicate_transaction(transaction_data)
-                    
-                    if not is_duplicate:
-                        self.logger.debug(f"新建交易：{transaction_data}")
-                        transaction = self.data_service.create_transaction(**transaction_data)
-                        if transaction:
-                            processed_count += 1
-                    else:
-                        self.logger.debug(f"重复交易：{transaction_data}")
-                    
+                    transactions_data.append(transaction_data)
+
                 except Exception as e:
-                    self.logger.warning(f"处理交易记录失败: {e}")
+                    self.logger.warning(f"准备交易记录失败: {e}")
                     continue
+
+            # 批量检查重复交易，提高性能
+            if transactions_data:
+                duplicate_flags = self.data_service.batch_check_duplicates(transactions_data)
+
+                # 批量创建非重复交易
+                for transaction_data, is_duplicate in zip(transactions_data, duplicate_flags):
+                    if not is_duplicate:
+                        try:
+                            self.logger.debug(f"新建交易：{transaction_data}")
+                            transaction = self.data_service.create_transaction(**transaction_data)
+                            if transaction:
+                                processed_count += 1
+                        except Exception as e:
+                            self.logger.warning(f"创建交易记录失败: {e}")
+                    else:
+                        self.logger.debug(f"跳过重复交易：{transaction_data.get('counterparty', 'Unknown')}")
+
+            self.logger.info(f"文件 {file_path} 处理完成，新增 {processed_count} 条交易记录")
 
             return {
                 'success': True,
@@ -280,56 +298,4 @@ class ImportService:
         self.logger.warning(f"未找到适用于文件 {file_path} 的提取器")
         return None
 
-    # ==================== 商家名称识别功能 ====================
-    
-    def _build_merchant_rules(self) -> List[Dict[str, str]]:
-        """构建商家识别规则库"""
-        rules = [
-            # 常见商家规则
-            {'pattern': r'美团|MEITUAN|三快在线|北京三快', 'merchant': '美团'},
-            {'pattern': r'支付宝|ALIPAY|蚂蚁金服', 'merchant': '支付宝'},
-            {'pattern': r'微信支付|WECHAT|腾讯|财付通', 'merchant': '微信支付'},
-            {'pattern': r'淘宝|TAOBAO|天猫|TMALL|阿里巴巴', 'merchant': '淘宝/天猫'},
-            {'pattern': r'京东|JD\.COM|京东商城', 'merchant': '京东'},
-            {'pattern': r'滴滴|DIDI|小桔科技', 'merchant': '滴滴出行'},
-            {'pattern': r'星巴克|STARBUCKS', 'merchant': '星巴克'},
-            {'pattern': r'APPLE|苹果|APP STORE|ITUNES', 'merchant': 'Apple'},
-            # 银行相关
-            {'pattern': r'工商银行|ICBC', 'merchant': '工商银行'},
-            {'pattern': r'建设银行|CCB', 'merchant': '建设银行'},
-            {'pattern': r'农业银行|ABC', 'merchant': '农业银行'},
-            {'pattern': r'中国银行|BOC', 'merchant': '中国银行'},
-            {'pattern': r'招商银行|CMB', 'merchant': '招商银行'},
-            # 生活服务
-            {'pattern': r'中国移动|CHINA MOBILE|移动通信', 'merchant': '中国移动'},
-            {'pattern': r'中国联通|CHINA UNICOM|联通', 'merchant': '中国联通'},
-            {'pattern': r'中国电信|CHINA TELECOM|电信', 'merchant': '中国电信'},
-            {'pattern': r'国家电网|电力公司|供电局', 'merchant': '国家电网'},
-            {'pattern': r'自来水|水务|供水', 'merchant': '自来水公司'},
-            {'pattern': r'燃气|天然气|煤气', 'merchant': '燃气公司'},
-        ]
-        return rules
 
-    def extract_merchant_name(self, description: str, counterparty: str = None) -> Optional[str]:
-        """从交易描述和交易对方信息中提取商家名称"""
-        if not description:
-            return None
-        
-        # 合并描述和交易对方信息进行匹配
-        text_to_match = description
-        if counterparty:
-            text_to_match = f"{description} {counterparty}"
-        
-        # 清理文本，移除特殊字符但保留中英文
-        text_to_match = re.sub(r'[^\w\s\u4e00-\u9fff]', ' ', text_to_match)
-        
-        # 遍历规则库进行匹配
-        for rule in self._merchant_rules:
-            pattern = rule['pattern']
-            merchant = rule['merchant']
-            
-            # 使用正则表达式进行匹配（忽略大小写）
-            if re.search(pattern, text_to_match, re.IGNORECASE):
-                return merchant
-        
-        return None

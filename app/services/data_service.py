@@ -19,6 +19,7 @@ import logging
 from app.models import Bank, Account, Transaction, db
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, and_
+from app.utils.query_cache import invalidate_cache_on_change
 
 logger = logging.getLogger(__name__)
 
@@ -40,15 +41,26 @@ class DataService:
     # ==================== 银行管理 ====================
     
     def get_or_create_bank(self, name: str, code: str = None) -> Bank:
-        """获取或创建银行"""
+        """获取或创建银行
+
+        Args:
+            name: 银行名称
+            code: 银行代码，可选
+
+        Returns:
+            Bank: 银行实例
+
+        Raises:
+            Exception: 当银行创建或查询失败时抛出异常
+        """
         try:
             bank = self.get_bank_by_name(name)
             if not bank:
                 bank = Bank.create(name=name, code=code)
-                self.logger.info(f"Created new bank: {name}")
+                self.logger.info(f"创建新银行: {name}")
             return bank
         except Exception as e:
-            self.logger.error(f"Error getting or creating bank '{name}': {e}")
+            self.logger.error(f"获取或创建银行 '{name}' 失败: {e}")
             raise
 
     def get_bank_by_name(self, name: str) -> Optional[Bank]:
@@ -105,7 +117,21 @@ class DataService:
     
     def get_or_create_account(self, bank_id: int, account_number: str, account_name: str = None, 
                             currency: str = 'CNY', account_type: str = 'checking') -> Account:
-        """获取或创建账户"""
+        """获取或创建账户
+
+        Args:
+            bank_id: 银行ID
+            account_number: 账户号码
+            account_name: 账户名称，可选
+            currency: 货币类型，默认为CNY
+            account_type: 账户类型，默认为checking
+
+        Returns:
+            Account: 账户实例
+
+        Raises:
+            Exception: 当账户创建或查询失败时抛出异常
+        """
         try:
             account = self.get_account_by_bank_and_number(bank_id, account_number)
             if not account:
@@ -116,10 +142,10 @@ class DataService:
                     currency=currency,
                     account_type=account_type
                 )
-                self.logger.info(f"Created new account: {account_number}")
+                self.logger.info(f"创建新账户: {account_number}")
             return account
         except Exception as e:
-            self.logger.error(f"Error getting or creating account '{account_number}': {e}")
+            self.logger.error(f"获取或创建账户 '{account_number}' 失败: {e}")
             raise
 
     def get_account_by_bank_and_number(self, bank_id: int, account_number: str) -> Optional[Account]:
@@ -174,7 +200,8 @@ class DataService:
     
     # ==================== 交易记录管理 ====================
     
-    def create_transaction(self, account_id: int, date: date, 
+    @invalidate_cache_on_change(['get_expense_composition', 'get_income_composition', 'get_monthly_trend', 'get_dashboard_data'])
+    def create_transaction(self, account_id: int, date: date,
                          amount: Decimal, currency: str = 'CNY', description: str = None,
                          counterparty: str = None, **kwargs) -> Transaction:
         """创建交易记录"""
@@ -199,31 +226,98 @@ class DataService:
             date = transaction_data.get('date')
             amount = transaction_data.get('amount')
             balance_after = transaction_data.get('balance_after')
-            
+
             if account_id is None or date is None or amount is None or balance_after is None:
                 self.logger.warning("重复检查失败：缺少必需字段")
                 return True
-            
+
             try:
                 normalized_amount = Transaction._normalize_decimal(amount)
                 normalized_balance = Transaction._normalize_decimal(balance_after)
             except (ValueError, TypeError):
                 self.logger.warning(f"重复检查失败：无效的数值格式 {amount} {balance_after}")
                 return True
-            
+
+            # 使用 exists() 查询替代 first()，提高性能
+            # exists() 只检查是否存在，不需要返回完整记录
             query_conditions = [
                 Transaction.account_id == account_id,
                 Transaction.date == date,
                 Transaction.amount == normalized_amount,
                 Transaction.balance_after == normalized_balance
             ]
-            
-            existing = Transaction.query.filter(and_(*query_conditions)).first()
-            return existing is not None
-            
+
+            return self.db.query(Transaction.query.filter(and_(*query_conditions)).exists()).scalar()
+
         except Exception as e:
             self.logger.error(f"重复检查异常: {e}")
             return True
+
+    def batch_check_duplicates(self, transactions_data: List[Dict[str, Any]]) -> List[bool]:
+        """批量检查交易重复 - 新增方法，提高批量导入性能"""
+        try:
+            if not transactions_data:
+                return []
+
+            # 构建批量查询条件
+            conditions = []
+            for transaction_data in transactions_data:
+                account_id = transaction_data.get('account_id')
+                date = transaction_data.get('date')
+                amount = transaction_data.get('amount')
+                balance_after = transaction_data.get('balance_after')
+
+                if all(x is not None for x in [account_id, date, amount, balance_after]):
+                    try:
+                        normalized_amount = Transaction._normalize_decimal(amount)
+                        normalized_balance = Transaction._normalize_decimal(balance_after)
+                        conditions.append(and_(
+                            Transaction.account_id == account_id,
+                            Transaction.date == date,
+                            Transaction.amount == normalized_amount,
+                            Transaction.balance_after == normalized_balance
+                        ))
+                    except (ValueError, TypeError):
+                        continue
+
+            if not conditions:
+                return [True] * len(transactions_data)
+
+            # 单次查询获取所有重复记录
+            from sqlalchemy import or_
+            existing_transactions = Transaction.query.filter(or_(*conditions)).all()
+
+            # 构建重复记录的快速查找集合
+            existing_set = set()
+            for t in existing_transactions:
+                key = (t.account_id, t.date, t.amount, t.balance_after)
+                existing_set.add(key)
+
+            # 检查每个交易是否重复
+            results = []
+            for transaction_data in transactions_data:
+                account_id = transaction_data.get('account_id')
+                date = transaction_data.get('date')
+                amount = transaction_data.get('amount')
+                balance_after = transaction_data.get('balance_after')
+
+                if any(x is None for x in [account_id, date, amount, balance_after]):
+                    results.append(True)
+                    continue
+
+                try:
+                    normalized_amount = Transaction._normalize_decimal(amount)
+                    normalized_balance = Transaction._normalize_decimal(balance_after)
+                    key = (account_id, date, normalized_amount, normalized_balance)
+                    results.append(key in existing_set)
+                except (ValueError, TypeError):
+                    results.append(True)
+
+            return results
+
+        except Exception as e:
+            self.logger.error(f"批量重复检查异常: {e}")
+            return [True] * len(transactions_data)
 
     def get_transactions(self, account_id: int = None, start_date: date = None, 
                         end_date: date = None, transaction_type: str = None,
@@ -328,7 +422,7 @@ class DataService:
                                  transaction_type_filter: str = None) -> Pagination:
         """分页获取交易记录"""
         try:
-            from app.models import Account, Bank
+            from app.models import Account
 
             query = self.db.query(Transaction).join(Account)
 

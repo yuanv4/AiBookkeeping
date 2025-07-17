@@ -22,12 +22,8 @@ from sqlalchemy.orm import Session
 
 from .data_service import DataService
 from .merchant_classification_service import MerchantClassificationService
-from .models import (
-    DashboardData,  # 保留复杂DTO类
-    create_period, create_composition_item, create_trend_point,
-    create_period_summary, create_account_summary, create_expense_item,
-    decimal_to_float, ReportConstants, DateUtils, DataConverters
-)
+from .models import DateUtils
+from app.utils.query_cache import cached_query
 
 logger = logging.getLogger(__name__)
 
@@ -136,53 +132,78 @@ class ReportService:
 
     # ==================== 趋势分析 ====================
     
+    @cached_query(ttl=600)  # 缓存10分钟，趋势数据更新频率适中
     def get_monthly_trend(self, months: int = 12) -> List[Dict[str, Any]]:
         """获取月度收支趋势"""
         try:
             # 使用DateUtils计算日期范围
             start_date, end_date = DateUtils.get_date_range(months)
-            
-            trends = []
-            current_date = start_date.replace(day=1)  # 从月初开始
-            
+
+            # 获取指定时间范围内的所有交易数据
+            transactions = self.data_service.get_transactions(
+                start_date=start_date,
+                end_date=end_date
+            )
+
+            # 按月份分组统计数据
+            monthly_data = {}
+
+            # 初始化所有月份的数据结构
+            current_date = start_date.replace(day=1)
             while current_date <= end_date:
-                # 计算当月的开始和结束日期
-                month_start = current_date
-                if current_date.month == 12:
-                    month_end = current_date.replace(year=current_date.year + 1, month=1, day=1) - timedelta(days=1)
-                else:
-                    month_end = current_date.replace(month=current_date.month + 1, day=1) - timedelta(days=1)
-                
-                # 获取当月汇总
-                summary = self.get_period_summary(month_start, month_end)
-                
-                trends.append({
-                    'date': current_date.strftime('%Y-%m'),
-                    'income': float(summary['total_income']),
-                    'expense': float(summary['total_expense']),
-                    'net': float(summary['net_income'])
-                })
-                
-                # 移动到下个月
-                if current_date.month == 12:
-                    current_date = current_date.replace(year=current_date.year + 1, month=1)
-                else:
-                    current_date = current_date.replace(month=current_date.month + 1)
-            
-            return trends
+                month_key = current_date.strftime('%Y-%m')
+                monthly_data[month_key] = {
+                    'date': month_key,
+                    'income': 0.0,
+                    'expense': 0.0,
+                    'net': 0.0
+                }
+                # 使用 relativedelta 简化日期计算
+                current_date = current_date + relativedelta(months=1)
+
+            # 单次遍历所有交易，按月份累加
+            for transaction in transactions:
+                month_key = transaction.date.strftime('%Y-%m')
+                if month_key in monthly_data:
+                    amount = float(transaction.amount)
+                    if amount > 0:
+                        monthly_data[month_key]['income'] += amount
+                    else:
+                        monthly_data[month_key]['expense'] += abs(amount)
+
+            # 计算净收入
+            for data in monthly_data.values():
+                data['net'] = data['income'] - data['expense']
+
+            # 按日期排序返回
+            return sorted(monthly_data.values(), key=lambda x: x['date'])
+
         except Exception as e:
             self.logger.error(f"Error getting monthly trend: {e}")
             return []
 
     # ==================== 分类统计 ====================
     
+    @cached_query(ttl=300)  # 缓存5分钟
     def get_expense_composition(self, start_date: date, end_date: date, limit: int = 10) -> List[Dict[str, Any]]:
-        """获取支出构成分析"""
+        """获取支出构成分析
+
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            limit: 返回结果数量限制，默认10条
+
+        Returns:
+            List[Dict[str, Any]]: 支出构成列表，每项包含：
+                - name: 交易对手名称
+                - amount: 支出金额
+                - percentage: 占比百分比
+                - count: 交易次数
+
+
+        """
         try:
-            # 按交易对手分组统计支出 - 性能优化建议：
-            # 1. 为Transaction表添加复合索引：(amount, date, counterparty)
-            # 2. 考虑使用数据库视图预计算常用聚合结果
-            # 3. 对于大数据量，考虑添加缓存机制
+            # 按交易对手分组统计支出
             query = self.db.query(
                 Transaction.counterparty,
                 func.sum(func.abs(Transaction.amount)).label('total_amount'),
@@ -215,6 +236,7 @@ class ReportService:
             self.logger.error(f"Error getting expense composition: {e}")
             return []
 
+    @cached_query(ttl=300)  # 缓存5分钟，与支出构成保持一致
     def get_income_composition(self, start_date: date, end_date: date, limit: int = 10) -> List[Dict[str, Any]]:
         """获取收入构成分析"""
         try:

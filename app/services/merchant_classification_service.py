@@ -15,6 +15,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import Transaction, db
+from app.utils.query_cache import cached_query
 from .models import DateUtils
 
 logger = logging.getLogger(__name__)
@@ -102,32 +103,28 @@ class MerchantClassificationService:
 
         return query
 
+    @cached_query(ttl=3600)  # 缓存1小时，商户分类结果相对稳定
     def classify_merchant(self, merchant_name: str) -> str:
-        """
-        对商户进行分类
-        
+        """对商户进行分类
+
         Args:
             merchant_name: 商户名称
-            
+
         Returns:
             商户类别 ('dining', 'transport', 'shopping', 'services', 'healthcare', 'finance', 'other')
         """
         if not merchant_name:
             return 'other'
-        
-        merchant_lower = merchant_name.lower()
-        
-        # 检查是否为排除的商户类型
-        for excluded in self.excluded_keywords:
-            if excluded in merchant_name:
-                return 'other'
-        
-        # 按优先级进行分类匹配
+
+        # 优先检查排除关键词
+        if any(excluded in merchant_name for excluded in self.excluded_keywords):
+            return 'other'
+
+        # 按优先级进行分类匹配，一旦找到匹配就立即返回
         for category, keywords in self.category_keywords.items():
-            for keyword in keywords:
-                if keyword in merchant_name:
-                    return category
-        
+            if any(keyword in merchant_name for keyword in keywords):
+                return category
+
         # 默认分类
         return 'other'
     
@@ -192,8 +189,7 @@ class MerchantClassificationService:
                                        end_date: Optional[date] = None,
                                        category_filter: Optional[str] = None,
                                        search_term: Optional[str] = None) -> Dict[str, Any]:
-        """
-        按商户类别分析支出数据
+        """按商户类别分析支出数据
 
         Args:
             start_date: 开始日期，默认为6个月前
@@ -202,7 +198,13 @@ class MerchantClassificationService:
             search_term: 搜索词，筛选包含该词的商户
 
         Returns:
-            按类别组织的支出分析数据
+            Dict[str, Any]: 包含以下结构的字典：
+                - categories: 按类别组织的支出数据
+                - summary: 汇总统计信息
+                    - total_expense: 总支出金额
+                    - analyzed_period: 分析时间段
+                    - total_merchants: 商户总数
+                    - total_transactions: 交易总数
         """
         try:
             # 设置默认日期范围（最近6个月），但允许None值表示不限制
@@ -242,22 +244,27 @@ class MerchantClassificationService:
             # 按商户分类汇总
             category_data = {}
             total_expense = 0.0
-            
+
+            # 预先过滤搜索条件，减少后续处理量
+            if search_term:
+                search_term_lower = search_term.lower()
+                transactions = [t for t in transactions
+                              if search_term_lower in t.counterparty.lower()]
+
             for transaction in transactions:
-                category = self.classify_merchant(transaction.counterparty)
                 merchant = transaction.counterparty
                 amount = float(abs(transaction.amount))
+
+                # 使用缓存的分类方法，避免重复计算
+                category = self.classify_merchant(merchant)
 
                 # 应用分类筛选
                 if category_filter and category != category_filter:
                     continue
 
-                # 应用搜索筛选
-                if search_term and search_term.lower() not in merchant.lower():
-                    continue
-
                 total_expense += amount
-                
+
+                # 使用 setdefault 简化字典初始化
                 if category not in category_data:
                     category_data[category] = {
                         'total_amount': 0.0,
@@ -265,12 +272,12 @@ class MerchantClassificationService:
                         'merchants': {},
                         'monthly_data': {}
                     }
-                
+
                 # 累加类别总金额
                 category_data[category]['total_amount'] += amount
                 category_data[category]['transaction_count'] += 1
-                
-                # 按商户汇总
+
+                # 按商户汇总，使用 setdefault 简化初始化
                 if merchant not in category_data[category]['merchants']:
                     category_data[category]['merchants'][merchant] = {
                         'total_amount': 0.0,
@@ -363,8 +370,7 @@ class MerchantClassificationService:
         try:
             # 使用DateUtils获取最近6个月的数据
 
-            # 查询所有支出交易 - 性能优化建议：考虑添加分页或限制结果数量
-            # 对于大量数据，建议使用 .limit() 或分批处理避免内存问题
+            # 查询所有支出交易
             transactions = self.db.query(Transaction).filter(
                 Transaction.amount < 0,
                 Transaction.counterparty.isnot(None),
