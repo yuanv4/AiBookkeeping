@@ -3,6 +3,9 @@
  * 提供基于商户类型的智能支出分类与统计分析功能
  */
 
+import BasePage from '../common/BasePage.js';
+import { ChartHelper, apiService } from '../common/utils.js';
+
 /**
  * 状态管理系统
  * 管理应用的全局状态和数据缓存
@@ -436,8 +439,6 @@ class MonthSelector {
             // 保存当前实例的引用，用于图表点击事件
             const monthSelectorInstance = this;
 
-            const ctx = canvas.getContext('2d');
-
             // 销毁现有图表
             if (this.chart) {
                 console.log('销毁现有图表');
@@ -557,70 +558,70 @@ class MonthSelector {
 
             console.log('图表数据准备完成:', { labels, datasets });
 
-            // 检查Chart.js是否可用
-            if (typeof Chart !== 'undefined' && Chart) {
-                console.log('Chart.js可用，开始创建图表');
-                this.chart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: datasets
+            // 使用ChartHelper创建图表
+            console.log('使用ChartHelper创建图表');
+            const chartOptions = {
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
                             mode: 'index',
                             intersect: false,
-                        },
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                            },
-                            tooltip: {
-                                mode: 'index',
-                                intersect: false,
-                                callbacks: {
-                                    label: function(context) {
-                                        return context.dataset.label + ': ¥' + context.parsed.y.toFixed(2);
-                                    }
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ¥' + context.parsed.y.toFixed(2);
                                 }
                             }
-                        },
-                        onClick: (_, elements) => {
-                            if (elements.length > 0) {
-                                const clickedIndex = elements[0].index;
-                                const clickedMonth = labels[clickedIndex];
-                                console.log('=== 图表点击事件 ===');
-                                console.log('点击的月份:', clickedMonth);
-                                console.log('点击的索引:', clickedIndex);
-                                console.log('当前标签:', labels);
-                                // 使用保存的实例引用
-                                monthSelectorInstance.selectMonth(clickedMonth);
+                        }
+                    },
+                    onClick: (_, elements) => {
+                        if (elements.length > 0) {
+                            const clickedIndex = elements[0].index;
+                            const clickedMonth = labels[clickedIndex];
+                            console.log('=== 图表点击事件 ===');
+                            console.log('点击的月份:', clickedMonth);
+                            console.log('点击的索引:', clickedIndex);
+                            console.log('当前标签:', labels);
+                            // 使用保存的实例引用
+                            monthSelectorInstance.selectMonth(clickedMonth);
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: {
+                                display: false
                             }
                         },
-                        scales: {
-                            x: {
-                                stacked: true,
-                                grid: {
-                                    display: false
-                                }
-                            },
-                            y: {
-                                stacked: true,
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return '¥' + value.toFixed(0);
-                                    }
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '¥' + value.toFixed(0);
                                 }
                             }
                         }
                     }
-                });
+                }
+            };
+
+            this.chart = ChartHelper.createBarChart('monthly-trend-chart', chartOptions);
+
+            if (this.chart) {
                 console.log('图表创建成功');
             } else {
-                console.error('Chart.js不可用');
+                console.error('图表创建失败');
             }
         } catch (error) {
             console.error('渲染图表失败:', error);
@@ -702,9 +703,7 @@ class CategoryDetails {
                 </div>
             `;
             // 重新初始化图标
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
+            this.initializeIcons();
             return;
         }
 
@@ -759,9 +758,7 @@ class CategoryDetails {
         }).join('');
 
         // 重新初始化Lucide图标
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
+        this.initializeIcons();
 
         console.log('=== renderCategoryExpenses 完成 ===');
         console.log('已渲染分类数量:', sortedCategories.length);
@@ -884,9 +881,7 @@ class CategoryDetails {
                         merchantsContainer.innerHTML = this.renderCategoryMerchantDetails(categoryData.merchants);
 
                         // 重新初始化Lucide图标
-                        if (typeof lucide !== 'undefined') {
-                            lucide.createIcons();
-                        }
+                        this.initializeIcons();
                     }
                 }
             }
@@ -928,8 +923,9 @@ class CategoryDetails {
     }
 }
 
-class ExpenseAnalysisPage {
+class ExpenseAnalysisPage extends BasePage {
     constructor() {
+        super();
         this.chart = null;
         this.data = null;
         this.expandedCategories = new Set(); // 展开的分类
@@ -1113,9 +1109,7 @@ class ExpenseAnalysisPage {
                 `;
 
                 // 重新初始化图标
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
+                this.initializeIcons();
             }
         }
     }
@@ -1334,9 +1328,7 @@ class ExpenseAnalysisPage {
                 `;
 
                 // 重新初始化图标
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
+                this.initializeIcons();
             }
 
             this.showToast('获取商户详情失败: ' + error.message, 'error');
@@ -1374,9 +1366,7 @@ class ExpenseAnalysisPage {
         this.initializeMerchantModalInteractions();
 
         // 重新初始化Lucide图标
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
+        this.initializeIcons();
     }
 
     /**
@@ -1544,9 +1534,7 @@ class ExpenseAnalysisPage {
                         const icon = toggleBtn.querySelector('i[data-lucide]');
                         if (icon) {
                             icon.setAttribute('data-lucide', 'chevron-up');
-                            if (typeof lucide !== 'undefined') {
-                                lucide.createIcons();
-                            }
+                            this.initializeIcons();
                         }
                     }
                 }
@@ -1581,9 +1569,7 @@ class ExpenseAnalysisPage {
                                 textNode.textContent = newText;
                             }
 
-                            if (typeof lucide !== 'undefined') {
-                                lucide.createIcons();
-                            }
+                            this.initializeIcons();
                         }
                     }
                 }, 150);
@@ -1761,6 +1747,8 @@ class ExpenseAnalysisPage {
         }
     }
 }
+
+// 图标初始化现在使用继承自BasePage的initializeIcons()方法
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {

@@ -3,7 +3,7 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { getCSSColor } from '../common/utils.js';
+import { getCSSColor, ChartHelper } from '../common/utils.js';
 
 export default class FinancialDashboard extends BasePage {
     constructor() {
@@ -38,12 +38,37 @@ export default class FinancialDashboard extends BasePage {
     }
     
     initializeCharts() {
-        // 净现金趋势图
-        this.charts.netWorth = new Chart(document.getElementById('netWorthChart'), {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: '净现金', data: [], borderColor: getCSSColor('--bs-primary'), backgroundColor: getCSSColor('--bs-primary-100'), fill: true, tension: 0.4 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: 'auto', align: 'top', anchor: 'end', offset: 8, font: { size: 10 }, color: '#6c757d', formatter: (value) => '¥' + value.toLocaleString('zh-CN', { notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: 1 }) } }, scales: { y: { beginAtZero: false, ticks: { callback: (value) => '¥' + value.toLocaleString() } } } }
-        });
+        // 净现金趋势图 - 使用ChartHelper
+        const chartOptions = {
+            data: {
+                datasets: [{
+                    label: '净现金',
+                    borderColor: getCSSColor('--bs-primary'),
+                    backgroundColor: getCSSColor('--bs-primary-100'),
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                plugins: {
+                    datalabels: {
+                        display: 'auto',
+                        align: 'top',
+                        anchor: 'end',
+                        offset: 8,
+                        font: { size: 10 },
+                        color: '#6c757d',
+                        formatter: (value) => '¥' + value.toLocaleString('zh-CN', {
+                            notation: 'compact',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 1
+                        })
+                    }
+                }
+            }
+        };
+
+        this.charts.netWorth = ChartHelper.createLineChart('netWorthChart', chartOptions);
     }
 
     updateDashboard(data) {

@@ -309,10 +309,8 @@ export default class TransactionsPage extends BasePage {
             }
         });
         
-        // 初始化 Lucide Icons
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
+        // 初始化 Lucide Icons - 使用继承的方法
+        this.initializeIcons();
         
         // 显示或隐藏筛选条件区域
         this.elements.activeFiltersContainer.style.display = hasActiveFilters ? 'block' : 'none';

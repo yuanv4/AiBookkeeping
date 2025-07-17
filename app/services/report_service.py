@@ -23,10 +23,10 @@ from sqlalchemy.orm import Session
 from .data_service import DataService
 from .merchant_classification_service import MerchantClassificationService
 from .models import (
-    Period, CompositionItem, TrendPoint, PeriodSummary,
-    AccountSummary, DashboardData, ExpenseItem,
+    DashboardData,  # 保留复杂DTO类
     create_period, create_composition_item, create_trend_point,
-    decimal_to_float, ReportConstants
+    create_period_summary, create_account_summary, create_expense_item,
+    decimal_to_float, ReportConstants, DateUtils, DataConverters
 )
 
 logger = logging.getLogger(__name__)
@@ -139,8 +139,8 @@ class ReportService:
     def get_monthly_trend(self, months: int = 12) -> List[Dict[str, Any]]:
         """获取月度收支趋势"""
         try:
-            end_date = date.today()
-            start_date = end_date - relativedelta(months=months)
+            # 使用DateUtils计算日期范围
+            start_date, end_date = DateUtils.get_date_range(months)
             
             trends = []
             current_date = start_date.replace(day=1)  # 从月初开始
@@ -179,7 +179,10 @@ class ReportService:
     def get_expense_composition(self, start_date: date, end_date: date, limit: int = 10) -> List[Dict[str, Any]]:
         """获取支出构成分析"""
         try:
-            # 按交易对手分组统计支出
+            # 按交易对手分组统计支出 - 性能优化建议：
+            # 1. 为Transaction表添加复合索引：(amount, date, counterparty)
+            # 2. 考虑使用数据库视图预计算常用聚合结果
+            # 3. 对于大数据量，考虑添加缓存机制
             query = self.db.query(
                 Transaction.counterparty,
                 func.sum(func.abs(Transaction.amount)).label('total_amount'),
@@ -253,9 +256,8 @@ class ReportService:
     def get_dashboard_data(self, months: int = 12) -> Dict[str, Any]:
         """获取仪表盘数据"""
         try:
-            # 计算时间范围
-            end_date = date.today()
-            start_date = end_date - relativedelta(months=months)
+            # 计算时间范围 - 使用DateUtils
+            start_date, end_date = DateUtils.get_date_range(months)
             
             # 获取当前总资产
             current_assets = self.get_current_total_assets()

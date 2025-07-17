@@ -45,6 +45,26 @@
     }
 }
 
+/* 卡片悬停效果 - 统一样式 */
+.card-hover-effect {
+    transition: var(--bs-transition);
+}
+
+.card-hover-effect:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--bs-box-shadow-lg);
+}
+
+/* 轻微悬停效果（用于按钮等小元素） */
+.card-hover-effect-subtle {
+    transition: var(--bs-transition);
+}
+
+.card-hover-effect-subtle:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow);
+}
+
 /* 加载状态卡片 */
 .card-loading {
     position: relative;
@@ -608,7 +628,23 @@
     position: relative;
 }
 
+/* 图表加载状态 - 统一样式 */
 .chart-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--bs-gray-500);
+    z-index: 10;
+}
+
+.chart-loading .spinner-border {
+    color: var(--bs-primary);
+}
+
+/* 图表加载遮罩（全覆盖版本） */
+.chart-loading-overlay {
     position: absolute;
     top: 0;
     left: 0;
@@ -619,6 +655,7 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--bs-border-radius);
+    z-index: 10;
 }
 
 .chart-actions .btn {

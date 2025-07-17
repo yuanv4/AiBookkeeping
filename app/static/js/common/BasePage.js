@@ -42,6 +42,23 @@ export default class BasePage {
     }
     
     /**
+     * 初始化Lucide图标
+     * 统一的图标初始化方法，避免重复调用
+     */
+    initializeIcons() {
+        try {
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
+                console.log('Lucide图标初始化成功');
+            } else {
+                console.warn('Lucide图标库未加载');
+            }
+        } catch (error) {
+            console.error('初始化Lucide图标失败:', error);
+        }
+    }
+
+    /**
      * 页面销毁清理
      * 子类可以重写此方法来定义清理逻辑
      */
@@ -49,4 +66,4 @@ export default class BasePage {
         // 移除事件监听器等清理工作
         // 子类实现
     }
-} 
+}

@@ -8,17 +8,16 @@
    ======================================== */
 
 .category-summary-card {
-    transition: var(--bs-transition);
     cursor: pointer;
     border: var(--border-width-thin) solid var(--bs-border-color);
     margin-bottom: var(--spacing-3);
 }
 
 .category-summary-card:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--bs-box-shadow-lg);
     border-color: var(--bs-primary-200);
 }
+
+/* 注意：已使用通用悬停效果类 card-hover-effect-subtle，移除重复的悬停动画 */
 
 .category-summary-card .card-body {
     transition: var(--bs-transition);
@@ -58,39 +57,18 @@
 }
 
 /* ========================================
-   商户详情表格样式
+   商户详情表格样式 - 简化版，使用标准表格样式
    ======================================== */
+
+/* 注意：表格样式已统一使用 .standard-table 类，参考 transactions.html */
+/* 仅保留支出分析页面特定的表格定制 */
 
 .category-details .table {
     margin-bottom: 0;
     background-color: var(--bs-gray-50);
 }
 
-.category-details .table th {
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
-    color: var(--bs-gray-700);
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-    background-color: var(--bs-gray-100);
-    border-bottom: var(--border-width-medium) solid var(--bs-gray-200);
-}
-
-.category-details .table td {
-    vertical-align: middle;
-    border-top: var(--border-width-thin) solid var(--bs-gray-200);
-    background-color: var(--surface-card);
-}
-
-.category-details .table tbody tr:hover {
-    background-color: var(--bs-primary-50);
-}
-
-.category-details .table-responsive {
-    border-radius: var(--bs-border-radius);
-    overflow: hidden;
-    box-shadow: var(--bs-box-shadow-sm);
-}
+/* 移除了重复的表格样式定义，使用标准表格样式类 */
 
 /* ========================================
    图表交互样式
@@ -114,18 +92,7 @@
     transform: scale(1.002);
 }
 
-/* 图表加载状态 */
-.chart-loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10;
-}
-
-.chart-loading .spinner-border {
-    color: var(--bs-primary);
-}
+/* 图表加载状态样式已移至 components.css */
 
 /* 图表月份高亮指示器 */
 .chart-month-indicator {
@@ -415,14 +382,7 @@ mark.bg-warning {
 }
 
 /* 筛选按钮样式 */
-#apply-filters-btn {
-    transition: var(--bs-transition);
-}
-
-#apply-filters-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--bs-box-shadow);
-}
+/* #apply-filters-btn 使用通用悬停效果类 - 在HTML中添加 card-hover-effect-subtle 类 */
 
 #clear-filters-btn {
     transition: var(--bs-transition);
@@ -550,14 +510,7 @@ mark.bg-warning {
         min-height: 400px;
     }
 
-    .category-summary-card {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .category-summary-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-    }
+    /* 大屏幕下使用通用悬停效果类 card-hover-effect */
 
 
 }
@@ -670,10 +623,10 @@ mark.bg-warning {
 }
 
 .merchant-stats-grid .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
     border-color: var(--bs-primary-200);
 }
+
+/* merchant-stats-grid .stat-card 使用通用悬停效果类 card-hover-effect */
 
 .merchant-stats-grid .stat-card:hover::after {
     opacity: 1;
@@ -762,16 +715,12 @@ mark.bg-warning {
 
 /* 展开/折叠按钮样式 */
 .expand-toggle-btn {
-    transition: all 0.2s ease;
     border-radius: var(--bs-border-radius-pill);
     font-size: 0.875rem;
     padding: 0.5rem 1rem;
 }
 
-.expand-toggle-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
-}
+/* expand-toggle-btn 使用通用悬停效果类 card-hover-effect-subtle */
 
 .expand-toggle-btn i {
     transition: transform 0.2s ease;

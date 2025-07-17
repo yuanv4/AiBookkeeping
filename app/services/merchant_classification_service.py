@@ -15,6 +15,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import Transaction, db
+from .models import DateUtils
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class MerchantClassificationService:
         """
         self.db = db_session or db.session
         self.logger = logging.getLogger(__name__)
-        
+
         # 商户分类关键词配置
         self.category_keywords = {
             'dining': [
@@ -69,7 +70,38 @@ class MerchantClassificationService:
         self.excluded_keywords = [
             '游戏', '娱乐', 'ktv', '酒吧', '电影', '健身', '运动'
         ]
-    
+
+    def _build_expense_query(self, start_date=None, end_date=None, counterparty_filter=None):
+        """构建支出交易的基础查询 - 统一查询构建器
+
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            counterparty_filter: 交易对手过滤条件
+
+        Returns:
+            Query: 配置好的查询对象
+        """
+        # 基础查询条件：支出交易且有有效交易对手
+        # 建议：为Transaction表添加复合索引：(amount, date, counterparty)
+        query = self.db.query(Transaction).filter(
+            Transaction.amount < 0,
+            Transaction.counterparty.isnot(None),
+            Transaction.counterparty != ''
+        )
+
+        # 添加日期范围过滤
+        if start_date:
+            query = query.filter(Transaction.date >= start_date)
+        if end_date:
+            query = query.filter(Transaction.date <= end_date)
+
+        # 添加交易对手过滤
+        if counterparty_filter:
+            query = query.filter(Transaction.counterparty.ilike(f'%{counterparty_filter}%'))
+
+        return query
+
     def classify_merchant(self, merchant_name: str) -> str:
         """
         对商户进行分类
@@ -184,11 +216,12 @@ class MerchantClassificationService:
                 if not end_date:
                     end_date = date.today()
                 if not start_date:
-                    from dateutil.relativedelta import relativedelta
-                    start_date = end_date - relativedelta(months=6)
+                    # 使用DateUtils计算6个月前的日期
+                    start_date, _ = DateUtils.get_date_range(6, end_date)
                 self.logger.info(f"开始分析支出数据，时间范围：{start_date} 到 {end_date}")
 
-            # 构建查询条件
+            # 构建查询条件 - 优化：使用索引字段进行过滤
+            # 建议：为Transaction表的amount、counterparty、date字段添加数据库索引以提升查询性能
             query = self.db.query(Transaction).filter(
                 Transaction.amount < 0,
                 Transaction.counterparty.isnot(None),
@@ -328,9 +361,10 @@ class MerchantClassificationService:
             包含月份列表和统计信息的字典
         """
         try:
-            from dateutil.relativedelta import relativedelta
+            # 使用DateUtils获取最近6个月的数据
 
-            # 查询所有支出交易
+            # 查询所有支出交易 - 性能优化建议：考虑添加分页或限制结果数量
+            # 对于大量数据，建议使用 .limit() 或分批处理避免内存问题
             transactions = self.db.query(Transaction).filter(
                 Transaction.amount < 0,
                 Transaction.counterparty.isnot(None),
@@ -480,9 +514,8 @@ class MerchantClassificationService:
             月度趋势数据列表
         """
         try:
-            from dateutil.relativedelta import relativedelta
-            end_date = date.today()
-            start_date = end_date - relativedelta(months=months)
+            # 使用DateUtils计算日期范围
+            start_date, end_date = DateUtils.get_date_range(months)
 
             # 查询该类别的所有交易
             transactions = self.db.query(Transaction).filter(
@@ -535,9 +568,8 @@ class MerchantClassificationService:
             商户详情列表
         """
         try:
-            from dateutil.relativedelta import relativedelta
-            end_date = date.today()
-            start_date = end_date - relativedelta(months=6)
+            # 使用DateUtils计算最近6个月的日期范围
+            start_date, end_date = DateUtils.get_date_range(6)
 
             # 查询所有支出交易
             transactions = self.db.query(Transaction).filter(
@@ -608,8 +640,6 @@ class MerchantClassificationService:
             商户交易详情
         """
         try:
-            from datetime import datetime, date
-            from dateutil.relativedelta import relativedelta
 
             # 构建基础查询
             query = self.db.query(Transaction).filter(
@@ -622,12 +652,8 @@ class MerchantClassificationService:
             month_end = None
             if month:
                 try:
-                    # 解析月份参数
-                    month_date = datetime.strptime(month, '%Y-%m').date()
-                    month_start = month_date.replace(day=1)
-                    # 计算月末日期
-                    next_month = month_start + relativedelta(months=1)
-                    month_end = next_month - relativedelta(days=1)
+                    # 使用DateUtils计算月份边界
+                    month_start, month_end = DateUtils.get_month_boundaries(month)
 
                     # 添加日期范围筛选
                     query = query.filter(

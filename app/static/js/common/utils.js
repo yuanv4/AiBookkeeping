@@ -391,6 +391,79 @@ export const apiService = {
                 this.showLoading(false);
             }
         }
+    },
+
+    /**
+     * 标准化的POST请求方法
+     * 统一处理加载状态、错误处理和成功回调
+     * @param {string} url - 请求URL
+     * @param {Object|FormData} data - 请求数据
+     * @param {Object} options - 配置选项
+     * @param {boolean} options.showLoading - 是否显示加载状态，默认true
+     * @param {string} options.errorHandler - 错误处理方式，'default'|'silent'|'custom'
+     * @param {Function} options.successCallback - 成功回调函数
+     * @param {Function} options.errorCallback - 自定义错误回调函数
+     * @returns {Promise<Object>} API响应结果
+     */
+    async standardPost(url, data, options = {}) {
+        const {
+            showLoading = true,
+            errorHandler = 'default',
+            successCallback = null,
+            errorCallback = null
+        } = options;
+
+        try {
+            // 调用原有的post方法
+            const result = await this.post(url, data, { showLoading });
+
+            // 处理成功响应
+            if (result.success) {
+                if (successCallback && typeof successCallback === 'function') {
+                    successCallback(result);
+                }
+                return result;
+            } else {
+                // 处理业务逻辑错误
+                const errorMessage = result.error || '操作失败';
+                this.handleStandardError(errorMessage, errorHandler, errorCallback);
+                return result;
+            }
+        } catch (error) {
+            // 处理网络或其他异常
+            const errorMessage = error.message || '网络请求失败';
+            this.handleStandardError(errorMessage, errorHandler, errorCallback);
+            return { success: false, error: errorMessage };
+        }
+    },
+
+    /**
+     * 统一的错误处理方法
+     * @param {string} errorMessage - 错误消息
+     * @param {string} errorHandler - 错误处理方式
+     * @param {Function} errorCallback - 自定义错误回调
+     */
+    handleStandardError(errorMessage, errorHandler, errorCallback) {
+        switch (errorHandler) {
+            case 'silent':
+                // 静默处理，不显示错误
+                console.error('API错误 (静默):', errorMessage);
+                break;
+            case 'custom':
+                // 使用自定义错误处理
+                if (errorCallback && typeof errorCallback === 'function') {
+                    errorCallback(errorMessage);
+                } else {
+                    console.warn('自定义错误处理器未定义，使用默认处理');
+                    showNotification(`错误: ${errorMessage}`, 'error');
+                }
+                break;
+            case 'default':
+            default:
+                // 默认错误处理：显示通知
+                showNotification(`错误: ${errorMessage}`, 'error');
+                break;
+        }
     }
 };
 
@@ -618,4 +691,216 @@ export const ui = {
             modal.show();
         });
     }
-}; 
+};
+
+/**
+ * 图表相关功能
+ * 统一的图表初始化和管理工具
+ */
+export const ChartHelper = {
+    /**
+     * 创建线性图表
+     * @param {string} canvasId - Canvas元素ID
+     * @param {Object} options - 图表配置选项
+     * @returns {Chart|null} Chart.js实例
+     */
+    createLineChart(canvasId, options = {}) {
+        try {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.warn(`ChartHelper: 找不到canvas元素 #${canvasId}`);
+                return null;
+            }
+
+            const defaultOptions = {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '数据',
+                        data: [],
+                        borderColor: getCSSColor('--bs-primary') || '#007bff',
+                        backgroundColor: getCSSColor('--bs-primary-100') || 'rgba(0, 123, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: (value) => '¥' + value.toLocaleString()
+                            }
+                        }
+                    }
+                }
+            };
+
+            // 合并用户配置
+            const config = this.mergeChartConfig(defaultOptions, options);
+
+            return new Chart(canvas, config);
+        } catch (error) {
+            console.error(`ChartHelper: 创建线性图表失败 (${canvasId}):`, error);
+            return null;
+        }
+    },
+
+    /**
+     * 创建柱状图表
+     * @param {string} canvasId - Canvas元素ID
+     * @param {Object} options - 图表配置选项
+     * @returns {Chart|null} Chart.js实例
+     */
+    createBarChart(canvasId, options = {}) {
+        try {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.warn(`ChartHelper: 找不到canvas元素 #${canvasId}`);
+                return null;
+            }
+
+            const defaultOptions = {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '支出金额',
+                        data: [],
+                        backgroundColor: getCSSColor('--bs-primary') || '#007bff',
+                        borderColor: getCSSColor('--bs-primary-600') || '#0056b3',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => '¥' + value.toLocaleString()
+                            }
+                        }
+                    }
+                }
+            };
+
+            // 合并用户配置
+            const config = this.mergeChartConfig(defaultOptions, options);
+
+            return new Chart(canvas, config);
+        } catch (error) {
+            console.error(`ChartHelper: 创建柱状图表失败 (${canvasId}):`, error);
+            return null;
+        }
+    },
+
+    /**
+     * 更新图表数据
+     * @param {Chart} chart - Chart.js实例
+     * @param {Object} newData - 新数据 {labels: [], data: []}
+     */
+    updateChartData(chart, newData) {
+        if (!chart || !newData) {
+            console.warn('ChartHelper: updateChartData 参数无效');
+            return;
+        }
+
+        try {
+            if (newData.labels) {
+                chart.data.labels = newData.labels;
+            }
+            if (newData.data && chart.data.datasets[0]) {
+                chart.data.datasets[0].data = newData.data;
+            }
+            chart.update();
+        } catch (error) {
+            console.error('ChartHelper: 更新图表数据失败:', error);
+        }
+    },
+
+    /**
+     * 显示图表加载状态
+     * @param {string} containerId - 图表容器ID
+     */
+    showChartLoading(containerId) {
+        try {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.warn(`ChartHelper: 找不到容器 #${containerId}`);
+                return;
+            }
+
+            // 移除现有的加载指示器
+            this.hideChartLoading(containerId);
+
+            // 创建加载指示器
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'chart-loading';
+            loadingDiv.id = `${containerId}-loading`;
+            loadingDiv.innerHTML = `
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+                <div class="mt-2 text-muted">正在加载图表数据...</div>
+            `;
+
+            container.appendChild(loadingDiv);
+        } catch (error) {
+            console.error('ChartHelper: 显示加载状态失败:', error);
+        }
+    },
+
+    /**
+     * 隐藏图表加载状态
+     * @param {string} containerId - 图表容器ID
+     */
+    hideChartLoading(containerId) {
+        try {
+            const loadingElement = document.getElementById(`${containerId}-loading`);
+            if (loadingElement) {
+                loadingElement.remove();
+            }
+        } catch (error) {
+            console.error('ChartHelper: 隐藏加载状态失败:', error);
+        }
+    },
+
+    /**
+     * 深度合并图表配置
+     * @param {Object} defaultConfig - 默认配置
+     * @param {Object} userConfig - 用户配置
+     * @returns {Object} 合并后的配置
+     */
+    mergeChartConfig(defaultConfig, userConfig) {
+        const merged = JSON.parse(JSON.stringify(defaultConfig));
+
+        function deepMerge(target, source) {
+            for (const key in source) {
+                if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                    target[key] = target[key] || {};
+                    deepMerge(target[key], source[key]);
+                } else {
+                    target[key] = source[key];
+                }
+            }
+        }
+
+        deepMerge(merged, userConfig);
+        return merged;
+    }
+};

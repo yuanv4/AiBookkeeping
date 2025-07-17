@@ -17,15 +17,11 @@
    ======================================== */
 
 .kpi-card {
-    transition: var(--bs-transition);
     border: none;
     box-shadow: var(--bs-box-shadow-sm);
 }
 
-.kpi-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--bs-box-shadow-lg);
-}
+/* 使用通用悬停效果类 - 在HTML中添加 card-hover-effect 类 */
 
 .kpi-icon {
     width: 3rem;
@@ -69,14 +65,7 @@
     position: relative;
 }
 
-.chart-loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    color: var(--bs-gray-500);
-}
+/* 图表加载状态样式已移至 components.css */
 
 /* ========================================
    交易详情滚动区域
