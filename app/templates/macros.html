@@ -609,22 +609,3 @@
   {% endif %}
 </div>
 {% endmacro %}
-
-{# 错误状态宏 #}
-{% macro error_state(message="出现错误", description="", icon="alert-circle", show_retry=false, retry_action="") %}
-<div class="error-state text-center py-5">
-    <div class="error-icon mb-3">
-        <i data-lucide="{{ icon }}" class="text-danger" style="width: 3rem; height: 3rem;"></i>
-    </div>
-    <h5 class="error-title text-danger mb-2">{{ message }}</h5>
-    {% if description %}
-    <p class="error-description text-muted mb-3">{{ description }}</p>
-    {% endif %}
-    {% if show_retry and retry_action %}
-    <button type="button" class="btn btn-outline-primary" onclick="{{ retry_action }}">
-        <i data-lucide="refresh-cw" class="me-1" style="width: 1rem; height: 1rem;"></i>
-        重试
-    </button>
-    {% endif %}
-</div>
-{% endmacro %}
