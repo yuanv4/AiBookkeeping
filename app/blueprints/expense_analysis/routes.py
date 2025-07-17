@@ -19,7 +19,7 @@ def index():
 
 
 
-@expense_analysis_bp.route('/api/merchant-analysis')
+@expense_analysis_bp.route('/api/merchant-analysis', methods=['GET', 'POST'])
 @handle_errors
 def api_merchant_analysis():
     """获取商户分类支出分析数据API"""
@@ -121,7 +121,7 @@ def api_merchant_analysis():
 
 
 
-@expense_analysis_bp.route('/api/available-months')
+@expense_analysis_bp.route('/api/available-months', methods=['GET', 'POST'])
 @handle_errors
 def api_available_months():
     """获取可用月份列表API"""
@@ -145,7 +145,7 @@ def api_available_months():
         }), 500
 
 
-@expense_analysis_bp.route('/api/merchant-details/<merchant_name>')
+@expense_analysis_bp.route('/api/merchant-details/<merchant_name>', methods=['GET', 'POST'])
 @handle_errors
 def api_merchant_details(merchant_name):
     """获取商户详情API"""

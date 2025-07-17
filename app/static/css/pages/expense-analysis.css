@@ -19,13 +19,7 @@
 
 /* 注意：已使用通用悬停效果类 card-hover-effect-subtle，移除重复的悬停动画 */
 
-.category-summary-card .card-body {
-    transition: var(--bs-transition);
-}
-
-.category-summary-card .card-body:hover {
-    background-color: var(--bs-primary-50);
-}
+/* 移除重复的悬停效果 - 现在使用通用类 card-hover-effect-subtle */
 
 /* ========================================
    分类详情展开动画
@@ -232,16 +226,7 @@
     }
 }
 
-@keyframes fadeInScale {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
+/* 注意：fadeInScale动画已在第106-115行定义，移除重复定义 */
 
 /* 分类卡片动画 */
 .category-summary-card {
@@ -260,24 +245,7 @@
     animation: fadeInScale 0.3s ease;
 }
 
-/* 加载状态指示器 */
-.loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    border-radius: var(--bs-border-radius);
-}
-
-.loading-overlay .spinner-border {
-    color: var(--bs-primary);
-}
+/* 注意：loading-overlay样式已在components.css中定义，移除重复定义 */
 
 /* 数据更新动画 */
 .data-updating {
@@ -395,15 +363,7 @@ mark.bg-warning {
     color: white;
 }
 
-/* 图表点击反馈 */
-#monthly-trend-chart {
-    cursor: pointer;
-    transition: var(--bs-transition);
-}
-
-#monthly-trend-chart:hover {
-    opacity: 0.9;
-}
+/* 注意：#monthly-trend-chart的transition已在第80行定义，移除重复 */
 
 /* 空状态样式 */
 .empty-filter-result {
@@ -685,32 +645,10 @@ mark.bg-warning {
     box-shadow: var(--bs-box-shadow-sm);
 }
 
-/* 参考transactions.html的表格样式 */
+/* 注意：表格样式使用标准.table类，仅保留页面特定定制 */
 .merchant-transactions-section .table {
     margin-bottom: 0;
     background-color: white;
-}
-
-.merchant-transactions-section .table th {
-    background-color: var(--bs-gray-50);
-    font-weight: 600;
-    color: var(--bs-gray-700);
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-    font-size: 0.75rem;
-    border-bottom: 2px solid var(--bs-gray-200);
-    padding: 1rem 0.75rem;
-}
-
-.merchant-transactions-section .table td {
-    vertical-align: middle;
-    border-top: 1px solid var(--bs-gray-200);
-    padding: 0.75rem;
-    background-color: white;
-}
-
-.merchant-transactions-section .table tbody tr:hover {
-    background-color: var(--bs-primary-50);
 }
 
 /* 展开/折叠按钮样式 */

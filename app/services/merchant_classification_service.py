@@ -15,7 +15,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import Transaction, db
-from .models import DateUtils
+from .models import DateUtils, DataConverters
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +101,105 @@ class MerchantClassificationService:
             query = query.filter(Transaction.counterparty.ilike(f'%{counterparty_filter}%'))
 
         return query
+
+    def _process_date_filters(self, start_date: Optional[date], end_date: Optional[date]) -> Tuple[bool, Optional[date], Optional[date]]:
+        """处理日期过滤参数
+
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+
+        Returns:
+            Tuple[bool, Optional[date], Optional[date]]: (是否使用日期过滤, 处理后的开始日期, 处理后的结束日期)
+        """
+        # 设置默认日期范围（最近6个月），但允许None值表示不限制
+        use_date_filter = True
+        if start_date is None and end_date is None:
+            # 如果两个都是None，则不使用日期过滤
+            use_date_filter = False
+            self.logger.info("开始分析支出数据，不限制时间范围（获取所有历史数据）")
+        else:
+            # 设置默认值
+            if not end_date:
+                end_date = date.today()
+            if not start_date:
+                # 使用DateUtils计算6个月前的日期
+                start_date, _ = DateUtils.get_date_range(6, end_date)
+            self.logger.info(f"开始分析支出数据，时间范围：{start_date} 到 {end_date}")
+
+        return use_date_filter, start_date, end_date
+
+    def _aggregate_expense_data(self, transactions: List, category_filter: Optional[str], search_term: Optional[str]) -> Tuple[Dict[str, Any], float]:
+        """聚合支出数据按类别和商户
+
+        Args:
+            transactions: 交易记录列表
+            category_filter: 分类筛选
+            search_term: 搜索词筛选
+
+        Returns:
+            Tuple[Dict[str, Any], float]: (按类别组织的数据, 总支出金额)
+        """
+        category_data = {}
+        total_expense = 0.0
+
+        for transaction in transactions:
+            category = self.classify_merchant(transaction.counterparty)
+            merchant = transaction.counterparty
+            amount = DataConverters.decimal_to_float(abs(transaction.amount))
+
+            # 应用分类筛选
+            if category_filter and category != category_filter:
+                continue
+
+            # 应用搜索筛选
+            if search_term and search_term.lower() not in merchant.lower():
+                continue
+
+            total_expense += amount
+
+            if category not in category_data:
+                category_data[category] = {
+                    'total_amount': 0.0,
+                    'transaction_count': 0,
+                    'merchants': {},
+                    'monthly_data': {}
+                }
+
+            # 累加类别总金额
+            category_data[category]['total_amount'] += amount
+            category_data[category]['transaction_count'] += 1
+
+            # 按商户汇总
+            if merchant not in category_data[category]['merchants']:
+                category_data[category]['merchants'][merchant] = {
+                    'total_amount': 0.0,
+                    'transaction_count': 0,
+                    'avg_amount': 0.0,
+                    'last_date': None
+                }
+
+            # 更新商户数据
+            merchant_data = category_data[category]['merchants'][merchant]
+            merchant_data['total_amount'] += amount
+            merchant_data['transaction_count'] += 1
+            merchant_data['avg_amount'] = merchant_data['total_amount'] / merchant_data['transaction_count']
+
+            # 更新最后交易日期
+            if merchant_data['last_date'] is None or transaction.date > merchant_data['last_date']:
+                merchant_data['last_date'] = transaction.date
+
+            # 按月份汇总
+            month_key = transaction.date.strftime('%Y-%m')
+            if month_key not in category_data[category]['monthly_data']:
+                category_data[category]['monthly_data'][month_key] = {
+                    'amount': 0.0,
+                    'count': 0
+                }
+            category_data[category]['monthly_data'][month_key]['amount'] += amount
+            category_data[category]['monthly_data'][month_key]['count'] += 1
+
+        return category_data, total_expense
 
     def classify_merchant(self, merchant_name: str) -> str:
         """
@@ -205,97 +304,22 @@ class MerchantClassificationService:
             按类别组织的支出分析数据
         """
         try:
-            # 设置默认日期范围（最近6个月），但允许None值表示不限制
-            use_date_filter = True
-            if start_date is None and end_date is None:
-                # 如果两个都是None，则不使用日期过滤
-                use_date_filter = False
-                self.logger.info("开始分析支出数据，不限制时间范围（获取所有历史数据）")
-            else:
-                # 设置默认值
-                if not end_date:
-                    end_date = date.today()
-                if not start_date:
-                    # 使用DateUtils计算6个月前的日期
-                    start_date, _ = DateUtils.get_date_range(6, end_date)
-                self.logger.info(f"开始分析支出数据，时间范围：{start_date} 到 {end_date}")
+            # 处理日期过滤参数
+            use_date_filter, start_date, end_date = self._process_date_filters(start_date, end_date)
 
-            # 构建查询条件 - 优化：使用索引字段进行过滤
-            # 建议：为Transaction表的amount、counterparty、date字段添加数据库索引以提升查询性能
-            query = self.db.query(Transaction).filter(
-                Transaction.amount < 0,
-                Transaction.counterparty.isnot(None),
-                Transaction.counterparty != ''
-            )
-
-            # 根据需要添加日期过滤
-            if use_date_filter:
-                query = query.filter(
-                    Transaction.date >= start_date,
-                    Transaction.date <= end_date
-                )
-
+            # 使用统一查询构建器获取交易数据
+            query = self._build_expense_query(start_date if use_date_filter else None,
+                                            end_date if use_date_filter else None)
             transactions = query.all()
-            
+
             self.logger.info(f"找到 {len(transactions)} 条支出交易记录")
             
-            # 按商户分类汇总
-            category_data = {}
-            total_expense = 0.0
-            
-            for transaction in transactions:
-                category = self.classify_merchant(transaction.counterparty)
-                merchant = transaction.counterparty
-                amount = float(abs(transaction.amount))
-
-                # 应用分类筛选
-                if category_filter and category != category_filter:
-                    continue
-
-                # 应用搜索筛选
-                if search_term and search_term.lower() not in merchant.lower():
-                    continue
-
-                total_expense += amount
-                
-                if category not in category_data:
-                    category_data[category] = {
-                        'total_amount': 0.0,
-                        'transaction_count': 0,
-                        'merchants': {},
-                        'monthly_data': {}
-                    }
-                
-                # 累加类别总金额
-                category_data[category]['total_amount'] += amount
-                category_data[category]['transaction_count'] += 1
-                
-                # 按商户汇总
-                if merchant not in category_data[category]['merchants']:
-                    category_data[category]['merchants'][merchant] = {
-                        'total_amount': 0.0,
-                        'transaction_count': 0,
-                        'avg_amount': 0.0,
-                        'last_date': None
-                    }
-                
-                merchant_data = category_data[category]['merchants'][merchant]
-                merchant_data['total_amount'] += amount
-                merchant_data['transaction_count'] += 1
-                merchant_data['last_date'] = max(
-                    merchant_data['last_date'] or transaction.date, 
-                    transaction.date
-                )
-                
-                # 按月汇总
-                month_key = transaction.date.strftime('%Y-%m')
-                if month_key not in category_data[category]['monthly_data']:
-                    category_data[category]['monthly_data'][month_key] = 0.0
-                category_data[category]['monthly_data'][month_key] += amount
+            # 使用提取的方法进行数据聚合
+            category_data, total_expense = self._aggregate_expense_data(transactions, category_filter, search_term)
             
             # 计算百分比和平均值
             for category, data in category_data.items():
-                data['percentage'] = (data['total_amount'] / total_expense * 100) if total_expense > 0 else 0
+                data['percentage'] = DataConverters.percentage_to_float(data['total_amount'], total_expense)
                 data['avg_amount'] = data['total_amount'] / data['transaction_count'] if data['transaction_count'] > 0 else 0
                 
                 # 计算商户平均金额并排序
@@ -390,7 +414,7 @@ class MerchantClassificationService:
                     }
 
                 month_stats[month_key]['transaction_count'] += 1
-                month_stats[month_key]['total_amount'] += float(abs(transaction.amount))
+                month_stats[month_key]['total_amount'] += DataConverters.decimal_to_float(abs(transaction.amount))
 
             # 按月份排序
             sorted_months = sorted(month_stats.keys(), reverse=True)
@@ -543,7 +567,7 @@ class MerchantClassificationService:
                         'transaction_count': 0
                     }
 
-                monthly_data[month_key]['amount'] += float(abs(transaction.amount))
+                monthly_data[month_key]['amount'] += DataConverters.decimal_to_float(abs(transaction.amount))
                 monthly_data[month_key]['transaction_count'] += 1
 
             # 转换为列表并排序
@@ -596,7 +620,7 @@ class MerchantClassificationService:
                             'transactions': []
                         }
 
-                    amount = float(abs(transaction.amount))
+                    amount = DataConverters.decimal_to_float(abs(transaction.amount))
                     data = merchant_data[merchant]
                     data['total_amount'] += amount
                     data['transaction_count'] += 1
@@ -641,31 +665,20 @@ class MerchantClassificationService:
         """
         try:
 
-            # 构建基础查询
-            query = self.db.query(Transaction).filter(
-                Transaction.amount < 0,
-                Transaction.counterparty == merchant_name
-            )
-
-            # 添加月份筛选条件
+            # 处理月份筛选条件
             month_start = None
             month_end = None
             if month:
                 try:
                     # 使用DateUtils计算月份边界
                     month_start, month_end = DateUtils.get_month_boundaries(month)
-
-                    # 添加日期范围筛选
-                    query = query.filter(
-                        Transaction.date >= month_start,
-                        Transaction.date <= month_end
-                    )
-
                     self.logger.info(f"筛选商户 {merchant_name} 在 {month} 的交易记录 ({month_start} 到 {month_end})")
-
                 except ValueError as e:
                     self.logger.error(f"月份参数格式错误: {month}, 错误: {e}")
                     # 如果月份格式错误，继续查询所有数据但记录错误
+
+            # 使用统一查询构建器，添加商户名称过滤
+            query = self._build_expense_query(month_start, month_end, merchant_name)
 
             # 执行查询
             transactions = query.order_by(Transaction.date.desc()).limit(limit).all()
@@ -699,7 +712,7 @@ class MerchantClassificationService:
             total_amount = 0.0
 
             for t in transactions:
-                amount = float(abs(t.amount))
+                amount = DataConverters.decimal_to_float(abs(t.amount))
                 total_amount += amount
                 transaction_list.append({
                     'date': t.date.strftime('%Y-%m-%d'),

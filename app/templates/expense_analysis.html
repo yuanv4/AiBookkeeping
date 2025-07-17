@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, card, chart_container, page_header, loading_state, modal, data_table %}
+{% from "macros.html" import icon, card, chart_container, page_header, loading_state, modal, data_table, error_state %}
 
 {% block title %}支出分类分析 - {{ config.APP_NAME }}{% endblock %}
 
@@ -46,19 +46,9 @@
         </div>
     </div>
 
-    <!-- 错误状态 -->
-    <div id="error-state" class="text-center py-5" style="display: none;">
-        <div class="text-danger mb-3">
-            {{ icon('alert-circle', 'fs-1') }}
-        </div>
-        <h5 class="text-danger">数据加载失败</h5>
-        <p class="text-muted mb-3" id="error-message">
-            请稍后重试或联系管理员
-        </p>
-        <button class="btn btn-primary" onclick="location.reload()">
-            {{ icon('refresh-cw', 'me-2') }}
-            重新加载
-        </button>
+    <!-- 错误状态 - 使用统一的error_state宏 -->
+    <div id="error-state" style="display: none;">
+        {{ error_state("数据加载失败", "请稍后重试或联系管理员", "alert-circle", true, "location.reload()") }}
     </div>
 </div>
 

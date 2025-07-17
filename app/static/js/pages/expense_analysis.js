@@ -4,7 +4,7 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { ChartHelper, apiService } from '../common/utils.js';
+import { ChartHelper, apiService, StandardTableGenerator } from '../common/utils.js';
 
 /**
  * 状态管理系统
@@ -174,8 +174,9 @@ class DataLoader {
                 return cached;
             }
 
-            const response = await fetch('/expense-analysis/api/available-months');
-            const result = await response.json();
+            const result = await apiService.standardPost('/expense-analysis/api/available-months', {}, {
+                method: 'GET'
+            });
 
             if (!result.success) {
                 throw new Error(result.error || '获取可用月份失败');
@@ -242,10 +243,9 @@ class DataLoader {
             console.log('请求URL:', url);
             console.log('请求月份:', month);
 
-            const response = await fetch(url);
-            console.log('API响应状态:', response.status);
-
-            const result = await response.json();
+            const result = await apiService.standardPost(url, {}, {
+                method: 'GET'
+            });
             console.log('API响应数据:', result);
 
             if (!result.success) {
@@ -721,7 +721,7 @@ class CategoryDetails {
             const merchantCount = Object.keys(categoryData.merchants || {}).length;
 
             return `
-                <div class="category-summary-card mb-3">
+                <div class="category-summary-card card-hover-effect-subtle mb-3">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body p-3 cursor-pointer" onclick="window.expenseAnalysisPage.categoryDetails.toggleCategoryExpansion('${categoryKey}')">
                             <div class="d-flex align-items-center justify-content-between">
@@ -803,55 +803,51 @@ class CategoryDetails {
             return '<div class="text-muted text-center py-3 small">没有找到匹配的商户</div>';
         }
 
-        return `
-            <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="px-3 py-3 fw-semibold text-muted small border-0">商户名称</th>
-                            <th class="px-3 py-3 fw-semibold text-muted small border-0 text-end">总金额</th>
-                            <th class="px-3 py-3 fw-semibold text-muted small border-0 text-center d-none d-md-table-cell">交易次数</th>
-                            <th class="px-3 py-3 fw-semibold text-muted small border-0 text-center d-none d-lg-table-cell">平均金额</th>
-                            <th class="px-3 py-3 fw-semibold text-muted small border-0 text-center">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${merchantArray.map(merchant => {
-                            // 高亮搜索结果
-                            const highlightedName = this.highlightSearchTerm(merchant.name, this.activeFilters.search);
+        // 使用StandardTableGenerator生成标准表格
+        return StandardTableGenerator.generateTable({
+            id: 'category-merchant-details-table',
+            headers: [
+                '商户名称',
+                '<span class="text-end">总金额</span>',
+                '<span class="text-center d-none d-md-inline">交易次数</span>',
+                '<span class="text-center d-none d-lg-inline">平均金额</span>',
+                '<span class="text-center">操作</span>'
+            ],
+            data: merchantArray,
+            rowRenderer: (merchant) => {
+                // 高亮搜索结果
+                const highlightedName = this.highlightSearchTerm(merchant.name, this.activeFilters.search);
 
-                            return `
-                            <tr>
-                                <td class="px-3 py-2">
-                                    <span class="d-inline-block transaction-cell-truncate" title="${merchant.name}">
-                                        ${highlightedName}
-                                    </span>
-                                    <div class="text-muted small d-md-none">
-                                        ${merchant.transaction_count}次 • 平均¥${merchant.avg_amount.toFixed(0)}
-                                    </div>
-                                </td>
-                                <td class="px-3 py-2 text-end">
-                                    <span class="transaction-amount negative">¥${merchant.total_amount.toFixed(2)}</span>
-                                </td>
-                                <td class="px-3 py-2 text-center d-none d-md-table-cell">
-                                    <span class="badge bg-light text-dark small">${merchant.transaction_count}</span>
-                                </td>
-                                <td class="px-3 py-2 text-center d-none d-lg-table-cell">
-                                    <span class="text-muted small">¥${merchant.avg_amount.toFixed(0)}</span>
-                                </td>
-                                <td class="px-3 py-2 text-center">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="window.expenseAnalysisPage.showMerchantDetail('${merchant.name}')" title="查看详情">
-                                        <i data-lucide="eye" style="width: 0.75rem; height: 0.75rem;"></i>
-                                        <span class="d-none d-sm-inline ms-1 small">详情</span>
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
+                return `
+                    <tr>
+                        <td class="px-3 py-2">
+                            <span class="d-inline-block transaction-cell-truncate" title="${merchant.name}">
+                                ${highlightedName}
+                            </span>
+                            <div class="text-muted small d-md-none">
+                                ${merchant.transaction_count}次 • 平均¥${merchant.avg_amount.toFixed(0)}
+                            </div>
+                        </td>
+                        <td class="px-3 py-2 text-end">
+                            <span class="transaction-amount negative">¥${merchant.total_amount.toFixed(2)}</span>
+                        </td>
+                        <td class="px-3 py-2 text-center d-none d-md-table-cell">
+                            <span class="badge bg-light text-dark small">${merchant.transaction_count}</span>
+                        </td>
+                        <td class="px-3 py-2 text-center d-none d-lg-table-cell">
+                            <span class="text-muted small">¥${merchant.avg_amount.toFixed(0)}</span>
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            <button class="btn btn-sm btn-outline-primary" onclick="window.expenseAnalysisPage.showMerchantDetail('${merchant.name}')" title="查看详情">
+                                <i data-lucide="eye" style="width: 0.75rem; height: 0.75rem;"></i>
+                                <span class="d-none d-sm-inline ms-1 small">详情</span>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            },
+            noDataMessage: "没有找到匹配的商户"
+        });
     }
 
     /**
@@ -1081,8 +1077,9 @@ class ExpenseAnalysisPage extends BasePage {
             }
 
             // 加载新数据
-            const response = await fetch(apiUrl);
-            const data = await response.json();
+            const data = await apiService.standardPost(apiUrl, {}, {
+                method: 'GET'
+            });
 
             if (data.success) {
                 // 缓存数据
@@ -1293,8 +1290,9 @@ class ExpenseAnalysisPage extends BasePage {
             }
 
             // 加载商户详情数据
-            const response = await fetch(apiUrl);
-            const data = await response.json();
+            const data = await apiService.standardPost(apiUrl, {}, {
+                method: 'GET'
+            });
 
             if (data.success) {
                 console.log('商户详情数据加载成功:', data.data);
@@ -1393,7 +1391,7 @@ class ExpenseAnalysisPage extends BasePage {
                             </div>
                         </div>
                         <div class="merchant-actions">
-                            <button class="btn btn-primary btn-sm expand-toggle-btn"
+                            <button class="btn btn-primary btn-sm expand-toggle-btn card-hover-effect-subtle"
                                     data-bs-toggle="collapse"
                                     data-bs-target="#merchantTransactionsCollapse"
                                     aria-expanded="false">
@@ -1406,19 +1404,19 @@ class ExpenseAnalysisPage extends BasePage {
 
                 <div class="merchant-stats-grid row g-3">
                     <div class="col-md-4">
-                        <div class="stat-card" data-stat="total">
+                        <div class="stat-card card-hover-effect" data-stat="total">
                             <div class="stat-value text-danger">¥${statistics.total_amount.toFixed(2)}</div>
                             <div class="stat-label">总支出</div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="stat-card" data-stat="count">
+                        <div class="stat-card card-hover-effect" data-stat="count">
                             <div class="stat-value text-primary">${statistics.transaction_count}</div>
                             <div class="stat-label">交易次数</div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="stat-card" data-stat="average">
+                        <div class="stat-card card-hover-effect" data-stat="average">
                             <div class="stat-value text-success">¥${statistics.average_amount.toFixed(0)}</div>
                             <div class="stat-label">平均金额</div>
                         </div>
@@ -1445,7 +1443,7 @@ class ExpenseAnalysisPage extends BasePage {
                         <i data-lucide="list" class="me-2 text-primary" style="width: 1.25rem; height: 1.25rem;"></i>
                         交易记录
                     </h6>
-                    <button class="btn btn-outline-secondary btn-sm expand-toggle-btn"
+                    <button class="btn btn-outline-secondary btn-sm expand-toggle-btn card-hover-effect-subtle"
                             data-bs-toggle="collapse"
                             data-bs-target="#merchantTransactionsCollapse"
                             aria-expanded="true">
@@ -1688,7 +1686,17 @@ class ExpenseAnalysisPage extends BasePage {
         document.getElementById('loading-state').style.display = 'none';
         document.getElementById('main-content').style.display = 'none';
         document.getElementById('error-state').style.display = 'block';
-        document.getElementById('error-message').textContent = message;
+
+        // 更新错误消息 - 适配error_state宏的结构
+        const errorTitle = document.querySelector('#error-state .error-title');
+        const errorDescription = document.querySelector('#error-state .error-description');
+
+        if (errorTitle) {
+            errorTitle.textContent = message;
+        }
+        if (errorDescription) {
+            errorDescription.textContent = "请稍后重试或联系管理员";
+        }
     }
 
     /**
