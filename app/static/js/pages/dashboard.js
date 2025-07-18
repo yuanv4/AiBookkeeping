@@ -38,34 +38,119 @@ export default class FinancialDashboard extends BasePage {
     }
     
     initializeCharts() {
-        // 净现金趋势图 - 使用ChartHelper
+        // 净现金趋势图 - 使用ECharts
         const chartOptions = {
-            data: {
-                datasets: [{
-                    label: '净现金',
-                    borderColor: getCSSColor('--bs-primary'),
-                    backgroundColor: getCSSColor('--bs-primary-100'),
-                    fill: true,
-                    tension: 0.4
-                }]
+            title: {
+                text: '',
+                show: false
             },
-            options: {
-                plugins: {
-                    datalabels: {
-                        display: 'auto',
-                        align: 'top',
-                        anchor: 'end',
-                        offset: 8,
-                        font: { size: 10 },
-                        color: '#6c757d',
-                        formatter: (value) => '¥' + value.toLocaleString('zh-CN', {
-                            notation: 'compact',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 1
-                        })
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross',
+                    label: {
+                        backgroundColor: getCSSColor('--bs-secondary') || '#6c757d'
+                    }
+                },
+                formatter: (params) => {
+                    if (params && params.length > 0) {
+                        const param = params[0];
+                        return `${param.name}<br/>净现金: ¥${param.value.toLocaleString('zh-CN', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })}`;
+                    }
+                    return '';
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: [],
+                axisLine: {
+                    lineStyle: {
+                        color: getCSSColor('--bs-border-color') || '#dee2e6'
+                    }
+                },
+                axisLabel: {
+                    color: getCSSColor('--bs-secondary') || '#6c757d'
+                }
+            },
+            yAxis: {
+                type: 'value',
+                axisLine: {
+                    lineStyle: {
+                        color: getCSSColor('--bs-border-color') || '#dee2e6'
+                    }
+                },
+                axisLabel: {
+                    color: getCSSColor('--bs-secondary') || '#6c757d',
+                    formatter: (value) => '¥' + value.toLocaleString('zh-CN', {
+                        notation: 'compact',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 1
+                    })
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)'
                     }
                 }
-            }
+            },
+            series: [{
+                name: '净现金',
+                type: 'line',
+                smooth: true,
+                symbol: 'circle',
+                symbolSize: 6,
+                lineStyle: {
+                    color: getCSSColor('--bs-primary') || '#0d6efd',
+                    width: 3
+                },
+                itemStyle: {
+                    color: getCSSColor('--bs-primary') || '#0d6efd'
+                },
+                areaStyle: {
+                    color: {
+                        type: 'linear',
+                        x: 0,
+                        y: 0,
+                        x2: 0,
+                        y2: 1,
+                        colorStops: [{
+                            offset: 0,
+                            color: getCSSColor('--bs-primary-100') || 'rgba(13, 110, 253, 0.2)'
+                        }, {
+                            offset: 1,
+                            color: 'rgba(13, 110, 253, 0.02)'
+                        }]
+                    }
+                },
+                data: [],
+                // 添加数据标签
+                label: {
+                    show: false,
+                    position: 'top',
+                    formatter: (params) => '¥' + params.value.toLocaleString('zh-CN', {
+                        notation: 'compact',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 1
+                    }),
+                    color: getCSSColor('--bs-secondary') || '#6c757d',
+                    fontSize: 10
+                },
+                emphasis: {
+                    label: {
+                        show: true
+                    }
+                }
+            }]
         };
 
         this.charts.netWorth = ChartHelper.createLineChart('netWorthChart', chartOptions);
@@ -95,11 +180,19 @@ export default class FinancialDashboard extends BasePage {
 
     updateNetWorthChart(trendData) {
         if (!trendData || !this.charts.netWorth) return;
-        const labels = trendData.map(d => d.date);
-        const data = trendData.map(d => d.value);
-        this.charts.netWorth.data.labels = labels;
-        this.charts.netWorth.data.datasets[0].data = data;
-        this.charts.netWorth.update();
+
+        try {
+            const labels = trendData.map(d => d.date);
+            const data = trendData.map(d => d.value);
+
+            // 使用ECharts的数据更新方法
+            ChartHelper.updateChartData(this.charts.netWorth, {
+                labels: labels,
+                data: data
+            });
+        } catch (error) {
+            console.error('更新净现金趋势图失败:', error);
+        }
     }
 }
 

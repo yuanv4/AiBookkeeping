@@ -100,29 +100,42 @@ class ExpenseAnalysisPage extends BasePage {
     // 渲染方法
     renderChart() {
         if (!this.categoryData.categories) return;
-        
-        const canvas = document.getElementById('monthly-trend-chart');
-        if (!canvas) return;
-        
+
+        const container = document.getElementById('monthly-trend-chart');
+        if (!container) return;
+
         // 销毁现有图表
         if (this.chart) {
-            this.chart.destroy();
+            ChartHelper.destroyChart('monthly-trend-chart');
             this.chart = null;
         }
-        
+
         // 构建图表数据
-        const chartData = this.buildChartData();
-        
-        this.chart = ChartHelper.createBarChart('monthly-trend-chart', {
-            data: chartData,
-            options: this.getChartOptions()
+        const chartData = this.buildEChartsData();
+
+        // 创建ECharts堆叠柱状图
+        this.chart = ChartHelper.createStackedBarChart('monthly-trend-chart', {
+            xAxis: {
+                data: chartData.labels
+            },
+            series: chartData.series
         });
+
+        // 添加点击事件
+        if (this.chart) {
+            this.chart.on('click', (params) => {
+                if (params.componentType === 'series') {
+                    const clickedMonth = params.name;
+                    this.selectMonth(clickedMonth);
+                }
+            });
+        }
     }
 
-    buildChartData() {
+    buildEChartsData() {
         const { categories } = this.categoryData;
         const monthlyDataMap = {};
-        
+
         // 收集月度数据
         Object.keys(categories).forEach(categoryKey => {
             const categoryData = categories[categoryKey];
@@ -135,11 +148,11 @@ class ExpenseAnalysisPage extends BasePage {
                 });
             }
         });
-        
+
         // 准备图表数据
         const allMonths = Object.keys(monthlyDataMap).sort();
         const selectedIndex = allMonths.indexOf(this.selectedMonth);
-        
+
         let labels;
         if (selectedIndex >= 0) {
             const endIndex = selectedIndex + 1;
@@ -148,81 +161,90 @@ class ExpenseAnalysisPage extends BasePage {
         } else {
             labels = allMonths.slice(-5);
         }
-        
-        return {
-            labels: labels,
-            datasets: [
-                {
-                    label: '餐饮支出',
-                    data: labels.map(month => monthlyDataMap[month]?.dining || 0),
-                    backgroundColor: 'rgba(13, 110, 253, 0.8)',
+
+        // 构建ECharts系列数据
+        const series = [
+            {
+                name: '餐饮支出',
+                type: 'bar',
+                stack: 'expenses',
+                data: labels.map(month => monthlyDataMap[month]?.dining || 0),
+                itemStyle: {
+                    color: 'rgba(13, 110, 253, 0.8)',
                     borderColor: 'rgba(13, 110, 253, 1)',
                     borderWidth: 1,
-                    stack: 'expenses'
+                    borderRadius: [0, 0, 0, 0]
                 },
-                {
-                    label: '交通支出',
-                    data: labels.map(month => monthlyDataMap[month]?.transport || 0),
-                    backgroundColor: 'rgba(25, 135, 84, 0.8)',
-                    borderColor: 'rgba(25, 135, 84, 1)',
-                    borderWidth: 1,
-                    stack: 'expenses'
-                },
-                {
-                    label: '购物支出',
-                    data: labels.map(month => monthlyDataMap[month]?.shopping || 0),
-                    backgroundColor: 'rgba(13, 202, 240, 0.8)',
-                    borderColor: 'rgba(13, 202, 240, 1)',
-                    borderWidth: 1,
-                    stack: 'expenses'
-                },
-                {
-                    label: '其他支出',
-                    data: labels.map(month => {
-                        const monthData = monthlyDataMap[month] || {};
-                        return (monthData.services || 0) + (monthData.healthcare || 0) +
-                               (monthData.finance || 0) + (monthData.other || 0);
-                    }),
-                    backgroundColor: 'rgba(108, 117, 125, 0.8)',
-                    borderColor: 'rgba(108, 117, 125, 1)',
-                    borderWidth: 1,
-                    stack: 'expenses'
-                }
-            ]
-        };
-    }
-
-    getChartOptions() {
-        return {
-            responsive: true,
-            plugins: {
-                legend: { position: 'top' },
-                tooltip: {
-                    callbacks: {
-                        label: (context) => context.dataset.label + ': ¥' + context.parsed.y.toFixed(2)
+                emphasis: {
+                    itemStyle: {
+                        color: 'rgba(13, 110, 253, 1)'
                     }
                 }
             },
-            onClick: (_, elements) => {
-                if (elements.length > 0) {
-                    const clickedIndex = elements[0].index;
-                    const labels = this.chart.data.labels;
-                    const clickedMonth = labels[clickedIndex];
-                    this.selectMonth(clickedMonth);
+            {
+                name: '交通支出',
+                type: 'bar',
+                stack: 'expenses',
+                data: labels.map(month => monthlyDataMap[month]?.transport || 0),
+                itemStyle: {
+                    color: 'rgba(25, 135, 84, 0.8)',
+                    borderColor: 'rgba(25, 135, 84, 1)',
+                    borderWidth: 1,
+                    borderRadius: [0, 0, 0, 0]
+                },
+                emphasis: {
+                    itemStyle: {
+                        color: 'rgba(25, 135, 84, 1)'
+                    }
                 }
             },
-            scales: {
-                x: { stacked: true },
-                y: { 
-                    stacked: true,
-                    beginAtZero: true,
-                    ticks: {
-                        callback: (value) => '¥' + value.toFixed(0)
+            {
+                name: '购物支出',
+                type: 'bar',
+                stack: 'expenses',
+                data: labels.map(month => monthlyDataMap[month]?.shopping || 0),
+                itemStyle: {
+                    color: 'rgba(13, 202, 240, 0.8)',
+                    borderColor: 'rgba(13, 202, 240, 1)',
+                    borderWidth: 1,
+                    borderRadius: [0, 0, 0, 0]
+                },
+                emphasis: {
+                    itemStyle: {
+                        color: 'rgba(13, 202, 240, 1)'
+                    }
+                }
+            },
+            {
+                name: '其他支出',
+                type: 'bar',
+                stack: 'expenses',
+                data: labels.map(month => {
+                    const monthData = monthlyDataMap[month] || {};
+                    return (monthData.services || 0) + (monthData.healthcare || 0) +
+                           (monthData.finance || 0) + (monthData.other || 0);
+                }),
+                itemStyle: {
+                    color: 'rgba(108, 117, 125, 0.8)',
+                    borderColor: 'rgba(108, 117, 125, 1)',
+                    borderWidth: 1,
+                    borderRadius: [2, 2, 0, 0] // 顶部圆角
+                },
+                emphasis: {
+                    itemStyle: {
+                        color: 'rgba(108, 117, 125, 1)'
                     }
                 }
             }
+        ];
+
+        return {
+            labels: labels,
+            series: series
         };
     }
+
+
 
     // 分类渲染
     renderCategories() {

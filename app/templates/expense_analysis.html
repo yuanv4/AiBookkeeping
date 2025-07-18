@@ -75,14 +75,14 @@
 {% endblock %}
 
 {% block page_vendor_scripts %}
-<!-- Chart.js 图表库 -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<!-- Apache ECharts - 现代化图表库 -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <script>
-    // 确保Chart.js正确加载
-    if (typeof Chart !== 'undefined') {
-        console.log('Chart.js loaded successfully');
+    // 确保ECharts正确加载
+    if (typeof echarts !== 'undefined') {
+        console.log('ECharts loaded successfully, version:', echarts.version);
     } else {
-        console.error('Chart.js failed to load');
+        console.error('ECharts failed to load');
     }
 </script>
 {% endblock %}

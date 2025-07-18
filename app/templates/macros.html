@@ -277,7 +277,7 @@
   </div>
   <div class="card-body">
     <div class="position-relative chart-container" {% if height %}style="height: {{ height }};"{% endif %}>
-      <canvas id="{{ chart_id }}" class="w-100 h-100"></canvas>
+      <div id="{{ chart_id }}" class="w-100 h-100"></div>
       <!-- 加载状态 -->
       <div id="{{ chart_id }}-loading" class="chart-loading d-none">
         {{ loading_state("加载图表数据中...", "sm", "primary") }}
