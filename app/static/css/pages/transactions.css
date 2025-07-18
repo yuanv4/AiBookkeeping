@@ -4,60 +4,32 @@
  */
 
 /* ========================================
-   交易表格样式
+   Tabulator表格样式定制
    ======================================== */
 
-.transactions-table {
-    background-color: var(--surface-card);
+/* Tabulator与Bootstrap 5集成样式 */
+.tabulator {
     border-radius: var(--bs-border-radius);
     overflow: hidden;
     box-shadow: var(--bs-box-shadow-sm);
 }
 
-.transactions-table .table {
-    margin-bottom: 0;
-}
-
-.transactions-table .table th {
+.tabulator .tabulator-header {
     background-color: var(--bs-gray-50);
-    font-weight: var(--font-weight-semibold);
-    color: var(--bs-gray-700);
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-    font-size: var(--font-size-xs);
-    border-bottom: var(--border-width-medium) solid var(--bs-gray-200);
-    padding: var(--spacing-3);
 }
 
-.transactions-table .table td {
-    vertical-align: middle;
-    border-top: var(--border-width-thin) solid var(--bs-gray-200);
-    padding: var(--spacing-3);
-}
-
-.transactions-table .table tbody tr:hover {
-    background-color: var(--bs-gray-50);
+.tabulator .tabulator-row.tabulator-row-even {
+    background-color: var(--bs-gray-25);
 }
 
 /* ========================================
-   交易金额样式
+   Tabulator金额样式定制
    ======================================== */
 
+/* 金额样式已通过Tabulator格式化器处理，保留基础样式变量 */
 .transaction-amount {
     font-weight: var(--font-weight-medium);
     font-family: var(--bs-font-monospace);
-}
-
-.transaction-amount.positive {
-    color: var(--color-amount-positive) !important;
-}
-
-.transaction-amount.negative {
-    color: var(--color-amount-negative) !important;
-}
-
-.transaction-amount.neutral {
-    color: var(--color-amount-neutral) !important;
 }
 
 /* ========================================
@@ -154,540 +126,28 @@
     margin-bottom: var(--spacing-4);
 }
 
-/* ========================================
-   表格列对齐样式
-   ======================================== */
+/* Tabulator表格列对齐已通过配置处理，移除旧的CSS选择器 */
 
-/* 金额列和余额列右对齐 */
-#transactions-table th:nth-child(5),
-#transactions-table td:nth-child(5),
-#transactions-table th:last-child,
-#transactions-table td:last-child {
-    text-align: right !important;
-}
+/* 汇总信息样式现在通过Bootstrap卡片底部处理，移除旧的固定汇总行样式 */
 
-/* 其他列左对齐 */
-#transactions-table th:nth-child(1),
-#transactions-table td:nth-child(1),
-#transactions-table th:nth-child(2),
-#transactions-table td:nth-child(2),
-#transactions-table th:nth-child(3),
-#transactions-table td:nth-child(3),
-#transactions-table th:nth-child(4),
-#transactions-table td:nth-child(4) {
-    text-align: left !important;
-}
+/* Tabulator表格样式已由库本身处理，移除旧的自定义表格样式 */
+
+
 
 /* ========================================
-   表格列宽度和文本截断优化
+   Tabulator响应式样式定制
    ======================================== */
 
-/* 交易表格滚动容器 */
-#transactions-table-container .table-responsive {
-    max-height: 500px;
-    overflow-y: auto;
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
-}
-
-/* 自定义滚动条样式 */
-#transactions-table-container .table-responsive::-webkit-scrollbar {
-    width: 14px;
-}
-
-#transactions-table-container .table-responsive::-webkit-scrollbar-track {
-    background: var(--bs-gray-100);
-    border-radius: 7px;
-}
-
-#transactions-table-container .table-responsive::-webkit-scrollbar-thumb {
-    background: var(--bs-gray-400);
-    border-radius: 7px;
-    border: 2px solid var(--bs-gray-100);
-}
-
-#transactions-table-container .table-responsive::-webkit-scrollbar-thumb:hover {
-    background: var(--bs-primary-400);
-}
-
-#transactions-table-container .table-responsive::-webkit-scrollbar-thumb:active {
-    background: var(--bs-primary-500);
-}
-
-/* Firefox 滚动条样式 */
-#transactions-table-container .table-responsive {
-    scrollbar-width: auto;
-    scrollbar-color: var(--bs-gray-400) var(--bs-gray-100);
-}
-
-/* ========================================
-   固定汇总行样式
-   ======================================== */
-
-/* 汇总行容器 */
-.transactions-summary-footer {
-    position: sticky;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: var(--bs-gray-50);
-    border-top: var(--border-width-medium) solid var(--bs-gray-200);
-    z-index: 10;
-    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* 汇总内容布局 */
-.summary-content {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: var(--spacing-3);
-    min-height: 60px;
-}
-
-/* 汇总项目 */
-.summary-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    flex: 1;
-}
-
-/* 汇总标签 */
-.summary-label {
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
-    color: var(--bs-gray-700);
-    margin-bottom: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-}
-
-/* 汇总值容器 */
-.summary-values {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-}
-
-/* 汇总金额 */
-.summary-amount {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
-    line-height: 1.2;
-}
-
-/* 汇总笔数 */
-.summary-count {
-    font-size: var(--font-size-xs);
-    color: var(--bs-gray-700);
-    font-weight: var(--font-weight-semibold);
-}
-
-/* 支出项目样式 */
-.summary-expense .summary-amount {
-    color: var(--bs-danger);
-}
-
-/* 收入项目样式 */
-.summary-income .summary-amount {
-    color: var(--bs-success);
-}
-
-/* 余额项目样式 */
-.summary-balance .summary-amount {
-    color: var(--bs-primary);
-}
-
-/* 汇总行响应式样式 */
+/* Tabulator自带响应式功能，只保留必要的页面级响应式样式 */
 @media (max-width: 768px) {
-    /* 平板端汇总行调整 */
-    .summary-content {
-        padding: var(--spacing-2);
-        min-height: 55px;
-    }
-
-    .summary-amount {
-        font-size: var(--font-size-sm);
-    }
-
-    .summary-label {
-        font-size: var(--font-size-xs);
-    }
-
-    .summary-count {
-        font-size: var(--font-size-xs);
-    }
-}
-
-@media (max-width: 576px) {
-    /* 手机端汇总行调整 */
-    .summary-content {
-        flex-direction: column;
-        gap: 8px;
-        padding: var(--spacing-1);
-        min-height: auto;
-    }
-
-    .summary-item {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        padding: var(--spacing-1);
-        background: var(--bs-white);
-        border-radius: var(--bs-border-radius-sm);
-        border: 1px solid var(--bs-border-color-translucent);
-    }
-
-    .summary-values {
-        flex-direction: row;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .summary-label {
-        margin-bottom: 0;
-        font-size: var(--font-size-xs);
-    }
-
-    .summary-amount {
-        font-size: var(--font-size-xs);
-    }
-
-    .summary-count {
-        font-size: var(--font-size-xs);
-    }
-}
-
-/* 固定表头 */
-#transactions-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background-color: var(--bs-light) !important;
-    border-bottom: 2px solid var(--bs-border-color);
-}
-
-/* 交易表格列宽度设置 */
-#transactions-table {
-    table-layout: fixed;
-    width: 100%;
-    margin-bottom: 0;
-}
-
-#transactions-table th:nth-child(1), /* 日期列 */
-#transactions-table td:nth-child(1) {
-    width: 12%;
-    min-width: 100px;
-    padding-left: 12px !important;
-}
-
-#transactions-table th:nth-child(2), /* 账户列 */
-#transactions-table td:nth-child(2) {
-    width: 18%;
-    min-width: 150px;
-}
-
-#transactions-table th:nth-child(3), /* 对手信息列 */
-#transactions-table td:nth-child(3) {
-    width: 30%; /* 增加对手信息列宽度 */
-    min-width: 200px;
-}
-
-#transactions-table th:nth-child(4), /* 摘要列 */
-#transactions-table td:nth-child(4) {
-    width: 15%; /* 减少摘要列宽度 */
-    min-width: 100px;
-}
-
-#transactions-table th:nth-child(5), /* 金额列 */
-#transactions-table td:nth-child(5) {
-    width: 12%;
-    min-width: 100px;
-}
-
-#transactions-table th:nth-child(6), /* 余额列 */
-#transactions-table td:nth-child(6) {
-    width: 13%;
-    min-width: 100px;
-    padding-right: 12px !important;
-}
-
-/* 交易表格专用的文本截断样式 */
-#transactions-table .transaction-cell-truncate-sm {
-    max-width: 200px; /* 账户列：增加到200px以完整显示"户名-卡号"格式 */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-#transactions-table .transaction-cell-truncate-md {
-    max-width: 200px; /* 对手信息列：增加到200px以显示更多商户名称 */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-#transactions-table .transaction-cell-truncate {
-    max-width: 150px; /* 摘要列：增加到150px */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* ========================================
-   工具提示增强样式
-   ======================================== */
-
-/* 为截断的单元格添加悬停效果 */
-#transactions-table .transaction-cell-truncate-sm,
-#transactions-table .transaction-cell-truncate-md,
-#transactions-table .transaction-cell-truncate {
-    cursor: help;
-    position: relative;
-}
-
-#transactions-table .transaction-cell-truncate-sm:hover,
-#transactions-table .transaction-cell-truncate-md:hover,
-#transactions-table .transaction-cell-truncate:hover {
-    background-color: var(--bs-gray-100);
-    border-radius: var(--bs-border-radius-sm);
-    transition: background-color 0.2s ease;
-}
-
-/* 自定义工具提示样式（如果需要的话） */
-.transaction-tooltip {
-    position: absolute;
-    z-index: 1000;
-    background-color: var(--bs-dark);
-    color: white;
-    padding: var(--spacing-2) var(--spacing-3);
-    border-radius: var(--bs-border-radius);
-    font-size: var(--font-size-sm);
-    max-width: 300px;
-    word-wrap: break-word;
-    box-shadow: var(--bs-box-shadow);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-}
-
-.transaction-tooltip.show {
-    opacity: 1;
-}
-
-/* ========================================
-   响应式优化
-   ======================================== */
-
-/* 桌面端优化 (>1200px) */
-@media (min-width: 1200px) {
-    #transactions-table .transaction-cell-truncate-sm {
-        max-width: 220px; /* 桌面端账户列更宽，确保"户名-卡号"格式完整显示 */
-    }
-
-    #transactions-table .transaction-cell-truncate-md {
-        max-width: 280px; /* 桌面端对手信息列更宽，给长商户名更多空间 */
-    }
-
-    #transactions-table .transaction-cell-truncate {
-        max-width: 150px; /* 桌面端摘要列适中，摘要内容通常较短 */
-    }
-}
-
-/* 平板端优化 (768px - 1199px) */
-@media (max-width: 1199px) and (min-width: 768px) {
-    #transactions-table th:nth-child(2), /* 账户列 */
-    #transactions-table td:nth-child(2) {
-        width: 16%;
-        min-width: 130px;
-    }
-
-    #transactions-table th:nth-child(3), /* 对手信息列 */
-    #transactions-table td:nth-child(3) {
-        width: 28%;
-        min-width: 160px;
-    }
-
-    #transactions-table .transaction-cell-truncate-sm {
-        max-width: 160px; /* 平板端账户列增加宽度 */
-    }
-
-    #transactions-table .transaction-cell-truncate-md {
-        max-width: 180px;
-    }
-}
-
-/* 中等屏幕优化 (576px - 767px) */
-@media (max-width: 768px) {
-    .transactions-filter {
-        padding: var(--spacing-3);
-    }
-
-    .transactions-table .table th,
-    .transactions-table .table td {
-        padding: var(--spacing-2);
-        font-size: var(--font-size-sm);
-    }
-
     .transaction-amount {
         font-size: var(--font-size-sm);
     }
-
-    /* 中等屏幕下调整滚动容器高度 */
-    #transactions-table-container .table-responsive {
-        max-height: 400px;
-    }
-
-    /* 调整列宽比例 */
-    #transactions-table th:nth-child(1), /* 日期列 */
-    #transactions-table td:nth-child(1) {
-        width: 15%;
-        min-width: 80px;
-        padding-left: 10px !important;
-    }
-
-    #transactions-table th:nth-child(2), /* 账户列 */
-    #transactions-table td:nth-child(2) {
-        width: 20%;
-        min-width: 100px;
-    }
-
-    #transactions-table th:nth-child(3), /* 对手信息列 */
-    #transactions-table td:nth-child(3) {
-        width: 30%;
-        min-width: 120px;
-    }
-
-    #transactions-table th:nth-child(4), /* 摘要列 */
-    #transactions-table td:nth-child(4) {
-        width: 15%;
-        min-width: 80px;
-    }
-
-    #transactions-table .transaction-cell-truncate-sm {
-        max-width: 100px;
-    }
-
-    #transactions-table .transaction-cell-truncate-md {
-        max-width: 140px;
-    }
-
-    #transactions-table .transaction-cell-truncate {
-        max-width: 80px;
-    }
 }
 
-/* 小屏幕优化 (<576px) */
+/* 移动端基础优化 */
 @media (max-width: 576px) {
-    .transactions-filter {
-        padding: var(--spacing-2);
-    }
-
-    .transactions-table .table th,
-    .transactions-table .table td {
-        padding: var(--spacing-1);
+    .transaction-amount {
         font-size: var(--font-size-xs);
-    }
-
-    .filter-group {
-        margin-bottom: var(--spacing-2);
-    }
-
-    .transactions-pagination {
-        padding: var(--spacing-2);
-    }
-
-    .transactions-empty {
-        padding: var(--spacing-8) var(--spacing-2);
-    }
-
-    .transactions-empty .empty-icon {
-        font-size: 3rem;
-    }
-
-    /* 小屏幕下的列宽调整 */
-    #transactions-table th:nth-child(1), /* 日期列 */
-    #transactions-table td:nth-child(1) {
-        width: 18%;
-        min-width: 70px;
-        padding-left: 8px !important;
-    }
-
-    #transactions-table th:nth-child(2), /* 账户列 */
-    #transactions-table td:nth-child(2) {
-        width: 22%;
-        min-width: 80px;
-    }
-
-    #transactions-table th:nth-child(3), /* 对手信息列 */
-    #transactions-table td:nth-child(3) {
-        width: 35%;
-        min-width: 100px;
-    }
-
-    #transactions-table th:nth-child(4), /* 摘要列 */
-    #transactions-table td:nth-child(4) {
-        width: 0%;
-        min-width: 0;
-        display: none; /* 小屏幕隐藏摘要列 */
-    }
-
-    #transactions-table th:nth-child(5), /* 金额列 */
-    #transactions-table td:nth-child(5) {
-        width: 12%;
-        min-width: 70px;
-    }
-
-    #transactions-table th:nth-child(6), /* 余额列 */
-    #transactions-table td:nth-child(6) {
-        width: 13%;
-        min-width: 70px;
-        padding-right: 8px !important;
-    }
-
-    /* 小屏幕下的文本截断调整 */
-    #transactions-table .transaction-cell-truncate-sm {
-        max-width: 80px; /* 账户列在小屏幕下缩短 */
-    }
-
-    #transactions-table .transaction-cell-truncate-md {
-        max-width: 120px; /* 对手信息列在小屏幕下适中 */
-    }
-
-    #transactions-table .transaction-cell-truncate {
-        max-width: 60px; /* 摘要列（虽然隐藏了） */
-    }
-
-    /* 小屏幕下调整滚动容器高度 */
-    #transactions-table-container .table-responsive {
-        max-height: 350px;
-    }
-}
-
-/* 超小屏幕优化 (<480px) */
-@media (max-width: 480px) {
-    /* 进一步优化超小屏幕显示 */
-    #transactions-table th:nth-child(2), /* 账户列 */
-    #transactions-table td:nth-child(2) {
-        width: 25%;
-        min-width: 70px;
-    }
-
-    #transactions-table th:nth-child(3), /* 对手信息列 */
-    #transactions-table td:nth-child(3) {
-        width: 40%;
-        min-width: 90px;
-    }
-
-    #transactions-table .transaction-cell-truncate-sm {
-        max-width: 70px;
-    }
-
-    #transactions-table .transaction-cell-truncate-md {
-        max-width: 100px;
     }
 }
