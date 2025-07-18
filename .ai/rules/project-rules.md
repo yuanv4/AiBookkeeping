@@ -1,19 +1,17 @@
 # AiBookkeeping 项目开发规范
 
-> **核心原则**: 简单、实用、易维护 - 适合个人项目的轻量级开发规范
-
-## 🎯 项目定位与核心价值 (P1)
-
-### 项目特色
-- **AI增强财务管理**: 智能商户分类、支出分析、数据提取
-- **轻量级架构**: SQLite数据库，单机部署，无复杂依赖
-- **现代化前端**: Bootstrap + Tabulator + ECharts 技术栈
-- **多银行支持**: 智能识别Excel对账单格式
-
-### 维护原则
-- **严禁过度工程化**: 保持代码简单直观
-- **技术栈稳定**: 优先使用成熟方案
-- **立即修复**: 不积累技术债务
+## 核心原则与定位 (P1)
+- **核心原则**：简单、实用、易维护（轻量级个人项目规范）
+- **核心价值**：
+  - AI增强的银行账单分析/支出分类
+  - SQLite单机轻量架构
+  - 现代前端技术栈（Bootstrap+Tabulator+ECharts）
+  - 多银行Excel格式智能识别
+- **维护铁律**：
+  - ❌ 禁止过度工程化/抽象（需3+相似用例才抽象）
+  - ✅ 代码简单直观优先
+  - 🔧 技术债务立即修复
+  - 📄 代码变更同步文档
 
 ## 🏗️ 技术栈规范 (P1)
 
@@ -52,7 +50,7 @@ Python: `snake_case`, CSS: `kebab-case`, JS: `camelCase`
 
 ## 💾 数据库操作规范 (P1)
 
-### SQLAlchemy规范
+### SQLAlchemy最佳实践
 ```python
 # 使用会话管理，异常回滚
 def create_transaction(data):
@@ -67,68 +65,43 @@ def create_transaction(data):
 ```
 
 ### 优化原则
-- 使用索引、分页、缓存
-- 避免N+1查询
-- `flask db migrate/upgrade`
+- 高频字段建索引
+- 查询结果分页限制
+- 禁止：裸连接/N+1查询/模板内查询
 
 ## 🎨 前端开发规范 (P2)
 
-### 核心规范
-```javascript
-// ES6模块化，禁止全局变量
-import { utils } from '../common/utils.js';
-export default class PageClass { }
+### CSS架构：
+- 变量定义 → 基础样式 → 组件 → 响应式
 
-// 组件使用
-new Tabulator("#table", { virtualDom: true });
-echarts.init(document.getElementById('chart'));
+### JS模块化：
+```javascript
+// ✅ ES6模块化
+export default class TransactionPage {
+  constructor() { this.init() }
+}
 ```
+- 禁止：全局变量/jQuery/内联JS
+
+### 组件约束：
+- 必须使用Tabulator表格+ECharts图表
+- ❌ 禁止自定义表格/第三方图表
 
 ## 🔧 代码质量规范 (P2)
 
-### Python规范
+### Python标准：
+- 强制类型提示+文档字符串
 ```python
-# 类型提示 + 文档字符串
-def process_transaction(data: Dict[str, Any]) -> Transaction:
-    """处理交易数据"""
-    pass
-
-# 统一错误处理
-from app.utils.error_handler import ErrorHandler
-@handle_errors(template='errors/500.html')
-def risky_operation(): pass
+def process(data: Dict[str, Any]) -> Transaction:
+    """函数说明 + Args/Returns/Raises"""
 ```
+### 错误处理：
+- 统一装饰器处理 @handle_errors
+- API/HTML请求自动区分响应格式
 
-### 日志配置
-```python
-# RotatingFileHandler, 10MB, 5个备份
-logger.info("重要操作")
-logger.error("系统错误")
-```
-
-## 🤖 AI增强功能规范 (P1)
-
-### 智能商户分类
-```python
-# MerchantClassificationService - 关键词匹配算法
-categories = {
-    'dining': ['餐厅', '咖啡', '外卖'],
-    'transport': ['地铁', '打车', '加油'],
-    'shopping': ['京东', '淘宝', '超市']
-}
-@cached_query(ttl=3600)
-def classify_merchant(name): return category
-```
-
-### 支出分析引擎
-- 多维度分析：按类别统计、月度趋势、商户详情
-- 数据可视化：ECharts交互图表、Tabulator虚拟滚动
-- 智能处理：自动过滤收入、商户名称标准化
-
-### 数据提取器
-- 智能识别银行Excel格式
-- 标准化数据结构和货币代码
-- 重复数据检测和验证
+### 日志规范：
+- 分级输出（DEBUG→CRITICAL）
+- 双通道：控制台+10MB轮转文件
 
 ---
 
