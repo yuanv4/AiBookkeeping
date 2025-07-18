@@ -5,6 +5,7 @@ This module contains the Bank model class representing financial institutions.
 
 from .base import db, BaseModel
 from sqlalchemy.orm import validates
+from typing import Dict, Any
 
 class Bank(BaseModel):
     """Bank model representing financial institutions."""
@@ -33,10 +34,11 @@ class Bank(BaseModel):
                 raise ValueError('Bank code cannot exceed 20 characters')
         return code
     
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """Convert bank instance to dictionary with additional info."""
         result = super().to_dict()
         return result
-    
-    def __repr__(self):
+
+    def __repr__(self) -> str:
+        """String representation of the bank instance."""
         return f'<Bank(id={self.id}, name="{self.name}", code="{self.code}")>'

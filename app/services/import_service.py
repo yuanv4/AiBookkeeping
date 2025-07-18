@@ -15,7 +15,7 @@ from pathlib import Path
 from werkzeug.utils import secure_filename
 import logging
 import pandas as pd
-from typing import List, Any
+from typing import List, Any, Optional, Dict, Set, Union
 
 from .data_service import DataService
 from .models import ExtractedData, ImportConstants
@@ -28,7 +28,7 @@ class ImportService:
     提供完整的文件导入流程，从文件上传到数据入库。
     """
     
-    def __init__(self, data_service: DataService = None, upload_folder=None, allowed_extensions=None):
+    def __init__(self, data_service: Optional[DataService] = None, upload_folder: Optional[Union[str, Path]] = None, allowed_extensions: Optional[Set[str]] = None) -> None:
         """初始化导入服务
         
         Args:
@@ -54,7 +54,7 @@ class ImportService:
         self._extractors = []
         self._load_extractors()
 
-    def _load_extractors(self):
+    def _load_extractors(self) -> None:
         """加载所有可用的提取器"""
         try:
             from .extractors import ALL_EXTRACTORS

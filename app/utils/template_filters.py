@@ -3,51 +3,52 @@
 """
 from flask import Flask
 import math
+from typing import Union, Any, Optional
 
-def register_template_filters(app: Flask):
+def register_template_filters(app: Flask) -> None:
     """注册所有自定义模板过滤器"""
-    
+
     # 数学函数过滤器
     @app.template_filter('abs')
-    def abs_filter(n):
+    def abs_filter(n: Union[int, float]) -> Union[int, float]:
         """绝对值"""
         return abs(n)
-    
+
     @app.template_filter('round')
-    def round_filter(n, precision=0):
+    def round_filter(n: Union[int, float], precision: int = 0) -> Union[int, float]:
         """四舍五入，可指定小数位数"""
         return round(n, precision)
-    
+
     @app.template_filter('ceil')
-    def ceil_filter(n):
+    def ceil_filter(n: Union[int, float]) -> int:
         """向上取整"""
         return math.ceil(n)
-    
+
     @app.template_filter('floor')
-    def floor_filter(n):
+    def floor_filter(n: Union[int, float]) -> int:
         """向下取整"""
         return math.floor(n)
-    
+
     @app.template_filter('min')
-    def min_filter(*args):
+    def min_filter(*args: Union[int, float]) -> Union[int, float]:
         """取最小值"""
         return min(args)
-    
+
     @app.template_filter('max')
-    def max_filter(*args):
+    def max_filter(*args: Union[int, float]) -> Union[int, float]:
         """取最大值"""
         return max(args)
     
     # 格式化过滤器
     @app.template_filter('currency')
-    def currency_filter(n):
+    def currency_filter(n: Optional[Union[int, float]]) -> str:
         """货币格式化，保留2位小数，加¥符号"""
         if n is None:
             return "¥0.00"
         return f"¥{float(n):.2f}"
-    
+
     @app.template_filter('percent')
-    def percent_filter(n, precision=1):
+    def percent_filter(n: Optional[Union[int, float]], precision: int = 1) -> str:
         """百分比格式化，默认保留1位小数，加%符号"""
         if n is None:
             return f"0.{'0' * precision}%"

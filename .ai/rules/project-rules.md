@@ -97,7 +97,7 @@ export default class TransactionPage {
 - 强制类型提示+文档字符串
 ```python
 def process(data: Dict[str, Any]) -> Transaction:
-    """函数说明 + Args/Returns/Raises"""
+    """函数说明"""
 ```
 ### 错误处理：
 - 统一装饰器处理 @handle_errors

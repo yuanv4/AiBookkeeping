@@ -19,7 +19,8 @@ import logging
 from app.models import Bank, Account, Transaction, db
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, and_
-from app.utils.query_cache import invalidate_cache_on_change
+from sqlalchemy.orm import joinedload, selectinload
+from app.utils.query_cache import invalidate_cache_on_change, cached_query
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class DataService:
     
     # ==================== 银行管理 ====================
     
+    @invalidate_cache_on_change(['get_all_banks'])
     def get_or_create_bank(self, name: str, code: str = None) -> Bank:
         """获取或创建银行
 
@@ -81,6 +83,7 @@ class DataService:
             self.logger.error(f"Error getting bank by code '{code}': {e}")
             raise
 
+    @cached_query(ttl=3600)  # 缓存1小时
     def get_all_banks(self) -> List[Bank]:
         """获取所有银行"""
         try:
@@ -89,6 +92,7 @@ class DataService:
             self.logger.error(f"Error getting all banks: {e}")
             raise
 
+    @invalidate_cache_on_change(['get_all_banks'])
     def update_bank(self, bank_id: int, **kwargs) -> bool:
         """更新银行信息"""
         try:
@@ -101,6 +105,7 @@ class DataService:
             self.logger.error(f"Error updating bank {bank_id}: {e}")
             raise
 
+    @invalidate_cache_on_change(['get_all_banks'])
     def delete_bank(self, bank_id: int) -> bool:
         """删除银行"""
         try:
@@ -332,15 +337,18 @@ class DataService:
                 offset=offset
             )
         
-        query = Transaction.query
-        
+        # 使用joinedload避免N+1查询
+        query = Transaction.query.options(
+            joinedload(Transaction.account).joinedload(Account.bank)
+        )
+
         if start_date:
             query = query.filter(Transaction.date >= start_date)
         if end_date:
             query = query.filter(Transaction.date <= end_date)
         if transaction_type:
             query = query.filter_by(transaction_type=transaction_type)
-        
+
         query = query.order_by(Transaction.date.desc(), Transaction.created_at.desc())
         
         if offset:
@@ -356,7 +364,10 @@ class DataService:
         try:
             from app.models import Account
 
-            query = self.db.query(Transaction).join(Account)
+            # 使用joinedload避免N+1查询
+            query = self.db.query(Transaction).join(Account).options(
+                joinedload(Transaction.account).joinedload(Account.bank)
+            )
 
             # 应用交易类型过滤器
             if transaction_type_filter == 'income':
@@ -424,7 +435,10 @@ class DataService:
                                account_id: Optional[int] = None) -> List[Transaction]:
         """根据交易类型获取交易记录"""
         try:
-            query = Transaction.query.join(Account)
+            # 使用joinedload避免N+1查询
+            query = Transaction.query.join(Account).options(
+                joinedload(Transaction.account).joinedload(Account.bank)
+            )
             
             if transaction_type == 'income':
                 query = query.filter(Transaction.amount > 0)
@@ -494,7 +508,10 @@ class DataService:
         try:
             from app.models import Account
 
-            query = self.db.query(Transaction).join(Account)
+            # 使用joinedload避免N+1查询
+            query = self.db.query(Transaction).join(Account).options(
+                joinedload(Transaction.account).joinedload(Account.bank)
+            )
 
             # 应用交易类型过滤器
             if transaction_type_filter == 'income':
