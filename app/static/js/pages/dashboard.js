@@ -3,7 +3,7 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { getCSSColor, ChartHelper } from '../common/utils.js';
+import { getCSSColor, getEChartsTheme, getCommonChartConfig, formatCurrency, ChartManager } from '../common/utils.js';
 
 export default class FinancialDashboard extends BasePage {
     constructor() {
@@ -38,12 +38,18 @@ export default class FinancialDashboard extends BasePage {
     }
     
     initializeCharts() {
-        // 净现金趋势图 - 使用ECharts
-        const chartOptions = {
-            title: {
-                text: '',
-                show: false
-            },
+        // 净现金趋势图 - 直接使用ECharts
+        const container = document.getElementById('netWorthChart');
+        if (!container) {
+            console.warn('找不到图表容器 #netWorthChart');
+            return;
+        }
+
+        // 初始化ECharts实例
+        const chart = echarts.init(container);
+
+        // 配置选项
+        const option = {
             tooltip: {
                 trigger: 'axis',
                 axisPointer: {
@@ -132,28 +138,18 @@ export default class FinancialDashboard extends BasePage {
                         }]
                     }
                 },
-                data: [],
-                // 添加数据标签
-                label: {
-                    show: false,
-                    position: 'top',
-                    formatter: (params) => '¥' + params.value.toLocaleString('zh-CN', {
-                        notation: 'compact',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 1
-                    }),
-                    color: getCSSColor('--bs-secondary') || '#6c757d',
-                    fontSize: 10
-                },
-                emphasis: {
-                    label: {
-                        show: true
-                    }
-                }
+                data: []
             }]
         };
 
-        this.charts.netWorth = ChartHelper.createLineChart('netWorthChart', chartOptions);
+        // 设置配置
+        chart.setOption(option);
+
+        // 注册到管理器
+        ChartManager.register('netWorthChart', chart);
+
+        // 保存引用
+        this.charts.netWorth = chart;
     }
 
     updateDashboard(data) {
@@ -185,10 +181,14 @@ export default class FinancialDashboard extends BasePage {
             const labels = trendData.map(d => d.date);
             const data = trendData.map(d => d.value);
 
-            // 使用ECharts的数据更新方法
-            ChartHelper.updateChartData(this.charts.netWorth, {
-                labels: labels,
-                data: data
+            // 直接使用ECharts API更新数据
+            this.charts.netWorth.setOption({
+                xAxis: {
+                    data: labels
+                },
+                series: [{
+                    data: data
+                }]
             });
         } catch (error) {
             console.error('更新净现金趋势图失败:', error);

@@ -694,621 +694,145 @@ export const ui = {
 };
 
 /**
- * 图表相关功能
- * 统一的图表初始化和管理工具 - 基于Apache ECharts
+ * ECharts 轻量级工具函数
+ * 提供项目统一的图表配置和工具函数，不封装ECharts API
  */
-export const ChartHelper = {
-    // 图表实例管理
-    _chartInstances: new Map(),
 
-    /**
-     * 获取AiBookkeeping主题配置
-     * @returns {Object} ECharts主题配置
-     */
-    getTheme() {
-        return {
-            color: [
-                getCSSColor('--bs-primary') || '#0d6efd',
-                getCSSColor('--bs-success') || '#198754',
-                getCSSColor('--bs-info') || '#0dcaf0',
-                getCSSColor('--bs-warning') || '#ffc107',
-                getCSSColor('--bs-danger') || '#dc3545',
-                getCSSColor('--bs-secondary') || '#6c757d'
-            ],
-            backgroundColor: 'transparent',
+/**
+ * 获取项目颜色配置
+ * @returns {Object} 颜色配置对象
+ */
+export function getProjectColors() {
+    return {
+        primary: getCSSColor('--bs-primary') || '#0d6efd',
+        success: getCSSColor('--bs-success') || '#198754',
+        info: getCSSColor('--bs-info') || '#0dcaf0',
+        warning: getCSSColor('--bs-warning') || '#ffc107',
+        danger: getCSSColor('--bs-danger') || '#dc3545',
+        secondary: getCSSColor('--bs-secondary') || '#6c757d',
+        bodyColor: getCSSColor('--bs-body-color') || '#212529',
+        borderColor: getCSSColor('--bs-border-color') || '#dee2e6',
+        borderColorTranslucent: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)'
+    };
+}
+
+/**
+ * 格式化货币显示
+ * @param {number} value - 数值
+ * @param {boolean} compact - 是否使用紧凑格式
+ * @returns {string} 格式化后的字符串
+ */
+export function formatCurrency(value, compact = false) {
+    const options = compact
+        ? { notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: 1 }
+        : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
+    return '¥' + value.toLocaleString('zh-CN', options);
+}
+
+/**
+ * 获取通用的图表样式配置
+ * @returns {Object} 样式配置对象
+ */
+export function getChartStyles() {
+    const colors = getProjectColors();
+
+    return {
+        tooltip: {
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderColor: colors.borderColor,
+            borderWidth: 1,
             textStyle: {
-                fontFamily: getCSSColor('--bs-font-sans-serif') || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                color: getCSSColor('--bs-body-color') || '#212529',
+                color: colors.bodyColor,
                 fontSize: 12
-            },
-            title: {
-                textStyle: {
-                    color: getCSSColor('--bs-body-color') || '#212529',
-                    fontWeight: 'bold'
-                }
-            },
-            legend: {
-                textStyle: {
-                    color: getCSSColor('--bs-body-color') || '#212529'
-                }
-            },
-            grid: {
-                borderColor: getCSSColor('--bs-border-color') || '#dee2e6'
             }
-        };
-    },
-
-    /**
-     * 创建线性图表 (ECharts实现)
-     * @param {string} containerId - 容器元素ID
-     * @param {Object} options - 图表配置选项
-     * @returns {Object|null} ECharts实例
-     */
-    createLineChart(containerId, options = {}) {
-        try {
-            const container = document.getElementById(containerId);
-            if (!container) {
-                console.warn(`ChartHelper: 找不到容器元素 #${containerId}`);
-                return null;
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+        },
+        axisStyle: {
+            axisLine: {
+                lineStyle: { color: colors.borderColor }
+            },
+            axisLabel: {
+                color: colors.secondary,
+                fontSize: 11
+            },
+            splitLine: {
+                lineStyle: { color: colors.borderColorTranslucent }
             }
-
-            // 销毁现有图表实例
-            this.destroyChart(containerId);
-
-            // 初始化ECharts实例
-            const chart = echarts.init(container, null, {
-                renderer: 'canvas',
-                useDirtyRect: false
-            });
-
-            // 构建默认配置
-            const defaultOption = {
-                title: {
-                    show: false
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'cross',
-                        label: {
-                            backgroundColor: getCSSColor('--bs-secondary') || '#6c757d'
-                        }
-                    },
-                    formatter: (params) => {
-                        if (params && params.length > 0) {
-                            const param = params[0];
-                            return `${param.name}<br/>${param.seriesName}: ¥${param.value.toLocaleString('zh-CN', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                            })}`;
-                        }
-                        return '';
-                    }
-                },
-                legend: {
-                    show: false
-                },
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '3%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    boundaryGap: false,
-                    data: [],
-                    axisLine: {
-                        lineStyle: {
-                            color: getCSSColor('--bs-border-color') || '#dee2e6'
-                        }
-                    },
-                    axisLabel: {
-                        color: getCSSColor('--bs-secondary') || '#6c757d'
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    axisLine: {
-                        lineStyle: {
-                            color: getCSSColor('--bs-border-color') || '#dee2e6'
-                        }
-                    },
-                    axisLabel: {
-                        color: getCSSColor('--bs-secondary') || '#6c757d',
-                        formatter: (value) => '¥' + value.toLocaleString('zh-CN')
-                    },
-                    splitLine: {
-                        lineStyle: {
-                            color: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)'
-                        }
-                    }
-                },
-                series: [{
-                    name: '数据',
-                    type: 'line',
-                    smooth: true,
-                    symbol: 'circle',
-                    symbolSize: 6,
-                    lineStyle: {
-                        color: getCSSColor('--bs-primary') || '#0d6efd',
-                        width: 2
-                    },
-                    itemStyle: {
-                        color: getCSSColor('--bs-primary') || '#0d6efd'
-                    },
-                    areaStyle: {
-                        color: {
-                            type: 'linear',
-                            x: 0,
-                            y: 0,
-                            x2: 0,
-                            y2: 1,
-                            colorStops: [{
-                                offset: 0,
-                                color: getCSSColor('--bs-primary-100') || 'rgba(13, 110, 253, 0.1)'
-                            }, {
-                                offset: 1,
-                                color: 'rgba(13, 110, 253, 0.01)'
-                            }]
-                        }
-                    },
-                    data: []
-                }]
-            };
-
-            // 合并用户配置
-            const finalOption = this.mergeEChartsConfig(defaultOption, options);
-
-            // 设置配置并注册实例
-            chart.setOption(finalOption);
-            this._chartInstances.set(containerId, chart);
-
-            // 添加响应式支持
-            this._addResponsiveSupport(chart);
-
-            return chart;
-        } catch (error) {
-            console.error(`ChartHelper: 创建线性图表失败 (${containerId}):`, error);
-            return null;
         }
-    },
+    };
+}
+
+/**
+ * 简单的图表实例管理器（防止内存泄漏）
+ */
+export const ChartRegistry = {
+    charts: new Map(),
 
     /**
-     * 创建柱状图表 (ECharts实现)
-     * @param {string} containerId - 容器元素ID
-     * @param {Object} options - 图表配置选项
-     * @returns {Object|null} ECharts实例
-     */
-    createBarChart(containerId, options = {}) {
-        try {
-            const container = document.getElementById(containerId);
-            if (!container) {
-                console.warn(`ChartHelper: 找不到容器元素 #${containerId}`);
-                return null;
-            }
-
-            // 销毁现有图表实例
-            this.destroyChart(containerId);
-
-            // 初始化ECharts实例
-            const chart = echarts.init(container, null, {
-                renderer: 'canvas',
-                useDirtyRect: false
-            });
-
-            // 构建默认配置
-            const defaultOption = {
-                title: {
-                    show: false
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'shadow'
-                    },
-                    formatter: (params) => {
-                        if (params && params.length > 0) {
-                            let result = `${params[0].name}<br/>`;
-                            params.forEach(param => {
-                                result += `${param.marker}${param.seriesName}: ¥${param.value.toLocaleString('zh-CN', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                })}<br/>`;
-                            });
-                            return result;
-                        }
-                        return '';
-                    }
-                },
-                legend: {
-                    show: true,
-                    top: 'top',
-                    textStyle: {
-                        color: getCSSColor('--bs-body-color') || '#212529'
-                    }
-                },
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '3%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    data: [],
-                    axisLine: {
-                        lineStyle: {
-                            color: getCSSColor('--bs-border-color') || '#dee2e6'
-                        }
-                    },
-                    axisLabel: {
-                        color: getCSSColor('--bs-secondary') || '#6c757d'
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    axisLine: {
-                        lineStyle: {
-                            color: getCSSColor('--bs-border-color') || '#dee2e6'
-                        }
-                    },
-                    axisLabel: {
-                        color: getCSSColor('--bs-secondary') || '#6c757d',
-                        formatter: (value) => '¥' + value.toLocaleString('zh-CN')
-                    },
-                    splitLine: {
-                        lineStyle: {
-                            color: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)'
-                        }
-                    }
-                },
-                series: [{
-                    name: '支出金额',
-                    type: 'bar',
-                    data: [],
-                    itemStyle: {
-                        color: getCSSColor('--bs-primary') || '#0d6efd',
-                        borderRadius: [2, 2, 0, 0]
-                    },
-                    emphasis: {
-                        itemStyle: {
-                            color: getCSSColor('--bs-primary-600') || '#0a58ca'
-                        }
-                    }
-                }]
-            };
-
-            // 合并用户配置
-            const finalOption = this.mergeEChartsConfig(defaultOption, options);
-
-            // 设置配置并注册实例
-            chart.setOption(finalOption);
-            this._chartInstances.set(containerId, chart);
-
-            // 添加响应式支持
-            this._addResponsiveSupport(chart);
-
-            return chart;
-        } catch (error) {
-            console.error(`ChartHelper: 创建柱状图表失败 (${containerId}):`, error);
-            return null;
-        }
-    },
-
-    /**
-     * 更新图表数据 (ECharts实现)
+     * 注册图表实例
+     * @param {string} id - 图表ID
      * @param {Object} chart - ECharts实例
-     * @param {Object} newData - 新数据 {labels: [], data: [], datasets: []}
      */
-    updateChartData(chart, newData) {
-        if (!chart || !newData) {
-            console.warn('ChartHelper: updateChartData 参数无效');
-            return;
-        }
+    register(id, chart) {
+        // 先销毁现有实例
+        this.destroy(id);
 
-        try {
-            const option = chart.getOption();
+        // 注册新实例
+        this.charts.set(id, chart);
 
-            // 更新X轴数据
-            if (newData.labels && option.xAxis && option.xAxis[0]) {
-                option.xAxis[0].data = newData.labels;
-            }
-
-            // 更新系列数据
-            if (newData.data && option.series && option.series[0]) {
-                option.series[0].data = newData.data;
-            }
-
-            // 更新多个数据集
-            if (newData.datasets && option.series) {
-                newData.datasets.forEach((dataset, index) => {
-                    if (option.series[index]) {
-                        option.series[index].data = dataset.data;
-                        if (dataset.name) {
-                            option.series[index].name = dataset.name;
-                        }
-                    }
-                });
-            }
-
-            chart.setOption(option, true);
-        } catch (error) {
-            console.error('ChartHelper: 更新图表数据失败:', error);
-        }
-    },
-
-    /**
-     * 显示图表加载状态 (ECharts实现)
-     * @param {string} containerId - 图表容器ID
-     */
-    showChartLoading(containerId) {
-        try {
-            const chart = this._chartInstances.get(containerId);
-            if (chart) {
-                chart.showLoading('default', {
-                    text: '加载中...',
-                    color: getCSSColor('--bs-primary') || '#0d6efd',
-                    textColor: getCSSColor('--bs-body-color') || '#212529',
-                    maskColor: 'rgba(255, 255, 255, 0.8)',
-                    zlevel: 0,
-                    fontSize: 12,
-                    showSpinner: true,
-                    spinnerRadius: 10,
-                    lineWidth: 2
-                });
-            } else {
-                // 如果图表实例不存在，使用传统方式
-                const container = document.getElementById(containerId);
-                if (!container) {
-                    console.warn(`ChartHelper: 找不到容器 #${containerId}`);
-                    return;
-                }
-
-                // 移除现有的加载指示器
-                this.hideChartLoading(containerId);
-
-                // 创建加载指示器
-                const loadingDiv = document.createElement('div');
-                loadingDiv.className = 'chart-loading position-absolute top-50 start-50 translate-middle text-center';
-                loadingDiv.id = `${containerId}-loading`;
-                loadingDiv.innerHTML = `
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">加载中...</span>
-                    </div>
-                    <div class="mt-2 text-muted small">正在加载图表数据...</div>
-                `;
-
-                container.style.position = 'relative';
-                container.appendChild(loadingDiv);
-            }
-        } catch (error) {
-            console.error('ChartHelper: 显示加载状态失败:', error);
-        }
-    },
-
-    /**
-     * 隐藏图表加载状态 (ECharts实现)
-     * @param {string} containerId - 图表容器ID
-     */
-    hideChartLoading(containerId) {
-        try {
-            const chart = this._chartInstances.get(containerId);
-            if (chart) {
-                chart.hideLoading();
-            } else {
-                // 移除传统加载指示器
-                const loadingElement = document.getElementById(`${containerId}-loading`);
-                if (loadingElement) {
-                    loadingElement.remove();
-                }
-            }
-        } catch (error) {
-            console.error('ChartHelper: 隐藏加载状态失败:', error);
-        }
-    },
-
-    /**
-     * 销毁图表实例
-     * @param {string} containerId - 容器ID
-     */
-    destroyChart(containerId) {
-        try {
-            const chart = this._chartInstances.get(containerId);
-            if (chart) {
-                chart.dispose();
-                this._chartInstances.delete(containerId);
-            }
-        } catch (error) {
-            console.error(`ChartHelper: 销毁图表失败 (${containerId}):`, error);
-        }
-    },
-
-    /**
-     * 获取图表实例
-     * @param {string} containerId - 容器ID
-     * @returns {Object|null} ECharts实例
-     */
-    getChart(containerId) {
-        return this._chartInstances.get(containerId) || null;
-    },
-
-    /**
-     * 销毁所有图表实例
-     */
-    destroyAllCharts() {
-        try {
-            this._chartInstances.forEach((chart, containerId) => {
-                chart.dispose();
-            });
-            this._chartInstances.clear();
-        } catch (error) {
-            console.error('ChartHelper: 销毁所有图表失败:', error);
-        }
-    },
-
-    /**
-     * 添加响应式支持
-     * @param {Object} chart - ECharts实例
-     * @private
-     */
-    _addResponsiveSupport(chart) {
-        if (!chart) return;
-
-        // 窗口大小变化时重新调整图表
+        // 添加响应式支持
         const resizeHandler = () => {
             if (chart && !chart.isDisposed()) {
                 chart.resize();
             }
         };
-
         window.addEventListener('resize', resizeHandler);
-
-        // 存储resize处理器，以便后续清理
         chart._resizeHandler = resizeHandler;
     },
 
     /**
-     * 深度合并ECharts配置
-     * @param {Object} defaultConfig - 默认配置
-     * @param {Object} userConfig - 用户配置
-     * @returns {Object} 合并后的配置
+     * 销毁图表实例
+     * @param {string} id - 图表ID
      */
-    mergeEChartsConfig(defaultConfig, userConfig) {
-        const merged = JSON.parse(JSON.stringify(defaultConfig));
-
-        function deepMerge(target, source) {
-            for (const key in source) {
-                if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-                    target[key] = target[key] || {};
-                    deepMerge(target[key], source[key]);
-                } else {
-                    target[key] = source[key];
-                }
+    destroy(id) {
+        const chart = this.charts.get(id);
+        if (chart && !chart.isDisposed()) {
+            // 移除resize监听器
+            if (chart._resizeHandler) {
+                window.removeEventListener('resize', chart._resizeHandler);
             }
+            chart.dispose();
+            this.charts.delete(id);
         }
-
-        deepMerge(merged, userConfig);
-        return merged;
     },
 
     /**
-     * 创建堆叠柱状图 (专用于支出分析)
-     * @param {string} containerId - 容器元素ID
-     * @param {Object} options - 图表配置选项
+     * 获取图表实例
+     * @param {string} id - 图表ID
      * @returns {Object|null} ECharts实例
      */
-    createStackedBarChart(containerId, options = {}) {
-        try {
-            const container = document.getElementById(containerId);
-            if (!container) {
-                console.warn(`ChartHelper: 找不到容器元素 #${containerId}`);
-                return null;
-            }
+    get(id) {
+        return this.charts.get(id) || null;
+    },
 
-            // 销毁现有图表实例
-            this.destroyChart(containerId);
-
-            // 初始化ECharts实例
-            const chart = echarts.init(container, null, {
-                renderer: 'canvas',
-                useDirtyRect: false
-            });
-
-            // 构建默认配置
-            const defaultOption = {
-                title: {
-                    show: false
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'shadow'
-                    },
-                    formatter: (params) => {
-                        if (params && params.length > 0) {
-                            let result = `${params[0].name}<br/>`;
-                            let total = 0;
-                            params.forEach(param => {
-                                total += param.value;
-                                result += `${param.marker}${param.seriesName}: ¥${param.value.toLocaleString('zh-CN', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                })}<br/>`;
-                            });
-                            result += `<strong>总计: ¥${total.toLocaleString('zh-CN', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                            })}</strong>`;
-                            return result;
-                        }
-                        return '';
-                    }
-                },
-                legend: {
-                    show: true,
-                    top: 'top',
-                    textStyle: {
-                        color: getCSSColor('--bs-body-color') || '#212529'
-                    }
-                },
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '3%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    data: [],
-                    axisLine: {
-                        lineStyle: {
-                            color: getCSSColor('--bs-border-color') || '#dee2e6'
-                        }
-                    },
-                    axisLabel: {
-                        color: getCSSColor('--bs-secondary') || '#6c757d'
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    axisLine: {
-                        lineStyle: {
-                            color: getCSSColor('--bs-border-color') || '#dee2e6'
-                        }
-                    },
-                    axisLabel: {
-                        color: getCSSColor('--bs-secondary') || '#6c757d',
-                        formatter: (value) => '¥' + value.toLocaleString('zh-CN')
-                    },
-                    splitLine: {
-                        lineStyle: {
-                            color: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)'
-                        }
-                    }
-                },
-                series: [] // 将由用户配置提供
-            };
-
-            // 合并用户配置
-            const finalOption = this.mergeEChartsConfig(defaultOption, options);
-
-            // 设置配置并注册实例
-            chart.setOption(finalOption);
-            this._chartInstances.set(containerId, chart);
-
-            // 添加响应式支持
-            this._addResponsiveSupport(chart);
-
-            return chart;
-        } catch (error) {
-            console.error(`ChartHelper: 创建堆叠柱状图失败 (${containerId}):`, error);
-            return null;
-        }
+    /**
+     * 销毁所有图表实例
+     */
+    destroyAll() {
+        this.charts.forEach((chart, id) => {
+            this.destroy(id);
+        });
     }
 };
 
 // 页面卸载时清理所有图表实例
 window.addEventListener('beforeunload', () => {
-    ChartHelper.destroyAllCharts();
+    ChartRegistry.destroyAll();
 });
+

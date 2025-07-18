@@ -4,7 +4,7 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { ChartHelper, showNotification, apiService } from '../common/utils.js';
+import { getCSSColor, ChartManager, showNotification, apiService } from '../common/utils.js';
 
 class ExpenseAnalysisPage extends BasePage {
     constructor() {
@@ -106,30 +106,104 @@ class ExpenseAnalysisPage extends BasePage {
 
         // 销毁现有图表
         if (this.chart) {
-            ChartHelper.destroyChart('monthly-trend-chart');
+            ChartManager.destroy('monthly-trend-chart');
             this.chart = null;
         }
 
         // 构建图表数据
         const chartData = this.buildEChartsData();
 
-        // 创建ECharts堆叠柱状图
-        this.chart = ChartHelper.createStackedBarChart('monthly-trend-chart', {
+        // 直接创建ECharts实例
+        const chart = echarts.init(container);
+
+        // 配置选项
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                },
+                formatter: (params) => {
+                    if (params && params.length > 0) {
+                        let result = `${params[0].name}<br/>`;
+                        let total = 0;
+                        params.forEach(param => {
+                            total += param.value;
+                            result += `${param.marker}${param.seriesName}: ¥${param.value.toLocaleString('zh-CN', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            })}<br/>`;
+                        });
+                        result += `<strong>总计: ¥${total.toLocaleString('zh-CN', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })}</strong>`;
+                        return result;
+                    }
+                    return '';
+                }
+            },
+            legend: {
+                show: true,
+                top: 'top',
+                textStyle: {
+                    color: getCSSColor('--bs-body-color') || '#212529'
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
             xAxis: {
-                data: chartData.labels
+                type: 'category',
+                data: chartData.labels,
+                axisLine: {
+                    lineStyle: {
+                        color: getCSSColor('--bs-border-color') || '#dee2e6'
+                    }
+                },
+                axisLabel: {
+                    color: getCSSColor('--bs-secondary') || '#6c757d'
+                }
+            },
+            yAxis: {
+                type: 'value',
+                axisLine: {
+                    lineStyle: {
+                        color: getCSSColor('--bs-border-color') || '#dee2e6'
+                    }
+                },
+                axisLabel: {
+                    color: getCSSColor('--bs-secondary') || '#6c757d',
+                    formatter: (value) => '¥' + value.toLocaleString('zh-CN')
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)'
+                    }
+                }
             },
             series: chartData.series
-        });
+        };
+
+        // 设置配置
+        chart.setOption(option);
+
+        // 注册到管理器
+        ChartManager.register('monthly-trend-chart', chart);
 
         // 添加点击事件
-        if (this.chart) {
-            this.chart.on('click', (params) => {
-                if (params.componentType === 'series') {
-                    const clickedMonth = params.name;
-                    this.selectMonth(clickedMonth);
-                }
-            });
-        }
+        chart.on('click', (params) => {
+            if (params.componentType === 'series') {
+                const clickedMonth = params.name;
+                this.selectMonth(clickedMonth);
+            }
+        });
+
+        // 保存引用
+        this.chart = chart;
     }
 
     buildEChartsData() {
