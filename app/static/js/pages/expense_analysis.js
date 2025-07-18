@@ -4,7 +4,7 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { getCSSColor, ChartManager, showNotification, apiService } from '../common/utils.js';
+import { getProjectColors, formatCurrency, getChartStyles, ChartRegistry, showNotification, apiService } from '../common/utils.js';
 
 class ExpenseAnalysisPage extends BasePage {
     constructor() {
@@ -106,7 +106,7 @@ class ExpenseAnalysisPage extends BasePage {
 
         // 销毁现有图表
         if (this.chart) {
-            ChartManager.destroy('monthly-trend-chart');
+            ChartRegistry.destroy('monthly-trend-chart');
             this.chart = null;
         }
 
@@ -114,30 +114,27 @@ class ExpenseAnalysisPage extends BasePage {
         const chartData = this.buildEChartsData();
 
         // 直接创建ECharts实例
-        const chart = echarts.init(container);
+        const chart = window.echarts.init(container);
+
+        // 获取项目配置
+        const colors = getProjectColors();
+        const styles = getChartStyles();
 
         // 配置选项
         const option = {
             tooltip: {
+                ...styles.tooltip,
                 trigger: 'axis',
-                axisPointer: {
-                    type: 'shadow'
-                },
+                axisPointer: { type: 'shadow' },
                 formatter: (params) => {
                     if (params && params.length > 0) {
                         let result = `${params[0].name}<br/>`;
                         let total = 0;
                         params.forEach(param => {
                             total += param.value;
-                            result += `${param.marker}${param.seriesName}: ¥${param.value.toLocaleString('zh-CN', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                            })}<br/>`;
+                            result += `${param.marker}${param.seriesName}: ${formatCurrency(param.value)}<br/>`;
                         });
-                        result += `<strong>总计: ¥${total.toLocaleString('zh-CN', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                        })}</strong>`;
+                        result += `<strong>总计: ${formatCurrency(total)}</strong>`;
                         return result;
                     }
                     return '';
@@ -146,43 +143,20 @@ class ExpenseAnalysisPage extends BasePage {
             legend: {
                 show: true,
                 top: 'top',
-                textStyle: {
-                    color: getCSSColor('--bs-body-color') || '#212529'
-                }
+                textStyle: { color: colors.bodyColor }
             },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '3%',
-                containLabel: true
-            },
+            grid: styles.grid,
             xAxis: {
                 type: 'category',
                 data: chartData.labels,
-                axisLine: {
-                    lineStyle: {
-                        color: getCSSColor('--bs-border-color') || '#dee2e6'
-                    }
-                },
-                axisLabel: {
-                    color: getCSSColor('--bs-secondary') || '#6c757d'
-                }
+                ...styles.axisStyle
             },
             yAxis: {
                 type: 'value',
-                axisLine: {
-                    lineStyle: {
-                        color: getCSSColor('--bs-border-color') || '#dee2e6'
-                    }
-                },
+                ...styles.axisStyle,
                 axisLabel: {
-                    color: getCSSColor('--bs-secondary') || '#6c757d',
-                    formatter: (value) => '¥' + value.toLocaleString('zh-CN')
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)'
-                    }
+                    ...styles.axisStyle.axisLabel,
+                    formatter: (value) => formatCurrency(value, true)
                 }
             },
             series: chartData.series
@@ -192,7 +166,7 @@ class ExpenseAnalysisPage extends BasePage {
         chart.setOption(option);
 
         // 注册到管理器
-        ChartManager.register('monthly-trend-chart', chart);
+        ChartRegistry.register('monthly-trend-chart', chart);
 
         // 添加点击事件
         chart.on('click', (params) => {
@@ -236,6 +210,9 @@ class ExpenseAnalysisPage extends BasePage {
             labels = allMonths.slice(-5);
         }
 
+        // 获取项目颜色配置
+        const colors = getProjectColors();
+
         // 构建ECharts系列数据
         const series = [
             {
@@ -244,15 +221,11 @@ class ExpenseAnalysisPage extends BasePage {
                 stack: 'expenses',
                 data: labels.map(month => monthlyDataMap[month]?.dining || 0),
                 itemStyle: {
-                    color: 'rgba(13, 110, 253, 0.8)',
-                    borderColor: 'rgba(13, 110, 253, 1)',
-                    borderWidth: 1,
+                    color: colors.primary + 'CC', // 80% 透明度
                     borderRadius: [0, 0, 0, 0]
                 },
                 emphasis: {
-                    itemStyle: {
-                        color: 'rgba(13, 110, 253, 1)'
-                    }
+                    itemStyle: { color: colors.primary }
                 }
             },
             {
@@ -261,15 +234,11 @@ class ExpenseAnalysisPage extends BasePage {
                 stack: 'expenses',
                 data: labels.map(month => monthlyDataMap[month]?.transport || 0),
                 itemStyle: {
-                    color: 'rgba(25, 135, 84, 0.8)',
-                    borderColor: 'rgba(25, 135, 84, 1)',
-                    borderWidth: 1,
+                    color: colors.success + 'CC',
                     borderRadius: [0, 0, 0, 0]
                 },
                 emphasis: {
-                    itemStyle: {
-                        color: 'rgba(25, 135, 84, 1)'
-                    }
+                    itemStyle: { color: colors.success }
                 }
             },
             {
@@ -278,15 +247,11 @@ class ExpenseAnalysisPage extends BasePage {
                 stack: 'expenses',
                 data: labels.map(month => monthlyDataMap[month]?.shopping || 0),
                 itemStyle: {
-                    color: 'rgba(13, 202, 240, 0.8)',
-                    borderColor: 'rgba(13, 202, 240, 1)',
-                    borderWidth: 1,
+                    color: colors.info + 'CC',
                     borderRadius: [0, 0, 0, 0]
                 },
                 emphasis: {
-                    itemStyle: {
-                        color: 'rgba(13, 202, 240, 1)'
-                    }
+                    itemStyle: { color: colors.info }
                 }
             },
             {
@@ -299,15 +264,11 @@ class ExpenseAnalysisPage extends BasePage {
                            (monthData.finance || 0) + (monthData.other || 0);
                 }),
                 itemStyle: {
-                    color: 'rgba(108, 117, 125, 0.8)',
-                    borderColor: 'rgba(108, 117, 125, 1)',
-                    borderWidth: 1,
+                    color: colors.secondary + 'CC',
                     borderRadius: [2, 2, 0, 0] // 顶部圆角
                 },
                 emphasis: {
-                    itemStyle: {
-                        color: 'rgba(108, 117, 125, 1)'
-                    }
+                    itemStyle: { color: colors.secondary }
                 }
             }
         ];

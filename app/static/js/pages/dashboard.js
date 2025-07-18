@@ -3,7 +3,7 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { getCSSColor, getEChartsTheme, getCommonChartConfig, formatCurrency, ChartManager } from '../common/utils.js';
+import { getProjectColors, formatCurrency, getChartStyles, ChartRegistry } from '../common/utils.js';
 
 export default class FinancialDashboard extends BasePage {
     constructor() {
@@ -38,7 +38,7 @@ export default class FinancialDashboard extends BasePage {
     }
     
     initializeCharts() {
-        // 净现金趋势图 - 直接使用ECharts
+        // 净现金趋势图 - 直接使用ECharts API
         const container = document.getElementById('netWorthChart');
         if (!container) {
             console.warn('找不到图表容器 #netWorthChart');
@@ -46,67 +46,44 @@ export default class FinancialDashboard extends BasePage {
         }
 
         // 初始化ECharts实例
-        const chart = echarts.init(container);
+        const chart = window.echarts.init(container);
+
+        // 获取项目配置
+        const colors = getProjectColors();
+        const styles = getChartStyles();
 
         // 配置选项
         const option = {
             tooltip: {
+                ...styles.tooltip,
                 trigger: 'axis',
                 axisPointer: {
                     type: 'cross',
                     label: {
-                        backgroundColor: getCSSColor('--bs-secondary') || '#6c757d'
+                        backgroundColor: colors.secondary
                     }
                 },
                 formatter: (params) => {
                     if (params && params.length > 0) {
                         const param = params[0];
-                        return `${param.name}<br/>净现金: ¥${param.value.toLocaleString('zh-CN', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                        })}`;
+                        return `${param.name}<br/>净现金: ${formatCurrency(param.value)}`;
                     }
                     return '';
                 }
             },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '3%',
-                containLabel: true
-            },
+            grid: styles.grid,
             xAxis: {
                 type: 'category',
                 boundaryGap: false,
                 data: [],
-                axisLine: {
-                    lineStyle: {
-                        color: getCSSColor('--bs-border-color') || '#dee2e6'
-                    }
-                },
-                axisLabel: {
-                    color: getCSSColor('--bs-secondary') || '#6c757d'
-                }
+                ...styles.axisStyle
             },
             yAxis: {
                 type: 'value',
-                axisLine: {
-                    lineStyle: {
-                        color: getCSSColor('--bs-border-color') || '#dee2e6'
-                    }
-                },
+                ...styles.axisStyle,
                 axisLabel: {
-                    color: getCSSColor('--bs-secondary') || '#6c757d',
-                    formatter: (value) => '¥' + value.toLocaleString('zh-CN', {
-                        notation: 'compact',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 1
-                    })
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)'
-                    }
+                    ...styles.axisStyle.axisLabel,
+                    formatter: (value) => formatCurrency(value, true)
                 }
             },
             series: [{
@@ -116,26 +93,20 @@ export default class FinancialDashboard extends BasePage {
                 symbol: 'circle',
                 symbolSize: 6,
                 lineStyle: {
-                    color: getCSSColor('--bs-primary') || '#0d6efd',
+                    color: colors.primary,
                     width: 3
                 },
                 itemStyle: {
-                    color: getCSSColor('--bs-primary') || '#0d6efd'
+                    color: colors.primary
                 },
                 areaStyle: {
                     color: {
                         type: 'linear',
-                        x: 0,
-                        y: 0,
-                        x2: 0,
-                        y2: 1,
-                        colorStops: [{
-                            offset: 0,
-                            color: getCSSColor('--bs-primary-100') || 'rgba(13, 110, 253, 0.2)'
-                        }, {
-                            offset: 1,
-                            color: 'rgba(13, 110, 253, 0.02)'
-                        }]
+                        x: 0, y: 0, x2: 0, y2: 1,
+                        colorStops: [
+                            { offset: 0, color: colors.primary + '40' },
+                            { offset: 1, color: colors.primary + '10' }
+                        ]
                     }
                 },
                 data: []
@@ -146,7 +117,7 @@ export default class FinancialDashboard extends BasePage {
         chart.setOption(option);
 
         // 注册到管理器
-        ChartManager.register('netWorthChart', chart);
+        ChartRegistry.register('netWorthChart', chart);
 
         // 保存引用
         this.charts.netWorth = chart;
@@ -183,12 +154,8 @@ export default class FinancialDashboard extends BasePage {
 
             // 直接使用ECharts API更新数据
             this.charts.netWorth.setOption({
-                xAxis: {
-                    data: labels
-                },
-                series: [{
-                    data: data
-                }]
+                xAxis: { data: labels },
+                series: [{ data: data }]
             });
         } catch (error) {
             console.error('更新净现金趋势图失败:', error);
