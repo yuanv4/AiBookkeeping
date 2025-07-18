@@ -1,10 +1,12 @@
 {% extends "base.html" %}
-{% from "macros.html" import page_header, data_table %}
+{% from "macros.html" import page_header %}
 
 {% block title %}交易记录 - {{ config.APP_NAME }}{% endblock %}
 
 {% block page_css %}
 <link href="{{ url_for('static', filename='css/pages/transactions.css') }}" rel="stylesheet">
+<!-- Tabulator Bootstrap 5主题 -->
+<link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -14,67 +16,56 @@
     <!-- 交易列表 -->
     <div class="row mt-4">
         <div class="col-12" id="transactions-table-container">
-            {% set headers = ['日期', '账户', '对手信息', '摘要', '金额', '余额'] %}
-            {% set filters = [
-                {
-                    'id': 'transactions-table-account-filter',
-                    'label': '账户',
-                    'type': 'text',
-                    'placeholder': '搜索账户名或卡号'
-                },
-                {
-                    'id': 'transactions-table-counterparty-filter',
-                    'label': '对手信息',
-                    'type': 'text',
-                    'placeholder': '搜索对手信息'
-                },
-                {
-                    'id': 'transactions-table-description-filter',
-                    'label': '摘要',
-                    'type': 'text',
-                    'placeholder': '搜索交易摘要'
-                },
-                {
-                    'id': 'transactions-table-date',
-                    'label': '日期范围',
-                    'type': 'daterange'
-                }
-            ] %}
-
-            <!-- 使用增强版表格宏 -->
-            {{ data_table(
-                id="transactions-table",
-                headers=headers,
-                title="交易明细",
-                total=total_count,
-                filtered=total_count,
-                sortable=true,
-                filterable=true,
-                filters=filters,
-                icon_name="receipt"
-            ) }}
-
-            <!-- 固定汇总行 -->
-            <div id="transactions-summary-footer" class="transactions-summary-footer">
-                <div class="summary-content">
-                    <div class="summary-item summary-expense">
-                        <span class="summary-label">支出</span>
-                        <div class="summary-values">
-                            <span class="summary-amount" id="summary-expense-amount">¥0.00</span>
-                            <span class="summary-count" id="summary-expense-count">0笔</span>
+            <!-- Tabulator表格容器 -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-receipt me-2"></i>
+                            交易明细
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="export-csv-btn">
+                                <i class="bi bi-download me-1"></i>导出CSV
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm" id="export-excel-btn">
+                                <i class="bi bi-file-earmark-excel me-1"></i>导出Excel
+                            </button>
                         </div>
                     </div>
-                    <div class="summary-item summary-income">
-                        <span class="summary-label">收入</span>
-                        <div class="summary-values">
-                            <span class="summary-amount" id="summary-income-amount">¥0.00</span>
-                            <span class="summary-count" id="summary-income-count">0笔</span>
+                </div>
+
+                <!-- Tabulator表格 -->
+                <div id="transactions-table"></div>
+
+                <!-- 汇总信息 -->
+                <div class="card-footer bg-light border-top">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <span class="text-muted small d-block">支出</span>
+                                <span class="text-danger fw-bold" id="summary-expense-amount">¥0.00</span>
+                                <small class="text-muted">(<span id="summary-expense-count">0</span>笔)</small>
+                            </div>
                         </div>
-                    </div>
-                    <div class="summary-item summary-balance">
-                        <span class="summary-label">最新余额</span>
-                        <div class="summary-values">
-                            <span class="summary-amount" id="summary-latest-balance">¥0.00</span>
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <span class="text-muted small d-block">收入</span>
+                                <span class="text-success fw-bold" id="summary-income-amount">¥0.00</span>
+                                <small class="text-muted">(<span id="summary-income-count">0</span>笔)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <span class="text-muted small d-block">最新余额</span>
+                                <span class="text-primary fw-bold" id="summary-latest-balance">¥0.00</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-item">
+                                <span class="text-muted small d-block">记录总数</span>
+                                <span class="fw-bold" id="summary-total-count">0</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -95,7 +86,7 @@
 {% endblock %}
 
 {% block page_scripts %}
-<script src="{{ url_for('static', filename='js/components/data-table.js') }}"></script>
-<script src="{{ url_for('static', filename='js/components/transactions-table.js') }}"></script>
+<!-- Tabulator JS -->
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 <script type="module" src="{{ url_for('static', filename='js/pages/transactions.js') }}"></script>
 {% endblock %}

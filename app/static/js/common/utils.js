@@ -836,3 +836,373 @@ window.addEventListener('beforeunload', () => {
     ChartRegistry.destroyAll();
 });
 
+/**
+ * Tabulator 表格工具函数
+ * 提供项目统一的表格配置和工具函数
+ */
+
+/**
+ * 获取Tabulator中文本地化配置
+ * @returns {Object} 中文本地化配置
+ */
+export function getTabulatorLocale() {
+    return {
+        "zh-cn": {
+            "pagination": {
+                "page_size": "每页显示",
+                "page_title": "显示页面",
+                "first": "首页",
+                "first_title": "首页",
+                "last": "末页",
+                "last_title": "末页",
+                "prev": "上一页",
+                "prev_title": "上一页",
+                "next": "下一页",
+                "next_title": "下一页",
+                "all": "全部"
+            },
+            "headerFilters": {
+                "default": "筛选...",
+                "columns": {
+                    "name": "按名称筛选..."
+                }
+            },
+            "groups": {
+                "item": "项目",
+                "items": "项目"
+            },
+            "sort": {
+                "sortAsc": "升序排列",
+                "sortDesc": "降序排列"
+            },
+            "columns": {
+                "name": "名称"
+            },
+            "data": {
+                "loading": "加载中...",
+                "error": "错误"
+            }
+        }
+    };
+}
+
+/**
+ * 获取Tabulator通用配置
+ * @returns {Object} 通用配置对象
+ */
+export function getTabulatorCommonConfig() {
+    const colors = getProjectColors();
+
+    return {
+        layout: "fitColumns",
+        responsiveLayout: "hide",
+        pagination: "local",
+        paginationSize: 20,
+        paginationSizeSelector: [10, 20, 50, 100],
+        movableColumns: true,
+        resizableRows: true,
+        selectable: true,
+        locale: "zh-cn",
+        langs: getTabulatorLocale(),
+        headerFilterPlaceholder: "筛选...",
+        placeholder: "没有找到匹配的记录",
+        // 样式配置
+        rowHeight: 45,
+        headerHeight: 50,
+        // 主题样式
+        cssClass: "table-bootstrap5"
+    };
+}
+
+/**
+ * 获取财务数据专用的列格式化器
+ * @returns {Object} 格式化器对象
+ */
+export function getTabulatorFormatters() {
+    return {
+        // 货币格式化器
+        currency: function(cell) {
+            const value = cell.getValue();
+            if (value === null || value === undefined || value === '') return '';
+
+            const formatted = formatCurrency(Math.abs(value));
+
+            if (value > 0) {
+                return `<span class="text-success fw-semibold">+${formatted}</span>`;
+            } else if (value < 0) {
+                return `<span class="text-danger fw-semibold">-${formatted}</span>`;
+            } else {
+                return `<span class="text-muted">${formatted}</span>`;
+            }
+        },
+
+        // 余额格式化器
+        balance: function(cell) {
+            const value = cell.getValue();
+            if (value === null || value === undefined || value === '') return '';
+
+            return `<span class="fw-semibold">${formatCurrency(value)}</span>`;
+        },
+
+        // 日期格式化器
+        dateFormat: function(cell) {
+            const value = cell.getValue();
+            if (!value) return '';
+
+            const date = new Date(value);
+            return date.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        },
+
+        // 文本截断格式化器
+        textTruncate: function(cell, formatterParams) {
+            const value = cell.getValue();
+            if (!value) return '';
+
+            const maxLength = formatterParams.maxLength || 20;
+            const truncated = value.length > maxLength
+                ? value.substring(0, maxLength) + '...'
+                : value;
+
+            return `<span title="${value}" class="text-truncate d-inline-block" style="max-width: 100%;">${truncated}</span>`;
+        }
+    };
+}
+
+/**
+ * 获取财务表格专用的列配置
+ * @returns {Object} 列配置对象
+ */
+export function getFinancialTableColumns() {
+    const formatters = getTabulatorFormatters();
+
+    return {
+        // 交易记录表格列配置
+        transactions: [
+            {
+                title: "日期",
+                field: "date",
+                sorter: "string", // 使用字符串排序避免luxon依赖
+                headerFilter: "input",
+                headerFilterPlaceholder: "筛选日期",
+                width: 120,
+                formatter: formatters.dateFormat
+            },
+            {
+                title: "账户",
+                field: "account",
+                headerFilter: "input",
+                headerFilterPlaceholder: "筛选账户",
+                width: 150,
+                formatter: formatters.textTruncate,
+                formatterParams: { maxLength: 15 }
+            },
+            {
+                title: "对手信息",
+                field: "counterparty",
+                headerFilter: "input",
+                headerFilterPlaceholder: "筛选对手",
+                width: 150,
+                formatter: formatters.textTruncate,
+                formatterParams: { maxLength: 15 }
+            },
+            {
+                title: "摘要",
+                field: "description",
+                headerFilter: "input",
+                headerFilterPlaceholder: "筛选摘要",
+                minWidth: 200,
+                formatter: formatters.textTruncate,
+                formatterParams: { maxLength: 25 }
+            },
+            {
+                title: "金额",
+                field: "amount",
+                sorter: "number",
+                headerFilter: "number",
+                headerFilterPlaceholder: "筛选金额",
+                width: 120,
+                formatter: formatters.currency,
+                hozAlign: "right"
+            },
+            {
+                title: "余额",
+                field: "balance",
+                width: 120,
+                formatter: formatters.balance,
+                hozAlign: "right"
+            }
+        ]
+    };
+}
+
+/**
+ * Tabulator实例管理器（类似ChartRegistry）
+ */
+export const TableRegistry = {
+    tables: new Map(),
+
+    /**
+     * 注册表格实例
+     * @param {string} id - 表格ID
+     * @param {Object} table - Tabulator实例
+     */
+    register(id, table) {
+        // 先销毁现有实例
+        this.destroy(id);
+
+        // 注册新实例
+        this.tables.set(id, table);
+
+        // 添加响应式支持
+        const resizeHandler = () => {
+            if (table && !table.destroyed) {
+                table.redraw();
+            }
+        };
+        window.addEventListener('resize', resizeHandler);
+        table._resizeHandler = resizeHandler;
+    },
+
+    /**
+     * 销毁表格实例
+     * @param {string} id - 表格ID
+     */
+    destroy(id) {
+        const table = this.tables.get(id);
+        if (table && !table.destroyed) {
+            // 移除resize监听器
+            if (table._resizeHandler) {
+                window.removeEventListener('resize', table._resizeHandler);
+            }
+            table.destroy();
+            this.tables.delete(id);
+        }
+    },
+
+    /**
+     * 获取表格实例
+     * @param {string} id - 表格ID
+     * @returns {Object|null} Tabulator实例
+     */
+    get(id) {
+        return this.tables.get(id) || null;
+    },
+
+    /**
+     * 销毁所有表格实例
+     */
+    destroyAll() {
+        this.tables.forEach((table, id) => {
+            this.destroy(id);
+        });
+    }
+};
+
+/**
+ * 创建交易记录表格
+ * @param {string} containerId - 容器ID
+ * @param {Array} data - 表格数据
+ * @param {Object} options - 额外配置选项
+ * @returns {Object} Tabulator实例
+ */
+export function createTransactionsTable(containerId, data = [], options = {}) {
+    const commonConfig = getTabulatorCommonConfig();
+    const columns = getFinancialTableColumns().transactions;
+
+    // 合并配置
+    const config = {
+        ...commonConfig,
+        data: data,
+        columns: columns,
+        // 交易记录特定配置
+        initialSort: [
+            { column: "date", dir: "desc" }
+        ],
+        // 行样式配置
+        rowFormatter: function(row) {
+            const data = row.getData();
+            const element = row.getElement();
+
+            // 根据金额大小添加样式
+            if (data.amount > 1000) {
+                element.style.backgroundColor = "#e8f5e8";
+            } else if (data.amount < -1000) {
+                element.style.backgroundColor = "#ffeaea";
+            }
+        },
+        ...options
+    };
+
+    // 创建表格实例
+    const table = new window.Tabulator(`#${containerId}`, config);
+
+    // 注册到管理器
+    TableRegistry.register(containerId, table);
+
+    return table;
+}
+
+/**
+ * 更新表格汇总信息（用于交易记录）
+ * @param {Object} table - Tabulator实例
+ * @param {Object} summaryElements - 汇总元素对象
+ */
+export function updateTransactionsSummary(table, summaryElements) {
+    if (!table || !summaryElements) return;
+
+    try {
+        const data = table.getData();
+
+        let totalIncome = 0;
+        let totalExpense = 0;
+        let incomeCount = 0;
+        let expenseCount = 0;
+        let latestBalance = 0;
+
+        data.forEach(row => {
+            const amount = parseFloat(row.amount) || 0;
+            const balance = parseFloat(row.balance) || 0;
+
+            if (amount > 0) {
+                totalIncome += amount;
+                incomeCount++;
+            } else if (amount < 0) {
+                totalExpense += Math.abs(amount);
+                expenseCount++;
+            }
+
+            // 假设数据按日期排序，取最新的余额
+            latestBalance = balance;
+        });
+
+        // 更新DOM元素
+        if (summaryElements.totalIncome) {
+            summaryElements.totalIncome.textContent = formatCurrency(totalIncome);
+        }
+        if (summaryElements.totalExpense) {
+            summaryElements.totalExpense.textContent = formatCurrency(totalExpense);
+        }
+        if (summaryElements.incomeCount) {
+            summaryElements.incomeCount.textContent = incomeCount;
+        }
+        if (summaryElements.expenseCount) {
+            summaryElements.expenseCount.textContent = expenseCount;
+        }
+        if (summaryElements.latestBalance) {
+            summaryElements.latestBalance.textContent = formatCurrency(latestBalance);
+        }
+
+    } catch (error) {
+        console.error('更新交易汇总信息失败:', error);
+    }
+}
+
+// 页面卸载时清理所有表格实例
+window.addEventListener('beforeunload', () => {
+    TableRegistry.destroyAll();
+});
+
