@@ -56,12 +56,15 @@ def _initialize_database_and_services(app):
 
         # 直接初始化服务 - 简化的服务管理
         from .services import DataService, ImportService, ReportService
+        from .services.category_service import CategoryService
 
         data_service = DataService()
+        category_service = CategoryService()
         import_service = ImportService(data_service)
-        report_service = ReportService(data_service)
+        report_service = ReportService(data_service, category_service=category_service)
         # 将服务直接设置到app对象上
         app.data_service = data_service
+        app.category_service = category_service
         app.import_service = import_service
         app.report_service = report_service
         app.logger.info("服务层已直接初始化")

@@ -80,19 +80,19 @@ def api_merchant_analysis():
             }), 400
 
         # 获取商户分类服务
-        merchant_service = current_app.report_service.merchant_service
+        category_service = current_app.report_service.category_service
 
         # 根据参数类型选择不同的分析方法
         if month_str:
             # 使用月份分析方法，包含完整历史数据
-            analysis_data = merchant_service.get_month_expense_analysis(
+            analysis_data = category_service.get_month_expense_analysis(
                 target_month=month_str,
                 category_filter=category_filter,
                 search_term=search_term
             )
         else:
             # 使用日期范围分析方法
-            analysis_data = merchant_service.get_expense_analysis_by_category(
+            analysis_data = category_service.get_expense_analysis_by_category(
                 start_date=start_date,
                 end_date=end_date,
                 category_filter=category_filter,
@@ -127,10 +127,10 @@ def api_available_months():
     """获取可用月份列表API"""
     try:
         # 获取商户分类服务
-        merchant_service = current_app.report_service.merchant_service
+        category_service = current_app.report_service.category_service
 
         # 获取有数据的月份列表
-        months_data = merchant_service.get_available_months()
+        months_data = category_service.get_available_months()
 
         return jsonify({
             'success': True,
@@ -151,10 +151,10 @@ def api_merchant_details(merchant_name):
     """获取商户详情API"""
     try:
         # 获取商户分类服务
-        merchant_service = current_app.report_service.merchant_service
+        category_service = current_app.report_service.category_service
 
         # 获取商户交易详情
-        merchant_data = merchant_service.get_merchant_transactions(merchant_name)
+        merchant_data = category_service.get_merchant_transactions(merchant_name)
 
         return jsonify({
             'success': True,

@@ -6,10 +6,11 @@
 - DataService: 统一的数据管理服务，替代原来的 AccountService、BankService、TransactionService
 - ImportService: 完整的文件导入服务，集成了提取、解析、商家识别功能
 - ReportService: 基础财务报告服务，专注于个人用户的核心分析需求
+- CategoryService: 统一的商户分类服务，提供配置管理、分类算法和业务分析功能
 - 统一的数据模型: 简化的DTO定义，提供类型安全和数据验证
 
 使用示例:
-    from app.services import DataService, ImportService, ReportService
+    from app.services import DataService, ImportService, ReportService, CategoryService
 
     # 统一数据管理
     data_service = DataService()
@@ -22,12 +23,17 @@
     # 财务报告
     report_service = ReportService(data_service)
     dashboard = report_service.get_dashboard_data()
+
+    # 商户分类
+    category_service = CategoryService()
+    category = category_service.classify_merchant('麦当劳')
 """
 
 # 新的统一服务
 from .data_service import DataService
 from .import_service import ImportService
 from .report_service import ReportService
+from .category_service import CategoryService
 
 # 数据模型 - 保留复杂DTO类，简单数据结构已改为字典
 from .models import (
@@ -45,6 +51,7 @@ __all__ = [
     'DataService',
     'ImportService',
     'ReportService',
+    'CategoryService',
     # 保留的复杂DTO类
     'ExtractedData', 'ImportResult', 'DashboardData',
     # 字典构造函数

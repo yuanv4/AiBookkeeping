@@ -21,7 +21,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .data_service import DataService
-from .merchant_classification_service import MerchantClassificationService
+from .category_service import CategoryService
 from .models import DateUtils
 from app.utils.query_cache import cached_query
 
@@ -33,17 +33,18 @@ class ReportService:
     提供简化的财务分析和报告功能，专注于个人用户的核心需求。
     """
     
-    def __init__(self, data_service: DataService = None, db_session: Optional[Session] = None):
+    def __init__(self, data_service: DataService = None, db_session: Optional[Session] = None, category_service: CategoryService = None):
         """初始化报告服务
 
         Args:
             data_service: 数据服务实例
             db_session: 数据库会话，如果为None则使用默认会话
+            category_service: 分类服务实例
         """
         self.data_service = data_service or DataService()
         self.db = db_session or db.session
         self.logger = logging.getLogger(__name__)
-        self.merchant_service = MerchantClassificationService(db_session)
+        self.category_service = category_service or CategoryService(db_session=db_session)
 
     # ==================== 基础财务指标 ====================
     
@@ -432,7 +433,7 @@ class ReportService:
             self.logger.info(f"开始执行商户分类支出分析 - 分类筛选: {category_filter}, 搜索词: {search_term}")
 
             # 调用商户分类服务进行分析
-            analysis_result = self.merchant_service.get_expense_analysis_by_category(
+            analysis_result = self.category_service.get_expense_analysis_by_category(
                 start_date=start_date,
                 end_date=end_date,
                 category_filter=category_filter,

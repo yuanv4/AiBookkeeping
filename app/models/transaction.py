@@ -5,10 +5,12 @@ This module contains the Transaction model class representing financial transact
 
 from .base import db, BaseModel
 from sqlalchemy.orm import validates
+from sqlalchemy import event
 from decimal import Decimal
 from datetime import datetime, date
 import re
 import decimal
+import logging
 from typing import Any
 
 class Transaction(BaseModel):
@@ -25,6 +27,7 @@ class Transaction(BaseModel):
     currency = db.Column(db.String(3), default='CNY', nullable=False, index=True)
     reference_number = db.Column(db.String(50), index=True)  # 交易参考号
     merchant_name = db.Column(db.String(128), nullable=True, index=True)  # 规范化的商家名称
+    category = db.Column(db.String(50), nullable=True, index=True, default='other')  # 商户分类
     
     # 索引优化
     __table_args__ = (
@@ -163,6 +166,31 @@ class Transaction(BaseModel):
             if len(reference_number) > 50:
                 raise ValueError('Reference number cannot exceed 50 characters')
         return reference_number
+
+    @validates('category')
+    def validate_category(self, key, category):
+        """验证商户分类"""
+        if category:
+            # 确保category是字符串类型再调用strip()
+            if not isinstance(category, str):
+                category = str(category)
+            category = category.strip().lower()
+            if len(category) > 50:
+                raise ValueError('Category cannot exceed 50 characters')
+
+            # 验证分类是否在有效列表中
+            valid_categories = {
+                'dining', 'transport', 'shopping', 'services',
+                'healthcare', 'finance', 'other'
+            }
+            if category not in valid_categories:
+                # 如果分类无效，记录警告并使用默认值
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"无效的商户分类: {category}, 使用默认值 'other'")
+                category = 'other'
+
+        return category or 'other'
     
     def get_transaction_type(self) -> str:
         """Get transaction type based on amount.
@@ -203,7 +231,82 @@ class Transaction(BaseModel):
         result['account_number'] = self.account.account_number if self.account else None
         result['bank_name'] = self.account.bank.name if self.account and self.account.bank else None
         result['merchant_name'] = self.merchant_name
+        result['category'] = self.category
         return result
     
     def __repr__(self):
         return f'<Transaction(id={self.id}, account_id={self.account_id}, date={self.date}, amount={self.amount})>'
+
+
+# 自动分类事件监听器
+@event.listens_for(Transaction, 'before_insert')
+def auto_classify_transaction(mapper, connection, target):
+    """在交易插入前自动分类
+
+    Args:
+        mapper: SQLAlchemy mapper
+        connection: 数据库连接
+        target: Transaction实例
+    """
+    logger = logging.getLogger(__name__)
+
+    try:
+        # 只对支出交易进行分类
+        if target.amount < 0 and target.counterparty:
+            # 如果没有设置分类或分类为默认值，则进行自动分类
+            if not target.category or target.category == 'other':
+                # 延迟导入避免循环依赖
+                from app.services.category_service import CategoryService
+
+                service = CategoryService()
+                category = service.classify_merchant(target.counterparty)
+                target.category = category
+
+                logger.debug(f"自动分类交易: {target.counterparty} -> {category}")
+            else:
+                logger.debug(f"交易已有分类: {target.counterparty} -> {target.category}")
+        else:
+            # 收入交易或无交易对手的交易设为other
+            if not target.category:
+                target.category = 'other'
+                logger.debug(f"非支出交易设为默认分类: {target.category}")
+
+    except Exception as e:
+        logger.error(f"自动分类失败: {e}")
+        # 分类失败时使用默认值
+        if not target.category:
+            target.category = 'other'
+
+
+@event.listens_for(Transaction, 'before_update')
+def auto_classify_on_update(mapper, connection, target):
+    """在交易更新前检查是否需要重新分类
+
+    Args:
+        mapper: SQLAlchemy mapper
+        connection: 数据库连接
+        target: Transaction实例
+    """
+    logger = logging.getLogger(__name__)
+
+    try:
+        # 检查counterparty是否发生变化
+        history = target.__dict__.get('_sa_instance_state')
+        if history and hasattr(history, 'attrs'):
+            counterparty_history = history.attrs.get('counterparty')
+            if counterparty_history and counterparty_history.history.has_changes():
+                # counterparty发生变化，重新分类
+                if target.amount < 0 and target.counterparty:
+                    from app.services.category_service import CategoryService
+
+                    service = CategoryService()
+                    category = service.classify_merchant(target.counterparty)
+                    target.category = category
+
+                    logger.debug(f"更新时重新分类交易: {target.counterparty} -> {category}")
+
+    except Exception as e:
+        logger.error(f"更新时自动分类失败: {e}")
+        # 分类失败时保持原有分类或使用默认值
+        if not target.category:
+            target.category = 'other'
