@@ -1,20 +1,18 @@
-/*
- * AiBookkeeping - 布局样式
- * 包含导航、侧边栏、页面布局等结构性样式
- */
+/* layout.css - 页面布局样式 */
 
-/* ========================================
-   主体布局
-   ======================================== */
+/*
+* AiBookkeeping - 布局样式
+* 包含导航、侧边栏、页面布局等结构性样式
+*/
+
+/* ========== 主体布局 ========== */
 
 body {
     display: flex;
     min-height: 100vh;
 }
 
-/* ========================================
-   侧边栏导航
-   ======================================== */
+/* ========== 侧边栏导航 ========== */
 
 .sidebar {
     width: var(--sidebar-width);
@@ -58,20 +56,12 @@ body {
     color: var(--bs-gray-900);
 }
 
-.nav-pills .nav-link.active {
-    background-color: var(--bs-primary);
-    color: white;
-    box-shadow: var(--bs-box-shadow);
-}
-
 .nav-pills .nav-link .lucide-icon {
     margin-right: var(--spacing-2);
     flex-shrink: 0;
 }
 
-/* ========================================
-   主内容区域
-   ======================================== */
+/* ========== 主内容区域 ========== */
 
 .main-content {
     flex: 1;
@@ -80,167 +70,54 @@ body {
     background-color: var(--surface-background);
 }
 
-.content-container {
-    padding: var(--spacing-6);
-    max-width: var(--container-max-width);
-    margin: 0 auto;
-}
+/* ========== 页面头部 ========== */
 
-/* ========================================
-   页面头部
-   ======================================== */
+/* ========== 移动端导航 ========== */
 
-.page-header {
-    background-color: var(--surface-card);
-    border-bottom: var(--border-width-thin) solid var(--bs-border-color);
-    box-shadow: var(--bs-box-shadow-sm);
-    padding: var(--spacing-6);
-    margin-bottom: var(--spacing-6);
-    border-radius: var(--bs-border-radius);
-}
-
-.page-header h1 {
-    font-size: var(--font-size-3xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--bs-gray-900);
-    margin-bottom: var(--spacing-2);
-}
-
-.page-header p {
-    color: var(--bs-gray-600);
-    font-size: var(--font-size-lg);
-    margin-bottom: 0;
-}
-
-.page-header-icon {
-    width: 3rem;
-    height: 3rem;
-    background-color: var(--bs-primary-100);
-    border-radius: var(--bs-border-radius-lg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: var(--spacing-4);
-    flex-shrink: 0;
-}
-
-/* ========================================
-   移动端导航
-   ======================================== */
-
-.mobile-nav-toggle {
-    display: none;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--bs-gray-600);
-    padding: var(--spacing-2);
-    border-radius: var(--bs-border-radius);
-    transition: var(--bs-transition);
-}
-
-.mobile-nav-toggle:hover {
-    background-color: var(--bs-gray-100);
-    color: var(--bs-gray-900);
-}
-
-/* ========================================
-   响应式设计
-   ======================================== */
+/* ========== 响应式设计 ========== */
 
 /* 平板设备 */
 @media (max-width: 992px) {
-    .mobile-nav-toggle {
-        display: block;
-    }
-    
-    .sidebar {
-        transform: translateX(-100%);
-        transition: transform var(--transition-slow);
-    }
-    
-    .sidebar.show {
-        transform: translateX(0);
-    }
-    
-    .main-content {
-        margin-left: 0;
-    }
-    
-    .content-container {
-        padding: var(--spacing-4);
-    }
-    
-    .page-header {
-        padding: var(--spacing-4);
-        margin-bottom: var(--spacing-4);
-    }
+
+.sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--transition-slow);
+}
+
+.sidebar.show {
+    transform: translateX(0);
+}
+
+.main-content {
+    margin-left: 0;
+}
+
 }
 
 /* 手机设备 */
 @media (max-width: 768px) {
-    .content-container {
-        padding: var(--spacing-3);
-    }
-    
-    .page-header {
-        padding: var(--spacing-3);
-        margin-bottom: var(--spacing-3);
-    }
-    
-    .page-header h1 {
-        font-size: var(--font-size-2xl);
-    }
-    
-    .page-header p {
-        font-size: var(--font-size-base);
-    }
-    
-    .page-header-icon {
-        width: 2.5rem;
-        height: 2.5rem;
-        margin-right: var(--spacing-3);
-    }
-    
-    /* 移动端表格优化 */
-    .clickable-row:hover {
-        transform: none;
-        box-shadow: none;
-    }
-    
-    .clickable-row:active {
-        background-color: var(--bs-primary-100) !important;
-    }
+
+/* 移动端表格优化已由Tabulator处理 */
 }
 
 /* 小屏手机设备 */
 @media (max-width: 576px) {
-    .content-container {
-        padding: var(--spacing-2);
-    }
-    
-    .page-header {
-        padding: var(--spacing-2);
-        margin-bottom: var(--spacing-2);
-    }
-    
-    .sidebar-header {
-        padding: var(--spacing-3);
-    }
-    
-    .sidebar-nav {
-        padding: var(--spacing-3);
-    }
-    
-    .nav-pills .nav-link {
-        padding: var(--spacing-2) var(--spacing-3);
-        font-size: var(--font-size-sm);
-    }
+
+.sidebar-header {
+    padding: var(--spacing-3);
 }
 
-/* ========================================
-   消息提示布局
-   ======================================== */
+.sidebar-nav {
+    padding: var(--spacing-3);
+}
+
+.nav-pills .nav-link {
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--font-size-sm);
+}
+}
+
+/* ========== 消息提示布局 ========== */
 
 .alert {
     border-radius: var(--bs-border-radius);
@@ -248,13 +125,7 @@ body {
     margin-bottom: var(--spacing-4);
 }
 
-.alert-dismissible .btn-close {
-    padding: var(--spacing-3);
-}
-
-/* ========================================
-   模态框布局
-   ======================================== */
+/* ========== 模态框布局 ========== */
 
 .modal-content {
     border-radius: var(--bs-border-radius-lg);
@@ -276,9 +147,7 @@ body {
     padding: var(--spacing-6);
 }
 
-/* ========================================
-   加载覆盖层
-   ======================================== */
+/* ========== 加载覆盖层 ========== */
 
 .loading-overlay {
     position: fixed;
@@ -298,9 +167,7 @@ body {
     color: white;
 }
 
-/* ========================================
-   页面容器
-   ======================================== */
+/* ========== 页面容器 ========== */
 
 .page-container {
     width: 100%;
@@ -308,9 +175,7 @@ body {
     margin: 0 auto;
 }
 
-/* ========================================
-   网格布局优化
-   ======================================== */
+/* ========== 网格布局优化 ========== */
 
 .row {
     margin-left: calc(var(--spacing-3) * -1);
@@ -326,28 +191,19 @@ body {
 .gap-1 { gap: var(--spacing-1) !important; }
 .gap-2 { gap: var(--spacing-2) !important; }
 .gap-3 { gap: var(--spacing-3) !important; }
-.gap-4 { gap: var(--spacing-4) !important; }
-.gap-5 { gap: var(--spacing-5) !important; }
-.gap-6 { gap: var(--spacing-6) !important; }
 
-/* ========================================
-   打印样式
-   ======================================== */
+/* ========== 打印样式 ========== */
 
 @media print {
     .sidebar,
     .mobile-nav-toggle,
     .btn,
-    .alert {
-        display: none !important;
-    }
-    
-    .main-content {
-        margin-left: 0 !important;
-    }
-    
-    .page-header {
-        box-shadow: none !important;
-        border-bottom: var(--border-width-medium) solid var(--bs-gray-900) !important;
-    }
+.alert {
+    display: none !important;
+}
+
+.main-content {
+    margin-left: 0 !important;
+}
+
 }

@@ -1,11 +1,9 @@
-/*
- * AiBookkeeping - 通用组件样式
- * 包含卡片、按钮、表格、表单等通用组件的样式定义
- */
+/* components.css - 通用组件样式 */
 
-/* ========================================
-   卡片组件样式
-   ======================================== */
+/*
+* AiBookkeeping - 通用组件样式
+* 包含卡片、按钮、表格、表单等通用组件的样式定义
+*/
 
 .card {
     background-color: var(--surface-card);
@@ -19,77 +17,21 @@
     box-shadow: var(--bs-box-shadow);
 }
 
-/* 卡片变体 */
-.card-elevated {
-    box-shadow: var(--bs-box-shadow-lg);
-}
-
-.card-flat {
-    box-shadow: none;
-    border: var(--border-width-thin) solid var(--bs-gray-200);
-}
-
-/* 卡片动画 */
-.card-animate {
-    animation: cardFadeIn 0.3s ease-out;
-}
-
 @keyframes cardFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+from {
+    opacity: 0;
+    transform: translateY(20px);
 }
-
-/* 卡片悬停效果 - 统一样式 */
-.card-hover-effect {
-    transition: var(--bs-transition);
+to {
+    opacity: 1;
+    transform: translateY(0);
 }
-
-.card-hover-effect:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--bs-box-shadow-lg);
-}
-
-/* 轻微悬停效果（用于按钮等小元素） */
-.card-hover-effect-subtle {
-    transition: var(--bs-transition);
-}
-
-.card-hover-effect-subtle:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--bs-box-shadow);
-}
-
-/* 加载状态卡片 */
-.card-loading {
-    position: relative;
-    overflow: hidden;
-}
-
-.card-loading::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-    animation: shimmer 1.5s infinite;
 }
 
 @keyframes shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
+0% { left: -100%; }
+100% { left: 100%; }
 }
-
-/* ========================================
-   按钮组件样式
-   ======================================== */
 
 .btn {
     border-radius: var(--bs-border-radius);
@@ -106,17 +48,7 @@
     transform: translateY(0);
 }
 
-/* 按钮尺寸变体 */
-.btn-xs {
-    padding: 0.125rem 0.5rem;
-    font-size: var(--font-size-xs);
-    border-radius: var(--bs-border-radius-sm);
-}
-
-/* ========================================
-   表格组件样式
-   ======================================== */
-
+/* 保留基础表格样式，用于非Tabulator表格 */
 .table {
     --bs-table-bg: var(--surface-card);
 }
@@ -139,88 +71,6 @@
     background-color: var(--bs-gray-50);
 }
 
-/* 可点击表格行 */
-.clickable-row {
-    cursor: pointer;
-    transition: var(--bs-transition);
-    position: relative;
-}
-
-.clickable-row:hover {
-    background-color: var(--bs-gray-100) !important;
-    transform: translateY(-1px);
-    box-shadow: var(--bs-box-shadow);
-}
-
-.clickable-row:focus {
-    outline: none;
-}
-
-.clickable-row[aria-expanded="true"] {
-    background-color: var(--bs-primary-50) !important;
-    border-left: var(--border-width-thick) solid var(--bs-primary);
-}
-
-/* 展开指示器 */
-.expand-indicator {
-    color: var(--bs-primary);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: var(--bs-primary-100);
-    border: var(--border-width-thin) solid var(--bs-primary-200);
-    position: relative;
-    margin-left: var(--spacing-2);
-}
-
-.expand-indicator::before {
-    content: '';
-    width: 0;
-    height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid var(--bs-primary);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    transform: rotate(0deg);
-}
-
-.clickable-row:hover .expand-indicator {
-    background-color: var(--bs-primary-200);
-    border-color: var(--bs-primary-300);
-    transform: scale(1.1);
-}
-
-.clickable-row[aria-expanded="true"] .expand-indicator {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
-}
-
-.clickable-row[aria-expanded="true"] .expand-indicator::before {
-    transform: rotate(90deg);
-    border-top-color: white;
-}
-
-/* 交易明细行 */
-.transaction-details-row {
-    background-color: var(--bs-gray-50);
-    border-left: var(--border-width-thick) solid var(--bs-primary);
-}
-
-.transaction-details-row td {
-    border-top: none;
-    padding: 0;
-}
-
-/* ========================================
-   表单组件样式
-   ======================================== */
-
 .form-control {
     border-radius: var(--bs-border-radius);
     border: var(--border-width-thin) solid var(--bs-gray-300);
@@ -236,18 +86,10 @@
     border-radius: var(--bs-border-radius);
 }
 
-/* ========================================
-   徽章组件样式
-   ======================================== */
-
 .badge {
     font-weight: var(--font-weight-medium);
     border-radius: var(--bs-border-radius-sm);
 }
-
-/* ========================================
-   文件上传组件样式
-   ======================================== */
 
 .file-drop-zone {
     transition: var(--bs-transition);
@@ -267,10 +109,6 @@
     transform: scale(1.02);
 }
 
-/* ========================================
-   图标组件样式
-   ======================================== */
-
 .lucide-icon {
     display: inline-block;
     vertical-align: middle;
@@ -280,14 +118,6 @@
     stroke-linejoin: round;
     fill: none;
 }
-
-/* 图标尺寸 */
-.icon-xs { width: 0.75rem; height: 0.75rem; }
-.icon-sm { width: 0.875rem; height: 0.875rem; }
-.icon-md { width: 1.25rem; height: 1.25rem; }
-.icon-lg { width: 1.5rem; height: 1.5rem; }
-.icon-xl { width: 2rem; height: 2rem; }
-.icon-xxl { width: 2.5rem; height: 2.5rem; }
 
 /* 图标加载失败备用样式 */
 .lucide-icon:not([data-lucide]) {
@@ -305,10 +135,6 @@
     overflow: hidden !important;
 }
 
-/* ========================================
-   统计卡片组件样式
-   ======================================== */
-
 .stat-card {
     transition: var(--bs-transition);
 }
@@ -317,10 +143,6 @@
     transform: translateY(-2px);
     box-shadow: var(--bs-box-shadow-lg);
 }
-
-/* ========================================
-   商户卡片组件样式
-   ======================================== */
 
 .merchant-card {
     transition: var(--bs-transition);
@@ -363,11 +185,6 @@
     border-radius: var(--bs-border-radius-sm);
 }
 
-/* 评分颜色渐变 */
-.progress-bar.bg-success {
-    background: linear-gradient(90deg, var(--bs-success), #20c997) !important;
-}
-
 .progress-bar.bg-warning {
     background: linear-gradient(90deg, #fd7e14, var(--bs-warning)) !important;
 }
@@ -375,55 +192,6 @@
 .progress-bar.bg-danger {
     background: linear-gradient(90deg, var(--bs-danger), #fd5e53) !important;
 }
-
-/* ========================================
-   金额显示样式
-   ======================================== */
-
-.amount-positive { 
-    color: var(--color-amount-positive) !important; 
-    font-weight: var(--font-weight-medium);
-}
-
-.amount-negative { 
-    color: var(--color-amount-negative) !important; 
-    font-weight: var(--font-weight-medium);
-}
-
-.amount-neutral { 
-    color: var(--color-amount-neutral) !important; 
-}
-
-/* transaction-amount 样式已移至 pages/transactions.css，避免重复定义 */
-
-/* ========================================
-   文本截断样式
-   ======================================== */
-
-.transaction-cell-truncate {
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.transaction-cell-truncate-sm {
-    max-width: 80px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.transaction-cell-truncate-md {
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* ========================================
-   新增组件样式规范
-   ======================================== */
 
 /* 数据卡片组件 */
 .data-card {
@@ -440,31 +208,13 @@
     box-shadow: var(--bs-box-shadow-lg);
 }
 
-/* 筛选栏组件 */
-.filter-bar {
-    background-color: var(--surface-card);
-    border-radius: var(--bs-border-radius);
-    box-shadow: var(--bs-box-shadow-sm);
-}
-
-.filter-bar .form-label {
-    font-weight: var(--font-weight-medium);
-    color: var(--bs-gray-700);
-    font-size: var(--font-size-sm);
-}
-
-.filter-bar .input-group-text {
-    background-color: var(--bs-gray-100);
-    border-color: var(--bs-gray-300);
-}
-
-.filter-bar .form-control,
+    .filter-bar .form-control,
 .filter-bar .form-select {
     border-color: var(--bs-gray-300);
     background-color: var(--bs-gray-50);
 }
 
-.filter-bar .form-control:focus,
+    .filter-bar .form-control:focus,
 .filter-bar .form-select:focus {
     border-color: var(--bs-primary);
     background-color: var(--surface-card);
@@ -512,27 +262,6 @@
     border-radius: var(--bs-border-radius);
 }
 
-.spinner-border-lg {
-    width: 3rem;
-    height: 3rem;
-}
-
-/* 空状态组件 */
-.empty-state {
-    padding: var(--spacing-8) var(--spacing-4);
-    text-align: center;
-}
-
-.empty-state .empty-icon {
-    color: var(--bs-gray-300);
-    margin-bottom: var(--spacing-4);
-}
-
-.empty-state p {
-    color: var(--bs-gray-500);
-    margin-bottom: var(--spacing-4);
-}
-
 /* 面包屑组件 */
 .breadcrumb {
     background-color: transparent;
@@ -547,10 +276,6 @@
 .breadcrumb-item + .breadcrumb-item::before {
     content: var(--bs-breadcrumb-divider, "/");
     color: var(--bs-gray-400);
-}
-
-.breadcrumb-item.active {
-    color: var(--bs-gray-600);
 }
 
 .breadcrumb-item a {
@@ -599,127 +324,18 @@
     vertical-align: middle;
 }
 
-/* 表格排序样式 */
-.sortable {
-    cursor: pointer;
-    user-select: none;
-    transition: var(--bs-transition);
-}
-
-.sortable:hover {
-    background-color: var(--bs-gray-100);
-}
-
-.sortable .sort-icon {
-    transition: var(--bs-transition);
-}
-
-.sortable.sort-asc .sort-icon {
-    transform: rotate(180deg);
-    opacity: 1;
-}
-
-.sortable.sort-desc .sort-icon {
-    opacity: 1;
-}
-
-/* 筛选面板样式 */
-.filter-panel {
-    transition: all 0.3s ease;
-}
-
-.filter-input-group {
-    position: relative;
-}
-
-.filter-input-group .clear-input {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    border: none;
-    background: transparent;
-    padding: 2px;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-}
-
-.filter-input-group .clear-input:hover {
-    opacity: 1;
-}
-
-.filter-input-group input,
-.filter-input-group select {
-    padding-right: 32px;
-}
-
-/* 活跃筛选条件样式 */
-.active-filters-container {
-    border-top: 1px solid var(--bs-border-color);
-    padding-top: 1rem;
-}
-
-.filter-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: var(--bs-primary);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--bs-border-radius-sm);
-    font-size: var(--font-size-xs);
-}
-
-.filter-badge .close-icon {
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
-}
-
-.filter-badge .close-icon:hover {
-    opacity: 1;
-}
-
-/* 快速筛选按钮样式 */
-.quick-filter {
-    transition: all 0.2s ease;
-}
-
-.quick-filter:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* 筛选切换按钮样式 */
-.filter-toggle-text {
-    font-size: var(--font-size-sm);
-}
-
-/* 表格筛选增强样式 */
-.data-table-container {
-    position: relative;
-}
-
-.data-table-container .card-header {
-    position: relative;
-    z-index: 5;
-}
+    .filter-input-group input,
 
 /* 筛选面板动画 */
 @keyframes filterPanelSlide {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+from {
+    opacity: 0;
+    transform: translateY(-10px);
 }
-
-.filter-panel {
-    animation: filterPanelSlide 0.3s ease-out;
+to {
+    opacity: 1;
+    transform: translateY(0);
+}
 }
 
 /* 图表容器增强 */
@@ -742,21 +358,6 @@
     color: var(--bs-primary);
 }
 
-/* 图表加载遮罩（全覆盖版本） */
-.chart-loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--surface-card);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--bs-border-radius);
-    z-index: 10;
-}
-
 .chart-actions .btn {
     font-size: var(--font-size-xs);
     padding: var(--spacing-1) var(--spacing-2);
@@ -764,20 +365,4 @@
 
 .chart-actions .dropdown-menu {
     font-size: var(--font-size-sm);
-}
-
-/* 组件状态样式 */
-.component-loading {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-.component-disabled {
-    opacity: 0.5;
-    pointer-events: none;
-}
-
-.component-error {
-    border-color: var(--bs-danger) !important;
-    background-color: var(--bs-danger-50) !important;
 }

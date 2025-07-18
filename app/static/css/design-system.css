@@ -1,14 +1,14 @@
+/* design-system.css - design-system样式 */
+
 /*
- * AiBookkeeping - 设计系统核心变量
- * 包含颜色、字体、间距、阴影等基础设计变量
- */
+* AiBookkeeping - 设计系统核心变量
+* 包含颜色、字体、间距、阴影等基础设计变量
+*/
 
 :root {
-    /* ========================================
-       主色调系统 - 基于原项目设计
-       ======================================== */
-    
-    /* 主色调 */
+/* ========== 主色调系统 - 基于原项目设计 ========== */
+
+/* 主色调 */
     --bs-primary: #007bff;
     --bs-primary-rgb: 0, 123, 255;
     --bs-secondary: #6c757d;
@@ -16,8 +16,8 @@
     --bs-danger: #dc3545;
     --bs-warning: #ffc107;
     --bs-info: #17a2b8;
-    
-    /* 主色调变体 */
+
+/* 主色调变体 */
     --bs-primary-50: rgba(0, 123, 255, 0.05);
     --bs-primary-100: rgba(0, 123, 255, 0.1);
     --bs-primary-200: rgba(0, 123, 255, 0.2);
@@ -28,43 +28,41 @@
     --bs-primary-700: #004085;
     --bs-primary-800: #002752;
     --bs-primary-900: #001a33;
-    
-    /* 成功色变体 */
+
+/* 成功色变体 */
     --bs-success-50: rgba(40, 167, 69, 0.05);
     --bs-success-100: rgba(40, 167, 69, 0.1);
     --bs-success-200: rgba(40, 167, 69, 0.2);
     --bs-success-500: #28a745;
     --bs-success-600: #1e7e34;
     --bs-success-700: #155724;
-    
-    /* 危险色变体 */
+
+/* 危险色变体 */
     --bs-danger-50: rgba(220, 53, 69, 0.05);
     --bs-danger-100: rgba(220, 53, 69, 0.1);
     --bs-danger-200: rgba(220, 53, 69, 0.2);
     --bs-danger-500: #dc3545;
     --bs-danger-600: #c82333;
     --bs-danger-700: #bd2130;
-    
-    /* 警告色变体 */
+
+/* 警告色变体 */
     --bs-warning-50: rgba(255, 193, 7, 0.05);
     --bs-warning-100: rgba(255, 193, 7, 0.1);
     --bs-warning-200: rgba(255, 193, 7, 0.2);
     --bs-warning-500: #ffc107;
     --bs-warning-600: #fd7e14;
     --bs-warning-700: #e0a800;
-    
-    /* 信息色变体 */
+
+/* 信息色变体 */
     --bs-info-50: rgba(23, 162, 184, 0.05);
     --bs-info-100: rgba(23, 162, 184, 0.1);
     --bs-info-200: rgba(23, 162, 184, 0.2);
     --bs-info-500: #17a2b8;
     --bs-info-600: #138496;
     --bs-info-700: #0c5460;
-    
-    /* ========================================
-       灰度系统
-       ======================================== */
-    
+
+/* ========== 灰度系统 ========== */
+
     --bs-gray-50: #f8f9fa;
     --bs-gray-100: #f1f3f4;
     --bs-gray-200: #e9ecef;
@@ -75,17 +73,15 @@
     --bs-gray-700: #495057;
     --bs-gray-800: #343a40;
     --bs-gray-900: #212529;
-    
-    /* ========================================
-       语义化颜色 - 金融应用专用
-       ======================================== */
-    
-    /* 金额显示颜色 */
+
+/* ========== 语义化颜色 - 金融应用专用 ========== */
+
+/* 金额显示颜色 */
     --color-amount-positive: var(--bs-success);
     --color-amount-negative: var(--bs-danger);
     --color-amount-neutral: var(--bs-gray-600);
-    
-    /* 数据可视化颜色 */
+
+/* 数据可视化颜色 */
     --color-chart-primary: #007bff;
     --color-chart-secondary: #6c757d;
     --color-chart-accent-1: #28a745;
@@ -94,28 +90,26 @@
     --color-chart-accent-4: #17a2b8;
     --color-chart-accent-5: #6f42c1;
     --color-chart-accent-6: #e83e8c;
-    
-    /* 状态颜色 */
+
+/* 状态颜色 */
     --color-status-active: var(--bs-success);
     --color-status-inactive: var(--bs-gray-400);
     --color-status-pending: var(--bs-warning);
     --color-status-error: var(--bs-danger);
-    
-    /* ========================================
-       字体系统
-       ======================================== */
-    
+
+/* ========== 字体系统 ========== */
+
     --bs-font-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --bs-font-monospace: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-    
-    /* 字体权重 */
+
+/* 字体权重 */
     --font-weight-light: 300;
     --font-weight-normal: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
-    
-    /* 字体大小 */
+
+/* 字体大小 */
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;
@@ -124,16 +118,14 @@
     --font-size-2xl: 1.5rem;
     --font-size-3xl: 1.875rem;
     --font-size-4xl: 2.25rem;
-    
-    /* 行高 */
+
+/* 行高 */
     --line-height-tight: 1.25;
     --line-height-normal: 1.5;
     --line-height-relaxed: 1.75;
-    
-    /* ========================================
-       间距系统
-       ======================================== */
-    
+
+/* ========== 间距系统 ========== */
+
     --spacing-0: 0;
     --spacing-1: 0.25rem;
     --spacing-2: 0.5rem;
@@ -146,76 +138,64 @@
     --spacing-12: 3rem;
     --spacing-16: 4rem;
     --spacing-20: 5rem;
-    
-    /* ========================================
-       边框系统
-       ======================================== */
-    
+
+/* ========== 边框系统 ========== */
+
     --bs-border-radius: 8px;
     --bs-border-radius-sm: 4px;
     --bs-border-radius-lg: 12px;
     --bs-border-radius-xl: 16px;
     --bs-border-radius-2xl: 24px;
     --bs-border-radius-pill: 50rem;
-    
+
     --border-width-thin: 1px;
     --border-width-medium: 2px;
     --border-width-thick: 4px;
-    
-    /* ========================================
-       阴影系统
-       ======================================== */
-    
+
+/* ========== 阴影系统 ========== */
+
     --bs-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     --bs-box-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --bs-box-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
     --bs-box-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
     --bs-box-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.15);
-    
-    /* 内阴影 */
+
+/* 内阴影 */
     --box-shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-    
-    /* ========================================
-       过渡动画
-       ======================================== */
-    
+
+/* ========== 过渡动画 ========== */
+
     --bs-transition: 0.2s ease;
     --transition-fast: 0.15s ease;
     --transition-slow: 0.3s ease;
     --transition-bounce: 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    
-    /* ========================================
-       布局尺寸
-       ======================================== */
-    
+
+/* ========== 布局尺寸 ========== */
+
     --sidebar-width: 200px;
     --sidebar-collapsed-width: 70px;
     --header-height: 72px;
     --footer-height: 60px;
-    
-    /* 容器最大宽度 */
+
+/* 容器最大宽度 */
     --container-max-width: 1200px;
     --content-max-width: 800px;
-    
-    /* ========================================
-       表面颜色
-       ======================================== */
-    
+
+/* ========== 表面颜色 ========== */
+
     --bs-body-bg: #f8f9fa;
     --bs-body-color: #212529;
     --bs-card-bg: #ffffff;
     --bs-border-color: #dee2e6;
-    
-    /* 表面层级 */
+
+/* 表面层级 */
     --surface-background: #f8f9fa;
     --surface-card: #ffffff;
     --surface-elevated: #ffffff;
     --surface-overlay: rgba(0, 0, 0, 0.5);
-    
-    /* ========================================
-       Z-index 层级
-       ======================================== */
-    
+
+/* ========== Z-index 层级 ========== */
+
     --z-dropdown: 1000;
     --z-sticky: 1020;
     --z-fixed: 1030;
@@ -226,9 +206,7 @@
     --z-toast: 1080;
 }
 
-/* ========================================
-   全局基础样式
-   ======================================== */
+/* ========== 全局基础样式 ========== */
 
 body {
     font-family: var(--bs-font-sans-serif);
