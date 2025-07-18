@@ -8,6 +8,7 @@ description: "globs:"
 # 项目简介：基于Flask的AI智能银行记账系统
 # 主要功能：银行对账单Excel文件解析、交易数据标准化、财务分析和报表生成
 # 技术栈：Python/Flask + SQLite + Vanilla JavaScript + Bootstrap + 数据分析库
+# 启动：通过 run.py  启动系统
 # 
 # 本规则文件为Cursor AI提供项目特定的编程指导，确保代码质量和架构一致性
 # 规则优先级：P1(Critical) > P2(Important) > P3(Nice-to-have)

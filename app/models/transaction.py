@@ -200,6 +200,7 @@ class Transaction(BaseModel):
         result['absolute_amount'] = float(self.get_absolute_amount())
 
         result['account_name'] = self.account.account_name if self.account else None
+        result['account_number'] = self.account.account_number if self.account else None
         result['bank_name'] = self.account.bank.name if self.account and self.account.bank else None
         result['merchant_name'] = self.merchant_name
         return result

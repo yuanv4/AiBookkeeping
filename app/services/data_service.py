@@ -347,10 +347,80 @@ class DataService:
             query = query.offset(offset)
         if limit:
             query = query.limit(limit)
-        
+
         return query.all()
 
-    def get_transactions_by_type(self, transaction_type: str, start_date: date, end_date: date, 
+    def get_transactions_filtered(self, filters: Dict[str, Any] = None,
+                                transaction_type_filter: str = None) -> List[Transaction]:
+        """获取过滤后的所有交易记录（不分页）"""
+        try:
+            from app.models import Account
+
+            query = self.db.query(Transaction).join(Account)
+
+            # 应用交易类型过滤器
+            if transaction_type_filter == 'income':
+                query = query.filter(Transaction.amount > 0)
+            elif transaction_type_filter == 'expense':
+                query = query.filter(Transaction.amount < 0)
+
+            # 应用其他过滤器
+            if filters:
+                # Account number filter
+                if 'account_number' in filters and filters['account_number']:
+                    query = query.filter(Account.account_number.like(f"%{filters['account_number']}%"))
+
+                # Account name filter
+                if 'account_name' in filters and filters['account_name']:
+                    query = query.filter(Account.account_name.like(f"%{filters['account_name']}%"))
+
+                # Date range filters
+                if 'start_date' in filters and filters['start_date']:
+                    from datetime import datetime
+                    start_date = datetime.strptime(filters['start_date'], '%Y-%m-%d').date()
+                    query = query.filter(Transaction.date >= start_date)
+
+                if 'end_date' in filters and filters['end_date']:
+                    from datetime import datetime
+                    end_date = datetime.strptime(filters['end_date'], '%Y-%m-%d').date()
+                    query = query.filter(Transaction.date <= end_date)
+
+                # Amount range filters
+                if 'min_amount' in filters and filters['min_amount'] is not None:
+                    if transaction_type_filter == 'expense':
+                        query = query.filter(func.abs(Transaction.amount) >= filters['min_amount'])
+                    else:
+                        query = query.filter(Transaction.amount >= filters['min_amount'])
+
+                if 'max_amount' in filters and filters['max_amount'] is not None:
+                    if transaction_type_filter == 'expense':
+                        query = query.filter(func.abs(Transaction.amount) <= filters['max_amount'])
+                    else:
+                        query = query.filter(Transaction.amount <= filters['max_amount'])
+
+                # Counterparty filter
+                if 'counterparty' in filters and filters['counterparty']:
+                    query = query.filter(Transaction.counterparty.like(f"%{filters['counterparty']}%"))
+
+                # Search filter
+                if 'search' in filters and filters['search']:
+                    search_term = filters['search']
+                    query = query.filter(Transaction.counterparty.like(f"%{search_term}%"))
+
+                # Currency filter
+                if 'currency' in filters and filters['currency']:
+                    query = query.filter(Transaction.currency == filters['currency'])
+
+            # Order by date descending
+            query = query.order_by(Transaction.date.desc(), Transaction.created_at.desc())
+
+            return query.all()
+
+        except Exception as e:
+            self.logger.error(f"Error getting filtered transactions: {e}")
+            return []
+
+    def get_transactions_by_type(self, transaction_type: str, start_date: date, end_date: date,
                                account_id: Optional[int] = None) -> List[Transaction]:
         """根据交易类型获取交易记录"""
         try:

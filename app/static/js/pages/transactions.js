@@ -9,10 +9,8 @@ import { escapeHtml, urlHandler, ui, formatDate } from '../common/utils.js';
 export default class TransactionsPage extends BasePage {
     constructor() {
         super();
-        this.currentPage = 1;
-        this.itemsPerPage = 20;
-        this.totalPages = 1;
         this.transactions = [];
+        this.totalCount = 0;
     }
     
     init() {
@@ -52,7 +50,15 @@ export default class TransactionsPage extends BasePage {
             activeFiltersBadges: document.getElementById('active-filters-badges'),
             
             // 统计元素
-            filteredCountElement: document.getElementById('transactions-table-filtered-count')
+            filteredCountElement: document.getElementById('transactions-table-filtered-count'),
+
+            // 汇总行元素
+            summaryFooter: document.getElementById('transactions-summary-footer'),
+            summaryExpenseAmount: document.getElementById('summary-expense-amount'),
+            summaryExpenseCount: document.getElementById('summary-expense-count'),
+            summaryIncomeAmount: document.getElementById('summary-income-amount'),
+            summaryIncomeCount: document.getElementById('summary-income-count'),
+            summaryLatestBalance: document.getElementById('summary-latest-balance')
         };
     }
     
@@ -62,22 +68,15 @@ export default class TransactionsPage extends BasePage {
             try {
                 const initialDataJson = this.elements.pageDataElement.getAttribute('data-initial-data');
                 const initialData = JSON.parse(initialDataJson || '{}');
-                
+
                 // 加载交易数据
                 this.transactions = initialData.transactions || [];
-                
-                // 加载分页信息 - 修正字段名以匹配serialize_pagination过滤器
-                const pagination = initialData.pagination || {};
-                this.currentPage = parseInt(pagination.current_page || '1');
-                this.itemsPerPage = parseInt(pagination.per_page || '20');
-                this.totalPages = parseInt(pagination.total_pages || '1');
-                
+                this.totalCount = initialData.total_count || 0;
+
             } catch (error) {
                 console.error('解析页面数据时出错:', error);
                 this.transactions = [];
-                this.currentPage = 1;
-                this.itemsPerPage = 20;
-                this.totalPages = 1;
+                this.totalCount = 0;
             }
         }
     }
@@ -135,9 +134,9 @@ export default class TransactionsPage extends BasePage {
     
     renderPage() {
         this.renderTransactionTable();
-        this.renderPagination();
         this.updateActiveFilters();
         this.initTransactionRowFormatting();
+        this.updateSummaryFooter();
     }
     
     renderTransactionTable() {
@@ -162,33 +161,41 @@ export default class TransactionsPage extends BasePage {
             const row = this.createTransactionRow(transaction, index);
             this.elements.tableBody.appendChild(row);
         });
+
+        // 更新汇总数据
+        this.updateSummaryFooter();
     }
     
     createTransactionRow(transaction, index) {
         const amount = parseFloat(transaction.amount || 0);
         const balance = parseFloat(transaction.balance || 0);
         
-        // 根据模板中的表头顺序：['日期', '账户', '金额', '余额', '对手信息', '摘要']
+        // 根据模板中的表头顺序：['日期', '账户', '对手信息', '摘要', '金额', '余额']
+        // 构建账户显示文本：户名-卡号
+        const accountDisplay = transaction.account_name && transaction.account_number
+            ? `${transaction.account_name}-${transaction.account_number}`
+            : (transaction.account_name || transaction.account_number || '');
+
         const rowHtml = `
             <tr>
-                <td>${escapeHtml(transaction.date || '')}</td>
-                <td>
-                    <span class="d-inline-block transaction-cell-truncate-sm" title="${escapeHtml(transaction.account_name || transaction.account_number || '')}">
-                        ${escapeHtml(transaction.account_name || transaction.account_number || '')}
+                <td class="text-start">${escapeHtml(transaction.date || '')}</td>
+                <td class="text-start">
+                    <span class="d-inline-block transaction-cell-truncate-sm" title="${escapeHtml(accountDisplay)}">
+                        ${escapeHtml(accountDisplay)}
                     </span>
                 </td>
-                <td class="text-end transaction-amount ${amount >= 0 ? 'positive' : 'negative'}">${amount.toFixed(2)}</td>
-                <td class="text-end">${balance.toFixed(2)}</td>
-                <td>
+                <td class="text-start">
                     <span class="d-inline-block transaction-cell-truncate-md" title="${escapeHtml(transaction.counterparty || '')}">
                         ${escapeHtml(transaction.counterparty || '')}
                     </span>
                 </td>
-                <td>
+                <td class="text-start">
                     <span class="d-inline-block transaction-cell-truncate" title="${escapeHtml(transaction.description || '')}">
                         ${escapeHtml(transaction.description || '')}
                     </span>
                 </td>
+                <td class="text-end transaction-amount ${amount >= 0 ? 'positive' : 'negative'}">${amount.toFixed(2)}</td>
+                <td class="text-end">${balance.toFixed(2)}</td>
             </tr>
         `;
         
@@ -207,6 +214,9 @@ export default class TransactionsPage extends BasePage {
         if (this.elements.tableContainer) {
             this.elements.tableContainer.style.display = 'none';
         }
+        if (this.elements.summaryFooter) {
+            this.elements.summaryFooter.style.display = 'none';
+        }
     }
     
     showTableData() {
@@ -223,18 +233,7 @@ export default class TransactionsPage extends BasePage {
         }
     }
     
-    renderPagination() {
-        ui.renderPagination({
-            currentPage: this.currentPage,
-            totalPages: this.totalPages,
-            containerId: 'transactions-table-pagination',
-            onPageClick: (page) => this.goToPage(page)
-        });
-    }
-    
-    goToPage(page) {
-        urlHandler.set('page', page);
-    }
+
     
     initTransactionRowFormatting() {
         // 美化交易金额显示
@@ -242,8 +241,8 @@ export default class TransactionsPage extends BasePage {
             if (this.elements.tableBody) {
                 const rows = this.elements.tableBody.querySelectorAll('tr');
                 rows.forEach(row => {
-                    // 金额列现在是第3列（td:nth-child(3)）
-                    const amountCell = row.querySelector('td:nth-child(3)');
+                    // 金额列现在是第5列（td:nth-child(5)）
+                    const amountCell = row.querySelector('td:nth-child(5)');
                     if (amountCell) {
                         const amount = parseFloat(amountCell.textContent.replace(/[^\d.-]/g, ''));
                         if (amount > 0) {
@@ -253,8 +252,8 @@ export default class TransactionsPage extends BasePage {
                         }
                     }
                     
-                    // 交易类型列现在是第6列（td:nth-child(6)）
-                    const typeCell = row.querySelector('td:nth-child(6) .badge');
+                    // 交易类型列（如果存在badge的话）
+                    const typeCell = row.querySelector('.badge');
                     if (typeCell) {
                         typeCell.classList.add('transaction-badge');
                     }
@@ -397,10 +396,7 @@ export default class TransactionsPage extends BasePage {
         if (distinctElement && distinctElement.checked) {
             filters.distinct = 'true';
         }
-        
-        // 重置到第一页
-        filters.page = '1';
-        
+
         // 使用 urlHandler 批量设置参数
         urlHandler.setMultiple(filters);
     }
@@ -439,6 +435,84 @@ export default class TransactionsPage extends BasePage {
     
     removeFilterParam(param) {
         urlHandler.remove(param);
+    }
+
+    /**
+     * 计算汇总数据
+     * @returns {Object} 包含支出、收入和余额信息的汇总对象
+     */
+    calculateSummaryData() {
+        let expenseAmount = 0;
+        let expenseCount = 0;
+        let incomeAmount = 0;
+        let incomeCount = 0;
+        let latestBalance = 0;
+
+        // 遍历当前显示的交易记录
+        this.transactions.forEach((transaction, index) => {
+            const amount = parseFloat(transaction.amount || 0);
+            const balance = parseFloat(transaction.balance || 0);
+
+            if (amount < 0) {
+                // 支出（负数）
+                expenseAmount += Math.abs(amount);
+                expenseCount++;
+            } else if (amount > 0) {
+                // 收入（正数）
+                incomeAmount += amount;
+                incomeCount++;
+            }
+
+            // 最新余额（取最后一条记录的余额）
+            if (index === this.transactions.length - 1) {
+                latestBalance = balance;
+            }
+        });
+
+        return {
+            expenseAmount,
+            expenseCount,
+            incomeAmount,
+            incomeCount,
+            latestBalance
+        };
+    }
+
+    /**
+     * 更新汇总行显示
+     */
+    updateSummaryFooter() {
+        if (!this.elements.summaryFooter) return;
+
+        const summary = this.calculateSummaryData();
+
+        // 更新支出信息
+        if (this.elements.summaryExpenseAmount) {
+            this.elements.summaryExpenseAmount.textContent = `¥${summary.expenseAmount.toFixed(2)}`;
+        }
+        if (this.elements.summaryExpenseCount) {
+            this.elements.summaryExpenseCount.textContent = `${summary.expenseCount}笔`;
+        }
+
+        // 更新收入信息
+        if (this.elements.summaryIncomeAmount) {
+            this.elements.summaryIncomeAmount.textContent = `¥${summary.incomeAmount.toFixed(2)}`;
+        }
+        if (this.elements.summaryIncomeCount) {
+            this.elements.summaryIncomeCount.textContent = `${summary.incomeCount}笔`;
+        }
+
+        // 更新最新余额
+        if (this.elements.summaryLatestBalance) {
+            this.elements.summaryLatestBalance.textContent = `¥${summary.latestBalance.toFixed(2)}`;
+        }
+
+        // 根据是否有数据显示或隐藏汇总行
+        if (this.transactions.length > 0) {
+            this.elements.summaryFooter.style.display = 'block';
+        } else {
+            this.elements.summaryFooter.style.display = 'none';
+        }
     }
 }
 

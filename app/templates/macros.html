@@ -53,7 +53,7 @@
 </div>
 {% endmacro %}
 
-{% macro data_table(id, headers, title="数据明细", total=0, filtered=0, no_data_message="没有找到匹配的记录", show_pagination=true, show_export=false, sortable=true, icon_name="receipt") %}
+{% macro data_table(id, headers, title="数据明细", total=0, filtered=0, no_data_message="没有找到匹配的记录", sortable=true, icon_name="receipt") %}
 <div class="card border-0 shadow-sm h-100">
   <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3">
     <div class="d-flex align-items-center">
@@ -68,21 +68,6 @@
         <span class="badge bg-primary rounded-pill" id="{{ id ~ '-filtered-count' }}">{{ filtered }}</span>
         <span class="text-muted">/</span>
         <span class="badge bg-secondary rounded-pill">{{ total }}</span>
-      </div>
-      {% endif %}
-      {% if show_export %}
-      <div class="dropdown">
-        <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
-          {{ icon("download", "sm", "me-1") }}导出
-        </button>
-        <ul class="dropdown-menu">
-          <li><a class="dropdown-item" href="#" data-export="excel" data-table="{{ id }}">
-            {{ icon("file-spreadsheet", "sm", "me-2") }}Excel
-          </a></li>
-          <li><a class="dropdown-item" href="#" data-export="csv" data-table="{{ id }}">
-            {{ icon("file-text", "sm", "me-2") }}CSV
-          </a></li>
-        </ul>
       </div>
       {% endif %}
     </div>
@@ -112,17 +97,6 @@
         </tbody>
       </table>
     </div>
-    
-    {% if show_pagination %}
-    <!-- 分页控件 -->
-    <div id="{{ id ~ '-pagination-container' }}" class="border-top bg-light p-3">
-      <div id="{{ id ~ '-pagination-component' }}">
-        <!-- 分页组件将通过JavaScript动态填充 -->
-        {{ pagination_component(1, 1, 20, total) }}
-      </div>
-    </div>
-    {% endif %}
-    
     <!-- 无数据提示 -->
     <div id="{{ id ~ '-no-data' }}" class="d-none">
       <div class="text-center py-5">
@@ -373,7 +347,7 @@
 </div>
 {% endmacro %}
 
-{% macro filter_bar(filters=[], search_placeholder="搜索...", show_export=false, export_options=[]) %}
+{% macro filter_bar(filters=[], search_placeholder="搜索...") %}
 <!-- 筛选条件栏组件 -->
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-body">
@@ -422,20 +396,6 @@
           <button type="button" class="btn btn-outline-secondary" id="reset-filters">
             {{ icon("refresh-cw", "sm", "me-1") }}重置
           </button>
-          {% if show_export %}
-          <div class="dropdown">
-            <button class="btn btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              {{ icon("download", "sm", "me-1") }}导出
-            </button>
-            <ul class="dropdown-menu">
-              {% for option in export_options %}
-              <li><a class="dropdown-item" href="#" data-export="{{ option.type }}">
-                {{ icon(option.icon, "sm", "me-2") }}{{ option.label }}
-              </a></li>
-              {% endfor %}
-            </ul>
-          </div>
-          {% endif %}
         </div>
       </div>
     </div>

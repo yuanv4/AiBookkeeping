@@ -13,24 +13,97 @@
     
     <!-- 交易列表 -->
     <div class="row mt-4">
-        <div class="col-12">
-            {% set headers = ['日期', '账户', '金额', '余额', '对手信息', '摘要'] %}
-            
-            {{ data_table(
-                id='transactions-table',
-                headers=headers,
-                title='交易明细',
-                total=pagination.total if pagination else 0,
-                show_export=true,
-                sortable=true,
-                icon_name='receipt'
-            ) }}
-            
+        <div class="col-12" id="transactions-table-container">
+            {% set headers = ['日期', '账户', '对手信息', '摘要', '金额', '余额'] %}
+
+            <!-- 自定义表格结构，包含汇总行 -->
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="me-2 bg-light rounded-2 d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem;">
+                            {{ icon('receipt', "sm", "text-primary") }}
+                        </div>
+                        <h6 class="card-title fw-bold mb-0">交易明细</h6>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        {% if total_count > 0 %}
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary rounded-pill" id="transactions-table-filtered-count">{{ total_count }}</span>
+                            <span class="text-muted">/</span>
+                            <span class="badge bg-secondary rounded-pill">{{ total_count }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0" id="transactions-table">
+                            <thead class="bg-light">
+                                <tr>
+                                    {% for header in headers %}
+                                    <th class="px-3 py-3 fw-semibold text-muted small border-0 sortable" data-sort="{{ loop.index0 }}">
+                                        <div class="d-flex align-items-center">
+                                            <span>{{ header }}</span>
+                                            <span class="sort-icon ms-1 opacity-50">
+                                                {{ icon("chevrons-up-down", "xs") }}
+                                            </span>
+                                        </div>
+                                    </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-table-body">
+                                <!-- 表格内容将通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- 无数据提示 -->
+                    <div id="transactions-table-no-data" class="d-none">
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                {{ icon("search-x", "xl", "text-muted") }}
+                            </div>
+                            <p class="text-muted mb-3">没有找到匹配的记录</p>
+                            <button id="transactions-table-reset-all" class="btn btn-sm btn-outline-primary">
+                                {{ icon("refresh-cw", "sm", "me-1") }}
+                                重置筛选条件
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 固定汇总行 -->
+                    <div id="transactions-summary-footer" class="transactions-summary-footer">
+                        <div class="summary-content">
+                            <div class="summary-item summary-expense">
+                                <span class="summary-label">支出</span>
+                                <div class="summary-values">
+                                    <span class="summary-amount" id="summary-expense-amount">¥0.00</span>
+                                    <span class="summary-count" id="summary-expense-count">0笔</span>
+                                </div>
+                            </div>
+                            <div class="summary-item summary-income">
+                                <span class="summary-label">收入</span>
+                                <div class="summary-values">
+                                    <span class="summary-amount" id="summary-income-amount">¥0.00</span>
+                                    <span class="summary-count" id="summary-income-count">0笔</span>
+                                </div>
+                            </div>
+                            <div class="summary-item summary-balance">
+                                <span class="summary-label">最新余额</span>
+                                <div class="summary-values">
+                                    <span class="summary-amount" id="summary-latest-balance">¥0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 统一的数据容器，供JavaScript使用 -->
-            <div id="page-data" 
+            <div id="page-data"
                  data-initial-data='{{ {
                      "transactions": transactions,
-                     "pagination": pagination|serialize_pagination
+                     "total_count": total_count
                  }|tojson|safe }}'
                  style="display: none;">
             </div>

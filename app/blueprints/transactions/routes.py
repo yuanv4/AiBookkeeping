@@ -7,23 +7,20 @@ from . import transactions_bp
 # 使用新的统一服务架构
 
 @transactions_bp.route('/') # 蓝图根路径对应 /transactions/
-@handle_errors(template='transactions.html', 
-               default_data={'data': {'transactions': [], 'accounts': [], 'currencies': [], 'current_filters': {}}, 'pagination': None, 'total_count': 0}, 
+@handle_errors(template='transactions.html',
+               default_data={'data': {'transactions': [], 'accounts': [], 'currencies': [], 'current_filters': {}}, 'total_count': 0},
                log_prefix="交易记录页面")
 def transactions_list_route(): # 重命名函数
     """交易记录页面"""
 
-    page = request.args.get('page', 1, type=int)
-    limit = request.args.get('limit', 20, type=int)
-    
-    account_number_req = request.args.get('account_number', None) 
+    account_number_req = request.args.get('account_number', None)
     start_date_req = request.args.get('start_date', None)
     end_date_req = request.args.get('end_date', None)
     min_amount_req = request.args.get('min_amount', None, type=float)
     max_amount_req = request.args.get('max_amount', None, type=float)
-    transaction_type_req = request.args.get('type', None) 
+    transaction_type_req = request.args.get('type', None)
     counterparty_req = request.args.get('counterparty', None)
-    currency_req = request.args.get('currency', None) 
+    currency_req = request.args.get('currency', None)
     account_name_req = request.args.get('account_name_filter', None)
     distinct_req = request.args.get('distinct', False, type=lambda v: v.lower() == 'true')
 
@@ -48,15 +45,11 @@ def transactions_list_route(): # 重命名函数
     if account_name_req:
         filters['account_name'] = account_name_req
 
-    # 使用 DataService 获取分页交易记录
-    pagination = current_app.data_service.get_transactions_paginated(
-        filters=filters,
-        page=page,
-        per_page=limit
-    )
-    
-    transactions_data = [t.to_dict() for t in pagination.items]
-    total_transactions = pagination.total
+    # 使用 DataService 获取所有交易记录（不分页）
+    all_transactions = current_app.data_service.get_transactions_filtered(filters=filters)
+
+    transactions_data = [t.to_dict() for t in all_transactions]
+    total_transactions = len(all_transactions)
 
     # 使用 DataService 获取账户和货币信息
     accounts = current_app.data_service.get_all_accounts()
@@ -83,11 +76,10 @@ def transactions_list_route(): # 重命名函数
     }
 
     return render_template(
-        'transactions.html', 
+        'transactions.html',
         transactions=transactions_data,
         accounts=accounts,
         currencies=currencies_for_filter,
         current_filters=current_filters,
-        pagination=pagination,
         total_count=total_transactions
     )
