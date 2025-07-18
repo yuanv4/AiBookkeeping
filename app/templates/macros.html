@@ -53,9 +53,92 @@
 </div>
 {% endmacro %}
 
-{% macro data_table(id, headers, title="数据明细", total=0, filtered=0, no_data_message="没有找到匹配的记录", sortable=true, icon_name="receipt") %}
-<div class="card border-0 shadow-sm h-100">
-  <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3">
+{% macro data_table(id, headers, title="数据明细", total=0, filtered=0, no_data_message="没有找到匹配的记录", sortable=true, filterable=false, filters=[], icon_name="receipt") %}
+<div class="card border-0 shadow-sm h-100" data-table-id="{{ id }}">
+  <!-- 筛选条件栏 -->
+  {% if filterable and filters %}
+  <div class="card-header bg-white border-bottom-0 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0 fw-semibold text-muted">
+        {{ icon("filter", "sm", "me-2") }}筛选条件
+      </h6>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="{{ id }}-toggle-filters">
+        <span class="filter-toggle-text">收起</span>
+        {{ icon("chevron-up", "sm", "ms-1") }}
+      </button>
+    </div>
+
+    <div id="{{ id }}-filter-panel" class="filter-panel">
+      <form class="filter-form" id="{{ id }}-filter-form">
+        <div class="row g-3 align-items-end">
+          {% for filter in filters %}
+          <div class="col-md-{% if filters|length <= 2 %}6{% elif filters|length <= 4 %}3{% else %}2{% endif %}">
+            <label class="form-label small fw-semibold text-muted">{{ filter.label }}</label>
+            <div class="filter-input-group">
+              {% if filter.type == 'text' %}
+              <input type="text" class="form-control form-control-sm"
+                     id="{{ filter.id }}"
+                     placeholder="{{ filter.placeholder or '' }}">
+              {% elif filter.type == 'select' %}
+              <select class="form-select form-select-sm" id="{{ filter.id }}">
+                <option value="">全部</option>
+                {% for option in filter.options %}
+                <option value="{{ option.value }}">{{ option.label }}</option>
+                {% endfor %}
+              </select>
+              {% elif filter.type == 'date' %}
+              <input type="date" class="form-control form-control-sm" id="{{ filter.id }}">
+              {% elif filter.type == 'number' %}
+              <input type="number" class="form-control form-control-sm"
+                     id="{{ filter.id }}"
+                     placeholder="{{ filter.placeholder or '' }}"
+                     step="{{ filter.step or 'any' }}">
+              {% elif filter.type == 'daterange' %}
+              <div class="input-group input-group-sm">
+                <input type="date" class="form-control" id="{{ filter.id }}-start" placeholder="开始日期">
+                <span class="input-group-text">至</span>
+                <input type="date" class="form-control" id="{{ filter.id }}-end" placeholder="结束日期">
+              </div>
+              {% endif %}
+              <button type="button" class="btn btn-sm btn-outline-secondary clear-input" title="清除">
+                {{ icon("x", "xs") }}
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+
+          <!-- 操作按钮 -->
+          <div class="col-md-{% if filters|length <= 2 %}6{% elif filters|length <= 4 %}3{% else %}2{% endif %}">
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-primary btn-sm" id="{{ id }}-apply-filters">
+                {{ icon("search", "sm", "me-1") }}筛选
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="{{ id }}-reset-filters">
+                {{ icon("refresh-cw", "sm", "me-1") }}重置
+              </button>
+            </div>
+          </div>
+        </div>
+
+
+      </form>
+    </div>
+
+    <!-- 活跃筛选条件显示 -->
+    <div id="{{ id }}-active-filters-container" class="active-filters-container mt-3" style="display: none;">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="small text-muted">当前筛选:</span>
+        <div id="{{ id }}-active-filters-badges" class="d-flex gap-2 flex-wrap"></div>
+        <button type="button" class="btn btn-sm btn-outline-danger clear-all-filters" id="{{ id }}-clear-all-filters">
+          {{ icon("x", "xs", "me-1") }}清除全部
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 表格标题栏 -->
+  <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3 {% if filterable and filters %}border-top{% endif %}">
     <div class="d-flex align-items-center">
       <div class="me-2 bg-light rounded-2 d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem;">
         {{ icon(icon_name, "sm", "text-primary") }}
@@ -65,13 +148,15 @@
     <div class="d-flex align-items-center gap-3">
       {% if total > 0 %}
       <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-primary rounded-pill" id="{{ id ~ '-filtered-count' }}">{{ filtered }}</span>
+        <span class="badge bg-primary rounded-pill" id="{{ id }}-filtered-count">{{ filtered }}</span>
         <span class="text-muted">/</span>
         <span class="badge bg-secondary rounded-pill">{{ total }}</span>
       </div>
       {% endif %}
     </div>
   </div>
+
+  <!-- 表格内容 -->
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover table-sm mb-0" id="{{ id }}">
@@ -79,7 +164,7 @@
           <tr>
             {% for header in headers %}
             <th class="px-3 py-3 fw-semibold text-muted small border-0 {% if sortable %}sortable{% endif %}"
-                {% if sortable %}data-sort="{{ loop.index0 }}"{% endif %}>
+                {% if sortable %}data-sort="{{ loop.index0 }}" data-sort-type="string"{% endif %}>
               <div class="d-flex align-items-center">
                 <span>{{ header }}</span>
                 {% if sortable %}
@@ -92,19 +177,20 @@
             {% endfor %}
           </tr>
         </thead>
-        <tbody id="{{ id ~ '-body' }}">
+        <tbody id="{{ id }}-body">
           <!-- 表格内容将通过JavaScript动态填充 -->
         </tbody>
       </table>
     </div>
+
     <!-- 无数据提示 -->
-    <div id="{{ id ~ '-no-data' }}" class="d-none">
+    <div id="{{ id }}-no-data" class="d-none">
       <div class="text-center py-5">
         <div class="mb-3">
           {{ icon("search-x", "xl", "text-muted") }}
         </div>
         <p class="text-muted mb-3">{{ no_data_message }}</p>
-        <button id="{{ id ~ '-reset-all' }}" class="btn btn-sm btn-outline-primary">
+        <button id="{{ id }}-reset-all" class="btn btn-sm btn-outline-primary">
           {{ icon("refresh-cw", "sm", "me-1") }}
           重置筛选条件
         </button>
@@ -400,75 +486,6 @@
       </div>
     </div>
   </div>
-</div>
-{% endmacro %}
-
-{% macro pagination_component(current_page=1, total_pages=1, page_size=20, total_items=0, page_sizes=[10, 20, 50, 100]) %}
-<!-- 分页组件 -->
-<div class="d-flex justify-content-between align-items-center">
-  <div class="d-flex align-items-center gap-3">
-    <span class="text-muted small">
-      显示 {{ ((current_page - 1) * page_size + 1) if total_items > 0 else 0 }} -
-      {{ [current_page * page_size, total_items]|min }} 条，共 {{ total_items }} 条
-    </span>
-    <div class="d-flex align-items-center gap-2">
-      <label class="form-label small mb-0 text-muted">每页显示</label>
-      <select class="form-select form-select-sm" style="width: auto;" id="page-size-select">
-        {% for size in page_sizes %}
-        <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
-        {% endfor %}
-      </select>
-    </div>
-  </div>
-
-  {% if total_pages > 1 %}
-  <nav aria-label="分页导航">
-    <ul class="pagination pagination-sm mb-0">
-      <li class="page-item {% if current_page <= 1 %}disabled{% endif %}">
-        <a class="page-link" href="#" data-page="{{ current_page - 1 }}">
-          {{ icon("chevron-left", "sm") }}
-        </a>
-      </li>
-
-      {% set start_page = [1, current_page - 2]|max %}
-      {% set end_page = [total_pages, current_page + 2]|min %}
-
-      {% if start_page > 1 %}
-      <li class="page-item">
-        <a class="page-link" href="#" data-page="1">1</a>
-      </li>
-      {% if start_page > 2 %}
-      <li class="page-item disabled">
-        <span class="page-link">...</span>
-      </li>
-      {% endif %}
-      {% endif %}
-
-      {% for page in range(start_page, end_page + 1) %}
-      <li class="page-item {% if page == current_page %}active{% endif %}">
-        <a class="page-link" href="#" data-page="{{ page }}">{{ page }}</a>
-      </li>
-      {% endfor %}
-
-      {% if end_page < total_pages %}
-      {% if end_page < total_pages - 1 %}
-      <li class="page-item disabled">
-        <span class="page-link">...</span>
-      </li>
-      {% endif %}
-      <li class="page-item">
-        <a class="page-link" href="#" data-page="{{ total_pages }}">{{ total_pages }}</a>
-      </li>
-      {% endif %}
-
-      <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
-        <a class="page-link" href="#" data-page="{{ current_page + 1 }}">
-          {{ icon("chevron-right", "sm") }}
-        </a>
-      </li>
-    </ul>
-  </nav>
-  {% endif %}
 </div>
 {% endmacro %}
 

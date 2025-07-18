@@ -623,6 +623,105 @@
     opacity: 1;
 }
 
+/* 筛选面板样式 */
+.filter-panel {
+    transition: all 0.3s ease;
+}
+
+.filter-input-group {
+    position: relative;
+}
+
+.filter-input-group .clear-input {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    border: none;
+    background: transparent;
+    padding: 2px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.filter-input-group .clear-input:hover {
+    opacity: 1;
+}
+
+.filter-input-group input,
+.filter-input-group select {
+    padding-right: 32px;
+}
+
+/* 活跃筛选条件样式 */
+.active-filters-container {
+    border-top: 1px solid var(--bs-border-color);
+    padding-top: 1rem;
+}
+
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--bs-primary);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--bs-border-radius-sm);
+    font-size: var(--font-size-xs);
+}
+
+.filter-badge .close-icon {
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.filter-badge .close-icon:hover {
+    opacity: 1;
+}
+
+/* 快速筛选按钮样式 */
+.quick-filter {
+    transition: all 0.2s ease;
+}
+
+.quick-filter:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 筛选切换按钮样式 */
+.filter-toggle-text {
+    font-size: var(--font-size-sm);
+}
+
+/* 表格筛选增强样式 */
+.data-table-container {
+    position: relative;
+}
+
+.data-table-container .card-header {
+    position: relative;
+    z-index: 5;
+}
+
+/* 筛选面板动画 */
+@keyframes filterPanelSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filter-panel {
+    animation: filterPanelSlide 0.3s ease-out;
+}
+
 /* 图表容器增强 */
 .chart-container {
     position: relative;
