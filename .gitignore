@@ -74,6 +74,3 @@ Desktop.ini
 # 其他项目特定文件
 config.local.ini
 secrets.ini processed_files/
-
-# AI Agent
-.augment/
