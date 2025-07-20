@@ -169,45 +169,5 @@ class ErrorHandler:
         app.logger.info("已注册统一错误处理器")
 
 
-class ErrorResponseBuilder:
-    """错误响应构建器
-    
-    提供链式调用的方式来构建错误响应。
-    """
-    
-    def __init__(self, error: Exception):
-        self.error = error
-        self.status_code = 500
-        self.template = None
-        self.error_key = 'error'
-        self.default_data = None
-    
-    def with_status_code(self, status_code: int):
-        """设置状态码"""
-        self.status_code = status_code
-        return self
-    
-    def with_template(self, template: str):
-        """设置错误模板"""
-        self.template = template
-        return self
-    
-    def with_error_key(self, error_key: str):
-        """设置错误键名"""
-        self.error_key = error_key
-        return self
-    
-    def with_default_data(self, default_data: Dict[str, Any]):
-        """设置默认数据"""
-        self.default_data = default_data
-        return self
-    
-    def build(self) -> Tuple[Any, int]:
-        """构建错误响应"""
-        return ErrorHandler.create_error_response(
-            error=self.error,
-            status_code=self.status_code,
-            template=self.template,
-            error_key=self.error_key,
-            default_data=self.default_data
-        )
+# ErrorResponseBuilder类已删除，因为没有实际使用
+# 如果需要链式调用，可以直接使用ErrorHandler.create_error_response()方法

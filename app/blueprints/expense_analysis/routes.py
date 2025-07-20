@@ -6,6 +6,7 @@
 from flask import render_template, jsonify, current_app
 from . import expense_analysis_bp
 from app.utils.decorators import handle_errors
+from app.utils import get_report_service, DataUtils
 import logging
 
 logger = logging.getLogger(__name__)
@@ -74,13 +75,21 @@ def api_merchant_analysis():
         # 验证分类筛选参数
         valid_categories = ['dining', 'transport', 'shopping', 'services', 'healthcare', 'finance', 'other']
         if category_filter and category_filter not in valid_categories:
-            return jsonify({
-                'success': False,
-                'error': f'无效的分类筛选参数，支持的分类: {", ".join(valid_categories)}'
-            }), 400
+            return DataUtils.format_api_response(
+                success=False,
+                error=f'无效的分类筛选参数，支持的分类: {", ".join(valid_categories)}'
+            ), 400
+
+        # 使用 ServiceRegistry 获取报告服务
+        report_service = get_report_service()
+        if not report_service:
+            return DataUtils.format_api_response(
+                success=False,
+                error='报告服务不可用'
+            ), 500
 
         # 获取商户分类服务
-        category_service = current_app.report_service.category_service
+        category_service = report_service.category_service
 
         # 根据参数类型选择不同的分析方法
         if month_str:
@@ -99,9 +108,9 @@ def api_merchant_analysis():
                 search_term=search_term
             )
 
-        return jsonify({
-            'success': True,
-            'data': analysis_data,
+        # 构建响应数据，包含分析结果和过滤器信息
+        response_data = {
+            **analysis_data,  # 展开分析数据
             'filters': {
                 'month': month_str,
                 'start_date': start_date_str,
@@ -109,14 +118,16 @@ def api_merchant_analysis():
                 'category_filter': category_filter,
                 'search_term': search_term
             }
-        })
+        }
+
+        return DataUtils.format_api_response(success=True, data=response_data)
 
     except Exception as e:
         logger.error(f"Error getting merchant analysis data: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return DataUtils.format_api_response(
+            success=False,
+            error=str(e)
+        ), 500
 
 
 
@@ -126,23 +137,28 @@ def api_merchant_analysis():
 def api_available_months():
     """获取可用月份列表API"""
     try:
+        # 使用 ServiceRegistry 获取报告服务
+        report_service = get_report_service()
+        if not report_service:
+            return DataUtils.format_api_response(
+                success=False,
+                error='报告服务不可用'
+            ), 500
+
         # 获取商户分类服务
-        category_service = current_app.report_service.category_service
+        category_service = report_service.category_service
 
         # 获取有数据的月份列表
         months_data = category_service.get_available_months()
 
-        return jsonify({
-            'success': True,
-            'data': months_data
-        })
+        return DataUtils.format_api_response(success=True, data=months_data)
 
     except Exception as e:
         logger.error(f"Error getting available months: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return DataUtils.format_api_response(
+            success=False,
+            error=str(e)
+        ), 500
 
 
 @expense_analysis_bp.route('/api/merchant-details/<merchant_name>')
@@ -150,20 +166,25 @@ def api_available_months():
 def api_merchant_details(merchant_name):
     """获取商户详情API"""
     try:
+        # 使用 ServiceRegistry 获取报告服务
+        report_service = get_report_service()
+        if not report_service:
+            return DataUtils.format_api_response(
+                success=False,
+                error='报告服务不可用'
+            ), 500
+
         # 获取商户分类服务
-        category_service = current_app.report_service.category_service
+        category_service = report_service.category_service
 
         # 获取商户交易详情
         merchant_data = category_service.get_merchant_transactions(merchant_name)
 
-        return jsonify({
-            'success': True,
-            'data': merchant_data
-        })
+        return DataUtils.format_api_response(success=True, data=merchant_data)
 
     except Exception as e:
         logger.error(f"Error getting merchant details for {merchant_name}: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return DataUtils.format_api_response(
+            success=False,
+            error=str(e)
+        ), 500

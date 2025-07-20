@@ -54,20 +54,22 @@ def _initialize_database_and_services(app):
         db.create_all()
         app.logger.info("数据库表已创建")
 
-        # 直接初始化服务 - 简化的服务管理
+        # 使用ServiceRegistry管理服务 - 更清晰的服务管理
         from .services import DataService, ImportService, ReportService
         from .services.category_service import CategoryService
+        from .utils import initialize_core_services
 
         data_service = DataService()
         category_service = CategoryService()
         import_service = ImportService(data_service)
         report_service = ReportService(data_service, category_service=category_service)
-        # 将服务直接设置到app对象上
-        app.data_service = data_service
-        app.category_service = category_service
-        app.import_service = import_service
-        app.report_service = report_service
-        app.logger.info("服务层已直接初始化")
+
+        # 使用ServiceRegistry注册服务
+        initialize_core_services(
+            data_service, import_service, report_service, category_service
+        )
+
+        app.logger.info("服务层已通过ServiceRegistry初始化")
 
 def _register_blueprints(app):
     """注册蓝图

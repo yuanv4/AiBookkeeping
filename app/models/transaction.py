@@ -5,7 +5,6 @@ This module contains the Transaction model class representing financial transact
 
 from .base import db, BaseModel
 from sqlalchemy.orm import validates
-from sqlalchemy import event
 from decimal import Decimal
 from datetime import datetime, date
 import re
@@ -238,75 +237,5 @@ class Transaction(BaseModel):
         return f'<Transaction(id={self.id}, account_id={self.account_id}, date={self.date}, amount={self.amount})>'
 
 
-# 自动分类事件监听器
-@event.listens_for(Transaction, 'before_insert')
-def auto_classify_transaction(mapper, connection, target):
-    """在交易插入前自动分类
-
-    Args:
-        mapper: SQLAlchemy mapper
-        connection: 数据库连接
-        target: Transaction实例
-    """
-    logger = logging.getLogger(__name__)
-
-    try:
-        # 只对支出交易进行分类
-        if target.amount < 0 and target.counterparty:
-            # 如果没有设置分类或分类为默认值，则进行自动分类
-            if not target.category or target.category == 'other':
-                # 延迟导入避免循环依赖
-                from app.services.category_service import CategoryService
-
-                service = CategoryService()
-                category = service.classify_merchant(target.counterparty)
-                target.category = category
-
-                logger.debug(f"自动分类交易: {target.counterparty} -> {category}")
-            else:
-                logger.debug(f"交易已有分类: {target.counterparty} -> {target.category}")
-        else:
-            # 收入交易或无交易对手的交易设为other
-            if not target.category:
-                target.category = 'other'
-                logger.debug(f"非支出交易设为默认分类: {target.category}")
-
-    except Exception as e:
-        logger.error(f"自动分类失败: {e}")
-        # 分类失败时使用默认值
-        if not target.category:
-            target.category = 'other'
 
 
-@event.listens_for(Transaction, 'before_update')
-def auto_classify_on_update(mapper, connection, target):
-    """在交易更新前检查是否需要重新分类
-
-    Args:
-        mapper: SQLAlchemy mapper
-        connection: 数据库连接
-        target: Transaction实例
-    """
-    logger = logging.getLogger(__name__)
-
-    try:
-        # 检查counterparty是否发生变化
-        history = target.__dict__.get('_sa_instance_state')
-        if history and hasattr(history, 'attrs'):
-            counterparty_history = history.attrs.get('counterparty')
-            if counterparty_history and counterparty_history.history.has_changes():
-                # counterparty发生变化，重新分类
-                if target.amount < 0 and target.counterparty:
-                    from app.services.category_service import CategoryService
-
-                    service = CategoryService()
-                    category = service.classify_merchant(target.counterparty)
-                    target.category = category
-
-                    logger.debug(f"更新时重新分类交易: {target.counterparty} -> {category}")
-
-    except Exception as e:
-        logger.error(f"更新时自动分类失败: {e}")
-        # 分类失败时保持原有分类或使用默认值
-        if not target.category:
-            target.category = 'other'

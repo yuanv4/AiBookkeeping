@@ -7,8 +7,13 @@
 - 文件上传和验证
 - 调用提取器解析数据
 - 数据导入和处理
-- 商家名称识别
+- 商家名称识别和自动分类
 - 文件清理和错误处理
+
+业务逻辑:
+- 自动分类：对支出交易进行商户分类，从Transaction模型迁移而来
+- 重复检查：避免重复导入相同的交易记录
+- 错误处理：提供完整的异常处理和日志记录
 """
 
 from pathlib import Path
@@ -24,20 +29,30 @@ logger = logging.getLogger(__name__)
 
 class ImportService:
     """文件导入和处理服务
-    
+
     提供完整的文件导入流程，从文件上传到数据入库。
+    包含自动分类业务逻辑，确保交易数据的完整性和准确性。
+
+    重构说明:
+    - 从Transaction模型迁移了自动分类业务逻辑
+    - 符合单一职责原则，业务逻辑集中在服务层
+    - 提供可测试和可维护的分类功能
     """
     
     def __init__(self, data_service: Optional[DataService] = None, upload_folder: Optional[Union[str, Path]] = None, allowed_extensions: Optional[Set[str]] = None) -> None:
         """初始化导入服务
-        
+
         Args:
             data_service: 数据服务实例
             upload_folder: 上传文件夹路径
             allowed_extensions: 允许的文件扩展名集合
         """
         self.data_service = data_service or DataService()
-        
+
+        # 添加分类服务依赖
+        from .category_service import CategoryService
+        self.category_service = CategoryService()
+
         # 设置上传文件夹
         if upload_folder:
             self.upload_folder = Path(upload_folder)
@@ -46,7 +61,7 @@ class ImportService:
 
         # 设置允许的文件扩展名
         self.allowed_extensions = allowed_extensions or ImportConstants.ALLOWED_EXTENSIONS
-        
+
         # 设置日志器
         self.logger = logging.getLogger(__name__)
         
@@ -80,6 +95,40 @@ class ImportService:
         """
         return ('.' in filename and
                 filename.rsplit('.', 1)[1].lower() in self.allowed_extensions)
+
+    def _apply_auto_classification(self, transaction_data: dict) -> dict:
+        """对交易数据应用自动分类逻辑
+
+        Args:
+            transaction_data: 交易数据字典
+
+        Returns:
+            dict: 应用分类后的交易数据
+        """
+        # 获取关键字段
+        amount = transaction_data.get('amount', 0)
+        counterparty = transaction_data.get('counterparty', '')
+        current_category = transaction_data.get('category', 'other')
+
+        # 只对支出交易进行自动分类
+        if amount < 0 and counterparty and (not current_category or current_category == 'other'):
+            try:
+                # 使用分类服务进行自动分类
+                auto_category = self.category_service.classify_merchant(counterparty)
+                transaction_data['category'] = auto_category
+
+                self.logger.debug(f"自动分类交易: {counterparty} -> {auto_category}")
+            except Exception as e:
+                self.logger.error(f"自动分类失败: {e}")
+                transaction_data['category'] = 'other'
+        else:
+            # 确保有默认分类
+            transaction_data['category'] = current_category or 'other'
+
+            if amount >= 0:
+                self.logger.debug(f"收入交易设为默认分类: {transaction_data['category']}")
+
+        return transaction_data
 
     def process_uploaded_files(self, uploaded_file_objects: List[Any]) -> tuple:
         """处理通过HTTP请求上传的一批文件
@@ -222,8 +271,11 @@ class ImportService:
                 for transaction_data, is_duplicate in zip(transactions_data, duplicate_flags):
                     if not is_duplicate:
                         try:
-                            self.logger.debug(f"新建交易：{transaction_data}")
-                            transaction = self.data_service.create_transaction(**transaction_data)
+                            # 应用自动分类逻辑
+                            classified_data = self._apply_auto_classification(transaction_data)
+
+                            self.logger.debug(f"新建交易：{classified_data}")
+                            transaction = self.data_service.create_transaction(**classified_data)
                             if transaction:
                                 processed_count += 1
                         except Exception as e:
@@ -297,5 +349,17 @@ class ImportService:
         
         self.logger.warning(f"未找到适用于文件 {file_path} 的提取器")
         return None
+
+    def create_classified_transaction(self, **transaction_data) -> 'Transaction':
+        """创建带自动分类的交易（供其他服务使用）
+
+        Args:
+            **transaction_data: 交易数据
+
+        Returns:
+            Transaction: 创建的交易实例
+        """
+        classified_data = self._apply_auto_classification(transaction_data)
+        return self.data_service.create_transaction(**classified_data)
 
 

@@ -20,7 +20,7 @@ from app.models import Bank, Account, Transaction, db
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, and_
 from sqlalchemy.orm import joinedload, selectinload
-from app.utils.query_cache import invalidate_cache_on_change, cached_query
+from app.utils.simple_cache import invalidate_cache_on_change, cached_query
 
 logger = logging.getLogger(__name__)
 

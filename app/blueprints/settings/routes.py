@@ -1,6 +1,7 @@
 from flask import request, redirect, url_for, flash, render_template, current_app, jsonify
 from app.models.base import db
 from app.utils.decorators import handle_errors
+from app.utils import get_import_service
 from . import settings_bp
 
 @settings_bp.route('/')
@@ -40,8 +41,14 @@ def upload_file_route():
         
         files = request.files.getlist('file')
 
-        # 使用 ImportService 处理文件
-        processed_files_result, message = current_app.import_service.process_uploaded_files(files)
+        # 使用 ServiceRegistry 获取导入服务
+        import_service = get_import_service()
+        if not import_service:
+            flash('导入服务不可用', 'error')
+            return redirect(url_for('settings.index'))
+
+        # 处理文件
+        processed_files_result, message = import_service.process_uploaded_files(files)
 
         if processed_files_result:
             uploaded_filenames = [f.filename for f in files if f.filename] 

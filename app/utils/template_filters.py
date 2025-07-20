@@ -2,42 +2,16 @@
 模板过滤器模块 - 包含所有自定义Jinja2模板过滤器
 """
 from flask import Flask
-import math
 from typing import Union, Any, Optional
 
 def register_template_filters(app: Flask) -> None:
     """注册所有自定义模板过滤器"""
 
-    # 数学函数过滤器
-    @app.template_filter('abs')
-    def abs_filter(n: Union[int, float]) -> Union[int, float]:
-        """绝对值"""
-        return abs(n)
-
+    # 数学函数过滤器（保留常用的round过滤器）
     @app.template_filter('round')
     def round_filter(n: Union[int, float], precision: int = 0) -> Union[int, float]:
         """四舍五入，可指定小数位数"""
         return round(n, precision)
-
-    @app.template_filter('ceil')
-    def ceil_filter(n: Union[int, float]) -> int:
-        """向上取整"""
-        return math.ceil(n)
-
-    @app.template_filter('floor')
-    def floor_filter(n: Union[int, float]) -> int:
-        """向下取整"""
-        return math.floor(n)
-
-    @app.template_filter('min')
-    def min_filter(*args: Union[int, float]) -> Union[int, float]:
-        """取最小值"""
-        return min(args)
-
-    @app.template_filter('max')
-    def max_filter(*args: Union[int, float]) -> Union[int, float]:
-        """取最大值"""
-        return max(args)
     
     # 格式化过滤器
     @app.template_filter('currency')

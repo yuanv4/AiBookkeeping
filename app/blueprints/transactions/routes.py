@@ -1,6 +1,7 @@
 # 使用新的服务层
 from flask import request, render_template, current_app
 from app.utils.decorators import handle_errors
+from app.utils import get_data_service, DataUtils
 
 from . import transactions_bp
 
@@ -45,15 +46,27 @@ def transactions_list_route(): # 重命名函数
     if account_name_req:
         filters['account_name'] = account_name_req
 
-    # 使用 DataService 获取所有交易记录（不分页）
-    all_transactions = current_app.data_service.get_transactions_filtered(filters=filters)
+    # 使用 ServiceRegistry 获取数据服务
+    data_service = get_data_service()
+    if not data_service:
+        current_app.logger.error("DataService不可用")
+        return render_template('transactions/list.html',
+                             transactions=[],
+                             total_transactions=0,
+                             accounts=[],
+                             currencies_for_filter=[],
+                             current_filters={})
 
-    transactions_data = [t.to_dict() for t in all_transactions]
+    # 获取所有交易记录（不分页）
+    all_transactions = data_service.get_transactions_filtered(filters=filters)
+
+    # 使用DataUtils统一转换交易数据
+    transactions_data = DataUtils.transactions_to_dict(all_transactions)
     total_transactions = len(all_transactions)
 
-    # 使用 DataService 获取账户和货币信息
-    accounts = current_app.data_service.get_all_accounts()
-    currencies_for_filter = current_app.data_service.get_all_currencies()
+    # 获取账户和货币信息
+    accounts = data_service.get_all_accounts()
+    currencies_for_filter = data_service.get_all_currencies()
 
     current_filters = {
         'account_number': account_number_req,

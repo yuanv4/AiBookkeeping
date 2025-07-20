@@ -22,8 +22,8 @@ from sqlalchemy.orm import Session
 
 from .data_service import DataService
 from .category_service import CategoryService
-from .models import DateUtils
-from app.utils.query_cache import cached_query
+from app.utils import DataUtils
+from app.utils.simple_cache import cached_query
 
 logger = logging.getLogger(__name__)
 
@@ -137,8 +137,8 @@ class ReportService:
     def get_monthly_trend(self, months: int = 12) -> List[Dict[str, Any]]:
         """获取月度收支趋势"""
         try:
-            # 使用DateUtils计算日期范围
-            start_date, end_date = DateUtils.get_date_range(months)
+            # 使用DataUtils计算日期范围
+            start_date, end_date = DataUtils.get_date_range(months)
 
             # 获取指定时间范围内的所有交易数据
             transactions = self.data_service.get_transactions(
@@ -279,8 +279,8 @@ class ReportService:
     def get_dashboard_data(self, months: int = 12) -> Dict[str, Any]:
         """获取仪表盘数据"""
         try:
-            # 计算时间范围 - 使用DateUtils
-            start_date, end_date = DateUtils.get_date_range(months)
+            # 计算时间范围 - 使用DataUtils
+            start_date, end_date = DataUtils.get_date_range(months)
             
             # 获取当前总资产
             current_assets = self.get_current_total_assets()
