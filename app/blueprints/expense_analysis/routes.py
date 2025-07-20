@@ -80,13 +80,8 @@ def api_merchant_analysis():
                 error=f'无效的分类筛选参数，支持的分类: {", ".join(valid_categories)}'
             ), 400
 
-        # 使用 ServiceRegistry 获取报告服务
+        # 获取报告服务
         report_service = get_report_service()
-        if not report_service:
-            return DataUtils.format_api_response(
-                success=False,
-                error='报告服务不可用'
-            ), 500
 
         # 获取商户分类服务
         category_service = report_service.category_service
@@ -137,13 +132,8 @@ def api_merchant_analysis():
 def api_available_months():
     """获取可用月份列表API"""
     try:
-        # 使用 ServiceRegistry 获取报告服务
+        # 获取报告服务
         report_service = get_report_service()
-        if not report_service:
-            return DataUtils.format_api_response(
-                success=False,
-                error='报告服务不可用'
-            ), 500
 
         # 获取商户分类服务
         category_service = report_service.category_service
@@ -166,13 +156,8 @@ def api_available_months():
 def api_merchant_details(merchant_name):
     """获取商户详情API"""
     try:
-        # 使用 ServiceRegistry 获取报告服务
+        # 获取报告服务
         report_service = get_report_service()
-        if not report_service:
-            return DataUtils.format_api_response(
-                success=False,
-                error='报告服务不可用'
-            ), 500
 
         # 获取商户分类服务
         category_service = report_service.category_service

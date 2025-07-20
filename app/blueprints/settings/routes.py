@@ -1,8 +1,11 @@
-from flask import request, redirect, url_for, flash, render_template, current_app, jsonify
+import logging
+from flask import request, redirect, url_for, flash, render_template, jsonify
 from app.models.base import db
 from app.utils.decorators import handle_errors
 from app.utils import get_import_service
 from . import settings_bp
+
+logger = logging.getLogger(__name__)
 
 @settings_bp.route('/')
 def settings_index():
@@ -10,21 +13,21 @@ def settings_index():
     return render_template('settings.html')
 
 @settings_bp.route('/delete_database', methods=['POST'])
-@handle_errors(default_data={'success': False, 'message': '数据库删除失败'}, log_prefix="数据库删除操作")
+@handle_errors
 def delete_database():
     """删除数据库中的所有数据"""
     # 记录操作日志
-    current_app.logger.warning("开始执行数据库删除操作")
-    
+    logger.warning("开始执行数据库删除操作")
+
     # 删除所有表
     db.drop_all()
-    current_app.logger.info("所有数据表已删除")
-    
+    logger.info("所有数据表已删除")
+
     # 重新创建表结构
     db.create_all()
-    current_app.logger.info("数据表结构已重新创建")
-    
-    current_app.logger.warning("数据库删除操作完成")
+    logger.info("数据表结构已重新创建")
+
+    logger.warning("数据库删除操作完成")
     
     return jsonify({
         'success': True,
@@ -41,11 +44,8 @@ def upload_file_route():
         
         files = request.files.getlist('file')
 
-        # 使用 ServiceRegistry 获取导入服务
+        # 获取导入服务
         import_service = get_import_service()
-        if not import_service:
-            flash('导入服务不可用', 'error')
-            return redirect(url_for('settings.index'))
 
         # 处理文件
         processed_files_result, message = import_service.process_uploaded_files(files)

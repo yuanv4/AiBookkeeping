@@ -216,8 +216,12 @@ class Transaction(BaseModel):
         """Get absolute amount value."""
         return abs(self.amount)
     
-    def to_dict(self):
-        """Convert transaction instance to dictionary with additional info."""
+    def to_dict(self, include_relations: bool = True):
+        """Convert transaction instance to dictionary with additional info.
+
+        Args:
+            include_relations: 是否包含关联数据（账户、银行信息）
+        """
         result = super().to_dict()
         result['amount'] = float(self.amount)
         result['balance_after'] = float(self.balance_after) if self.balance_after else None
@@ -226,9 +230,28 @@ class Transaction(BaseModel):
         result['is_expense'] = self.is_expense()
         result['absolute_amount'] = float(self.get_absolute_amount())
 
-        result['account_name'] = self.account.account_name if self.account else None
-        result['account_number'] = self.account.account_number if self.account else None
-        result['bank_name'] = self.account.bank.name if self.account and self.account.bank else None
+        # 只有在需要且数据已预加载时才添加关联信息，避免N+1查询
+        if include_relations:
+            try:
+                # 检查关联数据是否已预加载，避免触发新的查询
+                if hasattr(self, '_account_loaded') or 'account' in self.__dict__:
+                    result['account_name'] = self.account.account_name if self.account else None
+                    result['account_number'] = self.account.account_number if self.account else None
+                    # 检查银行信息是否已预加载
+                    if self.account and (hasattr(self.account, '_bank_loaded') or 'bank' in self.account.__dict__):
+                        result['bank_name'] = self.account.bank.name if self.account.bank else None
+                    else:
+                        result['bank_name'] = None
+                else:
+                    result['account_name'] = None
+                    result['account_number'] = None
+                    result['bank_name'] = None
+            except Exception:
+                # 如果访问关联数据出错，设置为None避免异常
+                result['account_name'] = None
+                result['account_number'] = None
+                result['bank_name'] = None
+
         result['merchant_name'] = self.merchant_name
         result['category'] = self.category
         return result

@@ -8,7 +8,7 @@ from flask_migrate import Migrate
 # 从同一目录的 config 模块导入配置类
 from .config import Config
 from .utils.template_filters import register_template_filters
-from .utils.error_handler import ErrorHandler
+
 from .models import db
 
 # Initialize extensions
@@ -54,22 +54,8 @@ def _initialize_database_and_services(app):
         db.create_all()
         app.logger.info("数据库表已创建")
 
-        # 使用ServiceRegistry管理服务 - 更清晰的服务管理
-        from .services import DataService, ImportService, ReportService
-        from .services.category_service import CategoryService
-        from .utils import initialize_core_services
-
-        data_service = DataService()
-        category_service = CategoryService()
-        import_service = ImportService(data_service)
-        report_service = ReportService(data_service, category_service=category_service)
-
-        # 使用ServiceRegistry注册服务
-        initialize_core_services(
-            data_service, import_service, report_service, category_service
-        )
-
-        app.logger.info("服务层已通过ServiceRegistry初始化")
+        # 服务将按需初始化，无需预先创建
+        app.logger.info("服务层将按需初始化")
 
 def _register_blueprints(app):
     """注册蓝图
@@ -124,6 +110,16 @@ def create_app():
     _register_blueprints(app)
 
     # 注册统一的错误处理器
-    ErrorHandler.register_error_handlers(app)
+    from .utils.decorators import create_error_response
+
+    @app.errorhandler(404)
+    def handle_404(error):
+        return create_error_response(Exception("页面未找到"), 404)
+
+    @app.errorhandler(500)
+    def handle_500(error):
+        return create_error_response(error, 500)
+
+    app.logger.info("已注册统一错误处理器")
 
     return app

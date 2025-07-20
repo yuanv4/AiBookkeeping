@@ -35,6 +35,11 @@ from .import_service import ImportService
 from .report_service import ReportService
 from .category_service import CategoryService
 
+# 专门的服务类
+from .bank_service import BankService
+from .account_service import AccountService
+from .transaction_service import TransactionService
+
 # 数据模型 - 保留复杂DTO类，简单数据结构已改为字典
 from .models import (
     ExtractedData, ImportResult, DashboardData,  # 保留的复杂DTO类
@@ -52,6 +57,10 @@ __all__ = [
     'ImportService',
     'ReportService',
     'CategoryService',
+    # 专门的服务类
+    'BankService',
+    'AccountService',
+    'TransactionService',
     # 保留的复杂DTO类
     'ExtractedData', 'ImportResult', 'DashboardData',
     # 字典构造函数

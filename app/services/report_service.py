@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from .data_service import DataService
 from .category_service import CategoryService
 from app.utils import DataUtils
-from app.utils.simple_cache import cached_query
+from app.utils.decorators import cached_query
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ class ReportService:
 
     # ==================== 趋势分析 ====================
     
-    @cached_query(ttl=600)  # 缓存10分钟，趋势数据更新频率适中
+    @cached_query()
     def get_monthly_trend(self, months: int = 12) -> List[Dict[str, Any]]:
         """获取月度收支趋势"""
         try:
@@ -185,7 +185,7 @@ class ReportService:
 
     # ==================== 分类统计 ====================
     
-    @cached_query(ttl=300)  # 缓存5分钟
+    @cached_query()
     def get_expense_composition(self, start_date: date, end_date: date, limit: int = 10) -> List[Dict[str, Any]]:
         """获取支出构成分析
 
@@ -237,7 +237,7 @@ class ReportService:
             self.logger.error(f"Error getting expense composition: {e}")
             return []
 
-    @cached_query(ttl=300)  # 缓存5分钟，与支出构成保持一致
+    @cached_query()
     def get_income_composition(self, start_date: date, end_date: date, limit: int = 10) -> List[Dict[str, Any]]:
         """获取收入构成分析"""
         try:

@@ -1,21 +1,24 @@
-from flask import render_template, current_app, request, jsonify
+import logging
+from flask import render_template, request, jsonify
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 from . import main_bp
 from app.utils import DataUtils, get_report_service, get_data_service
-from app.utils.decorators import require_service
 
-@require_service('report')
-def _handle_enhanced_expense_analysis(target_month_str, report_service):
+logger = logging.getLogger(__name__)
+def _handle_enhanced_expense_analysis(target_month_str):
     """处理增强模式的支出分析请求
 
     Args:
         target_month_str: 目标月份字符串
-        report_service: 报告服务实例（通过装饰器自动注入）
 
     Returns:
         JSON响应
     """
+    # 获取报告服务
+    from app.utils import get_report_service
+    report_service = get_report_service()
+
     # 使用DataUtils解析日期
     target_month = DataUtils.parse_date_safe(target_month_str, ['%Y-%m'])
     if not target_month:
@@ -30,7 +33,7 @@ def _handle_enhanced_expense_analysis(target_month_str, report_service):
     last_day = monthrange(target_month.year, target_month.month)[1]
     end_date = target_month.replace(day=last_day)
 
-    # 获取支出构成数据（服务已通过装饰器注入）
+    # 获取支出构成数据
     expense_composition = report_service.get_expense_composition(start_date, end_date)
 
     # 转换为前端期望的格式
@@ -46,34 +49,39 @@ def _handle_enhanced_expense_analysis(target_month_str, report_service):
     return DataUtils.format_api_response(success=True, data=enhanced_data)
 
 
-@require_service('report')
-def _handle_expense_analysis(start_date_str, end_date_str, report_service):
+def _handle_expense_analysis(start_date_str, end_date_str):
     """处理支出分析请求
 
     Args:
         start_date_str: 开始日期字符串
         end_date_str: 结束日期字符串
-        report_service: 报告服务实例（通过装饰器自动注入）
 
     Returns:
         JSON响应
     """
+    # 获取报告服务
+    from app.utils import get_report_service
+    report_service = get_report_service()
+
     # 使用DataUtils验证日期范围
     start_date, end_date, error = DataUtils.validate_date_range(start_date_str, end_date_str)
     if error:
         return DataUtils.format_api_response(success=False, error=error)
 
-    # 获取支出构成数据（服务已通过装饰器注入）
+    # 获取支出构成数据
     data = report_service.get_expense_composition(start_date, end_date)
     return DataUtils.format_api_response(success=True, data={'expense_composition': data})
 
 @main_bp.route('/')
 @main_bp.route('/dashboard')
-@require_service('report', error_template='error.html')
-def dashboard(report_service):
+def dashboard():
     """现金流健康仪表盘页面"""
     try:
-        # 获取仪表盘数据（服务已通过装饰器注入）
+        # 获取报告服务
+        from app.utils import get_report_service
+        report_service = get_report_service()
+
+        # 获取仪表盘数据
         dashboard_data = report_service.get_dashboard_data()
 
         return render_template('dashboard.html',
@@ -81,7 +89,7 @@ def dashboard(report_service):
                              dashboard_data=dashboard_data)
 
     except Exception as e:
-        current_app.logger.error(f"加载现金流仪表盘页面失败: {str(e)}")
+        logger.error(f"加载现金流仪表盘页面失败: {str(e)}")
         # 返回空数据结构
         empty_data = {
             'period': {'start_date': '', 'end_date': '', 'days': 0},
@@ -105,10 +113,13 @@ def dashboard(report_service):
                              dashboard_data=empty_data)
 
 @main_bp.route('/api/dashboard/cash-flow')
-@require_service('report')
-def get_cash_flow_data(report_service):
+def get_cash_flow_data():
     """获取资金流分析数据的API接口"""
     try:
+        # 获取报告服务
+        from app.utils import get_report_service
+        report_service = get_report_service()
+
         start_date_str = request.args.get('start_date')
         end_date_str = request.args.get('end_date')
 
@@ -117,7 +128,7 @@ def get_cash_flow_data(report_service):
         if error:
             return DataUtils.format_api_response(success=False, error=error)
 
-        # 获取期间汇总和月度趋势（服务已通过装饰器注入）
+        # 获取期间汇总和月度趋势
         period_summary = report_service.get_period_summary(start_date, end_date)
         monthly_trend = report_service.get_monthly_trend(months=12)
 
@@ -156,20 +167,23 @@ def get_expense_analysis_data():
             return _handle_expense_analysis(start_date_str, end_date_str)
 
     except Exception as e:
-        current_app.logger.error(f"获取支出分析数据失败: {str(e)}")
+        logger.error(f"获取支出分析数据失败: {str(e)}")
         return DataUtils.format_api_response(success=False, error='服务器内部错误')
 
 @main_bp.route('/category-transactions')
-@require_service('data')
-def get_category_transactions(data_service):
+def get_category_transactions():
     """获取指定分类的交易明细（下钻功能）"""
     try:
+        # 获取数据服务
+        from app.utils import get_data_service
+        data_service = get_data_service()
+
         # 获取查询参数
         category = request.args.get('category')
         start_date_str = request.args.get('start_date')
         end_date_str = request.args.get('end_date')
 
-        current_app.logger.info(f"获取分类交易明细请求: category={category}, start_date={start_date_str}, end_date={end_date_str}")
+        logger.info(f"获取分类交易明细请求: category={category}, start_date={start_date_str}, end_date={end_date_str}")
 
         if not category:
             return DataUtils.format_api_response(success=False, error='缺少分类参数')
@@ -198,7 +212,7 @@ def get_category_transactions(data_service):
                     'account_name': transaction.account.account_name if transaction.account else ''
                 })
 
-        current_app.logger.info(f"找到 {len(transactions)} 条交易记录")
+        logger.info(f"找到 {len(transactions)} 条交易记录")
 
         result = {
             'category': category,

@@ -8,9 +8,7 @@ from . import transactions_bp
 # 使用新的统一服务架构
 
 @transactions_bp.route('/') # 蓝图根路径对应 /transactions/
-@handle_errors(template='transactions.html',
-               default_data={'data': {'transactions': [], 'accounts': [], 'currencies': [], 'current_filters': {}}, 'total_count': 0},
-               log_prefix="交易记录页面")
+@handle_errors
 def transactions_list_route(): # 重命名函数
     """交易记录页面"""
 
@@ -46,19 +44,11 @@ def transactions_list_route(): # 重命名函数
     if account_name_req:
         filters['account_name'] = account_name_req
 
-    # 使用 ServiceRegistry 获取数据服务
+    # 获取数据服务
     data_service = get_data_service()
-    if not data_service:
-        current_app.logger.error("DataService不可用")
-        return render_template('transactions/list.html',
-                             transactions=[],
-                             total_transactions=0,
-                             accounts=[],
-                             currencies_for_filter=[],
-                             current_filters={})
 
-    # 获取所有交易记录（不分页）
-    all_transactions = data_service.get_transactions_filtered(filters=filters)
+    # 使用优化的查询方法，预加载关联数据避免N+1问题
+    all_transactions = data_service.transaction_service.get_transactions_with_relations(filters=filters)
 
     # 使用DataUtils统一转换交易数据
     transactions_data = DataUtils.transactions_to_dict(all_transactions)
