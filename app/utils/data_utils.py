@@ -1,17 +1,23 @@
 """统一数据处理工具类
 
-提供常用的数据处理、转换、验证功能，减少重复代码。
-专注于解决80%的常见数据处理需求。
+合并了原DataUtils和UnifiedUtils的功能，提供完整的数据处理、转换、验证功能。
+专注于解决80%的常见数据处理需求，减少代码重复。
 
 重构说明:
-- 从RESEARCH模式发现的重复逻辑中提取出来
-- 统一了日期解析、API响应格式、数据转换等常用操作
+- 合并了DataUtils和UnifiedUtils的最佳实现
+- 统一了日期解析、API响应格式、数据转换、金额处理等操作
 - 遵循简单实用的设计原则，避免过度工程化
-- 支持渐进式迁移，与现有代码兼容
+- 保持向后兼容性，支持渐进式迁移
 
 使用示例:
     # 日期解析
     date_obj = DataUtils.parse_date_safe('2024-01-15')
+
+    # 日期范围验证
+    start, end, error = DataUtils.validate_date_range('2024-01-01', '2024-01-31')
+
+    # 金额处理
+    amount = DataUtils.normalize_decimal('100.50')
 
     # API响应
     return DataUtils.format_api_response(success=True, data=result)
@@ -22,27 +28,28 @@
 
 from typing import Optional, List, Dict, Any, Union, Tuple
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from flask import jsonify
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
 
 class DataUtils:
-    """数据处理工具类 - 统一常用的数据操作"""
+    """统一数据处理工具类 - 合并原DataUtils和UnifiedUtils功能"""
     
     @staticmethod
     def parse_date_safe(date_str: str, formats: List[str] = None) -> Optional[date]:
-        """安全的日期解析，支持多种格式
-        
+        """安全的日期解析，支持多种格式（合并原DataUtils和UnifiedUtils实现）
+
         Args:
             date_str: 日期字符串
             formats: 支持的日期格式列表，默认支持常见格式
-            
+
         Returns:
             解析后的日期对象，失败返回None
-            
+
         Examples:
             >>> DataUtils.parse_date_safe('2024-01-15')
             date(2024, 1, 15)
@@ -53,18 +60,20 @@ class DataUtils:
         """
         if not date_str or not isinstance(date_str, str):
             return None
-            
+
         date_str = date_str.strip()
         if not date_str:
             return None
-            
-        # 默认支持的日期格式
+
+        # 扩展的日期格式支持（合并两个类的格式）
         formats = formats or [
             '%Y-%m-%d',      # 2024-01-15
             '%Y-%m',         # 2024-01 (返回月初)
             '%Y/%m/%d',      # 2024/01/15
             '%d/%m/%Y',      # 15/01/2024
-            '%d-%m-%Y'       # 15-01-2024
+            '%d-%m-%Y',      # 15-01-2024
+            '%Y%m%d',        # 20240115
+            '%m/%d/%Y',      # 01/15/2024
         ]
         
         for fmt in formats:
@@ -83,9 +92,46 @@ class DataUtils:
         
         logger.warning(f"无法解析日期: {date_str}")
         return None
-    
+
     @staticmethod
-    def format_api_response(success: bool = True, data: Any = None, 
+    def validate_date_range(start_date_str: str, end_date_str: str) -> Tuple[Optional[date], Optional[date], Optional[str]]:
+        """验证日期范围（从UnifiedUtils合并）
+
+        Args:
+            start_date_str: 开始日期字符串
+            end_date_str: 结束日期字符串
+
+        Returns:
+            (start_date, end_date, error_message) 元组
+            如果验证失败，日期为None，error_message包含错误信息
+
+        Examples:
+            >>> start, end, error = DataUtils.validate_date_range('2024-01-01', '2024-01-31')
+            >>> if error:
+            ...     print(f"验证失败: {error}")
+            >>> else:
+            ...     print(f"日期范围: {start} 到 {end}")
+        """
+        start_date = DataUtils.parse_date_safe(start_date_str)
+        end_date = DataUtils.parse_date_safe(end_date_str)
+
+        if not start_date:
+            return None, None, f"开始日期格式错误: {start_date_str}"
+
+        if not end_date:
+            return None, None, f"结束日期格式错误: {end_date_str}"
+
+        if start_date > end_date:
+            return None, None, "开始日期不能晚于结束日期"
+
+        # 检查日期范围是否合理（不超过5年）
+        if (end_date - start_date).days > 1825:  # 5年
+            return None, None, "日期范围不能超过5年"
+
+        return start_date, end_date, None
+
+    @staticmethod
+    def format_api_response(success: bool = True, data: Any = None,
                           message: str = "", error: str = "") -> Any:
         """统一API响应格式
         
@@ -141,7 +187,55 @@ class DataUtils:
         except Exception as e:
             logger.error(f"交易数据转换失败: {e}")
             return []
-    
+
+    @staticmethod
+    def normalize_decimal(value: Any) -> Decimal:
+        """标准化金额为Decimal类型（从UnifiedUtils合并）
+
+        Args:
+            value: 待标准化的金额值
+
+        Returns:
+            标准化后的Decimal对象，保留2位小数
+
+        Raises:
+            ValueError: 当金额格式无效时抛出异常
+
+        Examples:
+            >>> DataUtils.normalize_decimal('100.50')
+            Decimal('100.50')
+            >>> DataUtils.normalize_decimal(100)
+            Decimal('100.00')
+            >>> DataUtils.normalize_decimal('¥100.5')
+            Decimal('100.50')
+        """
+        if value is None:
+            return Decimal('0.00')
+
+        try:
+            # 如果是字符串类型，进行标准化处理
+            if isinstance(value, str):
+                # 移除所有非数字字符（保留小数点和负号）
+                value = re.sub(r'[^\d.-]', '', value.strip())
+
+            # 转换为Decimal
+            if isinstance(value, (int, float)):
+                decimal_value = Decimal(str(value))
+            elif not isinstance(value, Decimal):
+                decimal_value = Decimal(str(value))
+            else:
+                decimal_value = value
+
+            # 验证精度
+            if decimal_value.as_tuple().exponent < -2:
+                raise ValueError('金额最多支持2位小数')
+
+            # 标准化为2位小数
+            return decimal_value.quantize(Decimal('0.01'))
+
+        except (ValueError, TypeError, InvalidOperation) as e:
+            raise ValueError(f'无效的金额格式: {value} - {str(e)}')
+
     @staticmethod
     def safe_decimal(value: Any, default: Decimal = Decimal('0')) -> Decimal:
         """安全的Decimal转换

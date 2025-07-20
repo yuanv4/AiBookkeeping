@@ -1206,3 +1206,82 @@ window.addEventListener('beforeunload', () => {
     TableRegistry.destroyAll();
 });
 
+export const apiService = {
+    /**
+     * 统一的API请求方法
+     * @param {string} url - 请求URL
+     * @param {Object} options - 请求选项
+     * @returns {Promise} 请求Promise
+     */
+    async request(url, options = {}) {
+        const defaultOptions = {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        };
+
+        const config = { ...defaultOptions, ...options };
+
+        try {
+            const response = await fetch(url, config);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || '请求失败');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('API请求失败:', error);
+            this.handleError(error);
+            throw error;
+        }
+    },
+
+    /**
+     * GET请求
+     * @param {string} url - 请求URL
+     * @param {Object} params - 查询参数
+     * @returns {Promise} 请求Promise
+     */
+    async get(url, params = {}) {
+        const urlObj = new URL(url, window.location.origin);
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+                urlObj.searchParams.set(key, value);
+            }
+        });
+
+        return this.request(urlObj.toString());
+    },
+
+    /**
+     * POST请求
+     * @param {string} url - 请求URL
+     * @param {Object} data - 请求数据
+     * @returns {Promise} 请求Promise
+     */
+    async post(url, data = {}) {
+        return this.request(url, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    /**
+     * 统一的错误处理
+     * @param {Error} error - 错误对象
+     */
+    handleError(error) {
+        const message = error.message || '请求失败，请稍后重试';
+        showNotification(message, 'error');
+    }
+};
+

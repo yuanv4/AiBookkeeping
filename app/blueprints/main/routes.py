@@ -4,6 +4,8 @@ from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 from . import main_bp
 from app.utils import DataUtils, get_report_service, get_data_service
+from app.utils.decorators import handle_errors, validate_date_range, validate_required_params
+from app.utils.route_helpers import get_service_instances, format_route_response, log_route_access
 
 logger = logging.getLogger(__name__)
 def _handle_enhanced_expense_analysis(target_month_str):
@@ -113,37 +115,32 @@ def dashboard():
                              dashboard_data=empty_data)
 
 @main_bp.route('/api/dashboard/cash-flow')
+@handle_errors
+@validate_date_range(['start_date', 'end_date'])
 def get_cash_flow_data():
-    """获取资金流分析数据的API接口"""
-    try:
-        # 获取报告服务
-        from app.utils import get_report_service
-        report_service = get_report_service()
+    """获取资金流分析数据的API接口（重构后使用统一装饰器）"""
+    log_route_access('cash-flow', request.args.to_dict())
 
-        start_date_str = request.args.get('start_date')
-        end_date_str = request.args.get('end_date')
+    # 获取验证后的日期参数
+    start_date = request.validated_args['start_date']
+    end_date = request.validated_args['end_date']
 
-        # 使用DataUtils验证日期范围
-        start_date, end_date, error = DataUtils.validate_date_range(start_date_str, end_date_str)
-        if error:
-            return DataUtils.format_api_response(success=False, error=error)
+    # 获取服务实例
+    services = get_service_instances()
+    report_service = services['report_service']
 
-        # 获取期间汇总和月度趋势
-        period_summary = report_service.get_period_summary(start_date, end_date)
-        monthly_trend = report_service.get_monthly_trend(months=12)
+    # 获取期间汇总和月度趋势
+    period_summary = report_service.get_period_summary(start_date, end_date)
+    monthly_trend = report_service.get_monthly_trend(months=12)
 
-        # 转换为前端期望的现金流数据格式
-        data = {
-            'period_summary': period_summary,
-            'monthly_trend': monthly_trend,
-            'cash_flow': monthly_trend  # 月度趋势可以作为现金流数据
-        }
+    # 转换为前端期望的现金流数据格式
+    data = {
+        'period_summary': period_summary,
+        'monthly_trend': monthly_trend,
+        'cash_flow': monthly_trend  # 月度趋势可以作为现金流数据
+    }
 
-        return DataUtils.format_api_response(success=True, data=data)
-
-    except Exception as e:
-        current_app.logger.error(f"获取资金流数据失败: {str(e)}")
-        return DataUtils.format_api_response(success=False, error='服务器内部错误')
+    return format_route_response(success=True, data=data)
 
 @main_bp.route('/api/dashboard/expense-analysis')
 def get_expense_analysis_data():

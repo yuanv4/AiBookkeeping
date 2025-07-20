@@ -2,6 +2,11 @@
 
 将Transaction模型中的复杂验证逻辑提取到专门的验证器中，
 遵循单一职责原则，使模型专注于数据结构。
+
+重构说明:
+- 使用统一的DataUtils进行金额和日期处理
+- 减少重复的验证逻辑
+- 保持验证器的专门职责
 """
 
 from typing import Any, Dict, Optional
@@ -20,82 +25,69 @@ class TransactionValidator:
     
     @staticmethod
     def validate_amount(amount: Any) -> Decimal:
-        """验证交易金额
-        
+        """验证交易金额（使用统一的DataUtils）
+
         Args:
             amount: 待验证的金额
-            
+
         Returns:
             Decimal: 标准化后的金额
-            
+
         Raises:
             ValueError: 当金额无效时抛出异常
         """
         if amount is None:
             raise ValueError('交易金额不能为空')
-        
+
         try:
-            # 转换为Decimal类型
-            if isinstance(amount, str):
-                # 移除可能的货币符号和空格
-                amount = amount.strip().replace('¥', '').replace('$', '').replace(',', '')
-            
-            decimal_amount = Decimal(str(amount))
-            
+            # 使用DataUtils的统一金额处理方法
+            from app.utils import DataUtils
+            decimal_amount = DataUtils.normalize_decimal(amount)
+
             # 检查金额范围（避免极端值）
             if abs(decimal_amount) > Decimal('999999999.99'):
                 raise ValueError('交易金额超出允许范围')
-            
-            # 标准化为2位小数
-            return decimal_amount.quantize(Decimal('0.01'))
-            
-        except (InvalidOperation, ValueError) as e:
+
+            return decimal_amount
+
+        except ValueError as e:
+            # 重新抛出DataUtils的异常，保持一致的错误信息
+            raise e
+        except Exception as e:
             raise ValueError(f'无效的交易金额: {amount}') from e
     
     @staticmethod
     def validate_date(date_value: Any) -> date:
-        """验证交易日期
-        
+        """验证交易日期（使用统一的DataUtils）
+
         Args:
             date_value: 待验证的日期
-            
+
         Returns:
             date: 标准化后的日期
-            
+
         Raises:
             ValueError: 当日期无效时抛出异常
         """
         if date_value is None:
             raise ValueError('交易日期不能为空')
-        
+
         if isinstance(date_value, date):
             return date_value
-        
+
         if isinstance(date_value, datetime):
             return date_value.date()
-        
+
         if isinstance(date_value, str):
-            try:
-                # 尝试多种日期格式
-                date_formats = [
-                    '%Y-%m-%d',
-                    '%Y/%m/%d',
-                    '%d/%m/%Y',
-                    '%d-%m-%Y',
-                    '%Y%m%d'
-                ]
-                
-                for fmt in date_formats:
-                    try:
-                        return datetime.strptime(date_value.strip(), fmt).date()
-                    except ValueError:
-                        continue
-                
+            # 使用DataUtils的统一日期解析方法
+            from app.utils import DataUtils
+            parsed_date = DataUtils.parse_date_safe(date_value)
+
+            if parsed_date is None:
                 raise ValueError(f'无法解析日期格式: {date_value}')
-                
-            except Exception as e:
-                raise ValueError(f'无效的交易日期: {date_value}') from e
-        
+
+            return parsed_date
+
         raise ValueError(f'不支持的日期类型: {type(date_value)}')
     
     @staticmethod

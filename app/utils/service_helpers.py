@@ -1,6 +1,7 @@
 """简化的服务辅助函数
 
-提供便捷的服务获取接口，移除ServiceRegistry依赖，使用简单的工厂模式。
+重构后直接提供专门的服务类，移除DataService协调层。
+使用简单的工厂模式，减少服务依赖复杂度。
 """
 
 from typing import Optional, Dict, Any
@@ -11,17 +12,84 @@ logger = logging.getLogger(__name__)
 # 全局服务实例缓存
 _service_cache: Dict[str, Any] = {}
 
-def get_data_service():
-    """获取数据服务实例
+def get_bank_service():
+    """获取银行服务实例
 
     Returns:
-        DataService: 数据服务实例
+        BankService: 银行服务实例
     """
-    if 'data' not in _service_cache:
-        from ..services import DataService
-        _service_cache['data'] = DataService()
-        logger.info("创建DataService实例")
-    return _service_cache['data']
+    if 'bank' not in _service_cache:
+        from ..services import BankService
+        _service_cache['bank'] = BankService()
+        logger.info("创建BankService实例")
+    return _service_cache['bank']
+
+def get_account_service():
+    """获取账户服务实例
+
+    Returns:
+        AccountService: 账户服务实例
+    """
+    if 'account' not in _service_cache:
+        from ..services import AccountService, BankService
+        bank_service = get_bank_service()
+        _service_cache['account'] = AccountService(bank_service)
+        logger.info("创建AccountService实例")
+    return _service_cache['account']
+
+def get_transaction_service():
+    """获取交易服务实例
+
+    Returns:
+        TransactionService: 交易服务实例
+    """
+    if 'transaction' not in _service_cache:
+        from ..services import TransactionService
+        account_service = get_account_service()
+        _service_cache['transaction'] = TransactionService(account_service)
+        logger.info("创建TransactionService实例")
+    return _service_cache['transaction']
+
+# 保持向后兼容性的数据服务获取函数
+def get_data_service():
+    """获取数据服务实例（向后兼容）
+
+    注意：这是为了向后兼容而保留的函数。
+    新代码应该直接使用专门的服务类。
+
+    Returns:
+        dict: 包含各种服务的字典对象
+    """
+    if 'data_compat' not in _service_cache:
+        # 创建一个兼容对象，包含所有服务的引用
+        class DataServiceCompat:
+            def __init__(self):
+                self.bank_service = get_bank_service()
+                self.account_service = get_account_service()
+                self.transaction_service = get_transaction_service()
+
+            # 委托方法以保持兼容性
+            def get_or_create_bank(self, name: str, code: str = None):
+                return self.bank_service.get_or_create_bank(name, code)
+
+            def get_bank_by_name(self, name: str):
+                return self.bank_service.get_bank_by_name(name)
+
+            def get_all_banks(self):
+                return self.bank_service.get_all_banks()
+
+            def get_or_create_account(self, bank_id: int, account_number: str, account_name: str = None):
+                return self.account_service.get_or_create_account(bank_id, account_number, account_name)
+
+            def get_all_accounts(self):
+                return self.account_service.get_all_accounts()
+
+            def get_all_currencies(self):
+                return self.transaction_service.get_all_currencies()
+
+        _service_cache['data_compat'] = DataServiceCompat()
+        logger.info("创建DataService兼容实例")
+    return _service_cache['data_compat']
 
 def get_import_service():
     """获取导入服务实例
@@ -31,6 +99,7 @@ def get_import_service():
     """
     if 'import' not in _service_cache:
         from ..services import ImportService
+        # 使用兼容的数据服务
         data_service = get_data_service()
         _service_cache['import'] = ImportService(data_service)
         logger.info("创建ImportService实例")
@@ -44,6 +113,7 @@ def get_report_service():
     """
     if 'report' not in _service_cache:
         from ..services import ReportService
+        # 使用兼容的数据服务
         data_service = get_data_service()
         category_service = get_category_service()
         _service_cache['report'] = ReportService(data_service, category_service=category_service)

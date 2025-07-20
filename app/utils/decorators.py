@@ -101,5 +101,91 @@ def handle_errors(func: Callable = None):
         return decorator(func)
 
 
+# ==================== 路由参数验证装饰器 ====================
+
+def validate_date_range(date_params=['start_date', 'end_date']):
+    """验证日期范围参数的装饰器
+
+    Args:
+        date_params: 需要验证的日期参数名列表
+
+    Usage:
+        @validate_date_range(['start_date', 'end_date'])
+        def my_route():
+            start_date = request.validated_args['start_date']
+            end_date = request.validated_args['end_date']
+    """
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            from flask import request
+            from app.utils import DataUtils
+
+            # 创建验证后的参数字典
+            if not hasattr(request, 'validated_args'):
+                request.validated_args = {}
+
+            # 验证日期参数
+            if len(date_params) >= 2:
+                start_param, end_param = date_params[0], date_params[1]
+                start_date_str = request.args.get(start_param)
+                end_date_str = request.args.get(end_param)
+
+                if start_date_str and end_date_str:
+                    start_date, end_date, error = DataUtils.validate_date_range(start_date_str, end_date_str)
+                    if error:
+                        return DataUtils.format_api_response(success=False, error=error)
+
+                    request.validated_args[start_param] = start_date
+                    request.validated_args[end_param] = end_date
+
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def validate_required_params(required_params):
+    """验证必需参数的装饰器
+
+    Args:
+        required_params: 必需参数名列表
+
+    Usage:
+        @validate_required_params(['category', 'month'])
+        def my_route():
+            category = request.validated_args['category']
+            month = request.validated_args['month']
+    """
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            from flask import request
+            from app.utils import DataUtils
+
+            # 创建验证后的参数字典
+            if not hasattr(request, 'validated_args'):
+                request.validated_args = {}
+
+            # 验证必需参数
+            for param in required_params:
+                value = request.args.get(param)
+                if not value:
+                    return DataUtils.format_api_response(
+                        success=False,
+                        error=f'缺少必需参数: {param}'
+                    )
+                request.validated_args[param] = value.strip()
+
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
 # 导出主要接口
-__all__ = ['handle_errors', 'create_error_response', 'cached_query']
+__all__ = [
+    'handle_errors',
+    'create_error_response',
+    'cached_query',
+    'validate_date_range',
+    'validate_required_params'
+]

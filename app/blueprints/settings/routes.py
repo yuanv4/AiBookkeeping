@@ -3,6 +3,7 @@ from flask import request, redirect, url_for, flash, render_template, jsonify
 from app.models.base import db
 from app.utils.decorators import handle_errors
 from app.utils import get_import_service
+from app.utils.route_helpers import get_service_instances, log_route_access, format_route_response
 from . import settings_bp
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,9 @@ def settings_index():
 @settings_bp.route('/delete_database', methods=['POST'])
 @handle_errors
 def delete_database():
-    """删除数据库中的所有数据"""
+    """删除数据库中的所有数据（重构后使用统一响应格式）"""
+    log_route_access('delete-database')
+
     # 记录操作日志
     logger.warning("开始执行数据库删除操作")
 
@@ -28,11 +31,11 @@ def delete_database():
     logger.info("数据表结构已重新创建")
 
     logger.warning("数据库删除操作完成")
-    
-    return jsonify({
-        'success': True,
-        'message': '数据库已成功清空，所有数据已删除！'
-    })
+
+    return format_route_response(
+        success=True,
+        message='数据库已成功清空，所有数据已删除！'
+    )
 
 @settings_bp.route('/upload', methods=['GET', 'POST'])
 def upload_file_route():

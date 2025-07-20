@@ -5,16 +5,18 @@
 * 包含卡片、按钮、表格、表单等通用组件的样式定义
 */
 
+/* ========== 卡片组件 ========== */
+
 .card {
     background-color: var(--surface-card);
-    border: var(--border-width-thin) solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
-    box-shadow: var(--bs-box-shadow-sm);
-    transition: var(--bs-transition);
+    border: var(--border-width-thin) solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-normal);
 }
 
 .card:hover {
-    box-shadow: var(--bs-box-shadow);
+    box-shadow: var(--shadow);
 }
 
 @keyframes cardFadeIn {
@@ -33,15 +35,17 @@ to {
 100% { left: 100%; }
 }
 
+/* ========== 按钮组件 ========== */
+
 .btn {
-    border-radius: var(--bs-border-radius);
+    border-radius: var(--border-radius);
     font-weight: var(--font-weight-medium);
-    transition: var(--bs-transition);
+    transition: var(--transition-normal);
 }
 
 .btn:hover {
     transform: translateY(-1px);
-    box-shadow: var(--bs-box-shadow);
+    box-shadow: var(--shadow);
 }
 
 .btn:active {

@@ -1,0 +1,156 @@
+/* variables.css - 统一CSS变量定义 */
+
+/*
+* AiBookkeeping - CSS变量系统
+* 统一管理颜色、间距、字体等设计令牌，减少重复定义
+*/
+
+:root {
+    /* ========== 颜色系统 ========== */
+    
+    /* 主色调 */
+    --primary-color: #0d6efd;
+    --primary-hover: #0b5ed7;
+    --primary-active: #0a58ca;
+    
+    /* 语义颜色 */
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #0dcaf0;
+    
+    /* 中性色 */
+    --gray-50: #f8f9fa;
+    --gray-100: #e9ecef;
+    --gray-200: #dee2e6;
+    --gray-300: #ced4da;
+    --gray-400: #adb5bd;
+    --gray-500: #6c757d;
+    --gray-600: #495057;
+    --gray-700: #343a40;
+    --gray-800: #212529;
+    --gray-900: #000000;
+    
+    /* 表面颜色 */
+    --surface-card: #ffffff;
+    --surface-overlay: rgba(0, 0, 0, 0.5);
+    --surface-hover: var(--gray-50);
+    
+    /* 边框颜色 */
+    --border-color: var(--gray-200);
+    --border-color-hover: var(--gray-300);
+    
+    /* ========== 间距系统 ========== */
+    
+    --spacing-1: 0.25rem;   /* 4px */
+    --spacing-2: 0.5rem;    /* 8px */
+    --spacing-3: 0.75rem;   /* 12px */
+    --spacing-4: 1rem;      /* 16px */
+    --spacing-5: 1.25rem;   /* 20px */
+    --spacing-6: 1.5rem;    /* 24px */
+    --spacing-8: 2rem;      /* 32px */
+    --spacing-10: 2.5rem;   /* 40px */
+    --spacing-12: 3rem;     /* 48px */
+    
+    /* ========== 字体系统 ========== */
+    
+    /* 字体大小 */
+    --font-size-xs: 0.75rem;    /* 12px */
+    --font-size-sm: 0.875rem;   /* 14px */
+    --font-size-base: 1rem;     /* 16px */
+    --font-size-lg: 1.125rem;   /* 18px */
+    --font-size-xl: 1.25rem;    /* 20px */
+    --font-size-2xl: 1.5rem;    /* 24px */
+    --font-size-3xl: 1.875rem;  /* 30px */
+    
+    /* 字体权重 */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    /* 行高 */
+    --line-height-tight: 1.25;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.75;
+    
+    /* ========== 布局系统 ========== */
+    
+    /* 侧边栏 */
+    --sidebar-width: 280px;
+    --sidebar-width-collapsed: 60px;
+    
+    /* 容器 */
+    --container-max-width: 1200px;
+    --content-max-width: 800px;
+    
+    /* ========== 边框和圆角 ========== */
+    
+    --border-width-thin: 1px;
+    --border-width-thick: 2px;
+    
+    --border-radius-sm: 0.25rem;   /* 4px */
+    --border-radius: 0.375rem;     /* 6px */
+    --border-radius-lg: 0.5rem;    /* 8px */
+    --border-radius-xl: 0.75rem;   /* 12px */
+    --border-radius-full: 9999px;
+    
+    /* ========== 阴影系统 ========== */
+    
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    
+    /* ========== 过渡动画 ========== */
+    
+    --transition-fast: 150ms ease-in-out;
+    --transition-normal: 300ms ease-in-out;
+    --transition-slow: 500ms ease-in-out;
+    
+    /* ========== Z-index层级 ========== */
+    
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+    
+    /* ========== 图表颜色 ========== */
+    
+    --chart-color-1: #0d6efd;
+    --chart-color-2: #6f42c1;
+    --chart-color-3: #d63384;
+    --chart-color-4: #dc3545;
+    --chart-color-5: #fd7e14;
+    --chart-color-6: #ffc107;
+    --chart-color-7: #198754;
+    --chart-color-8: #20c997;
+    --chart-color-9: #0dcaf0;
+    --chart-color-10: #6c757d;
+}
+
+/* ========== 深色模式支持 ========== */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --surface-card: #1a1a1a;
+        --surface-hover: #2a2a2a;
+        --border-color: #404040;
+        --border-color-hover: #505050;
+        
+        /* 反转灰度色阶 */
+        --gray-50: #212529;
+        --gray-100: #343a40;
+        --gray-200: #495057;
+        --gray-300: #6c757d;
+        --gray-400: #adb5bd;
+        --gray-500: #ced4da;
+        --gray-600: #dee2e6;
+        --gray-700: #e9ecef;
+        --gray-800: #f8f9fa;
+        --gray-900: #ffffff;
+    }
+}
