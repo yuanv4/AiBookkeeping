@@ -98,12 +98,14 @@ def get_service_instances():
         包含服务实例的字典
     """
     from app.utils import (
+        get_bank_service, get_account_service, get_transaction_service,
         get_import_service, get_report_service, get_category_service
     )
-    from app.services import DataService
 
     return {
-        'data_service': DataService(),
+        'bank_service': get_bank_service(),
+        'account_service': get_account_service(),
+        'transaction_service': get_transaction_service(),
         'import_service': get_import_service(),
         'report_service': get_report_service(),
         'category_service': get_category_service()

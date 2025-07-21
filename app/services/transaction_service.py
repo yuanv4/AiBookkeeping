@@ -175,8 +175,9 @@ class TransactionService:
         """检查交易是否重复"""
         try:
             # 标准化金额
-            normalized_amount = Transaction._normalize_decimal(amount)
-            normalized_balance = Transaction._normalize_decimal(balance_after) if balance_after is not None else None
+            from app.utils import DataUtils
+            normalized_amount = DataUtils.normalize_decimal(amount)
+            normalized_balance = DataUtils.normalize_decimal(balance_after) if balance_after is not None else None
 
             # 使用 exists() 查询替代 first()，提高性能
             query_conditions = [
@@ -205,11 +206,12 @@ class TransactionService:
             for data in transactions_data:
                 account_id = data.get('account_id')
                 date_val = data.get('date')
-                amount = Transaction._normalize_decimal(data.get('amount'))
+                from app.utils import DataUtils
+                amount = DataUtils.normalize_decimal(data.get('amount'))
                 balance_after = data.get('balance_after')
-                
+
                 if balance_after is not None:
-                    balance_after = Transaction._normalize_decimal(balance_after)
+                    balance_after = DataUtils.normalize_decimal(balance_after)
 
                 condition = and_(
                     Transaction.account_id == account_id,
@@ -231,11 +233,12 @@ class TransactionService:
             # 检查每个交易是否重复
             results = []
             for data in transactions_data:
+                from app.utils import DataUtils
                 key = (
                     data.get('account_id'),
                     data.get('date'),
-                    Transaction._normalize_decimal(data.get('amount')),
-                    Transaction._normalize_decimal(data.get('balance_after')) if data.get('balance_after') is not None else None
+                    DataUtils.normalize_decimal(data.get('amount')),
+                    DataUtils.normalize_decimal(data.get('balance_after')) if data.get('balance_after') is not None else None
                 )
                 results.append(key in existing_set)
 

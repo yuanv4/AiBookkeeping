@@ -20,7 +20,9 @@ from app.models import Transaction, Account, db
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from .data_service import DataService
+from .bank_service import BankService
+from .account_service import AccountService
+from .transaction_service import TransactionService
 from .category_service import CategoryService
 from app.utils import DataUtils
 from app.utils.decorators import cached_query
@@ -33,18 +35,22 @@ class ReportService:
     提供简化的财务分析和报告功能，专注于个人用户的核心需求。
     """
     
-    def __init__(self, data_service: DataService = None, db_session: Optional[Session] = None, category_service: CategoryService = None):
+    def __init__(self, bank_service: BankService, account_service: AccountService, transaction_service: TransactionService, category_service: CategoryService, db_session: Optional[Session] = None):
         """初始化报告服务
 
         Args:
-            data_service: 数据服务实例
-            db_session: 数据库会话，如果为None则使用默认会话
+            bank_service: 银行服务实例
+            account_service: 账户服务实例
+            transaction_service: 交易服务实例
             category_service: 分类服务实例
+            db_session: 数据库会话，如果为None则使用默认会话
         """
-        self.data_service = data_service or DataService()
+        self.bank_service = bank_service
+        self.account_service = account_service
+        self.transaction_service = transaction_service
+        self.category_service = category_service
         self.db = db_session or db.session
         self.logger = logging.getLogger(__name__)
-        self.category_service = category_service or CategoryService(db_session=db_session)
 
     # ==================== 基础财务指标 ====================
     
@@ -90,7 +96,7 @@ class ReportService:
         """获取指定期间的收支汇总"""
         try:
             # 获取期间内的所有交易
-            transactions = self.data_service.get_transactions(
+            transactions = self.transaction_service.get_transactions(
                 start_date=start_date,
                 end_date=end_date
             )
@@ -141,7 +147,7 @@ class ReportService:
             start_date, end_date = DataUtils.get_date_range(months)
 
             # 获取指定时间范围内的所有交易数据
-            transactions = self.data_service.get_transactions(
+            transactions = self.transaction_service.get_transactions(
                 start_date=start_date,
                 end_date=end_date
             )
@@ -391,7 +397,7 @@ class ReportService:
     def get_account_summary(self) -> List[Dict[str, Any]]:
         """获取账户汇总信息"""
         try:
-            accounts = self.data_service.get_all_accounts()
+            accounts = self.account_service.get_all_accounts()
             balances = self.get_latest_balance_by_account()
             
             summary = []

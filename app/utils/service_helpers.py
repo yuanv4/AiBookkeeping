@@ -1,16 +1,12 @@
 """服务辅助函数
 
-提供专门的服务类实例获取函数。
-使用简单的工厂模式和缓存机制，优化服务实例管理。
+提供简化的服务类实例获取函数。
+移除复杂的缓存机制，使用简单的单例模式。
 """
 
-from typing import Optional, Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
-
-# 全局服务实例缓存
-_service_cache: Dict[str, Any] = {}
 
 def get_bank_service():
     """获取银行服务实例
@@ -18,11 +14,8 @@ def get_bank_service():
     Returns:
         BankService: 银行服务实例
     """
-    if 'bank' not in _service_cache:
-        from ..services import BankService
-        _service_cache['bank'] = BankService()
-        logger.info("创建BankService实例")
-    return _service_cache['bank']
+    from ..services import BankService
+    return BankService()
 
 def get_account_service():
     """获取账户服务实例
@@ -30,12 +23,9 @@ def get_account_service():
     Returns:
         AccountService: 账户服务实例
     """
-    if 'account' not in _service_cache:
-        from ..services import AccountService, BankService
-        bank_service = get_bank_service()
-        _service_cache['account'] = AccountService(bank_service)
-        logger.info("创建AccountService实例")
-    return _service_cache['account']
+    from ..services import AccountService
+    bank_service = get_bank_service()
+    return AccountService(bank_service)
 
 def get_transaction_service():
     """获取交易服务实例
@@ -43,12 +33,9 @@ def get_transaction_service():
     Returns:
         TransactionService: 交易服务实例
     """
-    if 'transaction' not in _service_cache:
-        from ..services import TransactionService
-        account_service = get_account_service()
-        _service_cache['transaction'] = TransactionService(account_service)
-        logger.info("创建TransactionService实例")
-    return _service_cache['transaction']
+    from ..services import TransactionService
+    account_service = get_account_service()
+    return TransactionService(account_service)
 
 
 
@@ -58,12 +45,12 @@ def get_import_service():
     Returns:
         ImportService: 导入服务实例
     """
-    if 'import' not in _service_cache:
-        from ..services import ImportService, DataService
-        data_service = DataService()
-        _service_cache['import'] = ImportService(data_service)
-        logger.info("创建ImportService实例")
-    return _service_cache['import']
+    from ..services import ImportService
+    # ImportService现在需要直接使用专门的服务，而不是DataService
+    bank_service = get_bank_service()
+    account_service = get_account_service()
+    transaction_service = get_transaction_service()
+    return ImportService(bank_service, account_service, transaction_service)
 
 def get_report_service():
     """获取报告服务实例
@@ -71,13 +58,13 @@ def get_report_service():
     Returns:
         ReportService: 报告服务实例
     """
-    if 'report' not in _service_cache:
-        from ..services import ReportService, DataService
-        data_service = DataService()
-        category_service = get_category_service()
-        _service_cache['report'] = ReportService(data_service, category_service=category_service)
-        logger.info("创建ReportService实例")
-    return _service_cache['report']
+    from ..services import ReportService
+    # ReportService现在需要直接使用专门的服务，而不是DataService
+    bank_service = get_bank_service()
+    account_service = get_account_service()
+    transaction_service = get_transaction_service()
+    category_service = get_category_service()
+    return ReportService(bank_service, account_service, transaction_service, category_service)
 
 def get_category_service():
     """获取分类服务实例
@@ -85,11 +72,8 @@ def get_category_service():
     Returns:
         CategoryService: 分类服务实例
     """
-    if 'category' not in _service_cache:
-        from ..services.category_service import CategoryService
-        _service_cache['category'] = CategoryService()
-        logger.info("创建CategoryService实例")
-    return _service_cache['category']
+    from ..services.category_service import CategoryService
+    return CategoryService()
 
 def check_services_health() -> dict:
     """检查所有服务的健康状态"""
@@ -103,7 +87,6 @@ def check_services_health() -> dict:
         services_status['import'] = get_import_service() is not None
         services_status['report'] = get_report_service() is not None
         services_status['category'] = get_category_service() is not None
-        services_status['cached_services'] = len(_service_cache)
 
         logger.info(f"服务健康检查完成: {services_status}")
 

@@ -7,8 +7,6 @@ from .base import db, BaseModel
 from sqlalchemy.orm import validates
 from decimal import Decimal
 from datetime import datetime, date
-import re
-import decimal
 import logging
 from typing import Any
 
@@ -34,59 +32,24 @@ class Transaction(BaseModel):
         db.Index('idx_date_amount', 'date', 'amount'),
     )
     
-    @staticmethod
-    def _normalize_decimal(value: Any) -> Decimal:
-        """通用金额标准化和转换方法
-        
-        Args:
-            value: 任意类型的金额值（字符串、数字、Decimal等）
-            
-        Returns:
-            Decimal: 标准化后的Decimal金额
-            
-        Raises:
-            ValueError: 当金额格式无效时
-        """
-        if value is None:
-            return None
-            
-        try:
-            # 如果是字符串类型，进行标准化处理
-            if isinstance(value, str):
-                # 移除所有非数字字符（保留小数点和负号）
-                value = re.sub(r'[^\d.-]', '', value.strip())
-            
-            # 转换为Decimal
-            if isinstance(value, (int, float)):
-                decimal_value = Decimal(str(value))
-            elif not isinstance(value, Decimal):
-                decimal_value = Decimal(str(value))
-            else:
-                decimal_value = value
-                
-            # 验证精度
-            if decimal_value.as_tuple().exponent < -2:
-                raise ValueError('金额最多支持2位小数')
-                
-            return decimal_value
-            
-        except (ValueError, TypeError, decimal.InvalidOperation) as e:
-            raise ValueError(f'无效的金额格式: {value} - {str(e)}')
+
     
     @validates('amount')
     def validate_amount(self, key, amount):
         """验证交易金额"""
         if amount is None:
             raise ValueError('交易金额不能为空')
-        return self._normalize_decimal(amount)
-    
+        from app.utils import DataUtils
+        return DataUtils.normalize_decimal(amount)
+
     @validates('balance_after')
     def validate_balance_after(self, key, balance):
         """验证交易后余额"""
         # balance_after 可以为空
         if balance is None:
             return None
-        return self._normalize_decimal(balance)
+        from app.utils import DataUtils
+        return DataUtils.normalize_decimal(balance)
     
     @validates('date')
     def validate_date(self, key, transaction_date):

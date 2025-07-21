@@ -1,27 +1,30 @@
 """Services package for the Flask application.
 
-优化后的服务层架构，提供简化的、易于维护的服务接口。
+简化的服务层架构，专注于简单、实用、易维护的原则。
 
-新架构特点:
-- DataService: 统一的数据管理服务，替代原来的 AccountService、BankService、TransactionService
-- ImportService: 完整的文件导入服务，集成了提取、解析、商家识别功能
-- ReportService: 基础财务报告服务，专注于个人用户的核心分析需求
-- CategoryService: 统一的商户分类服务，提供配置管理、分类算法和业务分析功能
-- 统一的数据模型: 简化的DTO定义，提供类型安全和数据验证
+架构特点:
+- BankService: 银行数据管理服务
+- AccountService: 账户数据管理服务
+- TransactionService: 交易数据管理服务
+- ImportService: 文件导入服务，集成了提取、解析、商家识别功能
+- ReportService: 财务报告服务，专注于个人用户的核心分析需求
+- CategoryService: 商户分类服务，提供分类算法和业务分析功能
 
 使用示例:
-    from app.services import DataService, ImportService, ReportService, CategoryService
+    from app.services import BankService, AccountService, TransactionService
+    from app.services import ImportService, ReportService, CategoryService
 
-    # 统一数据管理
-    data_service = DataService()
-    banks = data_service.get_all_banks()
+    # 专门的数据管理
+    bank_service = BankService()
+    account_service = AccountService(bank_service)
+    transaction_service = TransactionService(account_service)
 
     # 文件导入
-    import_service = ImportService(data_service)
+    import_service = ImportService(bank_service, account_service, transaction_service)
     result = import_service.process_uploaded_files(files)
 
     # 财务报告
-    report_service = ReportService(data_service)
+    report_service = ReportService(bank_service, account_service, transaction_service, category_service)
     dashboard = report_service.get_dashboard_data()
 
     # 商户分类
@@ -29,45 +32,35 @@
     category = category_service.classify_merchant('麦当劳')
 """
 
-# 新的统一服务
-from .data_service import DataService
+# 核心服务类
+from .bank_service import BankService
+from .account_service import AccountService
+from .transaction_service import TransactionService
 from .import_service import ImportService
 from .report_service import ReportService
 from .category_service import CategoryService
 
-# 专门的服务类
-from .bank_service import BankService
-from .account_service import AccountService
-from .transaction_service import TransactionService
-
-# 数据模型 - 保留复杂DTO类，简单数据结构已改为字典
+# 数据模型
 from .models import (
-    ExtractedData, ImportResult, DashboardData,  # 保留的复杂DTO类
-    create_period, create_composition_item, create_trend_point,  # 字典构造函数
-    create_period_summary, create_account_summary, create_expense_item,
-    DataConverters  # 工具类
+    ExtractedData, ImportResult, DashboardData,  # 核心DTO类
+    ImportConstants, DataConverters  # 工具类和常量
 )
 
 # 提取器（保留用于 ImportService）
 from .extractors import ALL_EXTRACTORS
 
 __all__ = [
-    # 新的统一服务
-    'DataService',
-    'ImportService',
-    'ReportService',
-    'CategoryService',
-    # 专门的服务类
+    # 核心服务类
     'BankService',
     'AccountService',
     'TransactionService',
-    # 保留的复杂DTO类
+    'ImportService',
+    'ReportService',
+    'CategoryService',
+    # 核心DTO类
     'ExtractedData', 'ImportResult', 'DashboardData',
-    # 字典构造函数
-    'create_period', 'create_composition_item', 'create_trend_point',
-    'create_period_summary', 'create_account_summary', 'create_expense_item',
-    # 工具类
-    'DataConverters',
+    # 工具类和常量
+    'ImportConstants', 'DataConverters',
     # 提取器
     'ALL_EXTRACTORS',
 ]

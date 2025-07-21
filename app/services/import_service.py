@@ -22,7 +22,9 @@ import logging
 import pandas as pd
 from typing import List, Any, Optional, Dict, Set, Union
 
-from .data_service import DataService
+from .bank_service import BankService
+from .account_service import AccountService
+from .transaction_service import TransactionService
 from .models import ExtractedData, ImportConstants
 
 logger = logging.getLogger(__name__)
@@ -39,15 +41,19 @@ class ImportService:
     - 提供可测试和可维护的分类功能
     """
     
-    def __init__(self, data_service: Optional[DataService] = None, upload_folder: Optional[Union[str, Path]] = None, allowed_extensions: Optional[Set[str]] = None) -> None:
+    def __init__(self, bank_service: BankService, account_service: AccountService, transaction_service: TransactionService, upload_folder: Optional[Union[str, Path]] = None, allowed_extensions: Optional[Set[str]] = None) -> None:
         """初始化导入服务
 
         Args:
-            data_service: 数据服务实例
+            bank_service: 银行服务实例
+            account_service: 账户服务实例
+            transaction_service: 交易服务实例
             upload_folder: 上传文件夹路径
             allowed_extensions: 允许的文件扩展名集合
         """
-        self.data_service = data_service or DataService()
+        self.bank_service = bank_service
+        self.account_service = account_service
+        self.transaction_service = transaction_service
 
         # 添加分类服务依赖
         from .category_service import CategoryService
@@ -223,13 +229,13 @@ class ImportService:
             extracted_data = self.extract_from_file(file_path)
             
             # 确保银行存在
-            bank = self.data_service.get_or_create_bank(
+            bank = self.bank_service.get_or_create_bank(
                 name=extracted_data.bank_name,
                 code=extracted_data.bank_code
             )
-            
+
             # 确保账户存在
-            account = self.data_service.get_or_create_account(
+            account = self.account_service.get_or_create_account(
                 bank_id=bank.id,
                 account_number=extracted_data.account_number,
                 account_name=extracted_data.account_name
@@ -265,7 +271,7 @@ class ImportService:
 
             # 批量检查重复交易，提高性能
             if transactions_data:
-                duplicate_flags = self.data_service.batch_check_duplicates(transactions_data)
+                duplicate_flags = self.transaction_service.batch_check_duplicates(transactions_data)
 
                 # 批量创建非重复交易
                 for transaction_data, is_duplicate in zip(transactions_data, duplicate_flags):
@@ -275,7 +281,7 @@ class ImportService:
                             classified_data = self._apply_auto_classification(transaction_data)
 
                             self.logger.debug(f"新建交易：{classified_data}")
-                            transaction = self.data_service.create_transaction(**classified_data)
+                            transaction = self.transaction_service.create_transaction(**classified_data)
                             if transaction:
                                 processed_count += 1
                         except Exception as e:
@@ -360,6 +366,6 @@ class ImportService:
             Transaction: 创建的交易实例
         """
         classified_data = self._apply_auto_classification(transaction_data)
-        return self.data_service.create_transaction(**classified_data)
+        return self.transaction_service.create_transaction(**classified_data)
 
 

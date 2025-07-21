@@ -1,5 +1,5 @@
 import logging
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, current_app
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
@@ -171,9 +171,9 @@ def get_expense_analysis_data():
 def get_category_transactions():
     """获取指定分类的交易明细（下钻功能）"""
     try:
-        # 获取数据服务
-        from app.services import DataService
-        data_service = DataService()
+        # 获取交易服务
+        from app.utils import get_transaction_service
+        transaction_service = get_transaction_service()
 
         # 获取查询参数
         category = request.args.get('category')
@@ -190,8 +190,8 @@ def get_category_transactions():
         if error:
             return DataUtils.format_api_response(success=False, error=error)
 
-        # 获取交易明细（服务已通过装饰器注入）
-        all_transactions = data_service.get_transactions(
+        # 获取交易明细
+        all_transactions = transaction_service.get_transactions(
             start_date=start_date,
             end_date=end_date
         )
