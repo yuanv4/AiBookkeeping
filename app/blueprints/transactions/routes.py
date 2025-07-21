@@ -1,8 +1,8 @@
 # 使用重构后的服务层和路由助手
 from flask import request, render_template, current_app
 from app.utils.decorators import handle_errors
-from app.utils import DataUtils
-from app.utils.route_helpers import get_common_filters, get_service_instances, log_route_access, build_filter_summary
+from app.utils import DataUtils, get_transaction_service, get_account_service
+from app.utils.route_helpers import get_common_filters, log_route_access, build_filter_summary
 
 from . import transactions_bp
 
@@ -21,19 +21,19 @@ def transactions_list_route(): # 重命名函数
     current_app.logger.info(f"交易查询过滤条件: {filter_summary}")
 
     # 获取服务实例
-    services = get_service_instances()
-    data_service = services['data_service']
+    transaction_service = get_transaction_service()
+    account_service = get_account_service()
 
     # 使用优化的查询方法，预加载关联数据避免N+1问题
-    all_transactions = data_service.transaction_service.get_transactions_with_relations(filters=filters)
+    all_transactions = transaction_service.get_transactions_with_relations(filters=filters)
 
     # 使用DataUtils统一转换交易数据
     transactions_data = DataUtils.transactions_to_dict(all_transactions)
     total_transactions = len(all_transactions)
 
     # 获取账户和货币信息
-    accounts = data_service.get_all_accounts()
-    currencies_for_filter = data_service.get_all_currencies()
+    accounts = account_service.get_all()
+    currencies_for_filter = transaction_service.get_all_currencies() if hasattr(transaction_service, 'get_all_currencies') else ['CNY']
 
     # 构建当前过滤条件（用于模板显示）
     current_filters = {

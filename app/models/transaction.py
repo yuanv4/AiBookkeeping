@@ -57,19 +57,13 @@ class Transaction(BaseModel):
         if transaction_date is None:
             raise ValueError('Transaction date cannot be None')
         
+        # 处理字符串类型的日期
         if isinstance(transaction_date, str):
-            try:
-                # 尝试解析多种日期格式
-                for fmt in ['%Y-%m-%d', '%Y/%m/%d', '%d/%m/%Y', '%d-%m-%Y']:
-                    try:
-                        transaction_date = datetime.strptime(transaction_date, fmt).date()
-                        break
-                    except ValueError:
-                        continue
-                else:
-                    raise ValueError('Invalid date format')
-            except ValueError:
+            from app.utils import DataUtils
+            parsed_date = DataUtils.parse_date_safe(transaction_date)
+            if not parsed_date:
                 raise ValueError('Invalid date format')
+            transaction_date = parsed_date
         elif isinstance(transaction_date, datetime):
             transaction_date = transaction_date.date()
         elif not isinstance(transaction_date, date):
@@ -131,29 +125,7 @@ class Transaction(BaseModel):
                 raise ValueError('Currency code must be 3 characters')
         return currency or 'CNY'
     
-    @validates('description')
-    def validate_description(self, key, description):
-        """Validate transaction description."""
-        if description:
-            # 确保description是字符串类型再调用strip()
-            if not isinstance(description, str):
-                description = str(description)
-            description = description.strip()
-            if len(description) > 200:
-                raise ValueError('Description cannot exceed 200 characters')
-        return description
-    
-    @validates('counterparty')
-    def validate_counterparty(self, key, counterparty):
-        """Validate counterparty."""
-        if counterparty:
-            # 确保counterparty是字符串类型再调用strip()
-            if not isinstance(counterparty, str):
-                counterparty = str(counterparty)
-            counterparty = counterparty.strip()
-            if len(counterparty) > 100:
-                raise ValueError('Counterparty cannot exceed 100 characters')
-        return counterparty
+
     
     @validates('reference_number')
     def validate_reference_number(self, key, reference_number):

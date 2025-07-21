@@ -66,50 +66,10 @@ def get_common_filters() -> Dict[str, Any]:
     return filters
 
 
-def get_pagination_params() -> Dict[str, int]:
-    """获取分页参数
-    
-    Returns:
-        包含分页信息的字典
-    """
-    try:
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 20))
-        
-        # 限制分页参数范围
-        page = max(1, page)
-        per_page = max(1, min(100, per_page))  # 限制每页最多100条
-        
-        return {
-            'page': page,
-            'per_page': per_page
-        }
-    except (ValueError, TypeError):
-        return {
-            'page': 1,
-            'per_page': 20
-        }
 
 
-def get_service_instances():
-    """获取常用的服务实例
 
-    Returns:
-        包含服务实例的字典
-    """
-    from app.utils import (
-        get_bank_service, get_account_service, get_transaction_service,
-        get_import_service, get_report_service, get_category_service
-    )
 
-    return {
-        'bank_service': get_bank_service(),
-        'account_service': get_account_service(),
-        'transaction_service': get_transaction_service(),
-        'import_service': get_import_service(),
-        'report_service': get_report_service(),
-        'category_service': get_category_service()
-    }
 
 
 def log_route_access(route_name: str, params: Dict[str, Any] = None):
@@ -179,17 +139,4 @@ def validate_month_param(month_str: str) -> Optional[str]:
     return None
 
 
-def format_route_response(success: bool, data: Any = None, message: str = "", error: str = ""):
-    """统一的路由响应格式化
-    
-    Args:
-        success: 操作是否成功
-        data: 返回数据
-        message: 成功消息
-        error: 错误消息
-        
-    Returns:
-        格式化的响应
-    """
-    from app.utils import DataUtils
-    return DataUtils.format_api_response(success, data, message, error)
+

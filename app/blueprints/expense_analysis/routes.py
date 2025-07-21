@@ -10,7 +10,7 @@ from flask import render_template, jsonify, current_app, request
 from . import expense_analysis_bp
 from app.utils.decorators import handle_errors
 from app.utils import get_report_service, DataUtils
-from app.utils.route_helpers import get_service_instances, format_route_response, log_route_access, validate_month_param
+from app.utils.route_helpers import log_route_access, validate_month_param
 
 logger = logging.getLogger(__name__)
 

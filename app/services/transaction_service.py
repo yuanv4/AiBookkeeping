@@ -9,18 +9,19 @@ from decimal import Decimal
 from datetime import date
 import logging
 
-from app.models import Transaction, Account, Bank, db
+from app.models import Transaction, Account, Bank
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import joinedload, selectinload
 from app.utils.decorators import cached_query
 
+from .base_service import BaseService
 from .account_service import AccountService
 
 logger = logging.getLogger(__name__)
 
 
-class TransactionService:
+class TransactionService(BaseService):
     """交易管理服务
     
     提供交易的创建、查询、更新、删除等功能。
@@ -29,14 +30,13 @@ class TransactionService:
     
     def __init__(self, account_service: AccountService = None, db_session=None):
         """初始化交易服务
-        
+
         Args:
             account_service: 账户服务实例
             db_session: 数据库会话，如果为None则使用默认会话
         """
-        self.db = db_session or db.session
+        super().__init__(db_session)
         self.account_service = account_service or AccountService(db_session=db_session)
-        self.logger = logging.getLogger(__name__)
     
     def create_transaction(self, **kwargs) -> Transaction:
         """创建交易记录
@@ -59,13 +59,18 @@ class TransactionService:
             self.logger.error(f"创建交易记录失败: {e}")
             raise
 
-    def get_transaction_by_id(self, transaction_id: int) -> Optional[Transaction]:
-        """根据ID获取交易"""
+    def get_by_id(self, id: int) -> Optional[Transaction]:
+        """根据ID获取交易（实现BaseService抽象方法）"""
         try:
-            return Transaction.get_by_id(transaction_id)
+            if not self._validate_id(id):
+                return None
+            return Transaction.get_by_id(id)
         except Exception as e:
-            self.logger.error(f"Error getting transaction by id {transaction_id}: {e}")
-            raise
+            self._handle_service_error(f"获取交易 ID={id}", e)
+
+    def get_transaction_by_id(self, transaction_id: int) -> Optional[Transaction]:
+        """根据ID获取交易（保持向后兼容）"""
+        return self.get_by_id(transaction_id)
 
     def get_transactions_with_relations(self, filters: dict = None, page: int = None, per_page: int = None) -> List[Transaction]:
         """获取交易记录，预加载关联数据避免N+1问题"""
@@ -359,3 +364,10 @@ class TransactionService:
         except Exception as e:
             self.logger.error(f"Error getting transactions summary: {e}")
             return {'total_count': 0, 'income_sum': 0, 'expense_sum': 0, 'net_amount': 0}
+
+    def get_all(self) -> List[Transaction]:
+        """获取所有交易（实现BaseService抽象方法）"""
+        try:
+            return Transaction.query.order_by(Transaction.date.desc(), Transaction.id.desc()).all()
+        except Exception as e:
+            self._handle_service_error("获取所有交易", e)

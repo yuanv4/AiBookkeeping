@@ -2,8 +2,8 @@ import logging
 from flask import request, redirect, url_for, flash, render_template, jsonify
 from app.models.base import db
 from app.utils.decorators import handle_errors
-from app.utils import get_import_service
-from app.utils.route_helpers import get_service_instances, log_route_access, format_route_response
+from app.utils import get_import_service, DataUtils
+from app.utils.route_helpers import log_route_access
 from . import settings_bp
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ def delete_database():
 
     logger.warning("数据库删除操作完成")
 
-    return format_route_response(
+    return DataUtils.format_api_response(
         success=True,
         message='数据库已成功清空，所有数据已删除！'
     )

@@ -7,14 +7,15 @@
 from typing import List, Optional
 import logging
 
-from app.models import Account, Bank, db
+from app.models import Account, Bank
 from app.utils.decorators import cached_query
+from .base_service import BaseService
 from .bank_service import BankService
 
 logger = logging.getLogger(__name__)
 
 
-class AccountService:
+class AccountService(BaseService):
     """账户管理服务
     
     提供账户的创建、查询、更新、删除等功能。
@@ -23,14 +24,13 @@ class AccountService:
     
     def __init__(self, bank_service: BankService = None, db_session=None):
         """初始化账户服务
-        
+
         Args:
             bank_service: 银行服务实例
             db_session: 数据库会话，如果为None则使用默认会话
         """
-        self.db = db_session or db.session
+        super().__init__(db_session)
         self.bank_service = bank_service or BankService(db_session)
-        self.logger = logging.getLogger(__name__)
     
     def get_or_create_account(self, bank_id: int, account_number: str, account_name: str = None) -> Account:
         """获取或创建账户
@@ -156,3 +156,19 @@ class AccountService:
         except Exception as e:
             self.logger.error(f"Error getting accounts by bank code '{bank_code}': {e}")
             raise
+
+    def get_by_id(self, id: int) -> Optional[Account]:
+        """根据ID获取账户（实现BaseService抽象方法）"""
+        try:
+            if not self._validate_id(id):
+                return None
+            return Account.get_by_id(id)
+        except Exception as e:
+            self._handle_service_error(f"获取账户 ID={id}", e)
+
+    def get_all(self) -> List[Account]:
+        """获取所有账户（实现BaseService抽象方法）"""
+        try:
+            return Account.query.order_by(Account.account_name).all()
+        except Exception as e:
+            self._handle_service_error("获取所有账户", e)

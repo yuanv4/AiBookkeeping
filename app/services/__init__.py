@@ -33,6 +33,7 @@
 """
 
 # 核心服务类
+from .base_service import BaseService
 from .bank_service import BankService
 from .account_service import AccountService
 from .transaction_service import TransactionService
@@ -51,6 +52,7 @@ from .extractors import ALL_EXTRACTORS
 
 __all__ = [
     # 核心服务类
+    'BaseService',
     'BankService',
     'AccountService',
     'TransactionService',

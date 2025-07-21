@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 from . import main_bp
 from app.utils import DataUtils, get_report_service
 from app.utils.decorators import handle_errors, validate_date_range
-from app.utils.route_helpers import get_service_instances, format_route_response, log_route_access
+from app.utils.route_helpers import log_route_access
 
 logger = logging.getLogger(__name__)
 def _handle_enhanced_expense_analysis(target_month_str):
@@ -125,9 +125,8 @@ def get_cash_flow_data():
     start_date = request.validated_args['start_date']
     end_date = request.validated_args['end_date']
 
-    # 获取服务实例
-    services = get_service_instances()
-    report_service = services['report_service']
+    # 获取报告服务实例
+    report_service = get_report_service()
 
     # 获取期间汇总和月度趋势
     period_summary = report_service.get_period_summary(start_date, end_date)
@@ -140,7 +139,7 @@ def get_cash_flow_data():
         'cash_flow': monthly_trend  # 月度趋势可以作为现金流数据
     }
 
-    return format_route_response(success=True, data=data)
+    return DataUtils.format_api_response(success=True, data=data)
 
 @main_bp.route('/api/dashboard/expense-analysis')
 def get_expense_analysis_data():

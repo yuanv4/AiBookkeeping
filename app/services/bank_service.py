@@ -7,13 +7,14 @@
 from typing import List, Optional
 import logging
 
-from app.models import Bank, db
+from app.models import Bank
 from app.utils.decorators import cached_query
+from .base_service import BaseService
 
 logger = logging.getLogger(__name__)
 
 
-class BankService:
+class BankService(BaseService):
     """银行管理服务
     
     提供银行的创建、查询、更新、删除等功能。
@@ -21,12 +22,11 @@ class BankService:
     
     def __init__(self, db_session=None):
         """初始化银行服务
-        
+
         Args:
             db_session: 数据库会话，如果为None则使用默认会话
         """
-        self.db = db_session or db.session
-        self.logger = logging.getLogger(__name__)
+        super().__init__(db_session)
     
     def get_or_create_bank(self, name: str, code: str = None) -> Bank:
         """获取或创建银行
@@ -70,13 +70,16 @@ class BankService:
             raise
 
     @cached_query()
-    def get_all_banks(self) -> List[Bank]:
-        """获取所有银行"""
+    def get_all(self) -> List[Bank]:
+        """获取所有银行（实现BaseService抽象方法）"""
         try:
             return Bank.query.order_by(Bank.name).all()
         except Exception as e:
-            self.logger.error(f"Error getting all banks: {e}")
-            raise
+            self._handle_service_error("获取所有银行", e)
+
+    def get_all_banks(self) -> List[Bank]:
+        """获取所有银行（保持向后兼容）"""
+        return self.get_all()
 
     def update_bank(self, bank_id: int, **kwargs) -> bool:
         """更新银行信息"""
@@ -104,13 +107,18 @@ class BankService:
             self.logger.error(f"Error deleting bank {bank_id}: {e}")
             raise
 
-    def get_bank_by_id(self, bank_id: int) -> Optional[Bank]:
-        """根据ID获取银行"""
+    def get_by_id(self, id: int) -> Optional[Bank]:
+        """根据ID获取银行（实现BaseService抽象方法）"""
         try:
-            return Bank.get_by_id(bank_id)
+            if not self._validate_id(id):
+                return None
+            return Bank.get_by_id(id)
         except Exception as e:
-            self.logger.error(f"Error getting bank by id {bank_id}: {e}")
-            raise
+            self._handle_service_error(f"获取银行 ID={id}", e)
+
+    def get_bank_by_id(self, bank_id: int) -> Optional[Bank]:
+        """根据ID获取银行（保持向后兼容）"""
+        return self.get_by_id(bank_id)
 
     def bank_exists(self, name: str) -> bool:
         """检查银行是否存在"""
