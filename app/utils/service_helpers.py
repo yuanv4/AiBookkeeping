@@ -1,7 +1,7 @@
-"""简化的服务辅助函数
+"""服务辅助函数
 
-重构后直接提供专门的服务类，移除DataService协调层。
-使用简单的工厂模式，减少服务依赖复杂度。
+提供专门的服务类实例获取函数。
+使用简单的工厂模式和缓存机制，优化服务实例管理。
 """
 
 from typing import Optional, Dict, Any
@@ -50,46 +50,7 @@ def get_transaction_service():
         logger.info("创建TransactionService实例")
     return _service_cache['transaction']
 
-# 保持向后兼容性的数据服务获取函数
-def get_data_service():
-    """获取数据服务实例（向后兼容）
 
-    注意：这是为了向后兼容而保留的函数。
-    新代码应该直接使用专门的服务类。
-
-    Returns:
-        dict: 包含各种服务的字典对象
-    """
-    if 'data_compat' not in _service_cache:
-        # 创建一个兼容对象，包含所有服务的引用
-        class DataServiceCompat:
-            def __init__(self):
-                self.bank_service = get_bank_service()
-                self.account_service = get_account_service()
-                self.transaction_service = get_transaction_service()
-
-            # 委托方法以保持兼容性
-            def get_or_create_bank(self, name: str, code: str = None):
-                return self.bank_service.get_or_create_bank(name, code)
-
-            def get_bank_by_name(self, name: str):
-                return self.bank_service.get_bank_by_name(name)
-
-            def get_all_banks(self):
-                return self.bank_service.get_all_banks()
-
-            def get_or_create_account(self, bank_id: int, account_number: str, account_name: str = None):
-                return self.account_service.get_or_create_account(bank_id, account_number, account_name)
-
-            def get_all_accounts(self):
-                return self.account_service.get_all_accounts()
-
-            def get_all_currencies(self):
-                return self.transaction_service.get_all_currencies()
-
-        _service_cache['data_compat'] = DataServiceCompat()
-        logger.info("创建DataService兼容实例")
-    return _service_cache['data_compat']
 
 def get_import_service():
     """获取导入服务实例
@@ -98,9 +59,8 @@ def get_import_service():
         ImportService: 导入服务实例
     """
     if 'import' not in _service_cache:
-        from ..services import ImportService
-        # 使用兼容的数据服务
-        data_service = get_data_service()
+        from ..services import ImportService, DataService
+        data_service = DataService()
         _service_cache['import'] = ImportService(data_service)
         logger.info("创建ImportService实例")
     return _service_cache['import']
@@ -112,9 +72,8 @@ def get_report_service():
         ReportService: 报告服务实例
     """
     if 'report' not in _service_cache:
-        from ..services import ReportService
-        # 使用兼容的数据服务
-        data_service = get_data_service()
+        from ..services import ReportService, DataService
+        data_service = DataService()
         category_service = get_category_service()
         _service_cache['report'] = ReportService(data_service, category_service=category_service)
         logger.info("创建ReportService实例")
@@ -137,7 +96,10 @@ def check_services_health() -> dict:
     services_status = {}
 
     try:
-        services_status['data'] = get_data_service() is not None
+        # 检查专门的服务类
+        services_status['bank'] = get_bank_service() is not None
+        services_status['account'] = get_account_service() is not None
+        services_status['transaction'] = get_transaction_service() is not None
         services_status['import'] = get_import_service() is not None
         services_status['report'] = get_report_service() is not None
         services_status['category'] = get_category_service() is not None

@@ -1,7 +1,7 @@
 # 使用重构后的服务层和路由助手
 from flask import request, render_template, current_app
 from app.utils.decorators import handle_errors
-from app.utils import get_data_service, DataUtils
+from app.utils import DataUtils
 from app.utils.route_helpers import get_common_filters, get_service_instances, log_route_access, build_filter_summary
 
 from . import transactions_bp

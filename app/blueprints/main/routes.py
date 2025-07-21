@@ -2,9 +2,10 @@ import logging
 from flask import render_template, request, jsonify
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
+
 from . import main_bp
-from app.utils import DataUtils, get_report_service, get_data_service
-from app.utils.decorators import handle_errors, validate_date_range, validate_required_params
+from app.utils import DataUtils, get_report_service
+from app.utils.decorators import handle_errors, validate_date_range
 from app.utils.route_helpers import get_service_instances, format_route_response, log_route_access
 
 logger = logging.getLogger(__name__)
@@ -62,7 +63,6 @@ def _handle_expense_analysis(start_date_str, end_date_str):
         JSON响应
     """
     # 获取报告服务
-    from app.utils import get_report_service
     report_service = get_report_service()
 
     # 使用DataUtils验证日期范围
@@ -147,8 +147,8 @@ def get_expense_analysis_data():
     """获取支出分析数据的API接口
 
     支持两种调用模式：
-    1. 增强模式：传入target_month参数，返回完整的支出结构透视数据
-    2. 兼容模式：传入start_date和end_date参数，返回原有的支出分析数据
+    1. 传入target_month参数，返回完整的支出结构透视数据
+    2. 传入start_date和end_date参数，返回原有的支出分析数据
     """
     try:
         target_month_str = request.args.get('target_month')
@@ -172,8 +172,8 @@ def get_category_transactions():
     """获取指定分类的交易明细（下钻功能）"""
     try:
         # 获取数据服务
-        from app.utils import get_data_service
-        data_service = get_data_service()
+        from app.services import DataService
+        data_service = DataService()
 
         # 获取查询参数
         category = request.args.get('category')

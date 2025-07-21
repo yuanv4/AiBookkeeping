@@ -69,8 +69,4 @@ def register_template_filters(app: Flask) -> None:
             "total": pagination.total
         }
     
-    # 为了保持兼容性，可以添加一些别名
-    app.add_template_filter(currency_filter, 'rmb')
-    app.add_template_filter(percent_filter, 'pct')
-    
     app.logger.info("已注册自定义模板过滤器") 

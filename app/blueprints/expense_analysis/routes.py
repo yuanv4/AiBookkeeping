@@ -4,12 +4,13 @@
 重构说明: 使用统一的路由装饰器和助手函数
 """
 
+import logging
 from flask import render_template, jsonify, current_app, request
+
 from . import expense_analysis_bp
-from app.utils.decorators import handle_errors, validate_required_params
+from app.utils.decorators import handle_errors
 from app.utils import get_report_service, DataUtils
 from app.utils.route_helpers import get_service_instances, format_route_response, log_route_access, validate_month_param
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,6 @@ def index():
 def api_merchant_analysis():
     """获取商户分类支出分析数据API"""
     try:
-        from flask import request
         from datetime import date, datetime
 
         # 获取查询参数

@@ -1,12 +1,12 @@
 """数据服务协调层
 
-重构后的DataService作为协调层，委托具体操作给专门的服务类。
-这样既保持了向后兼容性，又实现了职责分离。
+DataService作为协调层，委托具体操作给专门的服务类。
+实现了职责分离，提供统一的数据访问接口。
 
 主要功能:
 - 作为BankService、AccountService、TransactionService的协调层
 - 提供统一的数据访问接口
-- 保持向后兼容性
+- 简化复杂的数据操作流程
 """
 
 from typing import List, Optional, Dict, Any
@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 class DataService:
     """数据服务协调层
-    
-    委托具体操作给专门的服务类，保持向后兼容性。
+
+    委托具体操作给专门的服务类，提供统一的数据访问接口。
     """
     
     def __init__(self, db_session=None):
@@ -155,23 +155,4 @@ class DataService:
         """根据分类获取交易记录"""
         return self.transaction_service.get_transactions_by_category(category)
 
-    # ==================== 兼容性方法 ====================
-    
-    def is_duplicate_transaction(self, transaction_data: Dict[str, Any]) -> bool:
-        """检查交易是否重复（兼容性方法）"""
-        account_id = transaction_data.get('account_id')
-        date_val = transaction_data.get('date')
-        amount = transaction_data.get('amount')
-        balance_after = transaction_data.get('balance_after')
-        
-        if any(x is None for x in [account_id, date_val, amount]):
-            return True
-            
-        return self.check_duplicate_transaction(account_id, date_val, amount, balance_after)
 
-    def get_account_by_bank_and_number(self, bank_id: int, account_number: str) -> Optional[Account]:
-        """根据银行ID和账户号码获取账户（兼容性方法）"""
-        account = self.get_account_by_number(account_number)
-        if account and account.bank_id == bank_id:
-            return account
-        return None

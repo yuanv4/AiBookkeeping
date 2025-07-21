@@ -165,7 +165,6 @@ def validate_dashboard_data(data: DashboardData) -> bool:
 
 # ==================== 数据转换函数 ====================
 # 注意：decimal_to_float 函数已移至 DataConverters.decimal_to_float
-# 为了向后兼容，保留一个简单的包装函数
 
 def decimal_to_float(value: Decimal) -> float:
     """安全地将Decimal转换为float
