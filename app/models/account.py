@@ -57,49 +57,9 @@ class Account(BaseModel):
             raise ValueError(f'Account type must be one of: {", ".join(valid_types)}')
         return account_type.lower() if account_type else 'checking'
     
-    def get_current_balance(self) -> Decimal:
-        """Calculate current balance based on the latest transaction's balance_after."""
-        from .transaction import Transaction
-        latest_transaction = self.transactions.order_by(Transaction.date.desc(), Transaction.created_at.desc()).first()
-        return latest_transaction.balance_after if latest_transaction else Decimal('0.00')
-
-    def get_transactions_count(self) -> int:
-        """Get the number of transactions for this account."""
-        return self.transactions.count()
-
-    def get_income_total(self, start_date: Optional[date] = None, end_date: Optional[date] = None) -> Decimal:
-        """Get total income for this account within date range."""
-        from .transaction import Transaction
-        query = self.transactions.filter(
-            Transaction.amount > 0
-        )
-        if start_date:
-            query = query.filter(Transaction.date >= start_date)
-        if end_date:
-            query = query.filter(Transaction.date <= end_date)
-        
-        total = query.with_entities(db.func.sum(Transaction.amount)).scalar()
-        return total or Decimal('0.00')
-    
-    def get_expense_total(self, start_date: Optional[date] = None, end_date: Optional[date] = None) -> Decimal:
-        """Get total expenses for this account within date range."""
-        from .transaction import Transaction
-        query = self.transactions.filter(
-            Transaction.amount < 0
-        )
-        if start_date:
-            query = query.filter(Transaction.date >= start_date)
-        if end_date:
-            query = query.filter(Transaction.date <= end_date)
-        
-        total = query.with_entities(db.func.sum(Transaction.amount)).scalar()
-        return abs(total) if total else Decimal('0.00')
-    
     def to_dict(self) -> Dict[str, Any]:
-        """Convert account instance to dictionary with additional info."""
+        """Convert account instance to dictionary."""
         result = super().to_dict()
-        result['current_balance'] = float(self.get_current_balance())
-        result['transactions_count'] = self.get_transactions_count()
         result['bank_name'] = self.bank.name if self.bank else None
         return result
     

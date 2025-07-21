@@ -5,10 +5,7 @@ This module contains the SQLAlchemy database instance and base model class.
 
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from typing import Dict, Any, Optional, List, TypeVar, Type
-
-# Type variable for BaseModel subclasses
-T = TypeVar('T', bound='BaseModel')
+from typing import Dict, Any
 
 # SQLAlchemy database instance
 db = SQLAlchemy()
@@ -51,17 +48,17 @@ class BaseModel(db.Model):
         return result
     
     @classmethod
-    def get_by_id(cls: Type[T], id: int) -> Optional[T]:
+    def get_by_id(cls, id: int):
         """Get model instance by ID."""
         return cls.query.get(id)
 
     @classmethod
-    def get_all(cls: Type[T]) -> List[T]:
+    def get_all(cls):
         """Get all model instances."""
         return cls.query.all()
 
     @classmethod
-    def create(cls: Type[T], **kwargs: Any) -> T:
+    def create(cls, **kwargs: Any):
         """Create a new model instance."""
         instance = cls(**kwargs)
         instance.save()
