@@ -80,6 +80,44 @@ class Transaction(BaseModel):
             raise ValueError('Transaction date cannot be in the future')
         
         return transaction_date
+
+    @validates('counterparty')
+    def validate_counterparty(self, key, counterparty):
+        """验证交易对手"""
+        if counterparty is None:
+            return None
+
+        if not isinstance(counterparty, str):
+            counterparty = str(counterparty)
+
+        counterparty = counterparty.strip()
+        if not counterparty:
+            return None
+
+        # 限制长度
+        if len(counterparty) > 200:
+            counterparty = counterparty[:200]
+
+        return counterparty
+
+    @validates('description')
+    def validate_description(self, key, description):
+        """验证交易描述"""
+        if description is None:
+            return None
+
+        if not isinstance(description, str):
+            description = str(description)
+
+        description = description.strip()
+        if not description:
+            return None
+
+        # 限制长度
+        if len(description) > 500:
+            description = description[:500]
+
+        return description
     
     @validates('currency')
     def validate_currency(self, key, currency):

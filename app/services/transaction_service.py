@@ -14,7 +14,7 @@ from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import joinedload, selectinload
 from app.utils.decorators import cached_query
-from app.validators import TransactionValidator
+
 from .account_service import AccountService
 
 logger = logging.getLogger(__name__)
@@ -51,9 +51,8 @@ class TransactionService:
             Exception: 当交易创建失败时抛出异常
         """
         try:
-            # 使用验证器验证和标准化数据
-            validated_data = TransactionValidator.validate_all(kwargs)
-            transaction = Transaction.create(**validated_data)
+            # 直接使用Transaction模型创建，模型内部会进行验证
+            transaction = Transaction.create(**kwargs)
             self.logger.info(f"创建交易记录: {transaction.id}")
             return transaction
         except Exception as e:
@@ -253,9 +252,8 @@ class TransactionService:
         try:
             transactions = []
             for data in transactions_data:
-                # 使用验证器验证每条数据
-                validated_data = TransactionValidator.validate_all(data)
-                transaction = Transaction(**validated_data)
+                # 直接使用Transaction模型，模型内部会进行验证
+                transaction = Transaction(**data)
                 self.db.add(transaction)
                 transactions.append(transaction)
 
