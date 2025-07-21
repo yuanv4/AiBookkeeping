@@ -9,14 +9,14 @@
 
 .card {
     background-color: var(--surface-card);
-    border: var(--border-width-thin) solid var(--border-color);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-sm);
+    border: var(--border-width-thin) solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    box-shadow: var(--bs-box-shadow-sm);
     transition: var(--transition-normal);
 }
 
 .card:hover {
-    box-shadow: var(--shadow);
+    box-shadow: var(--bs-box-shadow);
 }
 
 @keyframes cardFadeIn {
@@ -38,14 +38,14 @@ to {
 /* ========== 按钮组件 ========== */
 
 .btn {
-    border-radius: var(--border-radius);
+    border-radius: var(--bs-border-radius);
     font-weight: var(--font-weight-medium);
     transition: var(--transition-normal);
 }
 
 .btn:hover {
     transform: translateY(-1px);
-    box-shadow: var(--shadow);
+    box-shadow: var(--bs-box-shadow);
 }
 
 .btn:active {
