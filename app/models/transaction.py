@@ -1,17 +1,10 @@
-"""Transaction model for the Flask application.
-
-This module contains the Transaction model class representing financial transactions.
-"""
+"""Transaction model representing financial transactions"""
 
 from .base import db, BaseModel
 from sqlalchemy.orm import validates
-from decimal import Decimal
-from datetime import datetime, date
-import logging
-from typing import Any
 
 class Transaction(BaseModel):
-    """Transaction model representing financial transactions."""
+    """交易模型"""
     
     __tablename__ = 'transactions'
     
@@ -35,7 +28,7 @@ class Transaction(BaseModel):
 
     
     @validates('amount')
-    def validate_amount(self, key, amount):
+    def validate_amount(self, _key, amount):
         """验证交易金额"""
         if amount is None:
             raise ValueError('交易金额不能为空')
@@ -43,154 +36,132 @@ class Transaction(BaseModel):
         return DataUtils.normalize_decimal(amount)
 
     @validates('balance_after')
-    def validate_balance_after(self, key, balance):
+    def validate_balance_after(self, _key, balance):
         """验证交易后余额"""
-        # balance_after 可以为空
         if balance is None:
             return None
         from app.utils import DataUtils
         return DataUtils.normalize_decimal(balance)
-    
+
     @validates('date')
-    def validate_date(self, key, transaction_date):
-        """Validate transaction date."""
+    def validate_date(self, _key, transaction_date):
+        """验证交易日期"""
         if transaction_date is None:
-            raise ValueError('Transaction date cannot be None')
-        
+            raise ValueError('交易日期不能为空')
+
+        from datetime import datetime, date
+        from app.utils import DataUtils
+
         # 处理字符串类型的日期
         if isinstance(transaction_date, str):
-            from app.utils import DataUtils
             parsed_date = DataUtils.parse_date_safe(transaction_date)
             if not parsed_date:
-                raise ValueError('Invalid date format')
+                raise ValueError('无效的日期格式')
             transaction_date = parsed_date
         elif isinstance(transaction_date, datetime):
             transaction_date = transaction_date.date()
         elif not isinstance(transaction_date, date):
-            raise ValueError('Date must be a date, datetime, or valid date string')
-        
-        # 检查日期范围
+            raise ValueError('日期必须是 date、datetime 或有效的日期字符串')
+
+        # 检查未来日期
         if transaction_date > date.today():
-            raise ValueError('Transaction date cannot be in the future')
-        
+            raise ValueError('交易日期不能是未来日期')
+
         return transaction_date
 
     @validates('counterparty')
-    def validate_counterparty(self, key, counterparty):
+    def validate_counterparty(self, _key, counterparty):
         """验证交易对手"""
         if counterparty is None:
             return None
-
         if not isinstance(counterparty, str):
             counterparty = str(counterparty)
-
         counterparty = counterparty.strip()
-        if not counterparty:
-            return None
-
-        # 限制长度
-        if len(counterparty) > 200:
-            counterparty = counterparty[:200]
-
-        return counterparty
+        if len(counterparty) > 100:
+            counterparty = counterparty[:100]
+        return counterparty or None
 
     @validates('description')
-    def validate_description(self, key, description):
+    def validate_description(self, _key, description):
         """验证交易描述"""
         if description is None:
             return None
-
         if not isinstance(description, str):
             description = str(description)
-
         description = description.strip()
-        if not description:
-            return None
+        if len(description) > 200:
+            description = description[:200]
+        return description or None
 
-        # 限制长度
-        if len(description) > 500:
-            description = description[:500]
-
-        return description
-    
     @validates('currency')
-    def validate_currency(self, key, currency):
-        """Validate currency code."""
-        if currency:
-            # 确保currency是字符串类型再调用strip()
-            if not isinstance(currency, str):
-                currency = str(currency)
-            currency = currency.strip().upper()
-            if len(currency) != 3:
-                raise ValueError('Currency code must be 3 characters')
-        return currency or 'CNY'
-    
+    def validate_currency(self, _key, currency):
+        """验证货币代码"""
+        if not currency:
+            return 'CNY'
+        if not isinstance(currency, str):
+            currency = str(currency)
+        currency = currency.strip().upper()
+        if len(currency) != 3:
+            raise ValueError('货币代码必须是3个字符')
+        return currency
 
-    
     @validates('reference_number')
-    def validate_reference_number(self, key, reference_number):
-        """Validate reference number."""
-        if reference_number:
-            # 确保reference_number是字符串类型再调用strip()
-            if not isinstance(reference_number, str):
-                reference_number = str(reference_number)
-            reference_number = reference_number.strip()
-            if len(reference_number) > 50:
-                raise ValueError('Reference number cannot exceed 50 characters')
+    def validate_reference_number(self, _key, reference_number):
+        """验证参考号"""
+        if not reference_number:
+            return None
+        if not isinstance(reference_number, str):
+            reference_number = str(reference_number)
+        reference_number = reference_number.strip()
+        if len(reference_number) > 50:
+            raise ValueError('参考号不能超过50个字符')
         return reference_number
 
     @validates('category')
-    def validate_category(self, key, category):
+    def validate_category(self, _key, category):
         """验证商户分类"""
-        if category:
-            # 确保category是字符串类型再调用strip()
-            if not isinstance(category, str):
-                category = str(category)
-            category = category.strip().lower()
-            if len(category) > 50:
-                raise ValueError('Category cannot exceed 50 characters')
+        valid_categories = {
+            'dining', 'transport', 'shopping', 'services',
+            'healthcare', 'finance', 'other'
+        }
 
-            # 验证分类是否在有效列表中
-            valid_categories = {
-                'dining', 'transport', 'shopping', 'services',
-                'healthcare', 'finance', 'other'
-            }
-            if category not in valid_categories:
-                # 如果分类无效，记录警告并使用默认值
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"无效的商户分类: {category}, 使用默认值 'other'")
-                category = 'other'
+        if not category:
+            return 'other'
+        if not isinstance(category, str):
+            category = str(category)
+        category = category.strip().lower()
 
-        return category or 'other'
+        if category not in valid_categories:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"无效的商户分类: {category}, 使用默认值 'other'")
+            return 'other'
+
+        return category
     
     def get_transaction_type(self) -> str:
-        """Get transaction type based on amount.
-        
-        Returns:
-            str: 'income' for positive amounts, 'expense' for negative amounts, 'transfer' for zero
-        """
+        """获取交易类型"""
         if self.amount > 0:
             return 'income'
         elif self.amount < 0:
             return 'expense'
         else:
             return 'transfer'
-    
+
     def is_income(self):
-        """Check if this is an income transaction."""
+        """是否为收入"""
         return self.amount > 0
-    
+
     def is_expense(self):
-        """Check if this is an expense transaction."""
+        """是否为支出"""
         return self.amount < 0
-    
+
     def get_absolute_amount(self):
-        """Get absolute amount value."""
+        """获取绝对金额"""
         return abs(self.amount)
-    
+
     def to_dict(self):
-        """Convert transaction instance to dictionary."""
+        """转换为字典"""
         result = super().to_dict()
         result['amount'] = float(self.amount)
         result['balance_after'] = float(self.balance_after) if self.balance_after else None
@@ -204,7 +175,3 @@ class Transaction(BaseModel):
     
     def __repr__(self):
         return f'<Transaction(id={self.id}, account_id={self.account_id}, date={self.date}, amount={self.amount})>'
-
-
-
-

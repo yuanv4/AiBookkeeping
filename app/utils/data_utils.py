@@ -163,24 +163,53 @@ class DataUtils:
     
     @staticmethod
     def transactions_to_dict(transactions: List) -> List[Dict]:
-        """统一的交易数据转换
-        
+        """统一的交易数据转换，优化版本
+
         Args:
             transactions: Transaction对象列表
-            
+
         Returns:
             字典列表，如果输入为空则返回空列表
-            
-        Examples:
-            >>> transactions = [transaction1, transaction2]
-            >>> DataUtils.transactions_to_dict(transactions)
-            [{'id': 1, 'amount': 100.0, ...}, {'id': 2, 'amount': -50.0, ...}]
         """
         if not transactions:
             return []
-        
+
         try:
-            result = [t.to_dict() for t in transactions]
+            result = []
+            for t in transactions:
+                try:
+                    # 安全获取属性值
+                    amount = getattr(t, 'amount', None)
+                    amount_float = float(amount) if amount is not None else 0
+
+                    balance_after = getattr(t, 'balance_after', None)
+                    balance_float = float(balance_after) if balance_after is not None else None
+
+                    # 构建交易字典
+                    transaction_dict = {
+                        'id': getattr(t, 'id', None),
+                        'date': t.date.isoformat() if hasattr(t, 'date') and t.date else None,
+                        'amount': amount_float,
+                        'balance_after': balance_float,
+                        'counterparty': getattr(t, 'counterparty', '') or '',
+                        'description': getattr(t, 'description', '') or '',
+                        'category': getattr(t, 'category', 'other') or 'other',
+                        'currency': getattr(t, 'currency', 'CNY') or 'CNY',
+                        'account_id': getattr(t, 'account_id', None),
+                        'account_name': getattr(t, 'account_name', None) or (t.account.name if hasattr(t, 'account') and t.account else None),
+                        'account_number': getattr(t, 'account_number', None) or (t.account.account_number if hasattr(t, 'account') and t.account else None),
+                        'bank_name': getattr(t, 'bank_name', None) or (t.account.bank.name if hasattr(t, 'account') and t.account and hasattr(t.account, 'bank') and t.account.bank else None),
+                        'is_income': amount_float > 0,
+                        'is_expense': amount_float < 0,
+                        'absolute_amount': abs(amount_float),
+                        'created_at': t.created_at.isoformat() if hasattr(t, 'created_at') and t.created_at else None,
+                        'updated_at': t.updated_at.isoformat() if hasattr(t, 'updated_at') and t.updated_at else None,
+                    }
+                    result.append(transaction_dict)
+                except Exception as e:
+                    logger.warning(f"跳过无效交易对象: {e}")
+                    continue
+
             logger.debug(f"转换了 {len(result)} 条交易记录")
             return result
         except Exception as e:

@@ -1,8 +1,4 @@
-"""交易管理服务
-
-专门负责交易相关的CRUD操作，从DataService中拆分出来。
-遵循单一职责原则，只处理交易相关的业务逻辑。
-"""
+"""交易管理服务 - 提供交易相关的CRUD操作"""
 
 from typing import List, Optional, Dict, Any
 from decimal import Decimal
@@ -22,36 +18,16 @@ logger = logging.getLogger(__name__)
 
 
 class TransactionService(BaseService):
-    """交易管理服务
-    
-    提供交易的创建、查询、更新、删除等功能。
-    依赖AccountService来处理账户相关操作。
-    """
-    
-    def __init__(self, account_service: AccountService = None, db_session=None):
-        """初始化交易服务
+    """交易管理服务 - 提供交易的创建、查询、更新、删除等功能"""
 
-        Args:
-            account_service: 账户服务实例
-            db_session: 数据库会话，如果为None则使用默认会话
-        """
+    def __init__(self, account_service: AccountService = None, db_session=None):
+        """初始化交易服务"""
         super().__init__(db_session)
         self.account_service = account_service or AccountService(db_session=db_session)
     
     def create_transaction(self, **kwargs) -> Transaction:
-        """创建交易记录
-
-        Args:
-            **kwargs: 交易数据
-
-        Returns:
-            Transaction: 创建的交易实例
-
-        Raises:
-            Exception: 当交易创建失败时抛出异常
-        """
+        """创建交易记录"""
         try:
-            # 直接使用Transaction模型创建，模型内部会进行验证
             transaction = Transaction.create(**kwargs)
             self.logger.info(f"创建交易记录: {transaction.id}")
             return transaction
@@ -60,7 +36,7 @@ class TransactionService(BaseService):
             raise
 
     def get_by_id(self, id: int) -> Optional[Transaction]:
-        """根据ID获取交易（实现BaseService抽象方法）"""
+        """根据ID获取交易"""
         try:
             if not self._validate_id(id):
                 return None
@@ -69,7 +45,7 @@ class TransactionService(BaseService):
             self._handle_service_error(f"获取交易 ID={id}", e)
 
     def get_transaction_by_id(self, transaction_id: int) -> Optional[Transaction]:
-        """根据ID获取交易（保持向后兼容）"""
+        """根据ID获取交易（向后兼容）"""
         return self.get_by_id(transaction_id)
 
     def get_transactions_with_relations(self, filters: dict = None, page: int = None, per_page: int = None) -> List[Transaction]:
