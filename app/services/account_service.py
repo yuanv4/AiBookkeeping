@@ -80,7 +80,7 @@ class AccountService(BaseService):
     def get_all_accounts(self) -> List[Account]:
         """获取所有账户"""
         try:
-            return Account.query.order_by(Account.account_name).all()
+            return Account.query.order_by(Account.name).all()
         except Exception as e:
             self.logger.error(f"Error getting all accounts: {e}")
             raise
@@ -88,7 +88,7 @@ class AccountService(BaseService):
     def get_accounts_by_bank(self, bank_id: int) -> List[Account]:
         """根据银行ID获取账户列表"""
         try:
-            return Account.query.filter_by(bank_id=bank_id).order_by(Account.account_name).all()
+            return Account.query.filter_by(bank_id=bank_id).order_by(Account.name).all()
         except Exception as e:
             self.logger.error(f"Error getting accounts by bank {bank_id}: {e}")
             raise
@@ -169,6 +169,6 @@ class AccountService(BaseService):
     def get_all(self) -> List[Account]:
         """获取所有账户（实现BaseService抽象方法）"""
         try:
-            return Account.query.order_by(Account.account_name).all()
+            return Account.query.order_by(Account.name).all()
         except Exception as e:
             self._handle_service_error("获取所有账户", e)

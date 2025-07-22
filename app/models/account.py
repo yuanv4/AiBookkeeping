@@ -16,7 +16,7 @@ class Account(BaseModel):
     
     bank_id = db.Column(db.Integer, db.ForeignKey('banks.id'), nullable=False, index=True)
     account_number = db.Column(db.String(50), nullable=False, index=True)
-    account_name = db.Column(db.String(100))
+    name = db.Column(db.String(100))
     currency = db.Column(db.String(3), default='CNY', nullable=False)
     account_type = db.Column(db.String(20), default='checking')  # checking, savings, credit, etc.
     
@@ -64,4 +64,4 @@ class Account(BaseModel):
         return result
     
     def __repr__(self):
-        return f'<Account(id={self.id}, bank_id={self.bank_id}, number="{self.account_number}", name="{self.account_name}")>'
+        return f'<Account(id={self.id}, bank_id={self.bank_id}, number="{self.account_number}", name="{self.name}")>'

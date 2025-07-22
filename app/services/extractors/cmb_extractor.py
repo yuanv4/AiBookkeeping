@@ -92,7 +92,7 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
             return ExtractedData(
                 bank_name=self.get_bank_name(),
                 bank_code=self.get_bank_code(),
-                account_name=account_name,
+                name=account_name,
                 account_number=account_number,
                 transactions=transactions_list
             )

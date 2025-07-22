@@ -15,7 +15,7 @@ class ExtractedData:
     """从银行对账单中提取的标准化数据"""
     bank_name: str
     bank_code: str
-    account_name: str
+    name: str
     account_number: str
     transactions: List[Dict[str, Any]]
 
