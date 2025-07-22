@@ -972,33 +972,107 @@ export function getTabulatorFormatters() {
     };
 }
 
+// ==================== 分类相关工具函数 ====================
+
+
+
+/**
+ * 创建分类列的格式化器
+ * @param {Object} categoriesConfig - 分类配置信息
+ * @returns {Function} 格式化器函数
+ */
+function createCategoryFormatter(categoriesConfig) {
+    return function(cell) {
+        const category = cell.getValue();
+
+        // 使用传入的分类配置，如果没有则使用默认值
+        let categoryInfo;
+        if (categoriesConfig && categoriesConfig[category]) {
+            categoryInfo = categoriesConfig[category];
+        } else if (categoriesConfig && categoriesConfig['other']) {
+            categoryInfo = categoriesConfig['other'];
+        } else {
+            // 默认分类信息映射
+            const defaultCategories = {
+                'dining': { name: '餐饮支出', icon: 'coffee', color: 'primary' },
+                'transport': { name: '交通支出', icon: 'car', color: 'success' },
+                'shopping': { name: '购物支出', icon: 'shopping-bag', color: 'info' },
+                'services': { name: '生活服务', icon: 'settings', color: 'warning' },
+                'healthcare': { name: '医疗健康', icon: 'heart', color: 'danger' },
+                'finance': { name: '金融保险', icon: 'credit-card', color: 'secondary' },
+                'other': { name: '其他支出', icon: 'more-horizontal', color: 'dark' }
+            };
+            categoryInfo = defaultCategories[category] || defaultCategories['other'];
+        }
+
+        return `<span class="category-badge d-flex align-items-center">
+            <i data-lucide="${categoryInfo.icon}" class="text-${categoryInfo.color}" style="width: 1rem; height: 1rem;"></i>
+            <span class="ms-2 small">${categoryInfo.name}</span>
+        </span>`;
+    };
+}
+
+/**
+ * 创建分类筛选器选项
+ * @param {Object} categoriesConfig - 分类配置信息
+ * @returns {Object} 筛选器参数
+ */
+function createCategoryFilterParams(categoriesConfig) {
+    const filterOptions = { '': '全部分类' };
+
+    // 如果有分类配置，使用配置；否则使用默认值
+    if (categoriesConfig && Object.keys(categoriesConfig).length > 0) {
+        for (const [code, info] of Object.entries(categoriesConfig)) {
+            filterOptions[code] = info.name;
+        }
+    } else {
+        // 默认分类选项
+        filterOptions['dining'] = '餐饮支出';
+        filterOptions['transport'] = '交通支出';
+        filterOptions['shopping'] = '购物支出';
+        filterOptions['services'] = '生活服务';
+        filterOptions['healthcare'] = '医疗健康';
+        filterOptions['finance'] = '金融保险';
+        filterOptions['other'] = '其他支出';
+    }
+
+    return {
+        values: filterOptions,
+        clearable: true,
+        placeholder: "选择分类"
+    };
+}
+
 /**
  * 获取财务表格专用的列配置
+ * @param {Object} categoriesConfig - 分类配置信息
  * @returns {Object} 列配置对象
  */
-export function getFinancialTableColumns() {
+export function getFinancialTableColumns(categoriesConfig = {}) {
     const formatters = getTabulatorFormatters();
 
     return {
-        // 交易记录表格列配置
+        // 交易记录表格列配置（优化后的列顺序）
         transactions: [
             {
                 title: "日期",
                 field: "date",
-                sorter: "string", // 使用字符串排序避免luxon依赖
+                sorter: "string",
                 headerFilter: "input",
                 headerFilterPlaceholder: "筛选日期",
                 width: 120,
-                formatter: formatters.dateFormat
+                formatter: formatters.dateFormat,
+                responsive: 0 // 最高优先级，始终显示
             },
             {
-                title: "账户",
-                field: "account",
-                headerFilter: "input",
-                headerFilterPlaceholder: "筛选账户",
-                width: 150,
-                formatter: formatters.textTruncate,
-                formatterParams: { maxLength: 15 }
+                title: "分类",
+                field: "category",
+                headerFilter: "select",
+                headerFilterParams: createCategoryFilterParams(categoriesConfig),
+                width: 100,
+                formatter: createCategoryFormatter(categoriesConfig),
+                sorter: "string",
+                responsive: 1 // 高优先级
             },
             {
                 title: "对手信息",
@@ -1007,16 +1081,8 @@ export function getFinancialTableColumns() {
                 headerFilterPlaceholder: "筛选对手",
                 width: 150,
                 formatter: formatters.textTruncate,
-                formatterParams: { maxLength: 15 }
-            },
-            {
-                title: "摘要",
-                field: "description",
-                headerFilter: "input",
-                headerFilterPlaceholder: "筛选摘要",
-                minWidth: 200,
-                formatter: formatters.textTruncate,
-                formatterParams: { maxLength: 25 }
+                formatterParams: { maxLength: 15 },
+                responsive: 2 // 中等优先级
             },
             {
                 title: "金额",
@@ -1026,14 +1092,28 @@ export function getFinancialTableColumns() {
                 headerFilterPlaceholder: "筛选金额",
                 width: 120,
                 formatter: formatters.currency,
-                hozAlign: "right"
+                hozAlign: "right",
+                responsive: 0 // 最高优先级，始终显示
             },
             {
-                title: "余额",
-                field: "balance",
-                width: 120,
-                formatter: formatters.balance,
-                hozAlign: "right"
+                title: "账户",
+                field: "account",
+                headerFilter: "input",
+                headerFilterPlaceholder: "筛选账户",
+                width: 150,
+                formatter: formatters.textTruncate,
+                formatterParams: { maxLength: 15 },
+                responsive: 4 // 较低优先级
+            },
+            {
+                title: "摘要",
+                field: "description",
+                headerFilter: "input",
+                headerFilterPlaceholder: "筛选摘要",
+                minWidth: 200,
+                formatter: formatters.textTruncate,
+                formatterParams: { maxLength: 25 },
+                responsive: 5 // 最低优先级，小屏幕隐藏
             }
         ]
     };
@@ -1107,11 +1187,12 @@ export const TableRegistry = {
  * @param {string} containerId - 容器ID
  * @param {Array} data - 表格数据
  * @param {Object} options - 额外配置选项
+ * @param {Object} categoriesConfig - 分类配置信息
  * @returns {Object} Tabulator实例
  */
-export function createTransactionsTable(containerId, data = [], options = {}) {
+export function createTransactionsTable(containerId, data = [], options = {}, categoriesConfig = {}) {
     const commonConfig = getTabulatorCommonConfig();
-    const columns = getFinancialTableColumns().transactions;
+    const columns = getFinancialTableColumns(categoriesConfig).transactions;
 
     // 合并配置
     const config = {
@@ -1139,6 +1220,21 @@ export function createTransactionsTable(containerId, data = [], options = {}) {
 
     // 创建表格实例
     const table = new window.Tabulator(`#${containerId}`, config);
+
+    // 添加表格渲染完成后的回调，初始化图标
+    table.on("tableBuilt", function(){
+        // 初始化Lucide图标
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
+    });
+
+    table.on("renderComplete", function(){
+        // 每次重新渲染后都初始化图标
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
+    });
 
     // 注册到管理器
     TableRegistry.register(containerId, table);

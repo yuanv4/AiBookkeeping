@@ -17,6 +17,7 @@ export default class TransactionsPage extends BasePage {
         this.totalCount = 0;
         this.transactionsTable = null;
         this.summaryElements = {};
+        this.categoriesConfig = {};
     }
 
     init() {
@@ -45,7 +46,7 @@ export default class TransactionsPage extends BasePage {
     }
 
     initTransactionsTable() {
-        // 使用工具函数创建Tabulator表格
+        // 使用工具函数创建Tabulator表格，传递分类配置
         this.transactionsTable = createTransactionsTable('transactions-table', this.transactions, {
             // 数据变化时的回调
             dataFiltered: (filters, rows) => {
@@ -58,7 +59,7 @@ export default class TransactionsPage extends BasePage {
             rowClick: (e, row) => {
                 console.log('点击了交易记录:', row.getData());
             }
-        });
+        }, this.categoriesConfig);
     }
 
     initExportButtons() {
@@ -111,6 +112,9 @@ export default class TransactionsPage extends BasePage {
                 this.transactions = this.transformTransactionData(initialData.transactions || []);
                 this.totalCount = initialData.total_count || 0;
 
+                // 加载分类配置
+                this.categoriesConfig = initialData.categories_config || {};
+
             } catch (error) {
                 console.error('解析页面数据时出错:', error);
                 this.transactions = [];
@@ -124,11 +128,12 @@ export default class TransactionsPage extends BasePage {
         return rawTransactions.map(transaction => ({
             id: transaction.id,
             date: transaction.date,
+            category: transaction.category || 'other',
             account: this.formatAccountDisplay(transaction),
             counterparty: transaction.counterparty || '',
             description: transaction.description || '',
             amount: parseFloat(transaction.amount) || 0,
-            balance: parseFloat(transaction.balance) || 0,
+            balance: parseFloat(transaction.balance_after) || 0,
             // 保留原始数据以备后用
             _raw: transaction
         }));
