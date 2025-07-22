@@ -85,20 +85,17 @@ def api_merchant_analysis():
         # 获取报告服务
         report_service = get_report_service()
 
-        # 获取商户分类服务
-        category_service = report_service.category_service
-
         # 根据参数类型选择不同的分析方法
         if month_str:
             # 使用月份分析方法，包含完整历史数据
-            analysis_data = category_service.get_month_expense_analysis(
+            analysis_data = report_service.get_month_expense_analysis(
                 target_month=month_str,
                 category_filter=category_filter,
                 search_term=search_term
             )
         else:
             # 使用日期范围分析方法
-            analysis_data = category_service.get_expense_analysis_by_category(
+            analysis_data = report_service.get_expense_analysis_by_category(
                 start_date=start_date,
                 end_date=end_date,
                 category_filter=category_filter,
@@ -137,11 +134,8 @@ def api_available_months():
         # 获取报告服务
         report_service = get_report_service()
 
-        # 获取商户分类服务
-        category_service = report_service.category_service
-
         # 获取有数据的月份列表
-        months_data = category_service.get_available_months()
+        months_data = report_service.get_available_months()
 
         return DataUtils.format_api_response(success=True, data=months_data)
 
@@ -161,11 +155,11 @@ def api_merchant_details(merchant_name):
         # 获取报告服务
         report_service = get_report_service()
 
-        # 获取商户分类服务
-        category_service = report_service.category_service
+        # 获取月份参数
+        month = request.args.get('month')
 
         # 获取商户交易详情
-        merchant_data = category_service.get_merchant_transactions(merchant_name)
+        merchant_data = report_service.get_merchant_transactions(merchant_name, month)
 
         return DataUtils.format_api_response(success=True, data=merchant_data)
 

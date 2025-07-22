@@ -372,9 +372,9 @@ class ExpenseAnalysisPage extends BasePage {
                                     <span class="text-muted small">¥${merchant.avg_amount.toFixed(0)}</span>
                                 </td>
                                 <td class="px-3 py-2 text-center">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="window.expenseAnalysisPage.showMerchantDetail('${merchant.name}')" title="查看详情">
-                                        <i data-lucide="eye" style="width: 0.75rem; height: 0.75rem;"></i>
-                                        <span class="d-none d-sm-inline ms-1 small">详情</span>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="window.expenseAnalysisPage.navigateToMerchantTransactions('${merchant.name}')" title="查看交易">
+                                        <i data-lucide="external-link" style="width: 0.75rem; height: 0.75rem;"></i>
+                                        <span class="d-none d-sm-inline ms-1 small">查看交易</span>
                                     </button>
                                 </td>
                             </tr>
@@ -409,131 +409,65 @@ class ExpenseAnalysisPage extends BasePage {
         }
     }
 
-    // 商户详情
-    async showMerchantDetail(merchantName) {
+    // 跳转到商户交易列表
+    navigateToMerchantTransactions(merchantName) {
         try {
-            // 显示模态框
-            const modal = new bootstrap.Modal(document.getElementById('merchantDetailModal'));
-            modal.show();
+            // 构建跳转URL
+            const baseUrl = '/transactions/';
+            const params = new URLSearchParams();
 
-            // 显示加载状态
-            const container = document.getElementById('merchant-detail-content');
-            if (container) {
-                container.innerHTML = `
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">加载中...</span>
-                        </div>
-                        <div class="mt-3 text-muted">正在加载商户详情...</div>
-                    </div>
-                `;
-            }
+            // 添加商户筛选参数
+            params.append('counterparty', merchantName);
 
-            // 构建API URL
-            let apiUrl = `/expense-analysis/api/merchant-details/${encodeURIComponent(merchantName)}`;
+            // 添加月份筛选参数
             if (this.selectedMonth) {
-                apiUrl += `?month=${encodeURIComponent(this.selectedMonth)}`;
+                const { startDate, endDate } = this.convertMonthToDateRange(this.selectedMonth);
+                params.append('start_date', startDate);
+                params.append('end_date', endDate);
             }
 
-            // 加载数据
-            const response = await fetch(apiUrl);
-            const data = await response.json();
-
-            if (data.success) {
-                this.renderMerchantModal(data.data);
-            } else {
-                throw new Error(data.error || '获取商户详情失败');
-            }
+            // 构建完整URL并跳转
+            const fullUrl = `${baseUrl}?${params.toString()}`;
+            window.location.href = fullUrl;
 
         } catch (error) {
-            console.error('显示商户详情失败:', error);
+            console.error('跳转到商户交易列表失败:', error);
         }
     }
 
-    renderMerchantModal(merchantData) {
-        const container = document.getElementById('merchant-detail-content');
-        const { merchant_name, category_info, transactions, statistics, filter_info } = merchantData;
+    // 将月份转换为日期范围
+    convertMonthToDateRange(monthStr) {
+        try {
+            // monthStr 格式: "YYYY-MM"
+            const [year, month] = monthStr.split('-');
+            const yearNum = parseInt(year);
+            const monthNum = parseInt(month);
 
-        // 更新模态框标题
-        const modalTitle = document.getElementById('merchantDetailModalLabel');
-        if (modalTitle && filter_info) {
-            const periodText = filter_info.period_info || '所有时间';
-            modalTitle.innerHTML = `
-                <i data-lucide="store" class="me-2"></i>
-                商户详情 - ${merchant_name}
-                <small class="text-muted ms-2">(${periodText})</small>
-            `;
+            // 计算月份的第一天
+            const startDate = `${year}-${month.padStart(2, '0')}-01`;
+
+            // 计算月份的最后一天
+            const lastDay = new Date(yearNum, monthNum, 0).getDate();
+            const endDate = `${year}-${month.padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+
+            return { startDate, endDate };
+
+        } catch (error) {
+            console.error('月份转换失败:', error);
+            // 返回默认值
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+
+            return {
+                startDate: `${year}-${month}-01`,
+                endDate: `${year}-${month}-${lastDay.toString().padStart(2, '0')}`
+            };
         }
-
-        container.innerHTML = `
-            <div class="merchant-overview mb-4">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="me-3 bg-${category_info.color} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
-                        <i data-lucide="${category_info.icon}" class="text-${category_info.color}" style="width: 1.5rem; height: 1.5rem;"></i>
-                    </div>
-                    <div>
-                        <h4 class="mb-1">${merchant_name}</h4>
-                        <span class="badge bg-${category_info.color} bg-opacity-10 text-${category_info.color}">${category_info.name}</span>
-                    </div>
-                </div>
-
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="text-center p-3 bg-light rounded">
-                            <div class="h4 text-danger mb-1">¥${statistics.total_amount.toFixed(2)}</div>
-                            <small class="text-muted">总支出</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="text-center p-3 bg-light rounded">
-                            <div class="h4 text-primary mb-1">${statistics.transaction_count}</div>
-                            <small class="text-muted">交易次数</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="text-center p-3 bg-light rounded">
-                            <div class="h4 text-success mb-1">¥${statistics.average_amount.toFixed(0)}</div>
-                            <small class="text-muted">平均金额</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="transactions-section">
-                <h6 class="mb-3">交易记录</h6>
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="px-3 py-2">日期</th>
-                                <th class="px-3 py-2 text-end">金额</th>
-                                <th class="px-3 py-2 d-none d-md-table-cell">账户</th>
-                                <th class="px-3 py-2 d-none d-lg-table-cell">描述</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${transactions.map(transaction => `
-                                <tr>
-                                    <td class="px-3 py-2">${transaction.date}</td>
-                                    <td class="px-3 py-2 text-end">
-                                        <span class="text-danger">¥${transaction.amount.toFixed(2)}</span>
-                                    </td>
-                                    <td class="px-3 py-2 d-none d-md-table-cell">
-                                        <span class="text-muted small">${transaction.account || '-'}</span>
-                                    </td>
-                                    <td class="px-3 py-2 d-none d-lg-table-cell">
-                                        <span class="text-muted small">${transaction.description || '-'}</span>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-
-        this.initializeIcons();
     }
+
+
 
     // 工具方法
     setLoading(loading) {

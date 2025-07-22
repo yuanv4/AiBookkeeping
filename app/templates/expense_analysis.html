@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, card, chart_container, page_header, loading_state, modal %}
+{% from "macros.html" import icon, card, chart_container, page_header, loading_state %}
 
 {% block title %}支出分类分析 - {{ config.APP_NAME }}{% endblock %}
 
@@ -57,21 +57,7 @@
     </div>
 </div>
 
-<!-- 商户详情模态框 - 使用统一的modal宏 -->
-{% call modal("merchantDetailModal", "商户详情", "xl", true, false, true) %}
-    <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title">
-            {{ icon('store', 'me-2') }}
-            商户详情
-        </h5>
-    </div>
-    <div class="modal-body p-0">
-        <div id="merchant-detail-content">
-            <!-- 动态加载商户详情内容 -->
-            {{ loading_state("正在加载商户详情...", "md", "primary") }}
-        </div>
-    </div>
-{% endcall %}
+
 {% endblock %}
 
 {% block page_vendor_scripts %}

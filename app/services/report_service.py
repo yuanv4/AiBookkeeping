@@ -419,38 +419,133 @@ class ReportService:
 
     # ==================== 商户分类分析 ====================
 
-    def get_merchant_expense_analysis(self, start_date: Optional[date] = None,
-                                    end_date: Optional[date] = None,
-                                    category_filter: Optional[str] = None,
-                                    search_term: Optional[str] = None) -> Dict[str, Any]:
+    def get_available_months(self) -> Dict[str, Any]:
+        """获取有交易数据的月份列表
+
+        Returns:
+            Dict包含months列表和latest_month
         """
-        获取基于商户分类的支出分析数据
+        try:
+            # 查询所有交易的月份
+            query = self.db.query(
+                func.strftime('%Y-%m', Transaction.date).label('month')
+            ).distinct().order_by(
+                func.strftime('%Y-%m', Transaction.date).desc()
+            )
+
+            results = query.all()
+            months = [result.month for result in results if result.month]
+
+            return {
+                'months': months,
+                'latest_month': months[0] if months else None
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error getting available months: {e}")
+            return {
+                'months': [],
+                'latest_month': None
+            }
+
+    def get_expense_analysis_by_category(self, start_date: Optional[date] = None,
+                                       end_date: Optional[date] = None,
+                                       category_filter: Optional[str] = None,
+                                       search_term: Optional[str] = None) -> Dict[str, Any]:
+        """获取按分类的支出分析
 
         Args:
             start_date: 开始日期，默认为6个月前
             end_date: 结束日期，默认为今天
-            category_filter: 分类筛选，只返回指定分类的数据
-            search_term: 搜索词，筛选包含该词的商户
+            category_filter: 分类筛选
+            search_term: 搜索词
 
         Returns:
             按商户类别组织的支出分析结果
         """
         try:
-            self.logger.info(f"开始执行商户分类支出分析 - 分类筛选: {category_filter}, 搜索词: {search_term}")
+            # 设置默认日期范围
+            if not start_date or not end_date:
+                start_date, end_date = DataUtils.get_date_range(6)
 
-            # 调用商户分类服务进行分析
-            analysis_result = self.category_service.get_expense_analysis_by_category(
-                start_date=start_date,
-                end_date=end_date,
-                category_filter=category_filter,
-                search_term=search_term
+            # 查询支出交易
+            query = self.db.query(Transaction).filter(
+                Transaction.amount < 0,
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
             )
 
-            self.logger.info("商户分类支出分析完成")
-            return analysis_result
+            # 应用搜索过滤
+            if search_term:
+                query = query.filter(
+                    Transaction.counterparty.ilike(f'%{search_term}%')
+                )
+
+            transactions = query.all()
+
+            # 按分类组织数据
+            categories = {}
+            total_expense = 0.0
+
+            for transaction in transactions:
+                amount = abs(float(transaction.amount))
+                total_expense += amount
+
+                # 获取商户分类
+                category = self.category_service.classify_merchant(transaction.counterparty or '')
+
+                # 应用分类过滤
+                if category_filter and category != category_filter:
+                    continue
+
+                # 初始化分类数据
+                if category not in categories:
+                    category_info = self.category_service.get_category_display_info(category)
+                    categories[category] = {
+                        'name': category_info['name'],
+                        'icon': category_info['icon'],
+                        'color': category_info['color'],
+                        'total_amount': 0.0,
+                        'percentage': 0.0,
+                        'merchants': {}
+                    }
+
+                # 累加分类总额
+                categories[category]['total_amount'] += amount
+
+                # 处理商户数据
+                merchant_name = transaction.counterparty or '未知商户'
+                if merchant_name not in categories[category]['merchants']:
+                    categories[category]['merchants'][merchant_name] = {
+                        'total_amount': 0.0,
+                        'transaction_count': 0,
+                        'avg_amount': 0.0
+                    }
+
+                categories[category]['merchants'][merchant_name]['total_amount'] += amount
+                categories[category]['merchants'][merchant_name]['transaction_count'] += 1
+
+            # 计算百分比和平均金额
+            for category_data in categories.values():
+                if total_expense > 0:
+                    category_data['percentage'] = (category_data['total_amount'] / total_expense) * 100
+
+                for merchant_data in category_data['merchants'].values():
+                    if merchant_data['transaction_count'] > 0:
+                        merchant_data['avg_amount'] = merchant_data['total_amount'] / merchant_data['transaction_count']
+
+            return {
+                'categories': categories,
+                'summary': {
+                    'total_expense': total_expense,
+                    'analyzed_period': f"{start_date} to {end_date}",
+                    'total_merchants': sum(len(cat['merchants']) for cat in categories.values()),
+                    'total_transactions': len(transactions)
+                }
+            }
 
         except Exception as e:
-            self.logger.error(f"商户分类支出分析失败: {e}")
+            self.logger.error(f"Error in expense analysis by category: {e}")
             return {
                 'categories': {},
                 'summary': {
@@ -459,6 +554,179 @@ class ReportService:
                     'total_merchants': 0,
                     'total_transactions': 0
                 }
+            }
+
+    def get_month_expense_analysis(self, target_month: str,
+                                 category_filter: Optional[str] = None,
+                                 search_term: Optional[str] = None) -> Dict[str, Any]:
+        """获取指定月份的商户分类支出分析，包含历史月度数据
+
+        Args:
+            target_month: 目标月份，格式为 YYYY-MM
+            category_filter: 分类筛选
+            search_term: 搜索词
+
+        Returns:
+            包含当月分析和历史月度数据的结果
+        """
+        try:
+            from datetime import datetime
+
+            # 解析目标月份
+            target_date = datetime.strptime(target_month, '%Y-%m').date()
+            month_start = target_date.replace(day=1)
+
+            # 计算月末
+            if target_date.month == 12:
+                month_end = target_date.replace(year=target_date.year + 1, month=1, day=1) - timedelta(days=1)
+            else:
+                month_end = target_date.replace(month=target_date.month + 1, day=1) - timedelta(days=1)
+
+            # 获取当月的分类分析
+            current_analysis = self.get_expense_analysis_by_category(
+                start_date=month_start,
+                end_date=month_end,
+                category_filter=category_filter,
+                search_term=search_term
+            )
+
+            # 获取历史月度数据（最近12个月）
+            monthly_data = {}
+            for i in range(12):
+                hist_date = target_date - relativedelta(months=i)
+                hist_month = hist_date.strftime('%Y-%m')
+                hist_start = hist_date.replace(day=1)
+
+                if hist_date.month == 12:
+                    hist_end = hist_date.replace(year=hist_date.year + 1, month=1, day=1) - timedelta(days=1)
+                else:
+                    hist_end = hist_date.replace(month=hist_date.month + 1, day=1) - timedelta(days=1)
+
+                # 查询该月的分类支出
+                month_query = self.db.query(Transaction).filter(
+                    Transaction.amount < 0,
+                    Transaction.date >= hist_start,
+                    Transaction.date <= hist_end
+                )
+
+                month_transactions = month_query.all()
+                month_categories = {}
+
+                for transaction in month_transactions:
+                    category = self.category_service.classify_merchant(transaction.counterparty or '')
+                    amount = abs(float(transaction.amount))
+
+                    if category not in month_categories:
+                        month_categories[category] = 0.0
+                    month_categories[category] += amount
+
+                monthly_data[hist_month] = month_categories
+
+            # 将月度数据添加到分类中
+            for category_key, category_data in current_analysis['categories'].items():
+                category_data['monthly_data'] = {}
+                for month, month_cats in monthly_data.items():
+                    category_data['monthly_data'][month] = month_cats.get(category_key, 0.0)
+
+            return current_analysis
+
+        except Exception as e:
+            self.logger.error(f"Error in month expense analysis: {e}")
+            return {
+                'categories': {},
+                'summary': {
+                    'total_expense': 0.0,
+                    'analyzed_period': target_month,
+                    'total_merchants': 0,
+                    'total_transactions': 0
+                }
+            }
+
+    def get_merchant_transactions(self, merchant_name: str, month: Optional[str] = None) -> Dict[str, Any]:
+        """获取商户交易详情
+
+        Args:
+            merchant_name: 商户名称
+            month: 可选的月份筛选，格式为 YYYY-MM
+
+        Returns:
+            商户详情和交易记录
+        """
+        try:
+            # 构建查询
+            query = self.db.query(Transaction).filter(
+                Transaction.counterparty == merchant_name
+            )
+
+            # 应用月份筛选
+            if month:
+                from datetime import datetime
+                target_date = datetime.strptime(month, '%Y-%m').date()
+                month_start = target_date.replace(day=1)
+
+                if target_date.month == 12:
+                    month_end = target_date.replace(year=target_date.year + 1, month=1, day=1) - timedelta(days=1)
+                else:
+                    month_end = target_date.replace(month=target_date.month + 1, day=1) - timedelta(days=1)
+
+                query = query.filter(
+                    Transaction.date >= month_start,
+                    Transaction.date <= month_end
+                )
+
+            transactions = query.order_by(Transaction.date.desc()).all()
+
+            # 计算统计信息
+            total_amount = sum(abs(float(t.amount)) for t in transactions if t.amount < 0)
+            transaction_count = len([t for t in transactions if t.amount < 0])
+            average_amount = total_amount / transaction_count if transaction_count > 0 else 0.0
+
+            # 获取商户分类信息
+            category = self.category_service.classify_merchant(merchant_name)
+            category_info = self.category_service.get_category_display_info(category)
+
+            # 构建交易列表
+            transaction_list = []
+            for transaction in transactions:
+                if transaction.amount < 0:  # 只显示支出交易
+                    transaction_list.append({
+                        'date': transaction.date.strftime('%Y-%m-%d'),
+                        'amount': abs(float(transaction.amount)),
+                        'account': transaction.account.name if transaction.account else None,
+                        'description': transaction.description
+                    })
+
+            # 构建筛选信息
+            filter_info = {}
+            if month:
+                filter_info['period_info'] = f"{month}月"
+            else:
+                filter_info['period_info'] = "所有时间"
+
+            return {
+                'merchant_name': merchant_name,
+                'category_info': category_info,
+                'statistics': {
+                    'total_amount': total_amount,
+                    'transaction_count': transaction_count,
+                    'average_amount': average_amount
+                },
+                'transactions': transaction_list,
+                'filter_info': filter_info
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error getting merchant transactions for {merchant_name}: {e}")
+            return {
+                'merchant_name': merchant_name,
+                'category_info': self.category_service.get_category_display_info('other'),
+                'statistics': {
+                    'total_amount': 0.0,
+                    'transaction_count': 0,
+                    'average_amount': 0.0
+                },
+                'transactions': [],
+                'filter_info': {'period_info': '无数据'}
             }
 
 
