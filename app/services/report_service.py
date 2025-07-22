@@ -491,8 +491,9 @@ class ReportService:
                 amount = abs(float(transaction.amount))
                 total_expense += amount
 
-                # 获取商户分类
-                category = self.category_service.classify_merchant(transaction.counterparty or '')
+                # 获取商户分类和信息
+                category_with_info = self.category_service.classify_merchant_with_info(transaction.counterparty or '')
+                category = category_with_info['code']
 
                 # 应用分类过滤
                 if category_filter and category != category_filter:
@@ -500,11 +501,10 @@ class ReportService:
 
                 # 初始化分类数据
                 if category not in categories:
-                    category_info = self.category_service.get_category_display_info(category)
                     categories[category] = {
-                        'name': category_info['name'],
-                        'icon': category_info['icon'],
-                        'color': category_info['color'],
+                        'name': category_with_info['name'],
+                        'icon': category_with_info['icon'],
+                        'color': category_with_info['color'],
                         'total_amount': 0.0,
                         'percentage': 0.0,
                         'merchants': {}
@@ -682,8 +682,9 @@ class ReportService:
             average_amount = total_amount / transaction_count if transaction_count > 0 else 0.0
 
             # 获取商户分类信息
-            category = self.category_service.classify_merchant(merchant_name)
-            category_info = self.category_service.get_category_display_info(category)
+            category_with_info = self.category_service.classify_merchant_with_info(merchant_name)
+            category = category_with_info['code']
+            category_info = {k: v for k, v in category_with_info.items() if k != 'code'}
 
             # 构建交易列表
             transaction_list = []

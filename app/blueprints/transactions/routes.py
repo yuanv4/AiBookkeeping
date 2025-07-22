@@ -1,7 +1,7 @@
 # 使用重构后的服务层和路由助手
 from flask import request, render_template, current_app
 from app.utils.decorators import handle_errors
-from app.utils import DataUtils, get_transaction_service, get_account_service, get_category_service
+from app.utils import DataUtils, get_transaction_service, get_account_service, get_categories_config
 from app.utils.route_helpers import get_common_filters, log_route_access, build_filter_summary
 
 from . import transactions_bp
@@ -23,7 +23,6 @@ def transactions_list_route(): # 重命名函数
     # 获取服务实例
     transaction_service = get_transaction_service()
     account_service = get_account_service()
-    category_service = get_category_service()
 
     # 使用优化的查询方法，预加载关联数据避免N+1问题
     all_transactions = transaction_service.get_transactions_with_relations(filters=filters)
@@ -37,7 +36,7 @@ def transactions_list_route(): # 重命名函数
     currencies_for_filter = transaction_service.get_all_currencies() if hasattr(transaction_service, 'get_all_currencies') else ['CNY']
 
     # 获取分类配置信息
-    categories_config = category_service.get_all_categories()
+    categories_config = get_categories_config()
 
     # 构建当前过滤条件（用于模板显示）
     current_filters = {

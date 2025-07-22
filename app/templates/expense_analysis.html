@@ -55,6 +55,14 @@
             重新加载
         </button>
     </div>
+
+    <!-- 统一的数据容器，供JavaScript使用 -->
+    <div id="page-data"
+         data-initial-data='{{ {
+             "categories_config": categories_config
+         }|tojson|safe }}'
+         style="display: none;">
+    </div>
 </div>
 
 

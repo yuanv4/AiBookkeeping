@@ -68,9 +68,6 @@ class ImportService:
         # 设置允许的文件扩展名
         self.allowed_extensions = allowed_extensions or ImportConstants.ALLOWED_EXTENSIONS
 
-        # 设置日志器
-        self.logger = logging.getLogger(__name__)
-        
         # 加载提取器
         self._extractors = []
         self._load_extractors()
@@ -84,11 +81,11 @@ class ImportService:
                 try:
                     extractor_instance = extractor_class()
                     self._extractors.append(extractor_instance)
-                    self.logger.info(f"加载提取器: {extractor_instance.get_bank_name()}")
+                    logger.info(f"加载提取器: {extractor_instance.get_bank_name()}")
                 except Exception as e:
-                    self.logger.error(f"加载提取器失败 {extractor_class}: {e}")
+                    logger.error(f"加载提取器失败 {extractor_class}: {e}")
         except ImportError as e:
-            self.logger.error(f"无法导入提取器: {e}")
+            logger.error(f"无法导入提取器: {e}")
 
     def _is_allowed_file(self, filename: str) -> bool:
         """检查文件是否为允许的类型
@@ -123,16 +120,16 @@ class ImportService:
                 auto_category = self.category_service.classify_merchant(counterparty)
                 transaction_data['category'] = auto_category
 
-                self.logger.debug(f"自动分类交易: {counterparty} -> {auto_category}")
+                logger.debug(f"自动分类交易: {counterparty} -> {auto_category}")
             except Exception as e:
-                self.logger.error(f"自动分类失败: {e}")
+                logger.error(f"自动分类失败: {e}")
                 transaction_data['category'] = 'other'
         else:
             # 确保有默认分类
             transaction_data['category'] = current_category or 'other'
 
             if amount >= 0:
-                self.logger.debug(f"收入交易设为默认分类: {transaction_data['category']}")
+                logger.debug(f"收入交易设为默认分类: {transaction_data['category']}")
 
         return transaction_data
 
@@ -160,13 +157,13 @@ class ImportService:
                 file_obj.save(file_path)
                 filenames.append(filename)
             except Exception as e:
-                self.logger.error(f"保存文件 {filename} 失败: {e}")
+                logger.error(f"保存文件 {filename} 失败: {e}")
                 return None, f"保存文件 {filename} 失败"
-        
+
         if not filenames:
             return None, '没有有效文件被保存'
 
-        self.logger.info(f"开始处理 {len(filenames)} 个上传的文件: {', '.join(filenames)}")
+        logger.info(f"开始处理 {len(filenames)} 个上传的文件: {', '.join(filenames)}")
         return self._process_and_cleanup_files_in_folder(self.upload_folder, specific_filenames=filenames)
 
     def _process_and_cleanup_files_in_folder(self, folder_path, specific_filenames=None):
@@ -181,7 +178,7 @@ class ImportService:
                 processed_files_result_all.append(result)
 
             if not processed_files_result_all:
-                self.logger.warning("提取器未能成功处理任何文件。")
+                logger.warning("提取器未能成功处理任何文件。")
                 return None, "未能成功提取任何交易记录"
 
             # 筛选目标文件
@@ -194,12 +191,12 @@ class ImportService:
                         files_to_consider_for_result_and_cleanup.append(proc_file_info)
                 
                 if not files_to_consider_for_result_and_cleanup:
-                    self.logger.warning(f"提供的特定文件 {specific_filenames} 未在处理结果中找到。")
+                    logger.warning(f"提供的特定文件 {specific_filenames} 未在处理结果中找到。")
                     return None, "指定的上传文件未能被处理"
             else:
                 files_to_consider_for_result_and_cleanup = processed_files_result_all
-            
-            self.logger.info(f"成功处理 {len(files_to_consider_for_result_and_cleanup)} 个目标文件。")
+
+            logger.info(f"成功处理 {len(files_to_consider_for_result_and_cleanup)} 个目标文件。")
 
             # 清理已处理的文件
             for file_info in files_to_consider_for_result_and_cleanup:
@@ -210,16 +207,16 @@ class ImportService:
                     path_to_delete = Path(folder_path) / file_name_to_delete
                     if path_to_delete.exists():
                         path_to_delete.unlink()
-                        self.logger.info(f"已删除处理过的文件: {path_to_delete}")
+                        logger.info(f"已删除处理过的文件: {path_to_delete}")
                     else:
-                        self.logger.warning(f"尝试删除处理过的文件时未找到: {path_to_delete}")
+                        logger.warning(f"尝试删除处理过的文件时未找到: {path_to_delete}")
                 except Exception as e:
-                    self.logger.error(f"删除文件 {file_name_to_delete} 时出错: {e}")
+                    logger.error(f"删除文件 {file_name_to_delete} 时出错: {e}")
             
             return files_to_consider_for_result_and_cleanup, "处理成功"
 
         except Exception as e:
-            self.logger.error(f"处理文件时出错: {str(e)}", exc_info=True)
+            logger.error(f"处理文件时出错: {str(e)}", exc_info=True)
             return None, f"处理文件时出错: {str(e)}"
 
     def _process_single_file(self, file_path: str):
@@ -266,7 +263,7 @@ class ImportService:
                     transactions_data.append(transaction_data)
 
                 except Exception as e:
-                    self.logger.warning(f"准备交易记录失败: {e}")
+                    logger.warning(f"准备交易记录失败: {e}")
                     continue
 
             # 批量检查重复交易，提高性能
@@ -280,16 +277,16 @@ class ImportService:
                             # 应用自动分类逻辑
                             classified_data = self._apply_auto_classification(transaction_data)
 
-                            self.logger.debug(f"新建交易：{classified_data}")
+                            logger.debug(f"新建交易：{classified_data}")
                             transaction = self.transaction_service.create_transaction(**classified_data)
                             if transaction:
                                 processed_count += 1
                         except Exception as e:
-                            self.logger.warning(f"创建交易记录失败: {e}")
+                            logger.warning(f"创建交易记录失败: {e}")
                     else:
-                        self.logger.debug(f"跳过重复交易：{transaction_data.get('counterparty', 'Unknown')}")
+                        logger.debug(f"跳过重复交易：{transaction_data.get('counterparty', 'Unknown')}")
 
-            self.logger.info(f"文件 {file_path} 处理完成，新增 {processed_count} 条交易记录")
+            logger.info(f"文件 {file_path} 处理完成，新增 {processed_count} 条交易记录")
 
             return {
                 'success': True,
@@ -308,7 +305,7 @@ class ImportService:
             }
             
         except Exception as e:
-            self.logger.error(f"从文件导入交易记录失败 {file_path}: {e}")
+            logger.error(f"从文件导入交易记录失败 {file_path}: {e}")
             return {
                 'success': False,
                 'bank': None,
@@ -339,7 +336,7 @@ class ImportService:
         try:
             return pd.read_excel(file_path, header=None)
         except Exception as e:
-            self.logger.error(f"读取文件失败 {file_path}: {e}")
+            logger.error(f"读取文件失败 {file_path}: {e}")
             raise ValueError(f'无法读取文件 {file_path}: {str(e)}')
 
     def _find_suitable_extractor(self, df_raw: pd.DataFrame, file_path: str):
@@ -347,13 +344,13 @@ class ImportService:
         for extractor in self._extractors:
             try:
                 if extractor.is_applicable(df_raw):
-                    self.logger.info(f"为文件 {file_path} 选择了提取器: {extractor.get_bank_name()}")
+                    logger.info(f"为文件 {file_path} 选择了提取器: {extractor.get_bank_name()}")
                     return extractor
             except Exception as e:
-                self.logger.debug(f"提取器 {extractor.get_bank_name()} 检查数据时出错: {e}")
+                logger.debug(f"提取器 {extractor.get_bank_name()} 检查数据时出错: {e}")
                 continue
-        
-        self.logger.warning(f"未找到适用于文件 {file_path} 的提取器")
+
+        logger.warning(f"未找到适用于文件 {file_path} 的提取器")
         return None
 
     def create_classified_transaction(self, **transaction_data) -> 'Transaction':

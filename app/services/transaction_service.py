@@ -10,6 +10,7 @@ from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import joinedload, selectinload
 from app.utils.decorators import cached_query
+from app.utils import DataUtils
 
 from .base_service import BaseService
 from .account_service import AccountService
@@ -155,7 +156,6 @@ class TransactionService(BaseService):
         """检查交易是否重复"""
         try:
             # 标准化金额
-            from app.utils import DataUtils
             normalized_amount = DataUtils.normalize_decimal(amount)
             normalized_balance = DataUtils.normalize_decimal(balance_after) if balance_after is not None else None
 
@@ -186,7 +186,6 @@ class TransactionService(BaseService):
             for data in transactions_data:
                 account_id = data.get('account_id')
                 date_val = data.get('date')
-                from app.utils import DataUtils
                 amount = DataUtils.normalize_decimal(data.get('amount'))
                 balance_after = data.get('balance_after')
 
@@ -213,7 +212,6 @@ class TransactionService(BaseService):
             # 检查每个交易是否重复
             results = []
             for data in transactions_data:
-                from app.utils import DataUtils
                 key = (
                     data.get('account_id'),
                     data.get('date'),

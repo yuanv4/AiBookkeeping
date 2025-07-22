@@ -9,7 +9,7 @@
 import logging
 import yaml
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from functools import lru_cache
 
 logger = logging.getLogger(__name__)
@@ -27,26 +27,23 @@ class CategoryService:
         Args:
             config_path: 配置文件路径，如果为None则使用默认路径
         """
-        self.logger = logging.getLogger(__name__)
-        self.config_path = Path(config_path) if config_path else self._get_default_config_path()
+        if config_path:
+            self.config_path = Path(config_path)
+        else:
+            # 使用相对于项目根目录的配置文件路径
+            project_root = Path(__file__).parent.parent.parent
+            self.config_path = project_root / "config" / "merchant_categories.yaml"
         self._merchant_lookup: Dict[str, str] = {}
         self._categories: Dict[str, Dict[str, str]] = {}
 
         # 加载配置
         self._load_config()
-    
-    def _get_default_config_path(self) -> Path:
-        """获取默认配置文件路径"""
-        project_root = Path(__file__).parent.parent.parent
-        return project_root / "config" / "merchant_categories.yaml"
 
     def _load_config(self) -> None:
         """加载配置文件"""
         try:
             if not self.config_path.exists():
-                self.logger.warning(f"配置文件不存在: {self.config_path}，使用默认配置")
-                self._load_default_config()
-                return
+                raise FileNotFoundError(f"分类配置文件不存在: {self.config_path}，应用无法启动")
 
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 config_data = yaml.safe_load(f)
@@ -60,31 +57,17 @@ class CategoryService:
             for category, merchant_list in config_data.get('merchants', {}).items():
                 for merchant in merchant_list:
                     if merchant in merchant_lookup:
-                        self.logger.warning(f"商户'{merchant}'重复定义")
+                        logger.warning(f"商户'{merchant}'重复定义")
                     merchant_lookup[merchant] = category
 
             self._categories = config_data.get('categories', {})
             self._merchant_lookup = merchant_lookup
 
-            self.logger.info(f"配置加载成功: {len(self._categories)}个分类, {len(merchant_lookup)}个商户")
+            logger.info(f"配置加载成功: {len(self._categories)}个分类, {len(merchant_lookup)}个商户")
 
         except Exception as e:
-            self.logger.error(f"配置加载失败: {e}")
-            self._load_default_config()
-    
-    def _load_default_config(self) -> None:
-        """加载默认配置"""
-        self.logger.warning("使用默认配置")
-
-        self._categories = {
-            'other': {
-                'name': '其他支出',
-                'icon': 'more-horizontal',
-                'color': 'dark',
-                'description': '未分类的其他支出'
-            }
-        }
-        self._merchant_lookup = {}
+            logger.error(f"配置加载失败: {e}")
+            raise RuntimeError(f"分类配置加载失败，应用无法启动: {e}") from e
 
     @lru_cache(maxsize=1000)
     def classify_merchant(self, merchant_name: str) -> str:
@@ -96,14 +79,12 @@ class CategoryService:
         Returns:
             商户分类标识，如果未找到匹配则返回'other'
         """
+        # 验证并标准化商户名称
         if not merchant_name or not isinstance(merchant_name, str):
             return 'other'
 
         normalized_name = merchant_name.strip()
-        if not normalized_name:
-            return 'other'
-
-        return self._merchant_lookup.get(normalized_name, 'other')
+        return self._merchant_lookup.get(normalized_name, 'other') if normalized_name else 'other'
     
     def get_category_display_info(self, category: str) -> Dict[str, str]:
         """获取分类的显示信息
@@ -114,35 +95,35 @@ class CategoryService:
         Returns:
             包含名称、颜色、描述、图标的字典
         """
-        return self._categories.get(category, self._get_default_category_info())
-
-    def _get_default_category_info(self) -> Dict[str, str]:
-        """获取默认分类信息"""
-        return {
-            'name': '其他支出',
-            'icon': 'more-horizontal',
-            'color': 'dark',
-            'description': '未分类的其他支出'
-        }
+        if category not in self._categories:
+            raise ValueError(f"未知的分类代码: {category}")
+        return self._categories[category]
 
     def get_all_categories(self) -> Dict[str, Dict[str, str]]:
         """获取所有分类信息"""
-        return self._categories or {'other': self._get_default_category_info()}
+        return self._categories
+
+    def get_valid_category_codes(self) -> List[str]:
+        """获取所有有效的分类代码列表"""
+        return list(self._categories.keys())
+
+    def classify_merchant_with_info(self, merchant_name: str) -> Dict[str, str]:
+        """对商户进行分类并返回完整的分类信息
+
+        Args:
+            merchant_name: 商户名称
+
+        Returns:
+            包含分类代码和显示信息的字典
+        """
+        category = self.classify_merchant(merchant_name)
+        category_info = self.get_category_display_info(category)
+        return {
+            'code': category,
+            **category_info
+        }
 
     def clear_cache(self) -> None:
         """清除分类缓存"""
         self.classify_merchant.cache_clear()
-        self.logger.info("分类缓存已清除")
-
-    def reload_config(self) -> bool:
-        """重新加载配置"""
-        try:
-            self._load_config()
-            self.classify_merchant.cache_clear()
-            self.logger.info("配置重新加载成功，缓存已清除")
-            return True
-        except Exception as e:
-            self.logger.error(f"重新加载配置失败: {e}")
-            return False
-
-
+        logger.info("分类缓存已清除")

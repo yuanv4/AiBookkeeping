@@ -9,7 +9,7 @@ from flask import render_template, jsonify, current_app, request
 
 from . import expense_analysis_bp
 from app.utils.decorators import handle_errors
-from app.utils import get_report_service, DataUtils
+from app.utils import get_report_service, DataUtils, get_categories_config, get_valid_category_codes
 from app.utils.route_helpers import log_route_access, validate_month_param
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,15 @@ logger = logging.getLogger(__name__)
 @handle_errors
 def index():
     """支出分析主页面"""
-    return render_template('expense_analysis.html')
+    # 获取分类配置传递给前端
+    try:
+        categories_config = get_categories_config()
+    except Exception as e:
+        logger.error(f"获取分类配置失败: {e}")
+        # 配置获取失败时，让页面显示错误而不是使用默认值
+        categories_config = {}
+
+    return render_template('expense_analysis.html', categories_config=categories_config)
 
 
 
@@ -75,7 +83,14 @@ def api_merchant_analysis():
                     }), 400
 
         # 验证分类筛选参数
-        valid_categories = ['dining', 'transport', 'shopping', 'services', 'healthcare', 'finance', 'other']
+        try:
+            valid_categories = get_valid_category_codes()
+        except Exception as e:
+            return DataUtils.format_api_response(
+                success=False,
+                error=f'无法获取分类配置: {str(e)}'
+            ), 500
+
         if category_filter and category_filter not in valid_categories:
             return DataUtils.format_api_response(
                 success=False,

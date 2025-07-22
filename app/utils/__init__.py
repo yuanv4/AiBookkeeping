@@ -10,6 +10,7 @@ from .data_utils import DataUtils
 from .service_helpers import (
     get_bank_service, get_account_service, get_transaction_service,
     get_import_service, get_report_service, get_category_service,
+    get_categories_config, get_valid_category_codes,
     check_services_health
 )
 
@@ -24,5 +25,7 @@ __all__ = [
     'get_import_service',
     'get_report_service',
     'get_category_service',
+    'get_categories_config',
+    'get_valid_category_codes',
     'check_services_health'
 ]

@@ -70,6 +70,14 @@ class ServiceContainer:
             self.logger.debug("创建CategoryService实例")
         return self._services['category_service']
 
+    def get_categories_config(self):
+        """统一获取分类配置"""
+        return self.get_category_service().get_all_categories()
+
+    def get_valid_category_codes(self):
+        """统一获取有效分类代码列表"""
+        return self.get_category_service().get_valid_category_codes()
+
     def get_report_service(self):
         """获取报告服务实例"""
         if 'report_service' not in self._services:
@@ -118,6 +126,14 @@ def get_report_service():
 def get_category_service():
     """获取分类服务实例（向后兼容）"""
     return _service_container.get_category_service()
+
+def get_categories_config():
+    """统一获取分类配置"""
+    return _service_container.get_categories_config()
+
+def get_valid_category_codes():
+    """统一获取有效分类代码列表"""
+    return _service_container.get_valid_category_codes()
 
 def check_services_health() -> dict:
     """检查所有服务的健康状态"""

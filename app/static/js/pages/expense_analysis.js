@@ -9,7 +9,7 @@ import { getProjectColors, formatCurrency, getChartStyles, ChartRegistry, showNo
 class ExpenseAnalysisPage extends BasePage {
     constructor() {
         super();
-        
+
         // 简化的状态管理 - 直接使用属性而不是复杂的状态管理器
         this.selectedMonth = null;
         this.availableMonths = [];
@@ -17,6 +17,7 @@ class ExpenseAnalysisPage extends BasePage {
         this.loading = false;
         this.chart = null;
         this.expandedCategories = new Set();
+        this.categoriesConfig = {};
 
         this.init();
     }
@@ -26,11 +27,28 @@ class ExpenseAnalysisPage extends BasePage {
             console.log('支出分析页面初始化');
             window.expenseAnalysisPage = this;
 
+            // 加载分类配置
+            this.loadCategoriesConfig();
+
             await this.loadAvailableMonths();
             await this.loadInitialData();
-            
+
         } catch (error) {
             console.error('页面初始化失败:', error);
+        }
+    }
+
+    loadCategoriesConfig() {
+        try {
+            const pageDataElement = document.getElementById('page-data');
+            if (pageDataElement) {
+                const initialData = JSON.parse(pageDataElement.dataset.initialData);
+                this.categoriesConfig = initialData.categories_config || {};
+                console.log('加载分类配置:', this.categoriesConfig);
+            }
+        } catch (error) {
+            console.error('加载分类配置失败:', error);
+            this.categoriesConfig = {};
         }
     }
 
@@ -180,6 +198,41 @@ class ExpenseAnalysisPage extends BasePage {
         this.chart = chart;
     }
 
+    buildSeriesFromConfig(labels, monthlyDataMap, colors) {
+        const series = [];
+        const colorKeys = ['primary', 'success', 'info', 'warning', 'danger', 'secondary'];
+        let colorIndex = 0;
+
+        // 如果有分类配置，使用配置构建系列
+        if (this.categoriesConfig && Object.keys(this.categoriesConfig).length > 0) {
+            for (const [categoryCode, categoryInfo] of Object.entries(this.categoriesConfig)) {
+                const colorKey = colorKeys[colorIndex % colorKeys.length];
+                const isLast = colorIndex === Object.keys(this.categoriesConfig).length - 1;
+
+                series.push({
+                    name: categoryInfo.name,
+                    type: 'bar',
+                    stack: 'expenses',
+                    data: labels.map(month => monthlyDataMap[month]?.[categoryCode] || 0),
+                    itemStyle: {
+                        color: colors[colorKey] + 'CC', // 80% 透明度
+                        borderRadius: isLast ? [2, 2, 0, 0] : [0, 0, 0, 0] // 最后一个系列顶部圆角
+                    },
+                    emphasis: {
+                        itemStyle: { color: colors[colorKey] }
+                    }
+                });
+
+                colorIndex++;
+            }
+        } else {
+            // 如果没有配置，显示空数据
+            console.warn('没有分类配置，无法构建图表系列');
+        }
+
+        return series;
+    }
+
     buildEChartsData() {
         const { categories } = this.categoryData;
         const monthlyDataMap = {};
@@ -213,65 +266,8 @@ class ExpenseAnalysisPage extends BasePage {
         // 获取项目颜色配置
         const colors = getProjectColors();
 
-        // 构建ECharts系列数据
-        const series = [
-            {
-                name: '餐饮支出',
-                type: 'bar',
-                stack: 'expenses',
-                data: labels.map(month => monthlyDataMap[month]?.dining || 0),
-                itemStyle: {
-                    color: colors.primary + 'CC', // 80% 透明度
-                    borderRadius: [0, 0, 0, 0]
-                },
-                emphasis: {
-                    itemStyle: { color: colors.primary }
-                }
-            },
-            {
-                name: '交通支出',
-                type: 'bar',
-                stack: 'expenses',
-                data: labels.map(month => monthlyDataMap[month]?.transport || 0),
-                itemStyle: {
-                    color: colors.success + 'CC',
-                    borderRadius: [0, 0, 0, 0]
-                },
-                emphasis: {
-                    itemStyle: { color: colors.success }
-                }
-            },
-            {
-                name: '购物支出',
-                type: 'bar',
-                stack: 'expenses',
-                data: labels.map(month => monthlyDataMap[month]?.shopping || 0),
-                itemStyle: {
-                    color: colors.info + 'CC',
-                    borderRadius: [0, 0, 0, 0]
-                },
-                emphasis: {
-                    itemStyle: { color: colors.info }
-                }
-            },
-            {
-                name: '其他支出',
-                type: 'bar',
-                stack: 'expenses',
-                data: labels.map(month => {
-                    const monthData = monthlyDataMap[month] || {};
-                    return (monthData.services || 0) + (monthData.healthcare || 0) +
-                           (monthData.finance || 0) + (monthData.other || 0);
-                }),
-                itemStyle: {
-                    color: colors.secondary + 'CC',
-                    borderRadius: [2, 2, 0, 0] // 顶部圆角
-                },
-                emphasis: {
-                    itemStyle: { color: colors.secondary }
-                }
-            }
-        ];
+        // 构建ECharts系列数据 - 使用配置驱动
+        const series = this.buildSeriesFromConfig(labels, monthlyDataMap, colors);
 
         return {
             labels: labels,

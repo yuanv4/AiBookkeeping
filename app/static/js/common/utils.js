@@ -985,24 +985,17 @@ function createCategoryFormatter(categoriesConfig) {
     return function(cell) {
         const category = cell.getValue();
 
-        // 使用传入的分类配置，如果没有则使用默认值
+        // 使用传入的分类配置
         let categoryInfo;
         if (categoriesConfig && categoriesConfig[category]) {
             categoryInfo = categoriesConfig[category];
-        } else if (categoriesConfig && categoriesConfig['other']) {
-            categoryInfo = categoriesConfig['other'];
         } else {
-            // 默认分类信息映射
-            const defaultCategories = {
-                'dining': { name: '餐饮支出', icon: 'coffee', color: 'primary' },
-                'transport': { name: '交通支出', icon: 'car', color: 'success' },
-                'shopping': { name: '购物支出', icon: 'shopping-bag', color: 'info' },
-                'services': { name: '生活服务', icon: 'settings', color: 'warning' },
-                'healthcare': { name: '医疗健康', icon: 'heart', color: 'danger' },
-                'finance': { name: '金融保险', icon: 'credit-card', color: 'secondary' },
-                'other': { name: '其他支出', icon: 'more-horizontal', color: 'dark' }
+            // 配置缺失时使用最小化的通用默认值
+            categoryInfo = {
+                name: '未知分类',
+                icon: 'help-circle',
+                color: 'secondary'
             };
-            categoryInfo = defaultCategories[category] || defaultCategories['other'];
         }
 
         return `<span class="category-badge d-flex align-items-center">
@@ -1020,21 +1013,13 @@ function createCategoryFormatter(categoriesConfig) {
 function createCategoryFilterParams(categoriesConfig) {
     const filterOptions = { '': '全部分类' };
 
-    // 如果有分类配置，使用配置；否则使用默认值
+    // 使用分类配置构建筛选选项
     if (categoriesConfig && Object.keys(categoriesConfig).length > 0) {
         for (const [code, info] of Object.entries(categoriesConfig)) {
             filterOptions[code] = info.name;
         }
-    } else {
-        // 默认分类选项
-        filterOptions['dining'] = '餐饮支出';
-        filterOptions['transport'] = '交通支出';
-        filterOptions['shopping'] = '购物支出';
-        filterOptions['services'] = '生活服务';
-        filterOptions['healthcare'] = '医疗健康';
-        filterOptions['finance'] = '金融保险';
-        filterOptions['other'] = '其他支出';
     }
+    // 如果没有配置，筛选器将只有"全部分类"选项
 
     return {
         values: filterOptions,

@@ -120,22 +120,22 @@ class Transaction(BaseModel):
     @validates('category')
     def validate_category(self, _key, category):
         """验证商户分类"""
-        valid_categories = {
-            'dining', 'transport', 'shopping', 'services',
-            'healthcare', 'finance', 'other'
-        }
+        # 获取有效分类列表
+        from app.utils import get_valid_category_codes
+        valid_categories = set(get_valid_category_codes())
 
+        # 处理空分类
         if not category:
-            return 'other'
+            return 'other' if 'other' in valid_categories else list(valid_categories)[0]
+
+        # 标准化分类值
         if not isinstance(category, str):
             category = str(category)
         category = category.strip().lower()
 
+        # 验证分类有效性
         if category not in valid_categories:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"无效的商户分类: {category}, 使用默认值 'other'")
-            return 'other'
+            raise ValueError(f"无效的商户分类: {category}")
 
         return category
     
