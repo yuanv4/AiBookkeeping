@@ -45,7 +45,7 @@ def transactions_list_route(): # 重命名函数
         'type': filters.get('transaction_type'),
         'counterparty': filters.get('counterparty'),
         'currency': filters.get('currency'),
-        'account_name_filter': filters.get('account_name'),
+        'account_name_filter': filters.get('name'),
         'distinct': filters.get('distinct', False)
     }
 

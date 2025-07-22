@@ -35,12 +35,10 @@ export class UploadFeature {
         this.elements = {
             fileInput: document.getElementById(`${this.baseId}-input`),
             dropZone: document.getElementById(`${this.baseId}-drop-zone`),
-            uploadProgressContainer: document.getElementById(`${this.baseId}-progress`),
-            progressBar: document.getElementById(`${this.baseId}-progress-bar`),
-            progressText: document.getElementById(`${this.baseId}-progress-text`),
-            statusText: document.getElementById(`${this.baseId}-status-text`),
-            fileInfo: document.getElementById(`${this.baseId}-file-info`),
-            timeEstimate: document.getElementById(`${this.baseId}-time-estimate`),
+            processingContainer: document.getElementById(`${this.baseId}-processing`),
+            processingStage: document.getElementById(`${this.baseId}-processing-stage`),
+            processingFileInfo: document.getElementById(`${this.baseId}-processing-file-info`),
+            processingTimeEstimate: document.getElementById(`${this.baseId}-processing-time-estimate`),
             selectButton: document.querySelector(`[data-file-input="${this.baseId}-input"]`)
         };
     }
@@ -172,167 +170,240 @@ export class UploadFeature {
             showNotification('请先选择要上传的文件', 'error');
             return;
         }
-        
-        this.showUploadProgress();
-        
+
+        this.showProcessingIndicator();
+
         // 创建FormData
         const formData = new FormData();
         this.selectedFiles.forEach(file => {
             formData.append('file', file);
         });
-        
-        // 启动进度模拟
-        const progressPromise = this.simulateProgress();
-        
+
+        // 设置超时处理
+        const timeoutId = setTimeout(() => {
+            this.handleProcessingTimeout();
+        }, 30000); // 30秒超时
+
         try {
-            // 等待进度模拟完成后发送请求
-            await progressPromise;
-            
-            const result = await apiService.post('/settings/upload', formData, { showLoading: false });
-            
+            // 启动阶段模拟和实际请求
+            const stagePromise = this.simulateProcessingStages();
+            const uploadPromise = apiService.post('/settings/upload', formData, { showLoading: false });
+
+            // 等待两者都完成
+            const [_, result] = await Promise.all([stagePromise, uploadPromise]);
+
+            // 清除超时
+            clearTimeout(timeoutId);
+
             if (result.success) {
-                this.updateProgress(100, '处理完成！', '文件处理成功，正在重置界面...', 'completing');
-                setTimeout(() => this.resetUploadState(), 1000);
+                // 显示成功动画
+                this.showSuccessAnimation();
+                this.updateProcessingStage('save', '处理完成！', '文件处理成功，正在重置界面...');
+
+                // 显示处理结果通知
+                if (result.data && result.data.total_records) {
+                    showNotification(`成功处理 ${result.data.total_records} 条交易记录`, 'success');
+                }
+
+                setTimeout(() => this.resetUploadState(), 2000);
             } else {
-                this.updateProgress(100, '处理失败', result.error, 'error');
+                this.updateProcessingStage('error', '处理失败', result.error || '未知错误');
                 setTimeout(() => {
-                    this.hideUploadProgress();
-                }, 2000);
+                    this.hideProcessingIndicator();
+                }, 3000);
             }
-            
+
         } catch (error) {
-            this.updateProgress(100, '上传失败', `错误: ${error.message}`, 'error');
+            clearTimeout(timeoutId);
+            this.updateProcessingStage('error', '上传失败', `错误: ${error.message}`);
             setTimeout(() => {
-                this.hideUploadProgress();
-            }, 2000);
+                this.hideProcessingIndicator();
+            }, 3000);
         }
     }
+
+    handleProcessingTimeout() {
+        this.updateProcessingStage('error', '处理超时', '文件处理时间过长，请稍后重试');
+        setTimeout(() => {
+            this.hideProcessingIndicator();
+        }, 3000);
+    }
+
+    showSuccessAnimation() {
+        const spinner = this.elements.processingContainer?.querySelector('.processing-spinner');
+        if (spinner) {
+            spinner.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>';
+        }
+
+        // 标记所有阶段为完成
+        this.updateStageIndicator('completed');
+    }
     
-    simulateProgress() {
+
+    
+    updateProcessingStage(stage, status, fileInfo = '') {
+        if (!this.elements.processingContainer) return;
+
+        // 更新阶段指示器
+        this.updateStageIndicator(stage);
+
+        // 更新状态文字
+        if (this.elements.processingStage && status) {
+            this.elements.processingStage.textContent = status;
+
+            // 应用状态样式
+            this.elements.processingStage.classList.remove('success', 'error');
+            if (stage === 'error') {
+                this.elements.processingStage.classList.add('error');
+            } else if (stage === 'save' && status.includes('完成')) {
+                this.elements.processingStage.classList.add('success');
+            }
+        }
+
+        // 更新文件信息
+        if (this.elements.processingFileInfo && fileInfo) {
+            this.elements.processingFileInfo.textContent = fileInfo;
+        }
+
+        // 更新容器样式
+        this.elements.processingContainer.classList.remove('success', 'error');
+        if (stage === 'error') {
+            this.elements.processingContainer.classList.add('error');
+            const spinner = this.elements.processingContainer.querySelector('.processing-spinner');
+            if (spinner) {
+                spinner.innerHTML = '<i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>';
+            }
+        } else if (stage === 'save' && status.includes('完成')) {
+            this.elements.processingContainer.classList.add('success');
+        }
+    }
+
+    updateStageIndicator(currentStage) {
+        const stageOrder = ['upload', 'validate', 'extract', 'save'];
+        const stageDots = this.elements.processingContainer?.querySelectorAll('.stage-dot');
+        if (!stageDots) return;
+
+        // 特殊处理：全部完成
+        if (currentStage === 'completed') {
+            stageDots.forEach(dot => {
+                dot.classList.remove('active');
+                dot.classList.add('completed');
+            });
+            return;
+        }
+
+        const currentIndex = stageOrder.indexOf(currentStage);
+        if (currentIndex === -1) return;
+
+        stageDots.forEach((dot, index) => {
+            dot.classList.remove('active', 'completed');
+            if (index < currentIndex) {
+                dot.classList.add('completed');
+            } else if (index === currentIndex) {
+                dot.classList.add('active');
+            }
+        });
+    }
+
+    estimateProcessingTime(totalSize) {
+        const baseSizeKB = totalSize / 1024;
+        if (baseSizeKB < 100) return "约 1-2 秒";
+        if (baseSizeKB < 500) return "约 2-5 秒";
+        if (baseSizeKB < 2000) return "约 5-15 秒";
+        return "约 15-30 秒";
+    }
+
+    simulateProcessingStages() {
         return new Promise((resolve) => {
-            const totalSteps = 90;
-            let currentStep = 0;
-            
             const stages = [
-                { name: '文件上传中...', progress: 25, stage: 'uploading' },
-                { name: '格式验证中...', progress: 50, stage: 'validating' },
-                { name: '数据提取中...', progress: 85, stage: 'processing' },
-                { name: '保存数据中...', progress: 90, stage: 'completing' }
+                { stage: 'upload', message: '正在上传文件...', delay: 500 },
+                { stage: 'validate', message: '正在验证文件格式...', delay: 800 },
+                { stage: 'extract', message: '正在提取交易数据...', delay: 1200 },
+                { stage: 'save', message: '正在保存到数据库...', delay: 600 }
             ];
-            
-            let stageIndex = 0;
-            
-            const interval = setInterval(() => {
-                currentStep++;
-                const currentStage = stages[stageIndex];
-                
-                if (currentStep >= currentStage.progress && stageIndex < stages.length - 1) {
-                    stageIndex++;
-                }
-                
-                const fileInfo = this.selectedFiles.length > 0 ? 
-                    `正在处理: ${this.selectedFiles[0].name}` : '';
-                
-                this.updateProgress(
-                    currentStep, 
-                    stages[stageIndex].name, 
-                    fileInfo, 
-                    stages[stageIndex].stage
-                );
-                
-                if (currentStep >= totalSteps) {
-                    clearInterval(interval);
+
+            let currentIndex = 0;
+
+            const processNextStage = () => {
+                if (currentIndex >= stages.length) {
                     resolve();
+                    return;
                 }
-            }, 100);
+
+                const currentStage = stages[currentIndex];
+                this.updateProcessingStage(currentStage.stage, currentStage.message, '');
+
+                setTimeout(() => {
+                    currentIndex++;
+                    processNextStage();
+                }, currentStage.delay);
+            };
+
+            processNextStage();
         });
     }
     
-    updateProgress(percentage, status, fileInfo = '', stage = '') {
-        if (!this.elements.progressBar) return;
-        
-        this.elements.progressBar.style.width = `${percentage}%`;
-        this.elements.progressBar.setAttribute('aria-valuenow', percentage);
-        
-        if (this.elements.progressText) {
-            this.elements.progressText.textContent = `${Math.round(percentage)}%`;
-        }
-        
-        if (this.elements.statusText && status) {
-            const iconClass = {
-                'uploading': 'fas fa-upload',
-                'validating': 'fas fa-check-circle',
-                'processing': 'fas fa-cogs',
-                'completing': 'fas fa-save',
-                'error': 'fas fa-exclamation-triangle'
-            }[stage] || 'fas fa-spinner fa-spin';
-            
-            this.elements.statusText.innerHTML = `<i class="${iconClass} me-2"></i>${status}`;
-        }
-        
-        if (this.elements.fileInfo && fileInfo) {
-            this.elements.fileInfo.textContent = fileInfo;
-        }
-        
-        // 更新进度条样式
-        this.elements.progressBar.classList.remove('uploading', 'validating', 'processing', 'completing', 'error');
-        if (stage) {
-            this.elements.progressBar.classList.add(stage);
-        }
-    }
-    
-    showUploadProgress() {
+    showProcessingIndicator() {
         if (this.elements.dropZone) {
             this.elements.dropZone.style.display = 'none';
         }
-        if (this.elements.uploadProgressContainer) {
-            this.elements.uploadProgressContainer.classList.remove('d-none');
+        if (this.elements.processingContainer) {
+            this.elements.processingContainer.classList.remove('d-none');
         }
-        this.initProgressBar();
+        this.initProcessingIndicator();
     }
-    
-    hideUploadProgress() {
+
+    hideProcessingIndicator() {
         if (this.elements.dropZone) {
             this.elements.dropZone.style.display = 'block';
         }
-        if (this.elements.uploadProgressContainer) {
-            this.elements.uploadProgressContainer.classList.add('d-none');
+        if (this.elements.processingContainer) {
+            this.elements.processingContainer.classList.add('d-none');
         }
     }
     
-    initProgressBar() {
-        if (!this.elements.progressBar) return;
-        
-        this.elements.progressBar.style.width = '0%';
-        this.elements.progressBar.setAttribute('aria-valuenow', '0');
-        
-        if (this.elements.progressText) {
-            this.elements.progressText.textContent = '0%';
+    initProcessingIndicator() {
+        // 重置阶段指示器
+        this.updateStageIndicator('upload');
+
+        // 设置初始状态
+        if (this.elements.processingStage) {
+            this.elements.processingStage.textContent = '准备处理文件...';
         }
-        
-        this.elements.progressBar.classList.remove('uploading', 'validating', 'processing', 'completing', 'error');
-        
-        if (this.elements.statusText) {
-            this.elements.statusText.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>准备上传...';
+
+        // 显示文件信息和时间预估
+        if (this.selectedFiles.length > 0) {
+            const totalSize = this.selectedFiles.reduce((sum, file) => sum + file.size, 0);
+            const fileNames = this.selectedFiles.map(f => f.name).join(', ');
+
+            if (this.elements.processingFileInfo) {
+                this.elements.processingFileInfo.textContent = `正在处理: ${fileNames}`;
+            }
+
+            if (this.elements.processingTimeEstimate) {
+                this.elements.processingTimeEstimate.textContent = `预计用时: ${this.estimateProcessingTime(totalSize)}`;
+            }
         }
-        
-        if (this.elements.fileInfo) {
-            this.elements.fileInfo.textContent = '';
-        }
-        
-        if (this.elements.timeEstimate) {
-            this.elements.timeEstimate.textContent = '';
+
+        // 确保旋转加载器正常显示
+        const spinner = this.elements.processingContainer?.querySelector('.processing-spinner');
+        if (spinner) {
+            spinner.innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">处理中...</span>
+                </div>
+            `;
         }
     }
     
     resetUploadState() {
         this.selectedFiles = [];
-        
+
         if (this.elements.fileInput) {
             this.elements.fileInput.value = '';
         }
-        
-        this.hideUploadProgress();
+
+        this.hideProcessingIndicator();
     }
     
     clearAllFiles() {
@@ -372,8 +443,7 @@ export class DatabaseFeature {
     async confirmDeleteDatabase(event) {
         const button = event.target.closest('button');
         const deleteUrl = button.dataset.deleteUrl;
-        const dashboardUrl = button.dataset.dashboardUrl;
-        
+
         // 使用统一的确认对话框
         const confirmed = await ui.showConfirmationModal({
             title: '危险操作警告',
@@ -382,7 +452,7 @@ export class DatabaseFeature {
             confirmButtonText: '确定删除',
             cancelButtonText: '取消'
         });
-        
+
         if (confirmed) {
             // 第二次确认
             const finalConfirmed = await ui.showConfirmationModal({
@@ -392,21 +462,19 @@ export class DatabaseFeature {
                 confirmButtonText: '确认删除',
                 cancelButtonText: '取消'
             });
-            
+
             if (finalConfirmed) {
-                this.executeDelete(deleteUrl, dashboardUrl);
+                this.executeDelete(deleteUrl);
             }
         }
     }
     
-    async executeDelete(deleteUrl, dashboardUrl) {
+    async executeDelete(deleteUrl) {
         const result = await apiService.post(deleteUrl, {});
-        
+
         if (result.success && result.data.success) {
             showNotification('成功：' + result.data.message, 'success');
-            setTimeout(() => {
-                window.location.href = dashboardUrl;
-            }, 1500);
+            // 删除成功后留在当前页面，不重定向
         } else {
             const errorMessage = result.data?.message || result.error || '删除操作失败';
             showNotification('错误：' + errorMessage, 'error');

@@ -405,7 +405,7 @@ class ReportService:
                 balance = balances.get(account.id, Decimal('0.00'))
                 summary.append({
                     'account_id': account.id,
-                    'account_name': account.account_name or '未命名账户',
+                    'name': account.name or '未命名账户',
                     'account_number': account.account_number,
                     'bank_name': account.bank.name if account.bank else '未知银行',
                     'balance': float(balance),

@@ -32,13 +32,13 @@ class AccountService(BaseService):
         super().__init__(db_session)
         self.bank_service = bank_service or BankService(db_session)
     
-    def get_or_create_account(self, bank_id: int, account_number: str, account_name: str = None) -> Account:
+    def get_or_create_account(self, bank_id: int, account_number: str, name: str = None) -> Account:
         """获取或创建账户
 
         Args:
             bank_id: 银行ID
             account_number: 账户号码
-            account_name: 账户名称，可选
+            name: 账户名称，可选
 
         Returns:
             Account: 账户实例
@@ -52,7 +52,7 @@ class AccountService(BaseService):
                 account = Account.create(
                     bank_id=bank_id,
                     account_number=account_number,
-                    account_name=account_name or f"账户{account_number}"
+                    name=name or f"账户{account_number}"
                 )
                 self.logger.info(f"创建新账户: {account_number}")
             return account

@@ -238,7 +238,7 @@ class ImportService:
             account = self.account_service.get_or_create_account(
                 bank_id=bank.id,
                 account_number=extracted_data.account_number,
-                account_name=extracted_data.name
+                name=extracted_data.name
             )
             
             # 处理交易记录
@@ -300,7 +300,7 @@ class ImportService:
                     'success': True,
                     'bank': extracted_data.bank_name,
                     'account_number': extracted_data.account_number,
-                    'account_name': extracted_data.name,
+                    'name': extracted_data.name,
                     'record_count': processed_count,
                     'file_path': file_path
                 },

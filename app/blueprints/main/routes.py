@@ -205,7 +205,7 @@ def get_category_transactions():
                     'amount': float(transaction.amount),
                     'description': transaction.description or '',
                     'counterparty': transaction.counterparty or '',
-                    'account_name': transaction.account.account_name if transaction.account else ''
+                    'name': transaction.account.name if transaction.account else ''
                 })
 
         logger.info(f"找到 {len(transactions)} 条交易记录")

@@ -136,10 +136,10 @@ export default class TransactionsPage extends BasePage {
 
     formatAccountDisplay(transaction) {
         // 构建账户显示文本：户名-卡号
-        if (transaction.account_name && transaction.account_number) {
-            return `${transaction.account_name}-${transaction.account_number}`;
+        if (transaction.name && transaction.account_number) {
+            return `${transaction.name}-${transaction.account_number}`;
         }
-        return transaction.account_name || transaction.account_number || '';
+        return transaction.name || transaction.account_number || '';
     }
 
     // 刷新表格数据（用于后续的数据更新）

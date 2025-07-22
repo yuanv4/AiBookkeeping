@@ -66,8 +66,8 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
         """
         try:
             # 提取账户信息
-            account_name, account_number = self._extract_account_info(df_raw)
-            if not account_name or not account_number:
+            name, account_number = self._extract_account_info(df_raw)
+            if not name or not account_number:
                 raise ValueError('无法提取招商银行账户信息')
             
             # 提取交易数据
@@ -92,7 +92,7 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
             return ExtractedData(
                 bank_name=self.get_bank_name(),
                 bank_code=self.get_bank_code(),
-                name=account_name,
+                name=name,
                 account_number=account_number,
                 transactions=transactions_list
             )
@@ -109,9 +109,9 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
             df: 包含账户信息的DataFrame
             
         Returns:
-            tuple: (account_name, account_number)
+            tuple: (name, account_number)
         """
-        account_name = None
+        name = None
         account_number = None
         
         # 遍历前10行查找账户信息
@@ -120,9 +120,9 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
                 cell_value = str(df.iloc[i, j])
                 
                 # 提取账户名称
-                if account_name is None and self._ACCOUNT_NAME_KEY in cell_value:
+                if name is None and self._ACCOUNT_NAME_KEY in cell_value:
                     try:
-                        account_name = cell_value.split(self._ACCOUNT_NAME_KEY)[1].strip()
+                        name = cell_value.split(self._ACCOUNT_NAME_KEY)[1].strip()
                     except (IndexError, AttributeError):
                         continue
                 
@@ -134,10 +134,10 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
                         continue
                 
                 # 如果都找到了就可以提前退出
-                if account_name and account_number:
-                    return account_name, account_number
+                if name and account_number:
+                    return name, account_number
         
-        return account_name, account_number
+        return name, account_number
 
     def _extract_transactions(self, df_raw: pd.DataFrame) -> Optional[pd.DataFrame]:
         """提取招商银行交易数据

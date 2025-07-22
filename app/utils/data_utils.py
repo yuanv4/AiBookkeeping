@@ -196,7 +196,7 @@ class DataUtils:
                         'category': getattr(t, 'category', 'other') or 'other',
                         'currency': getattr(t, 'currency', 'CNY') or 'CNY',
                         'account_id': getattr(t, 'account_id', None),
-                        'account_name': getattr(t, 'account_name', None) or (t.account.name if hasattr(t, 'account') and t.account else None),
+                        'name': getattr(t, 'name', None) or (t.account.name if hasattr(t, 'account') and t.account else None),
                         'account_number': getattr(t, 'account_number', None) or (t.account.account_number if hasattr(t, 'account') and t.account else None),
                         'bank_name': getattr(t, 'bank_name', None) or (t.account.bank.name if hasattr(t, 'account') and t.account and hasattr(t.account, 'bank') and t.account.bank else None),
                         'is_income': amount_float > 0,

@@ -25,7 +25,7 @@ def get_common_filters() -> Dict[str, Any]:
         filters['account_number'] = request.args.get('account_number').strip()
     
     if request.args.get('account_name_filter'):
-        filters['account_name'] = request.args.get('account_name_filter').strip()
+        filters['name'] = request.args.get('account_name_filter').strip()
     
     # 日期范围过滤
     if request.args.get('start_date'):
