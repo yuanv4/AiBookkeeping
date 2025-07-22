@@ -16,7 +16,7 @@ class Config:
 
         # 文件上传配置
         self.UPLOAD_FOLDER = 'uploads'
-        self.ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
+        # ALLOWED_EXTENSIONS 统一在 ImportConstants 中定义
 
         # 日志配置
         self.LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')

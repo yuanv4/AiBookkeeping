@@ -1044,7 +1044,22 @@ export function getFinancialTableColumns(categoriesConfig = {}) {
                 field: "date",
                 sorter: "string",
                 headerFilter: "input",
-                headerFilterPlaceholder: "筛选日期",
+                headerFilterPlaceholder: "YYYY-MM-DD 或 YYYY-MM",
+                headerFilterFunc: function(headerValue, rowValue, rowData, filterParams) {
+                    if (!headerValue) return true;
+
+                    const searchValue = headerValue.trim();
+                    const dateValue = rowValue || '';
+
+                    // 支持完整日期匹配和年月筛选
+                    if (searchValue.length === 10) { // YYYY-MM-DD
+                        return dateValue === searchValue;
+                    } else if (searchValue.length === 7) { // YYYY-MM
+                        return dateValue.startsWith(searchValue);
+                    } else {
+                        return dateValue.startsWith(searchValue);
+                    }
+                },
                 width: 120,
                 formatter: formatters.dateFormat,
                 responsive: 0 // 最高优先级，始终显示
@@ -1052,7 +1067,7 @@ export function getFinancialTableColumns(categoriesConfig = {}) {
             {
                 title: "分类",
                 field: "category",
-                headerFilter: "select",
+                headerFilter: "list",
                 headerFilterParams: createCategoryFilterParams(categoriesConfig),
                 width: 100,
                 formatter: createCategoryFormatter(categoriesConfig),
@@ -1062,8 +1077,15 @@ export function getFinancialTableColumns(categoriesConfig = {}) {
             {
                 title: "对手信息",
                 field: "counterparty",
-                headerFilter: "input",
-                headerFilterPlaceholder: "筛选对手",
+                headerFilter: "list",
+                headerFilterParams: {
+                    valuesLookup: true, // 从表格数据中查找唯一值
+                    valuesLookupField: "counterparty", // 指定查找的字段
+                    multiselect: true,
+                    clearable: true,
+                    placeholder: "选择对手信息",
+                    maxHeight: 200
+                },
                 width: 150,
                 formatter: formatters.textTruncate,
                 formatterParams: { maxLength: 15 },
@@ -1073,8 +1095,9 @@ export function getFinancialTableColumns(categoriesConfig = {}) {
                 title: "金额",
                 field: "amount",
                 sorter: "number",
-                headerFilter: "number",
-                headerFilterPlaceholder: "筛选金额",
+                headerFilter: "input",
+                headerFilterPlaceholder: "如: 100-1000, >500, <100",
+                headerFilterFunc: createAmountRangeFilter(),
                 width: 120,
                 formatter: formatters.currency,
                 hozAlign: "right",
@@ -1083,8 +1106,15 @@ export function getFinancialTableColumns(categoriesConfig = {}) {
             {
                 title: "账户",
                 field: "account",
-                headerFilter: "input",
-                headerFilterPlaceholder: "筛选账户",
+                headerFilter: "list",
+                headerFilterParams: {
+                    valuesLookup: true, // 从表格数据中查找唯一值
+                    valuesLookupField: "account", // 指定查找的字段
+                    multiselect: true,
+                    clearable: true,
+                    placeholder: "选择账户",
+                    maxHeight: 200
+                },
                 width: 150,
                 formatter: formatters.textTruncate,
                 formatterParams: { maxLength: 15 },
@@ -1280,6 +1310,43 @@ export function updateTransactionsSummary(table, summaryElements) {
     } catch (error) {
         console.error('更新交易汇总信息失败:', error);
     }
+}
+
+/**
+ * 创建金额范围筛选器
+ * @returns {Function} 自定义筛选器函数
+ */
+function createAmountRangeFilter() {
+    return function(headerValue, rowValue, rowData, filterParams) {
+        if (!headerValue) return true;
+
+        const amount = parseFloat(rowValue) || 0;
+        const input = headerValue.trim();
+
+        // 支持多种格式：
+        // "100-1000" - 范围
+        // ">500" - 大于
+        // "<100" - 小于
+        // "=50" - 等于
+
+        if (input.includes('-')) {
+            const [min, max] = input.split('-').map(v => parseFloat(v.trim()));
+            return amount >= (min || 0) && amount <= (max || Infinity);
+        } else if (input.startsWith('>')) {
+            const threshold = parseFloat(input.substring(1));
+            return amount > threshold;
+        } else if (input.startsWith('<')) {
+            const threshold = parseFloat(input.substring(1));
+            return amount < threshold;
+        } else if (input.startsWith('=')) {
+            const target = parseFloat(input.substring(1));
+            return Math.abs(amount - target) < 0.01;
+        } else {
+            // 直接数字，按等于处理
+            const target = parseFloat(input);
+            return !isNaN(target) && Math.abs(amount - target) < 0.01;
+        }
+    };
 }
 
 // 页面卸载时清理所有表格实例
