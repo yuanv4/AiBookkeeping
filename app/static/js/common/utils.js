@@ -145,21 +145,15 @@ export const urlHandler = {
  * 获取项目颜色配置
  * @returns {Object} 颜色配置对象
  */
-export function getProjectColors() {
-    return {
-        primary: getCSSColor('--bs-primary') || '#0d6efd',
-        success: getCSSColor('--bs-success') || '#198754',
-        info: getCSSColor('--bs-info') || '#0dcaf0',
-        warning: getCSSColor('--bs-warning') || '#ffc107',
-        danger: getCSSColor('--bs-danger') || '#dc3545',
-        secondary: getCSSColor('--bs-secondary') || '#6c757d',
-        bodyColor: getCSSColor('--bs-body-color') || '#212529',
-        borderColor: getCSSColor('--bs-border-color') || '#dee2e6',
-        borderColorTranslucent: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)',
-        // 颜色变体 - 用于图表和高级样式
-        primary600: getCSSColor('--bs-primary-600') || '#0056b3',
-        success600: getCSSColor('--bs-success-600') || '#1e7e34'
-    };
+/**
+ * 从CSS变量动态获取颜色值
+ * @param {string} colorName - Bootstrap颜色名称（如 'primary', 'success'）
+ * @returns {string} 颜色值
+ */
+export function getCSSColorValue(colorName) {
+    const value = getComputedStyle(document.documentElement)
+        .getPropertyValue(`--bs-${colorName}`)?.trim();
+    return value || '#6c757d'; // 默认为secondary颜色
 }
 
 /**
@@ -167,15 +161,13 @@ export function getProjectColors() {
  * @returns {Object} 样式配置对象
  */
 export function getChartStyles() {
-    const colors = getProjectColors();
-
     return {
         tooltip: {
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            borderColor: colors.borderColor,
+            backgroundColor: getCSSColor('--bs-card-bg') || '#ffffff',
+            borderColor: getCSSColor('--bs-border-color') || '#dee2e6',
             borderWidth: 1,
             textStyle: {
-                color: colors.bodyColor,
+                color: getCSSColor('--bs-body-color') || '#212529',
                 fontSize: 12
             }
         },
@@ -187,14 +179,14 @@ export function getChartStyles() {
         },
         axisStyle: {
             axisLine: {
-                lineStyle: { color: colors.borderColor }
+                lineStyle: { color: getCSSColor('--bs-border-color') || '#dee2e6' }
             },
             axisLabel: {
-                color: colors.secondary,
+                color: getCSSColor('--bs-secondary') || '#6c757d',
                 fontSize: 11
             },
             splitLine: {
-                lineStyle: { color: colors.borderColorTranslucent }
+                lineStyle: { color: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)' }
             }
         }
     };

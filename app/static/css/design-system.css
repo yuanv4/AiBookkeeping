@@ -190,6 +190,7 @@
     --bs-body-color: #212529;
     --bs-card-bg: #ffffff;
     --bs-border-color: #dee2e6;
+    --bs-border-color-translucent: rgba(0, 0, 0, 0.125);
 
 /* 表面层级 */
     --surface-background: #f8f9fa;

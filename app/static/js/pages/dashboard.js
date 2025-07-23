@@ -3,7 +3,7 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { getProjectColors, getChartStyles, ChartRegistry } from '../common/utils.js';
+import { getChartStyles, ChartRegistry, getCSSColorValue } from '../common/utils.js';
 import { formatCurrency } from '../common/formatters.js';
 
 export default class FinancialDashboard extends BasePage {
@@ -37,8 +37,9 @@ export default class FinancialDashboard extends BasePage {
         const chart = window.echarts.init(container);
 
         // 获取项目配置
-        const colors = getProjectColors();
         const styles = getChartStyles();
+        const primaryColor = getCSSColorValue('primary');
+        const secondaryColor = getCSSColorValue('secondary');
 
         // 配置选项
         const option = {
@@ -48,7 +49,7 @@ export default class FinancialDashboard extends BasePage {
                 axisPointer: {
                     type: 'cross',
                     label: {
-                        backgroundColor: colors.secondary
+                        backgroundColor: secondaryColor
                     }
                 },
                 formatter: (params) => {
@@ -81,19 +82,19 @@ export default class FinancialDashboard extends BasePage {
                 symbol: 'circle',
                 symbolSize: 6,
                 lineStyle: {
-                    color: colors.primary,
+                    color: primaryColor,
                     width: 3
                 },
                 itemStyle: {
-                    color: colors.primary
+                    color: primaryColor
                 },
                 areaStyle: {
                     color: {
                         type: 'linear',
                         x: 0, y: 0, x2: 0, y2: 1,
                         colorStops: [
-                            { offset: 0, color: colors.primary + '40' },
-                            { offset: 1, color: colors.primary + '10' }
+                            { offset: 0, color: primaryColor + '40' },
+                            { offset: 1, color: primaryColor + '10' }
                         ]
                     }
                 },

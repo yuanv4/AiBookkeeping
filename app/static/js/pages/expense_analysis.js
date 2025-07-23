@@ -4,7 +4,8 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { getProjectColors, getChartStyles, ChartRegistry } from '../common/utils.js';
+import { getChartStyles, ChartRegistry, getCSSColorValue } from '../common/utils.js';
+import { getCSSColor } from '../common/dom-utils.js';
 import { formatCurrency } from '../common/formatters.js';
 import { showNotification } from '../common/notifications.js';
 import { apiService } from '../common/api-helpers.js';
@@ -138,7 +139,6 @@ class ExpenseAnalysisPage extends BasePage {
         const chart = window.echarts.init(container);
 
         // 获取项目配置
-        const colors = getProjectColors();
         const styles = getChartStyles();
 
         // 配置选项
@@ -164,7 +164,7 @@ class ExpenseAnalysisPage extends BasePage {
             legend: {
                 show: true,
                 top: 'top',
-                textStyle: { color: colors.bodyColor }
+                textStyle: { color: getCSSColor('--bs-body-color') || '#212529' }
             },
             grid: styles.grid,
             xAxis: {
@@ -201,7 +201,7 @@ class ExpenseAnalysisPage extends BasePage {
         this.chart = chart;
     }
 
-    buildSeriesFromConfig(labels, monthlyDataMap, colors) {
+    buildSeriesFromConfig(labels, monthlyDataMap) {
         const series = [];
         const colorKeys = ['primary', 'success', 'info', 'warning', 'danger', 'secondary'];
         let colorIndex = 0;
@@ -210,6 +210,7 @@ class ExpenseAnalysisPage extends BasePage {
         if (this.categoriesConfig && Object.keys(this.categoriesConfig).length > 0) {
             for (const [categoryCode, categoryInfo] of Object.entries(this.categoriesConfig)) {
                 const colorKey = colorKeys[colorIndex % colorKeys.length];
+                const color = getCSSColorValue(colorKey);
                 const isLast = colorIndex === Object.keys(this.categoriesConfig).length - 1;
 
                 series.push({
@@ -218,11 +219,11 @@ class ExpenseAnalysisPage extends BasePage {
                     stack: 'expenses',
                     data: labels.map(month => monthlyDataMap[month]?.[categoryCode] || 0),
                     itemStyle: {
-                        color: colors[colorKey] + 'CC', // 80% 透明度
+                        color: color + 'CC', // 80% 透明度
                         borderRadius: isLast ? [2, 2, 0, 0] : [0, 0, 0, 0] // 最后一个系列顶部圆角
                     },
                     emphasis: {
-                        itemStyle: { color: colors[colorKey] }
+                        itemStyle: { color: color }
                     }
                 });
 
@@ -266,11 +267,8 @@ class ExpenseAnalysisPage extends BasePage {
             labels = allMonths.slice(-5);
         }
 
-        // 获取项目颜色配置
-        const colors = getProjectColors();
-
         // 构建ECharts系列数据 - 使用配置驱动
-        const series = this.buildSeriesFromConfig(labels, monthlyDataMap, colors);
+        const series = this.buildSeriesFromConfig(labels, monthlyDataMap);
 
         return {
             labels: labels,
