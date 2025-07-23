@@ -10,6 +10,9 @@
  * - DOM操作 → dom-utils.js
  */
 
+import { formatCurrency } from './formatters.js';
+import { getCSSColor } from './dom-utils.js';
+
 /**
  * 防抖函数
  * @param {Function} func - 要防抖的函数
@@ -43,25 +46,6 @@ export function throttle(func, limit) {
             setTimeout(() => inThrottle = false, limit);
         }
     };
-}
-
-/**
- * 格式化日期为 YYYY-MM-DD 格式
- * @param {Date} date - 要格式化的日期对象
- * @returns {string} 格式化后的日期字符串
- */
-export function formatDate(date) {
-    if (!(date instanceof Date)) {
-        console.warn('formatDate: 参数必须是 Date 对象');
-        return '';
-    }
-    // return date.toISOString().split('T')[0]; // 旧方法，会导致时区问题
-
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    
-    return `${year}-${month}-${day}`;
 }
 
 /**
@@ -173,20 +157,6 @@ export function getProjectColors() {
         borderColor: getCSSColor('--bs-border-color') || '#dee2e6',
         borderColorTranslucent: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)'
     };
-}
-
-/**
- * 格式化货币显示
- * @param {number} value - 数值
- * @param {boolean} compact - 是否使用紧凑格式
- * @returns {string} 格式化后的字符串
- */
-export function formatCurrency(value, compact = false) {
-    const options = compact
-        ? { notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: 1 }
-        : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-
-    return '¥' + value.toLocaleString('zh-CN', options);
 }
 
 /**
