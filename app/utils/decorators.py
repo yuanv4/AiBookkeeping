@@ -7,31 +7,13 @@
 
 import functools
 import logging
-from functools import lru_cache
 from typing import Callable, Tuple, Any
 from flask import request, render_template, jsonify
 
 logger = logging.getLogger(__name__)
 
 
-def cached_query(maxsize: int = 128):
-    """简化的查询缓存装饰器
 
-    Args:
-        maxsize: 缓存最大条目数，默认128
-
-    Usage:
-        @cached_query()  # 使用默认缓存大小
-        def expensive_query():
-            return some_expensive_operation()
-
-        @cached_query(maxsize=256)  # 自定义缓存大小
-        def another_query():
-            return another_operation()
-    """
-    def decorator(func: Callable) -> Callable:
-        return lru_cache(maxsize=maxsize)(func)
-    return decorator
 
 
 def is_api_request() -> bool:
@@ -185,7 +167,6 @@ def validate_required_params(required_params):
 __all__ = [
     'handle_errors',
     'create_error_response',
-    'cached_query',
     'validate_date_range',
     'validate_required_params'
 ]

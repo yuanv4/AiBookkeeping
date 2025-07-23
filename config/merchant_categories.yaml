@@ -1,43 +1,6 @@
 # 商户分类配置文件
-# 定义分类元数据和商户精确匹配映射
-
-# 分类元数据定义
-categories:
-  dining:
-    name: "餐饮支出"
-    icon: "coffee"
-    color: "primary"
-    description: "餐厅、咖啡、外卖等饮食消费"
-  transport:
-    name: "交通支出"
-    icon: "car"
-    color: "success"
-    description: "地铁、打车、加油等出行费用"
-  shopping:
-    name: "购物支出"
-    icon: "shopping-bag"
-    color: "info"
-    description: "网购、超市、商场等购物消费"
-  services:
-    name: "生活服务"
-    icon: "settings"
-    color: "warning"
-    description: "通信、快递、美容等服务费用"
-  healthcare:
-    name: "医疗健康"
-    icon: "heart"
-    color: "danger"
-    description: "医院、药店、体检等医疗支出"
-  finance:
-    name: "金融保险"
-    icon: "credit-card"
-    color: "secondary"
-    description: "保险、转账等金融相关支出"
-  other:
-    name: "其他支出"
-    icon: "more-horizontal"
-    color: "dark"
-    description: "未分类的其他支出"
+# 注意：分类元数据已迁移到 app/services/category_service.py 中的 CATEGORIES 常量
+# 此文件仅包含商户到分类的映射关系
 
 # 商户精确匹配映射
 merchants:

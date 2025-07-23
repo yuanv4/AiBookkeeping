@@ -6,9 +6,9 @@
 
 from typing import List, Optional
 import logging
+from functools import lru_cache
 
 from app.models import Bank
-from app.utils.decorators import cached_query
 from .base_service import BaseService
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class BankService(BaseService):
             self.logger.error(f"Error getting bank by code '{code}': {e}")
             raise
 
-    @cached_query()
+    @lru_cache(maxsize=128)
     def get_all(self) -> List[Bank]:
         """获取所有银行"""
         try:

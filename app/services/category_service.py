@@ -3,7 +3,9 @@
 """
 简化的商户分类服务模块
 
-提供基于配置文件的商户分类功能。
+提供基于混合配置的商户分类功能：
+- 分类元数据：硬编码在Python常量中
+- 商户映射：从YAML配置文件加载
 """
 
 import logging
@@ -12,11 +14,12 @@ from pathlib import Path
 from typing import Dict, Optional, List
 from functools import lru_cache
 
-
 class CategoryService:
     """简化的商户分类服务
 
-    提供基于配置文件的商户分类功能。
+    提供基于混合配置的商户分类功能：
+    - 分类元数据：使用硬编码的CATEGORIES常量
+    - 商户映射：从YAML配置文件加载
     """
 
     def __init__(self, config_path: Optional[str] = None):
@@ -33,40 +36,78 @@ class CategoryService:
             project_root = Path(__file__).parent.parent.parent
             self.config_path = project_root / "config" / "merchant_categories.yaml"
         self._merchant_lookup: Dict[str, str] = {}
-        self._categories: Dict[str, Dict[str, str]] = {}
 
-        # 加载配置
+        # 直接使用硬编码的分类数据
+        self._categories = {
+            'dining': {
+                'name': '餐饮支出',
+                'icon': 'coffee',
+                'color': 'primary',
+                'description': '餐厅、咖啡、外卖等饮食消费'
+            },
+            'transport': {
+                'name': '交通支出',
+                'icon': 'car',
+                'color': 'success',
+                'description': '地铁、打车、加油等出行费用'
+            },
+            'shopping': {
+                'name': '购物支出',
+                'icon': 'shopping-bag',
+                'color': 'info',
+                'description': '网购、超市、商场等购物消费'
+            },
+            'services': {
+                'name': '生活服务',
+                'icon': 'settings',
+                'color': 'warning',
+                'description': '通信、快递、美容等服务费用'
+            },
+            'healthcare': {
+                'name': '医疗健康',
+                'icon': 'heart',
+                'color': 'danger',
+                'description': '医院、药店、体检等医疗支出'
+            },
+            'finance': {
+                'name': '金融保险',
+                'icon': 'credit-card',
+                'color': 'secondary',
+                'description': '保险、转账等金融相关支出'
+            },
+            'other': {
+                'name': '其他支出',
+                'icon': 'more-horizontal',
+                'color': 'dark',
+                'description': '未分类的其他支出'
+            }
+        }
+
+        # 加载商户映射配置
         self._load_config()
 
     def _load_config(self) -> None:
-        """加载配置文件"""
+        """加载商户映射配置文件"""
+        self._merchant_lookup = {}
+
         try:
-            if not self.config_path.exists():
-                raise FileNotFoundError(f"分类配置文件不存在: {self.config_path}，应用无法启动")
+            if self.config_path.exists():
+                with open(self.config_path, 'r', encoding='utf-8') as f:
+                    config_data = yaml.safe_load(f) or {}
 
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                config_data = yaml.safe_load(f)
+                # 直接处理merchants数据
+                for category, merchants in config_data.get('merchants', {}).items():
+                    if category in self._categories:
+                        for merchant in merchants or []:
+                            self._merchant_lookup[merchant] = category
 
-            # 基本验证
-            if not config_data or 'categories' not in config_data or 'merchants' not in config_data:
-                raise ValueError("配置文件格式错误")
-
-            # 构建商户查找表
-            merchant_lookup = {}
-            for category, merchant_list in config_data.get('merchants', {}).items():
-                for merchant in merchant_list:
-                    if merchant in merchant_lookup:
-                        self.logger.warning(f"商户'{merchant}'重复定义")
-                    merchant_lookup[merchant] = category
-
-            self._categories = config_data.get('categories', {})
-            self._merchant_lookup = merchant_lookup
-
-            self.logger.info(f"配置加载成功: {len(self._categories)}个分类, {len(merchant_lookup)}个商户")
+                self.logger.info(f"加载了 {len(self._merchant_lookup)} 个商户映射")
+            else:
+                self.logger.info("配置文件不存在，使用空的商户映射")
 
         except Exception as e:
-            self.logger.error(f"配置加载失败: {e}")
-            raise RuntimeError(f"分类配置加载失败，应用无法启动: {e}") from e
+            self.logger.warning(f"配置加载失败: {e}")
+            self._merchant_lookup = {}
 
     @lru_cache(maxsize=1000)
     def classify_merchant(self, merchant_name: str) -> str:

@@ -6,9 +6,9 @@
 
 from typing import List, Optional
 import logging
+from functools import lru_cache
 
 from app.models import Account, Bank
-from app.utils.decorators import cached_query
 from .base_service import BaseService
 from .bank_service import BankService
 
@@ -76,7 +76,7 @@ class AccountService(BaseService):
             self.logger.error(f"Error getting account by id {account_id}: {e}")
             raise
 
-    @cached_query()
+    @lru_cache(maxsize=128)
     def get_all_accounts(self) -> List[Account]:
         """获取所有账户"""
         try:

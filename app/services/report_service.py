@@ -15,6 +15,7 @@ from decimal import Decimal
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 import logging
+from functools import lru_cache
 
 from app.models import Transaction, Account, db
 from sqlalchemy import func
@@ -26,7 +27,6 @@ from .account_service import AccountService
 from .transaction_service import TransactionService
 from .category_service import CategoryService
 from app.utils import DataUtils
-from app.utils.decorators import cached_query
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +139,7 @@ class ReportService(BaseService):
 
     # ==================== 趋势分析 ====================
     
-    @cached_query()
+    @lru_cache(maxsize=128)
     def get_monthly_trend(self, months: int = 12) -> List[Dict[str, Any]]:
         """获取月度收支趋势"""
         try:
@@ -191,7 +191,7 @@ class ReportService(BaseService):
 
     # ==================== 分类统计 ====================
     
-    @cached_query()
+    @lru_cache(maxsize=128)
     def get_expense_composition(self, start_date: date, end_date: date, limit: int = 10) -> List[Dict[str, Any]]:
         """获取支出构成分析
 
@@ -243,7 +243,7 @@ class ReportService(BaseService):
             self.logger.error(f"Error getting expense composition: {e}")
             return []
 
-    @cached_query()
+    @lru_cache(maxsize=128)
     def get_income_composition(self, start_date: date, end_date: date, limit: int = 10) -> List[Dict[str, Any]]:
         """获取收入构成分析"""
         try:

@@ -43,36 +43,6 @@ def configure_logging(app):
 
     app.logger.info(f"应用启动，日志级别: {logging.getLevelName(log_level)}")
 
-def _validate_configuration(app):
-    """验证应用配置完整性
-
-    Args:
-        app: Flask应用实例
-
-    Raises:
-        RuntimeError: 配置验证失败时
-    """
-    try:
-        # 验证分类配置
-        from .utils import get_categories_config
-        categories = get_categories_config()
-
-        if not categories:
-            raise RuntimeError("分类配置为空，应用无法启动")
-
-        # 验证每个分类的必需字段
-        required_fields = ['name', 'icon', 'color']
-        for category_code, category_info in categories.items():
-            for field in required_fields:
-                if field not in category_info:
-                    raise RuntimeError(f"分类 '{category_code}' 缺少必需字段 '{field}'")
-
-        app.logger.info(f"配置验证成功，加载了 {len(categories)} 个分类")
-
-    except Exception as e:
-        app.logger.error(f"配置验证失败: {e}")
-        raise RuntimeError(f"应用配置验证失败，无法启动: {e}") from e
-
 def _initialize_database_and_services(app):
     """初始化数据库和服务
 
@@ -80,9 +50,6 @@ def _initialize_database_and_services(app):
         app: Flask应用实例
     """
     with app.app_context():
-        # 验证配置完整性
-        _validate_configuration(app)
-
         # Create database tables
         db.create_all()
         app.logger.info("数据库表已创建")

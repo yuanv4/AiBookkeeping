@@ -4,12 +4,12 @@ from typing import List, Optional, Dict, Any
 from decimal import Decimal
 from datetime import date
 import logging
+from functools import lru_cache
 
 from app.models import Transaction, Account, Bank
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import joinedload, selectinload
-from app.utils.decorators import cached_query
 from app.utils import DataUtils
 
 from .base_service import BaseService
@@ -320,7 +320,7 @@ class TransactionService(BaseService):
             self.logger.error(f"Error getting transactions by category '{category}': {e}")
             raise
 
-    @cached_query()
+    @lru_cache(maxsize=128)
     def get_transactions_summary(self) -> Dict[str, Any]:
         """获取交易汇总信息"""
         try:
