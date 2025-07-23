@@ -155,7 +155,10 @@ export function getProjectColors() {
         secondary: getCSSColor('--bs-secondary') || '#6c757d',
         bodyColor: getCSSColor('--bs-body-color') || '#212529',
         borderColor: getCSSColor('--bs-border-color') || '#dee2e6',
-        borderColorTranslucent: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)'
+        borderColorTranslucent: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)',
+        // 颜色变体 - 用于图表和高级样式
+        primary600: getCSSColor('--bs-primary-600') || '#0056b3',
+        success600: getCSSColor('--bs-success-600') || '#1e7e34'
     };
 }
 

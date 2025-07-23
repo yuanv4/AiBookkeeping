@@ -5,7 +5,6 @@
 import BasePage from '../common/BasePage.js';
 import { getProjectColors, getChartStyles, ChartRegistry } from '../common/utils.js';
 import { formatCurrency } from '../common/formatters.js';
-import { getCSSColor } from '../common/dom-utils.js';
 
 export default class FinancialDashboard extends BasePage {
     constructor() {
@@ -26,19 +25,6 @@ export default class FinancialDashboard extends BasePage {
         this.updateDashboard(this.currentData);
     }
 
-    getChartColors() {
-        return [
-            getCSSColor('--bs-primary'),
-            getCSSColor('--bs-success'),
-            getCSSColor('--bs-warning'),
-            getCSSColor('--bs-info'),
-            getCSSColor('--bs-danger'),
-            getCSSColor('--bs-secondary'),
-            getCSSColor('--bs-primary-600'),
-            getCSSColor('--bs-success-600')
-        ];
-    }
-    
     initializeCharts() {
         // 净现金趋势图 - 直接使用ECharts API
         const container = document.getElementById('netWorthChart');
