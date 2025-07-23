@@ -1,121 +1,14 @@
 /**
- * 应用程序共享工具函数
- * 提供通用的辅助函数和工具方法
+ * 核心通用工具函数
+ * 提供基础的辅助函数和工具方法
+ *
+ * 注意：专门功能已拆分到独立模块：
+ * - 格式化函数 → formatters.js
+ * - 验证函数 → validators.js
+ * - 通知系统 → notifications.js
+ * - API请求 → api-helpers.js
+ * - DOM操作 → dom-utils.js
  */
-
-/**
- * 格式化文件大小
- * @param {number} bytes - 字节数
- * @returns {string} 格式化后的文件大小字符串
- */
-export function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-/**
- * HTML转义，防止XSS攻击
- * @param {string} text - 需要转义的文本
- * @returns {string} 转义后的HTML安全文本
- */
-export function escapeHtml(text) {
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
-}
-
-/**
- * 显示非阻塞式通知
- * @param {string} message - 通知消息
- * @param {string} type - 通知类型 ('success', 'error', 'warning', 'info')
- * @param {number} duration - 显示时长（毫秒），默认5000ms
- */
-export function showNotification(message, type = 'info', duration = 5000) {
-    // 创建通知容器（如果不存在）
-    let container = document.getElementById('notification-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'notification-container';
-        container.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            max-width: 400px;
-        `;
-        document.body.appendChild(container);
-    }
-
-    // 创建通知元素
-    const notification = document.createElement('div');
-    const typeClass = {
-        'success': 'alert-success',
-        'error': 'alert-danger',
-        'warning': 'alert-warning',
-        'info': 'alert-info'
-    }[type] || 'alert-info';
-
-    const iconClass = {
-        'success': 'fas fa-check-circle',
-        'error': 'fas fa-exclamation-triangle',
-        'warning': 'fas fa-exclamation-circle',
-        'info': 'fas fa-info-circle'
-    }[type] || 'fas fa-info-circle';
-
-    notification.className = `alert ${typeClass} alert-dismissible fade show mb-2`;
-    notification.style.cssText = `
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        border: none;
-    `;
-    
-    notification.innerHTML = `
-        <div class="d-flex align-items-center">
-            <i class="${iconClass} me-2"></i>
-            <div class="flex-grow-1">${escapeHtml(message)}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-
-    // 添加到容器
-    container.appendChild(notification);
-
-    // 自动移除
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 150);
-        }
-    }, duration);
-
-    return notification;
-}
-
-/**
- * 从CSS变量获取颜色值
- * @param {string} cssVar - CSS变量名（如 '--primary-500'）
- * @returns {string} 颜色值
- */
-export function getCSSColor(cssVar) {
-    try {
-        const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
-        return value;
-    } catch (error) {
-        console.warn(`无法获取CSS变量 ${cssVar}:`, error);
-        return '#000000';
-    }
-}
 
 /**
  * 防抖函数
@@ -255,443 +148,9 @@ export const urlHandler = {
     }
 };
 
-/**
- * API 服务相关功能
- */
-export const apiService = {
-    /**
-     * 显示加载状态
-     * @param {boolean} show - 是否显示加载状态
-     */
-    showLoading(show) {
-        let overlay = document.getElementById('loadingOverlay');
-        if (!overlay && show) {
-            // 创建加载遮罩层
-            overlay = document.createElement('div');
-            overlay.id = 'loadingOverlay';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(255, 255, 255, 0.8);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 9999;
-            `;
-            overlay.innerHTML = `
-                <div class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">加载中...</span>
-                    </div>
-                    <div class="mt-2">加载中...</div>
-                </div>
-            `;
-            document.body.appendChild(overlay);
-        }
-        
-        if (overlay) {
-            overlay.style.display = show ? 'flex' : 'none';
-        }
-    },
+// API服务已迁移到 api-helpers.js
 
-    /**
-     * 发送GET请求
-     * @param {string} url - 请求URL
-     * @param {Object} options - 请求选项
-     * @param {boolean} options.showLoading - 是否显示加载状态，默认true
-     * @returns {Promise} 请求Promise
-     */
-    async get(url, options = {}) {
-        const { showLoading = true } = options;
-        
-        if (showLoading) {
-            this.showLoading(true);
-        }
-        
-        try {
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            return { success: true, data };
-            
-        } catch (error) {
-            console.error('API GET请求失败:', error);
-            showNotification(`请求失败: ${error.message}`, 'error');
-            return { success: false, error: error.message };
-        } finally {
-            if (showLoading) {
-                this.showLoading(false);
-            }
-        }
-    },
-
-    /**
-     * 发送POST请求
-     * @param {string} url - 请求URL
-     * @param {FormData|Object} data - 请求数据
-     * @param {Object} options - 请求选项
-     * @param {boolean} options.showLoading - 是否显示加载状态，默认true
-     * @param {boolean} options.isFormData - 数据是否为FormData，默认自动检测
-     * @returns {Promise} 请求Promise
-     */
-    async post(url, data, options = {}) {
-        const { showLoading = true, isFormData = data instanceof FormData } = options;
-        
-        if (showLoading) {
-            this.showLoading(true);
-        }
-        
-        try {
-            const requestOptions = {
-                method: 'POST',
-                body: isFormData ? data : JSON.stringify(data)
-            };
-            
-            if (!isFormData) {
-                requestOptions.headers = {
-                    'Content-Type': 'application/json',
-                };
-            }
-            
-            const response = await fetch(url, requestOptions);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            // 尝试解析JSON，如果失败则返回文本
-            const responseText = await response.text();
-            let responseData;
-            try {
-                responseData = JSON.parse(responseText);
-            } catch {
-                responseData = responseText;
-            }
-            
-            return { success: true, data: responseData };
-            
-        } catch (error) {
-            console.error('API POST请求失败:', error);
-            showNotification(`请求失败: ${error.message}`, 'error');
-            return { success: false, error: error.message };
-        } finally {
-            if (showLoading) {
-                this.showLoading(false);
-            }
-        }
-    },
-
-    /**
-     * 标准化的POST请求方法
-     * 统一处理加载状态、错误处理和成功回调
-     * @param {string} url - 请求URL
-     * @param {Object|FormData} data - 请求数据
-     * @param {Object} options - 配置选项
-     * @param {boolean} options.showLoading - 是否显示加载状态，默认true
-     * @param {string} options.errorHandler - 错误处理方式，'default'|'silent'|'custom'
-     * @param {Function} options.successCallback - 成功回调函数
-     * @param {Function} options.errorCallback - 自定义错误回调函数
-     * @returns {Promise<Object>} API响应结果
-     */
-    async standardPost(url, data, options = {}) {
-        const {
-            showLoading = true,
-            errorHandler = 'default',
-            successCallback = null,
-            errorCallback = null
-        } = options;
-
-        try {
-            // 调用原有的post方法
-            const result = await this.post(url, data, { showLoading });
-
-            // 处理成功响应
-            if (result.success) {
-                if (successCallback && typeof successCallback === 'function') {
-                    successCallback(result);
-                }
-                return result;
-            } else {
-                // 处理业务逻辑错误
-                const errorMessage = result.error || '操作失败';
-                this.handleStandardError(errorMessage, errorHandler, errorCallback);
-                return result;
-            }
-        } catch (error) {
-            // 处理网络或其他异常
-            const errorMessage = error.message || '网络请求失败';
-            this.handleStandardError(errorMessage, errorHandler, errorCallback);
-            return { success: false, error: errorMessage };
-        }
-    },
-
-    /**
-     * 统一的错误处理方法
-     * @param {string} errorMessage - 错误消息
-     * @param {string} errorHandler - 错误处理方式
-     * @param {Function} errorCallback - 自定义错误回调
-     */
-    handleStandardError(errorMessage, errorHandler, errorCallback) {
-        switch (errorHandler) {
-            case 'silent':
-                // 静默处理，不显示错误
-                console.error('API错误 (静默):', errorMessage);
-                break;
-            case 'custom':
-                // 使用自定义错误处理
-                if (errorCallback && typeof errorCallback === 'function') {
-                    errorCallback(errorMessage);
-                } else {
-                    console.warn('自定义错误处理器未定义，使用默认处理');
-                    showNotification(`错误: ${errorMessage}`, 'error');
-                }
-                break;
-            case 'default':
-            default:
-                // 默认错误处理：显示通知
-                showNotification(`错误: ${errorMessage}`, 'error');
-                break;
-        }
-    }
-};
-
-/**
- * UI 组件相关功能
- */
-export const ui = {
-    /**
-     * 从HTML字符串创建DOM元素
-     * @param {string} htmlString - HTML字符串
-     * @returns {Element|null} 创建的DOM元素
-     */
-    createDOMElement(htmlString) {
-        if (typeof htmlString !== 'string') {
-            console.warn('createDOMElement: 参数必须是字符串');
-            return null;
-        }
-        
-        const template = document.createElement('template');
-        template.innerHTML = htmlString.trim();
-        return template.content.firstElementChild;
-    },
-
-    /**
-     * 渲染Bootstrap分页组件
-     * @param {Object} options - 分页配置选项
-     * @param {number} options.currentPage - 当前页码
-     * @param {number} options.totalPages - 总页数
-     * @param {Function} options.onPageClick - 页码点击回调函数
-     * @param {string} options.containerId - 分页容器ID
-     * @returns {void}
-     */
-    renderPagination(options) {
-        const { currentPage, totalPages, onPageClick, containerId } = options;
-        const container = document.getElementById(containerId);
-        
-        if (!container) {
-            console.warn(`renderPagination: 找不到容器 #${containerId}`);
-            return;
-        }
-        
-        container.innerHTML = '';
-        
-        if (totalPages <= 1) return;
-        
-        // 确保当前页在有效范围内
-        const safePage = Math.max(1, Math.min(currentPage, totalPages));
-        
-        const pagination = document.createElement('ul');
-        pagination.className = 'pagination justify-content-center';
-        
-        // 上一页按钮
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${safePage === 1 ? 'disabled' : ''}`;
-        const prevLink = document.createElement('a');
-        prevLink.className = 'page-link';
-        prevLink.href = '#';
-        prevLink.innerHTML = '<i class="fas fa-chevron-left"></i>';
-        prevLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (safePage > 1 && onPageClick) {
-                onPageClick(safePage - 1);
-            }
-        });
-        prevLi.appendChild(prevLink);
-        pagination.appendChild(prevLi);
-        
-        // 页码按钮
-        const startPage = Math.max(1, safePage - 2);
-        const endPage = Math.min(totalPages, safePage + 2);
-        
-        // 如果开始页不是1，显示第一页和省略号
-        if (startPage > 1) {
-            this._createPageButton(pagination, 1, safePage, onPageClick);
-            if (startPage > 2) {
-                this._createEllipsis(pagination);
-            }
-        }
-        
-        // 显示当前页前后的页码
-        for (let i = startPage; i <= endPage; i++) {
-            this._createPageButton(pagination, i, safePage, onPageClick);
-        }
-        
-        // 如果结束页不是最后一页，显示省略号和最后一页
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                this._createEllipsis(pagination);
-            }
-            this._createPageButton(pagination, totalPages, safePage, onPageClick);
-        }
-        
-        // 下一页按钮
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${safePage === totalPages ? 'disabled' : ''}`;
-        const nextLink = document.createElement('a');
-        nextLink.className = 'page-link';
-        nextLink.href = '#';
-        nextLink.innerHTML = '<i class="fas fa-chevron-right"></i>';
-        nextLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (safePage < totalPages && onPageClick) {
-                onPageClick(safePage + 1);
-            }
-        });
-        nextLi.appendChild(nextLink);
-        pagination.appendChild(nextLi);
-        
-        container.appendChild(pagination);
-    },
-
-    /**
-     * 创建页码按钮
-     * @private
-     */
-    _createPageButton(pagination, pageNumber, currentPage, onPageClick) {
-        const li = document.createElement('li');
-        li.className = `page-item ${pageNumber === currentPage ? 'active' : ''}`;
-        
-        const link = document.createElement('a');
-        link.className = 'page-link';
-        link.href = '#';
-        link.textContent = pageNumber;
-        
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (pageNumber !== currentPage && onPageClick) {
-                onPageClick(pageNumber);
-            }
-        });
-        
-        li.appendChild(link);
-        pagination.appendChild(li);
-    },
-
-    /**
-     * 创建省略号
-     * @private
-     */
-    _createEllipsis(pagination) {
-        const li = document.createElement('li');
-        li.className = 'page-item disabled';
-        
-        const span = document.createElement('span');
-        span.className = 'page-link';
-        span.textContent = '...';
-        
-        li.appendChild(span);
-        pagination.appendChild(li);
-    },
-
-    /**
-     * 显示确认对话框
-     * @param {Object} options - 配置选项
-     * @returns {Promise<boolean>} 用户选择结果
-     */
-    async showConfirmationModal(options = {}) {
-        const {
-            title = '确认操作',
-            message = '您确定要执行此操作吗？',
-            confirmText = '确认',
-            cancelText = '取消',
-            type = 'warning'
-        } = options;
-
-        return new Promise((resolve) => {
-            // 创建模态框HTML
-            const modalHtml = `
-                <div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">${escapeHtml(title)}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-exclamation-triangle text-warning me-3 fs-3"></i>
-                                    <div>${escapeHtml(message)}</div>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${escapeHtml(cancelText)}</button>
-                                <button type="button" class="btn btn-${type === 'danger' ? 'danger' : 'primary'}" id="confirmBtn">${escapeHtml(confirmText)}</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // 创建并添加模态框到页面
-            const modalElement = this.createDOMElement(modalHtml);
-            document.body.appendChild(modalElement);
-
-            // 初始化Bootstrap模态框
-            const modal = new bootstrap.Modal(modalElement);
-            
-            // 绑定事件
-            const confirmBtn = modalElement.querySelector('#confirmBtn');
-            const handleConfirm = () => {
-                modal.hide();
-                resolve(true);
-            };
-            
-            const handleCancel = () => {
-                modal.hide();
-                resolve(false);
-            };
-
-            confirmBtn.addEventListener('click', handleConfirm);
-            
-            // 监听模态框关闭事件，清理DOM
-            modalElement.addEventListener('hidden.bs.modal', () => {
-                document.body.removeChild(modalElement);
-            });
-
-            // 监听取消事件
-            modalElement.addEventListener('hidden.bs.modal', (e) => {
-                if (e.target === modalElement) {
-                    resolve(false);
-                }
-            });
-
-            // 显示模态框
-            modal.show();
-        });
-    }
-};
+// UI组件已迁移到 dom-utils.js
 
 /**
  * ECharts 轻量级工具函数
@@ -825,7 +284,7 @@ export const ChartRegistry = {
      * 销毁所有图表实例
      */
     destroyAll() {
-        this.charts.forEach((chart, id) => {
+        this.charts.forEach((_, id) => {
             this.destroy(id);
         });
     }
@@ -891,8 +350,6 @@ export function getTabulatorLocale() {
  * @returns {Object} 通用配置对象
  */
 export function getTabulatorCommonConfig() {
-    const colors = getProjectColors();
-
     return {
         layout: "fitColumns",
         responsiveLayout: "hide",
@@ -1045,7 +502,7 @@ export function getFinancialTableColumns(categoriesConfig = {}) {
                 sorter: "string",
                 headerFilter: "input",
                 headerFilterPlaceholder: "YYYY-MM-DD 或 YYYY-MM",
-                headerFilterFunc: function(headerValue, rowValue, rowData, filterParams) {
+                headerFilterFunc: function(headerValue, rowValue) {
                     if (!headerValue) return true;
 
                     const searchValue = headerValue.trim();
@@ -1191,7 +648,7 @@ export const TableRegistry = {
      * 销毁所有表格实例
      */
     destroyAll() {
-        this.tables.forEach((table, id) => {
+        this.tables.forEach((_, id) => {
             this.destroy(id);
         });
     }
@@ -1317,7 +774,7 @@ export function updateTransactionsSummary(table, summaryElements) {
  * @returns {Function} 自定义筛选器函数
  */
 function createAmountRangeFilter() {
-    return function(headerValue, rowValue, rowData, filterParams) {
+    return function(headerValue, rowValue) {
         if (!headerValue) return true;
 
         const amount = parseFloat(rowValue) || 0;

@@ -20,6 +20,7 @@ from app.models import Transaction, Account, db
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from .base_service import BaseService
 from .bank_service import BankService
 from .account_service import AccountService
 from .transaction_service import TransactionService
@@ -29,7 +30,7 @@ from app.utils.decorators import cached_query
 
 logger = logging.getLogger(__name__)
 
-class ReportService:
+class ReportService(BaseService):
     """基础财务报告服务
     
     提供简化的财务分析和报告功能，专注于个人用户的核心需求。
@@ -45,12 +46,11 @@ class ReportService:
             category_service: 分类服务实例
             db_session: 数据库会话，如果为None则使用默认会话
         """
+        super().__init__(db_session)
         self.bank_service = bank_service
         self.account_service = account_service
         self.transaction_service = transaction_service
         self.category_service = category_service
-        self.db = db_session or db.session
-        self.logger = logging.getLogger(__name__)
 
     # ==================== 基础财务指标 ====================
     
@@ -96,7 +96,7 @@ class ReportService:
         """获取指定期间的收支汇总"""
         try:
             # 获取期间内的所有交易
-            transactions = self.transaction_service.get_transactions(
+            transactions = self.transaction_service.get_transactions_by_date_range(
                 start_date=start_date,
                 end_date=end_date
             )
@@ -147,7 +147,7 @@ class ReportService:
             start_date, end_date = DataUtils.get_date_range(months)
 
             # 获取指定时间范围内的所有交易数据
-            transactions = self.transaction_service.get_transactions(
+            transactions = self.transaction_service.get_transactions_by_date_range(
                 start_date=start_date,
                 end_date=end_date
             )

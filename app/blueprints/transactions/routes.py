@@ -25,7 +25,7 @@ def transactions_list_route(): # 重命名函数
     account_service = get_account_service()
 
     # 使用优化的查询方法，预加载关联数据避免N+1问题
-    all_transactions = transaction_service.get_transactions_with_relations(filters=filters)
+    all_transactions = transaction_service.get_transactions_filtered(filters=filters, include_relations=True)
 
     # 使用DataUtils统一转换交易数据
     transactions_data = DataUtils.transactions_to_dict(all_transactions)

@@ -3,7 +3,9 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { getProjectColors, formatCurrency, getChartStyles, ChartRegistry } from '../common/utils.js';
+import { getProjectColors, getChartStyles, ChartRegistry } from '../common/utils.js';
+import { formatCurrency } from '../common/formatters.js';
+import { getCSSColor } from '../common/dom-utils.js';
 
 export default class FinancialDashboard extends BasePage {
     constructor() {

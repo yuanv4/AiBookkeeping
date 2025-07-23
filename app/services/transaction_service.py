@@ -49,12 +49,26 @@ class TransactionService(BaseService):
         """根据ID获取交易（向后兼容）"""
         return self.get_by_id(transaction_id)
 
-    def get_transactions_with_relations(self, filters: dict = None, page: int = None, per_page: int = None) -> List[Transaction]:
-        """获取交易记录，预加载关联数据避免N+1问题"""
+    def get_transactions_filtered(self, filters: dict = None, page: int = None, per_page: int = None, include_relations: bool = False) -> List[Transaction]:
+        """根据过滤条件获取交易记录
+
+        Args:
+            filters: 过滤条件字典
+            page: 页码（可选）
+            per_page: 每页记录数（可选）
+            include_relations: 是否预加载关联数据避免N+1问题，默认False
+
+        Returns:
+            交易记录列表
+        """
         try:
-            query = Transaction.query.options(
-                joinedload(Transaction.account).joinedload(Account.bank)
-            )
+            # 根据是否需要关联数据选择查询策略
+            if include_relations:
+                query = Transaction.query.options(
+                    joinedload(Transaction.account).joinedload(Account.bank)
+                )
+            else:
+                query = Transaction.query
 
             if filters:
                 query = self._apply_filters(query, filters)
@@ -68,36 +82,21 @@ class TransactionService(BaseService):
             else:
                 transactions = query.all()
 
-            # 标记关联数据已加载，供to_dict方法使用
-            for transaction in transactions:
-                transaction._account_loaded = True
-                if transaction.account:
-                    transaction.account._bank_loaded = True
+            # 如果预加载了关联数据，标记已加载状态供to_dict方法使用
+            if include_relations:
+                for transaction in transactions:
+                    transaction._account_loaded = True
+                    if transaction.account:
+                        transaction.account._bank_loaded = True
 
             return transactions
         except Exception as e:
-            self.logger.error(f"Error getting transactions with relations: {e}")
-            raise
-
-    def get_transactions_filtered(self, filters: dict = None, page: int = None, per_page: int = None) -> List[Transaction]:
-        """根据过滤条件获取交易记录"""
-        try:
-            query = Transaction.query
-            
-            if filters:
-                query = self._apply_filters(query, filters)
-            
-            # 默认按日期降序排列
-            query = query.order_by(Transaction.date.desc(), Transaction.id.desc())
-            
-            if page and per_page:
-                pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-                return pagination.items
-            else:
-                return query.all()
-        except Exception as e:
             self.logger.error(f"Error getting filtered transactions: {e}")
             raise
+
+    def get_transactions_with_relations(self, filters: dict = None, page: int = None, per_page: int = None) -> List[Transaction]:
+        """获取交易记录，预加载关联数据避免N+1问题（向后兼容方法）"""
+        return self.get_transactions_filtered(filters=filters, page=page, per_page=per_page, include_relations=True)
 
     def _apply_filters(self, query, filters: dict):
         """应用过滤条件到查询"""
@@ -340,7 +339,7 @@ class TransactionService(BaseService):
             return {'total_count': 0, 'income_sum': 0, 'expense_sum': 0, 'net_amount': 0}
 
     def get_all(self) -> List[Transaction]:
-        """获取所有交易（实现BaseService抽象方法）"""
+        """获取所有交易"""
         try:
             return Transaction.query.order_by(Transaction.date.desc(), Transaction.id.desc()).all()
         except Exception as e:

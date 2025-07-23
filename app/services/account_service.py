@@ -158,7 +158,7 @@ class AccountService(BaseService):
             raise
 
     def get_by_id(self, id: int) -> Optional[Account]:
-        """根据ID获取账户（实现BaseService抽象方法）"""
+        """根据ID获取账户"""
         try:
             if not self._validate_id(id):
                 return None
@@ -167,7 +167,7 @@ class AccountService(BaseService):
             self._handle_service_error(f"获取账户 ID={id}", e)
 
     def get_all(self) -> List[Account]:
-        """获取所有账户（实现BaseService抽象方法）"""
+        """获取所有账户"""
         try:
             return Account.query.order_by(Account.name).all()
         except Exception as e:

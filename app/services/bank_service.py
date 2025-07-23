@@ -71,7 +71,7 @@ class BankService(BaseService):
 
     @cached_query()
     def get_all(self) -> List[Bank]:
-        """获取所有银行（实现BaseService抽象方法）"""
+        """获取所有银行"""
         try:
             return Bank.query.order_by(Bank.name).all()
         except Exception as e:
@@ -108,7 +108,7 @@ class BankService(BaseService):
             raise
 
     def get_by_id(self, id: int) -> Optional[Bank]:
-        """根据ID获取银行（实现BaseService抽象方法）"""
+        """根据ID获取银行"""
         try:
             if not self._validate_id(id):
                 return None

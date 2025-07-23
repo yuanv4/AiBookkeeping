@@ -190,7 +190,7 @@ def get_category_transactions():
             return DataUtils.format_api_response(success=False, error=error)
 
         # 获取交易明细
-        all_transactions = transaction_service.get_transactions(
+        all_transactions = transaction_service.get_transactions_by_date_range(
             start_date=start_date,
             end_date=end_date
         )

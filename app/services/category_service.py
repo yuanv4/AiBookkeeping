@@ -12,8 +12,6 @@ from pathlib import Path
 from typing import Dict, Optional, List
 from functools import lru_cache
 
-logger = logging.getLogger(__name__)
-
 
 class CategoryService:
     """简化的商户分类服务
@@ -27,6 +25,7 @@ class CategoryService:
         Args:
             config_path: 配置文件路径，如果为None则使用默认路径
         """
+        self.logger = logging.getLogger(self.__class__.__name__)
         if config_path:
             self.config_path = Path(config_path)
         else:
@@ -57,16 +56,16 @@ class CategoryService:
             for category, merchant_list in config_data.get('merchants', {}).items():
                 for merchant in merchant_list:
                     if merchant in merchant_lookup:
-                        logger.warning(f"商户'{merchant}'重复定义")
+                        self.logger.warning(f"商户'{merchant}'重复定义")
                     merchant_lookup[merchant] = category
 
             self._categories = config_data.get('categories', {})
             self._merchant_lookup = merchant_lookup
 
-            logger.info(f"配置加载成功: {len(self._categories)}个分类, {len(merchant_lookup)}个商户")
+            self.logger.info(f"配置加载成功: {len(self._categories)}个分类, {len(merchant_lookup)}个商户")
 
         except Exception as e:
-            logger.error(f"配置加载失败: {e}")
+            self.logger.error(f"配置加载失败: {e}")
             raise RuntimeError(f"分类配置加载失败，应用无法启动: {e}") from e
 
     @lru_cache(maxsize=1000)
@@ -126,4 +125,4 @@ class CategoryService:
     def clear_cache(self) -> None:
         """清除分类缓存"""
         self.classify_merchant.cache_clear()
-        logger.info("分类缓存已清除")
+        self.logger.info("分类缓存已清除")

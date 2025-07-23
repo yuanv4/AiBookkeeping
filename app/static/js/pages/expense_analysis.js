@@ -4,7 +4,10 @@
  */
 
 import BasePage from '../common/BasePage.js';
-import { getProjectColors, formatCurrency, getChartStyles, ChartRegistry, showNotification, apiService } from '../common/utils.js';
+import { getProjectColors, getChartStyles, ChartRegistry } from '../common/utils.js';
+import { formatCurrency } from '../common/formatters.js';
+import { showNotification } from '../common/notifications.js';
+import { apiService } from '../common/api-helpers.js';
 
 class ExpenseAnalysisPage extends BasePage {
     constructor() {
