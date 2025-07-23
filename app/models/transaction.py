@@ -119,25 +119,19 @@ class Transaction(BaseModel):
 
     @validates('category')
     def validate_category(self, _key, category):
-        """验证商户分类"""
-        # 获取有效分类列表
-        from app.utils import get_valid_category_codes
-        valid_categories = set(get_valid_category_codes())
+        """验证分类字段"""
+        if category is None:
+            return 'other'
 
-        # 处理空分类
-        if not category:
-            return 'other' if 'other' in valid_categories else list(valid_categories)[0]
+        # 简化验证逻辑，直接检查硬编码分类
+        from app.services.category_service import CATEGORIES
+        if category in CATEGORIES:
+            return category
 
-        # 标准化分类值
-        if not isinstance(category, str):
-            category = str(category)
-        category = category.strip().lower()
-
-        # 验证分类有效性
-        if category not in valid_categories:
-            raise ValueError(f"无效的商户分类: {category}")
-
-        return category
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"无效的分类代码: {category}，已设置为默认分类")
+        return 'other'
     
     def get_transaction_type(self) -> str:
         """获取交易类型"""

@@ -1,18 +1,116 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-简化的商户分类服务模块
+智能商户分类服务模块
 
-提供基于混合配置的商户分类功能：
+提供基于智能匹配的商户分类功能：
 - 分类元数据：硬编码在Python常量中
-- 商户映射：从YAML配置文件加载
+- 商户映射：支持精确匹配、关键词匹配、模式匹配
 """
 
 import logging
-import yaml
-from pathlib import Path
+import re
 from typing import Dict, Optional, List
 from functools import lru_cache
+
+# 分类元数据定义（硬编码）
+CATEGORIES = {
+    'dining': {
+        'name': '餐饮支出',
+        'icon': 'coffee',
+        'color': 'primary',
+        'description': '餐厅、咖啡、外卖等饮食消费'
+    },
+    'transport': {
+        'name': '交通支出',
+        'icon': 'car',
+        'color': 'success',
+        'description': '地铁、打车、加油等出行费用'
+    },
+    'shopping': {
+        'name': '购物支出',
+        'icon': 'shopping-bag',
+        'color': 'info',
+        'description': '网购、超市、商场等购物消费'
+    },
+    'services': {
+        'name': '生活服务',
+        'icon': 'settings',
+        'color': 'warning',
+        'description': '通信、快递、美容等服务费用'
+    },
+    'healthcare': {
+        'name': '医疗健康',
+        'icon': 'heart',
+        'color': 'danger',
+        'description': '医院、药店、体检等医疗支出'
+    },
+    'finance': {
+        'name': '金融保险',
+        'icon': 'credit-card',
+        'color': 'secondary',
+        'description': '保险、转账等金融相关支出'
+    },
+    'other': {
+        'name': '其他支出',
+        'icon': 'more-horizontal',
+        'color': 'dark',
+        'description': '未分类的其他支出'
+    }
+}
+
+
+class SmartMerchantMatcher:
+    """智能商户匹配器
+
+    支持多种匹配策略：
+    1. 精确匹配 - 完全相同的商户名称
+    2. 关键词匹配 - 包含特定关键词
+    3. 模式匹配 - 正则表达式匹配
+    """
+
+    def __init__(self):
+        from .merchant_config import MERCHANT_CATEGORIES
+        self.exact_rules = MERCHANT_CATEGORIES.get('exact_match', {})
+        self.keyword_rules = MERCHANT_CATEGORIES.get('keyword_match', {})
+        self.pattern_rules = MERCHANT_CATEGORIES.get('pattern_match', [])
+
+    def classify(self, merchant_name: str) -> tuple[str, float]:
+        """分类商户并返回置信度
+
+        Returns:
+            tuple: (category, confidence) 分类结果和置信度(0-1)
+        """
+        if not merchant_name:
+            return 'other', 0.0
+
+        normalized_name = self.normalize_merchant_name(merchant_name)
+
+        # 1. 精确匹配 (置信度: 1.0)
+        if normalized_name in self.exact_rules:
+            return self.exact_rules[normalized_name], 1.0
+
+        # 2. 关键词匹配 (置信度: 0.8)
+        for keyword, category in self.keyword_rules.items():
+            if keyword in normalized_name:
+                return category, 0.8
+
+        # 3. 模式匹配 (置信度: 0.6)
+        for rule in self.pattern_rules:
+            if re.match(rule['pattern'], normalized_name):
+                return rule['category'], 0.6
+
+        return 'other', 0.0
+
+    def normalize_merchant_name(self, name: str) -> str:
+        """标准化商户名称"""
+        if not name:
+            return ''
+        # 去除多余空格，转换为小写，移除特殊字符
+        normalized = re.sub(r'\s+', '', name.strip().lower())
+        normalized = re.sub(r'[^\w\u4e00-\u9fff]', '', normalized)
+        return normalized
+
 
 class CategoryService:
     """简化的商户分类服务
@@ -22,109 +120,81 @@ class CategoryService:
     - 商户映射：从YAML配置文件加载
     """
 
-    def __init__(self, config_path: Optional[str] = None):
-        """初始化分类服务
-
-        Args:
-            config_path: 配置文件路径，如果为None则使用默认路径
-        """
+    def __init__(self):
+        """初始化分类服务"""
         self.logger = logging.getLogger(self.__class__.__name__)
-        if config_path:
-            self.config_path = Path(config_path)
-        else:
-            # 使用相对于项目根目录的配置文件路径
-            project_root = Path(__file__).parent.parent.parent
-            self.config_path = project_root / "config" / "merchant_categories.yaml"
-        self._merchant_lookup: Dict[str, str] = {}
 
         # 直接使用硬编码的分类数据
-        self._categories = {
-            'dining': {
-                'name': '餐饮支出',
-                'icon': 'coffee',
-                'color': 'primary',
-                'description': '餐厅、咖啡、外卖等饮食消费'
-            },
-            'transport': {
-                'name': '交通支出',
-                'icon': 'car',
-                'color': 'success',
-                'description': '地铁、打车、加油等出行费用'
-            },
-            'shopping': {
-                'name': '购物支出',
-                'icon': 'shopping-bag',
-                'color': 'info',
-                'description': '网购、超市、商场等购物消费'
-            },
-            'services': {
-                'name': '生活服务',
-                'icon': 'settings',
-                'color': 'warning',
-                'description': '通信、快递、美容等服务费用'
-            },
-            'healthcare': {
-                'name': '医疗健康',
-                'icon': 'heart',
-                'color': 'danger',
-                'description': '医院、药店、体检等医疗支出'
-            },
-            'finance': {
-                'name': '金融保险',
-                'icon': 'credit-card',
-                'color': 'secondary',
-                'description': '保险、转账等金融相关支出'
-            },
-            'other': {
-                'name': '其他支出',
-                'icon': 'more-horizontal',
-                'color': 'dark',
-                'description': '未分类的其他支出'
-            }
-        }
+        self._categories = CATEGORIES.copy()
 
-        # 加载商户映射配置
-        self._load_config()
+        # 初始化智能匹配器
+        self.matcher = SmartMerchantMatcher()
 
-    def _load_config(self) -> None:
-        """加载商户映射配置文件"""
-        self._merchant_lookup = {}
-
-        try:
-            if self.config_path.exists():
-                with open(self.config_path, 'r', encoding='utf-8') as f:
-                    config_data = yaml.safe_load(f) or {}
-
-                # 直接处理merchants数据
-                for category, merchants in config_data.get('merchants', {}).items():
-                    if category in self._categories:
-                        for merchant in merchants or []:
-                            self._merchant_lookup[merchant] = category
-
-                self.logger.info(f"加载了 {len(self._merchant_lookup)} 个商户映射")
-            else:
-                self.logger.info("配置文件不存在，使用空的商户映射")
-
-        except Exception as e:
-            self.logger.warning(f"配置加载失败: {e}")
-            self._merchant_lookup = {}
+        self.logger.info(f"分类服务初始化完成: {len(self._categories)}个分类, 智能匹配器已就绪")
 
     @lru_cache(maxsize=1000)
     def classify_merchant(self, merchant_name: str) -> str:
-        """对商户进行分类
+        """智能分类商户
 
         Args:
             merchant_name: 商户名称
 
         Returns:
-            商户分类标识，如果未找到匹配则返回'other'
+            str: 分类代码
         """
-        # 验证并标准化商户名称
-        if not merchant_name or not isinstance(merchant_name, str):
+        if not merchant_name:
             return 'other'
 
-        normalized_name = merchant_name.strip()
-        return self._merchant_lookup.get(normalized_name, 'other') if normalized_name else 'other'
+        category, confidence = self.matcher.classify(merchant_name)
+
+        # 记录低置信度分类用于后续优化
+        if confidence < 0.8:
+            self.logger.debug(f"低置信度分类: {merchant_name} -> {category} (置信度: {confidence:.2f})")
+
+        return category
+
+    def classify_merchants_batch(self, merchant_names: List[str]) -> Dict[str, str]:
+        """批量分类商户
+
+        Args:
+            merchant_names: 商户名称列表
+
+        Returns:
+            dict: 商户名称到分类的映射
+        """
+        return {name: self.classify_merchant(name) for name in merchant_names}
+
+    def get_classification_info(self, merchant_name: str) -> Dict:
+        """获取分类详细信息
+
+        Args:
+            merchant_name: 商户名称
+
+        Returns:
+            dict: 包含分类、置信度等信息
+        """
+        if not merchant_name:
+            return {'category': 'other', 'confidence': 0.0, 'method': 'default'}
+
+        category, confidence = self.matcher.classify(merchant_name)
+
+        # 确定匹配方法
+        normalized_name = self.matcher.normalize_merchant_name(merchant_name)
+        if normalized_name in self.matcher.exact_rules:
+            method = 'exact_match'
+        elif any(keyword in normalized_name for keyword in self.matcher.keyword_rules):
+            method = 'keyword_match'
+        elif any(re.match(rule['pattern'], normalized_name) for rule in self.matcher.pattern_rules):
+            method = 'pattern_match'
+        else:
+            method = 'default'
+
+        return {
+            'category': category,
+            'confidence': confidence,
+            'method': method,
+            'normalized_name': normalized_name
+        }
     
     def get_category_display_info(self, category: str) -> Dict[str, str]:
         """获取分类的显示信息
@@ -135,9 +205,12 @@ class CategoryService:
         Returns:
             包含名称、颜色、描述、图标的字典
         """
-        if category not in self._categories:
-            raise ValueError(f"未知的分类代码: {category}")
-        return self._categories[category]
+        return self._categories.get(category, {
+            'name': '未知分类',
+            'icon': 'help-circle',
+            'color': 'secondary',
+            'description': '未知的分类类型'
+        })
 
     def get_all_categories(self) -> Dict[str, Dict[str, str]]:
         """获取所有分类信息"""
