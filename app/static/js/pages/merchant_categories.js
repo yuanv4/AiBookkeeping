@@ -75,7 +75,7 @@ export default class MerchantCategoriesPage extends BasePage {
                     width: 120,
                     sorter: "number",
                     responsive: 1,
-                    formatter: formatters.amount
+                    formatter: formatters.currency
                 },
                 {
                     title: "最近交易",

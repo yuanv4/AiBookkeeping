@@ -450,152 +450,15 @@ function createCategoryFilterParams(categoriesConfig) {
     };
 }
 
-/**
- * 创建分类编辑器选项
- * @param {Object} categoriesConfig - 分类配置信息
- * @returns {Object} 编辑器参数
- */
-function createCategoryEditorParams(categoriesConfig) {
-    const options = {};
 
-    if (categoriesConfig && Object.keys(categoriesConfig).length > 0) {
-        for (const [code, info] of Object.entries(categoriesConfig)) {
-            options[code] = info.name;
-        }
-    }
 
-    return {
-        values: options,
-        clearable: false,
-        placeholder: "选择分类"
-    };
-}
 
-/**
- * 处理分类编辑事件
- * @param {Object} cell - Tabulator单元格对象
- */
-function handleCategoryEdit(cell) {
-    const rowData = cell.getRow().getData();
-    const newCategory = cell.getValue();
-    const transactionId = rowData.id;
 
-    // 发送AJAX请求更新分类
-    updateTransactionCategory(transactionId, newCategory, cell);
-}
 
-/**
- * 更新交易分类
- * @param {number} transactionId - 交易ID
- * @param {string} newCategory - 新分类代码
- * @param {Object} cell - Tabulator单元格对象
- */
-async function updateTransactionCategory(transactionId, newCategory, cell) {
-    try {
-        // 显示加载状态
-        cell.getElement().style.opacity = '0.5';
 
-        const response = await fetch(`/transactions/api/transactions/${transactionId}/category`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                category: newCategory
-            })
-        });
 
-        const result = await response.json();
 
-        if (result.success) {
-            // 更新成功
-            const data = result.data;
-            const categoryName = getCategoryName(newCategory);
-            showNotification(
-                `已将 ${data.merchant_name} 的分类更新为 ${categoryName}，共影响 ${data.updated_transactions} 笔交易`,
-                'success'
-            );
 
-            // 智能刷新表格数据
-            refreshTableData(cell, data);
-        } else {
-            // 更新失败，恢复原值
-            cell.restoreOldValue();
-            showNotification(`更新失败: ${result.error}`, 'error');
-        }
-
-    } catch (error) {
-        // 网络错误，恢复原值
-        cell.restoreOldValue();
-        showNotification(`网络错误: ${error.message}`, 'error');
-    } finally {
-        // 恢复显示状态
-        cell.getElement().style.opacity = '1';
-    }
-}
-
-/**
- * 获取分类显示名称
- * @param {string} categoryCode - 分类代码
- * @returns {string} 分类显示名称
- */
-function getCategoryName(categoryCode) {
-    // 尝试从全局分类配置获取名称
-    if (window.categoriesConfig && window.categoriesConfig[categoryCode]) {
-        return window.categoriesConfig[categoryCode].name;
-    }
-    return categoryCode;
-}
-
-/**
- * 智能刷新表格数据
- * @param {Object} cell - 当前编辑的单元格
- * @param {Object} updateData - 更新返回的数据
- */
-function refreshTableData(cell, updateData) {
-    const table = cell.getTable();
-    const merchantName = updateData.merchant_name;
-    const newCategory = updateData.new_category;
-
-    // 获取表格中所有相同商户的行
-    const allRows = table.getRows();
-    let updatedRowsCount = 0;
-    const updatedRows = [];
-
-    allRows.forEach(row => {
-        const rowData = row.getData();
-        if (rowData.counterparty === merchantName) {
-            // 更新行数据中的分类
-            rowData.category = newCategory;
-            row.update(rowData);
-            updatedRowsCount++;
-            updatedRows.push(row);
-        }
-    });
-
-    // 添加视觉反馈：高亮更新的行
-    updatedRows.forEach(row => {
-        const rowElement = row.getElement();
-        rowElement.style.backgroundColor = '#d4edda'; // 淡绿色背景
-        rowElement.style.transition = 'background-color 0.3s ease';
-
-        // 2秒后恢复原色
-        setTimeout(() => {
-            rowElement.style.backgroundColor = '';
-        }, 2000);
-    });
-
-    console.log(`表格刷新完成: 更新了 ${updatedRowsCount} 行数据`);
-
-    // 如果更新的行数与服务器返回的不一致，提示用户刷新页面
-    if (updatedRowsCount !== updateData.updated_transactions) {
-        setTimeout(() => {
-            if (confirm(`检测到数据不一致，是否刷新页面以显示最新数据？\n表格更新: ${updatedRowsCount} 行\n服务器更新: ${updateData.updated_transactions} 笔交易`)) {
-                window.location.reload();
-            }
-        }, 2000);
-    }
-}
 
 /**
  * 获取财务表格专用的列配置
@@ -640,11 +503,6 @@ export function getFinancialTableColumns(categoriesConfig = {}) {
                 headerFilterParams: createCategoryFilterParams(categoriesConfig),
                 width: 120,
                 formatter: createCategoryFormatter(categoriesConfig),
-                editor: "list",
-                editorParams: createCategoryEditorParams(categoriesConfig),
-                cellEdited: function(cell) {
-                    handleCategoryEdit(cell);
-                },
                 sorter: "string",
                 responsive: 1 // 高优先级
             },
