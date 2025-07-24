@@ -55,6 +55,12 @@ CATEGORIES = {
         'icon': 'more-horizontal',
         'color': 'dark',
         'description': '未分类的其他支出'
+    },
+    'uncategorized': {
+        'name': '未分类',
+        'icon': 'help-circle',
+        'color': 'secondary',
+        'description': '尚未分类的交易，需要手动处理'
     }
 }
 

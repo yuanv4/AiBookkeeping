@@ -1,0 +1,28 @@
+/* merchant_categories.css - 商户分类管理页面样式 */
+
+/*
+* AiBookkeeping - 商户分类管理页面样式
+* 商户分类管理页面特定的样式定义，与交易记录页面保持一致
+*/
+
+/* Tabulator与Bootstrap 5集成样式 - 与transactions.css保持一致 */
+.tabulator {
+    border-radius: var(--bs-border-radius);
+    overflow: hidden;
+    box-shadow: var(--bs-box-shadow-sm);
+}
+
+.tabulator .tabulator-header {
+    background-color: var(--bs-gray-50);
+}
+
+.tabulator .tabulator-row.tabulator-row-even {
+    background-color: var(--bs-gray-25);
+}
+
+/* 商户分类页面特定样式 */
+.merchant-count-badge {
+    font-size: 0.875rem;
+    color: var(--bs-text-muted);
+    font-weight: normal;
+}

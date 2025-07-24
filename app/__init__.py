@@ -80,6 +80,10 @@ def _register_blueprints(app):
     app.register_blueprint(expense_analysis_bp, url_prefix='/expense-analysis')
     app.logger.info("已注册 expense_analysis_bp, 前缀 /expense-analysis")
 
+    from .blueprints.merchant_categories import merchant_categories_bp
+    app.register_blueprint(merchant_categories_bp, url_prefix='/merchant-categories')
+    app.logger.info("已注册 merchant_categories_bp, 前缀 /merchant-categories")
+
 
 def create_app():
     """创建Flask应用实例
