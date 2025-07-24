@@ -1,65 +1,41 @@
-"""商户分类配置
-
-统一管理所有商户分类规则，支持多种匹配策略
-"""
+"""商户分类配置"""
 
 MERCHANT_CATEGORIES = {
-    # 精确匹配规则 - 最高优先级
-    'exact_match': {
+    # 关键词匹配规则 - 直接使用分类结构
+    'keyword_categories': {
+        'healthcare': [
+            '医院', '药店', '药房', '诊所', '体检'
+        ],
+        'finance': [
+            '银行', '保险', '证券', '基金', '理财', '投资', '代销', '汇差', '转账'
+        ],
+        'shopping': [
+            '超市', '商场', '百货', '购物', '便利店', '商行', '商城', '电商',
+            '电子商务', '旗舰店', '铺子'
+        ],
+        'dining': [
+            '餐厅', '咖啡', '茶饮', '火锅', '烧烤', '美团', '饿了么', '煲仔饭',
+            '牛肉面', '米线', '蜜雪冰城', '奶茶', '茶姬', '肠粉', '小炒', '家常菜',
+            '餐饮', '拉面', '螺蛳粉', '烧鹅', '汤粉', '厨房', '快餐'
+        ],
+        'transport': [
+            '地铁', '公交', '出租', '加油', '停车', '深圳通', '公交卡', '地铁卡',
+            '滴滴', '出行'
+        ],
+        'services': [
+            '快递', '物流', '通信', '宽带', '理发', '美容', '顺丰', '速运', '圆通',
+            '中通', '韵达', '申通', '平台商户', '网络科技', '在线科技', '移动',
+            '通讯', '信息技术', '供应链', '菜鸟'
+        ]
     },
-    
-    # 关键词匹配规则 - 中等优先级
-    'keyword_match': {
-        '医院': 'healthcare',
-        '药店': 'healthcare',
-        '药房': 'healthcare',
-        '诊所': 'healthcare',
-        '体检': 'healthcare',
-        '银行': 'finance',
-        '保险': 'finance',
-        '证券': 'finance',
-        '基金': 'finance',
-        '超市': 'shopping',
-        '商场': 'shopping',
-        '百货': 'shopping',
-        '购物': 'shopping',
-        '餐厅': 'dining',
-        '咖啡': 'dining',
-        '茶饮': 'dining',
-        '火锅': 'dining',
-        '烧烤': 'dining',
-        '地铁': 'transport',
-        '公交': 'transport',
-        '出租': 'transport',
-        '加油': 'transport',
-        '停车': 'transport',
-        '快递': 'services',
-        '物流': 'services',
-        '通信': 'services',
-        '宽带': 'services',
-        '理发': 'services',
-        '美容': 'services',
+
+    # 模式匹配规则 - 直接使用分类结构
+    'pattern_categories': {
+        'healthcare': ['医院', '药房', '诊所'],
+        'finance': ['银行', '保险', '证券'],
+        'shopping': ['超市', '商城', '商场'],
+        'dining': ['餐厅', '咖啡', '茶'],
+        'transport': ['地铁', '公交', '出租'],
+        'services': ['快递', '物流', '通信']
     },
-    
-    # 模式匹配规则 - 最低优先级
-    'pattern_match': [
-        {'pattern': r'.*医院.*', 'category': 'healthcare'},
-        {'pattern': r'.*药房.*', 'category': 'healthcare'},
-        {'pattern': r'.*诊所.*', 'category': 'healthcare'},
-        {'pattern': r'.*银行.*', 'category': 'finance'},
-        {'pattern': r'.*保险.*', 'category': 'finance'},
-        {'pattern': r'.*证券.*', 'category': 'finance'},
-        {'pattern': r'.*超市.*', 'category': 'shopping'},
-        {'pattern': r'.*商城.*', 'category': 'shopping'},
-        {'pattern': r'.*商场.*', 'category': 'shopping'},
-        {'pattern': r'.*餐厅.*', 'category': 'dining'},
-        {'pattern': r'.*咖啡.*', 'category': 'dining'},
-        {'pattern': r'.*茶.*', 'category': 'dining'},
-        {'pattern': r'.*地铁.*', 'category': 'transport'},
-        {'pattern': r'.*公交.*', 'category': 'transport'},
-        {'pattern': r'.*出租.*', 'category': 'transport'},
-        {'pattern': r'.*快递.*', 'category': 'services'},
-        {'pattern': r'.*物流.*', 'category': 'services'},
-        {'pattern': r'.*通信.*', 'category': 'services'},
-    ]
 }

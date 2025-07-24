@@ -76,9 +76,8 @@ class SmartMerchantMatcher:
 
     def __init__(self):
         from .merchant_config import MERCHANT_CATEGORIES
-        self.exact_rules = MERCHANT_CATEGORIES.get('exact_match', {})
-        self.keyword_rules = MERCHANT_CATEGORIES.get('keyword_match', {})
-        self.pattern_rules = MERCHANT_CATEGORIES.get('pattern_match', [])
+        self.keyword_categories = MERCHANT_CATEGORIES.get('keyword_categories', {})
+        self.pattern_categories = MERCHANT_CATEGORIES.get('pattern_categories', {})
 
     def classify(self, merchant_name: str) -> tuple[str, float]:
         """分类商户并返回置信度
@@ -91,19 +90,17 @@ class SmartMerchantMatcher:
 
         normalized_name = self.normalize_merchant_name(merchant_name)
 
-        # 1. 精确匹配 (置信度: 1.0)
-        if normalized_name in self.exact_rules:
-            return self.exact_rules[normalized_name], 1.0
-
         # 2. 关键词匹配 (置信度: 0.8)
-        for keyword, category in self.keyword_rules.items():
-            if keyword in normalized_name:
-                return category, 0.8
+        for category, keywords in self.keyword_categories.items():
+            for keyword in keywords:
+                if keyword in normalized_name:
+                    return category, 0.8
 
         # 3. 模式匹配 (置信度: 0.6)
-        for rule in self.pattern_rules:
-            if re.match(rule['pattern'], normalized_name):
-                return rule['category'], 0.6
+        for category, patterns in self.pattern_categories.items():
+            for pattern in patterns:
+                if re.search(f'.*{pattern}.*', normalized_name):
+                    return category, 0.6
 
         return 'other', 0.0
 
@@ -163,19 +160,19 @@ class SmartMerchantMatcher:
         """生成推荐理由"""
         normalized_name = self.normalize_merchant_name(merchant_name)
 
-        # 精确匹配
-        if normalized_name in self.exact_rules:
-            return "基于精确匹配规则"
-
         # 关键词匹配
-        for keyword, cat in self.keyword_rules.items():
-            if keyword in normalized_name and cat == category:
-                return f"商户名称包含关键词'{keyword}'"
+        for cat, keywords in self.keyword_categories.items():
+            if cat == category:
+                for keyword in keywords:
+                    if keyword in normalized_name:
+                        return f"商户名称包含关键词'{keyword}'"
 
         # 模式匹配
-        for rule in self.pattern_rules:
-            if re.match(rule['pattern'], normalized_name) and rule['category'] == category:
-                return "基于商户名称模式匹配"
+        for cat, patterns in self.pattern_categories.items():
+            if cat == category:
+                for pattern in patterns:
+                    if re.search(f'.*{pattern}.*', normalized_name):
+                        return "基于商户名称模式匹配"
 
         return "基于默认分类规则"
 
@@ -278,14 +275,20 @@ class CategoryService:
 
         # 确定匹配方法
         normalized_name = self.matcher.normalize_merchant_name(merchant_name)
-        if normalized_name in self.matcher.exact_rules:
-            method = 'exact_match'
-        elif any(keyword in normalized_name for keyword in self.matcher.keyword_rules):
-            method = 'keyword_match'
-        elif any(re.match(rule['pattern'], normalized_name) for rule in self.matcher.pattern_rules):
-            method = 'pattern_match'
-        else:
-            method = 'default'
+        method = 'default'
+
+        # 检查关键词匹配
+        for keywords in self.matcher.keyword_categories.values():
+            if any(keyword in normalized_name for keyword in keywords):
+                method = 'keyword_match'
+                break
+
+        # 如果没有关键词匹配，检查模式匹配
+        if method == 'default':
+            for patterns in self.matcher.pattern_categories.values():
+                if any(re.search(f'.*{pattern}.*', normalized_name) for pattern in patterns):
+                    method = 'pattern_match'
+                    break
 
         return {
             'category': category,
