@@ -17,24 +17,20 @@ export default class MerchantCategoriesPage extends BasePage {
 
     init() {
         // 加载页面数据
-        this.loadPageData();
-        
-        // 初始化表格
-        this.initMerchantsTable();
-        
-        // 加载商户数据
-        this.loadMerchantsData();
-    }
-
-    loadPageData() {
         const pageDataElement = document.getElementById('page-data');
         if (pageDataElement) {
             const initialData = JSON.parse(pageDataElement.textContent);
             this.categoriesConfig = initialData.categories_config || {};
-            
-            // 设置全局变量供工具函数使用
-            window.categoriesConfig = this.categoriesConfig;
         }
+
+        // 初始化表格
+        this.initMerchantsTable();
+
+        // 设置事件委托
+        this.setupEventDelegation();
+
+        // 加载商户数据
+        this.loadMerchantsData();
     }
 
     initMerchantsTable() {
@@ -86,47 +82,218 @@ export default class MerchantCategoriesPage extends BasePage {
                     formatter: formatters.dateFormat
                 },
                 {
-                    title: "分类",
-                    field: "category",
-                    width: 150,
-                    editor: "list",
-                    editorParams: this.createCategoryEditorParams(),
-                    formatter: this.createCategoryFormatter(),
-                    cellEdited: (cell) => this.handleCategoryEdit(cell)
+                    title: "AI建议",
+                    field: "ai_suggestion",
+                    width: 120,
+                    responsive: 2,
+                    formatter: (cell) => this.formatAISuggestion(cell),
+                    cellClick: (_, cell) => this.showMerchantDetailModal(cell.getRow().getData())
+                },
+                {
+                    title: "操作",
+                    field: "actions",
+                    width: 80,
+                    responsive: 1,
+                    formatter: () => `<button class="btn btn-sm btn-success confirm-btn">确认</button>`
                 }
             ]
         });
     }
 
-    createCategoryEditorParams() {
-        const options = {};
-        if (this.categoriesConfig && Object.keys(this.categoriesConfig).length > 0) {
-            for (const [code, info] of Object.entries(this.categoriesConfig)) {
-                if (code !== 'uncategorized') { // 排除未分类选项
-                    options[code] = info.name;
+    setupEventDelegation() {
+        // 使用事件委托处理确认按钮点击
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('confirm-btn')) {
+                const row = e.target.closest('.tabulator-row');
+                if (row) {
+                    const merchantData = this.merchantsTable.getRow(row).getData();
+                    this.confirmAISuggestion(merchantData.id);
                 }
             }
-        }
-        return {
-            values: options,
-            clearable: false,
-            placeholder: "选择分类"
-        };
+        });
     }
 
-    createCategoryFormatter() {
-        return (cell) => {
-            const categoryCode = cell.getValue();
-            const categoryInfo = this.categoriesConfig[categoryCode];
-            
-            if (categoryInfo) {
-                return `<span class="category-badge d-flex align-items-center">
-                    <i data-lucide="${categoryInfo.icon}" class="text-${categoryInfo.color}" style="width: 1rem; height: 1rem;"></i>
-                    <span class="ms-2 small">${categoryInfo.name}</span>
+
+
+    formatAISuggestion(cell) {
+        const suggestion = cell.getValue();
+        if (!suggestion) return '<span class="ai-suggestion low-confidence">未知❓</span>';
+
+        const { confidence, category_name } = suggestion;
+        const level = confidence >= 90 ? 'high' : confidence >= 70 ? 'medium' : 'low';
+        const icon = confidence >= 90 ? '✓' : confidence >= 70 ? '?' : '❓';
+
+        return `<span class="ai-suggestion ${level}-confidence" title="置信度: ${confidence}%">
+                    ${category_name}${icon}
                 </span>`;
+    }
+
+    async confirmCategory(merchantName, category, categoryName) {
+        try {
+            const response = await fetch('/merchant-categories/api/confirm-ai-suggestion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ merchant_name: merchantName, category })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showNotification(
+                    `已将 ${result.data.merchant_name} 的分类更新为 ${categoryName}，共影响 ${result.data.updated_transactions} 笔交易`,
+                    'success'
+                );
+
+                // 移除商户并更新统计
+                const row = this.merchantsTable.getRows().find(r => r.getData().merchant_name === merchantName);
+                if (row) row.delete();
+
+                this.merchants = this.merchants.filter(m => m.merchant_name !== merchantName);
+                this.updateStatistics();
+                return true;
+            } else {
+                showNotification(`分类更新失败: ${result.error}`, 'error');
+                return false;
             }
-            return categoryCode;
-        };
+        } catch (error) {
+            showNotification(`网络错误: ${error.message}`, 'error');
+            return false;
+        }
+    }
+
+    async confirmAISuggestion(merchantId) {
+        const merchant = this.merchants.find(m => m.id === merchantId);
+        if (!merchant?.ai_suggestion) {
+            showNotification('无法找到商户信息', 'error');
+            return;
+        }
+
+        await this.confirmCategory(
+            merchant.merchant_name,
+            merchant.ai_suggestion.category,
+            merchant.ai_suggestion.category_name
+        );
+    }
+
+    async showMerchantDetailModal(merchant) {
+        try {
+            // 获取商户详细信息
+            const response = await fetch(`/merchant-categories/api/merchant-detail/${encodeURIComponent(merchant.merchant_name)}`);
+            const result = await response.json();
+
+            if (result.success) {
+                this.createMerchantDetailModal(result.data);
+            } else {
+                showNotification(`获取商户详情失败: ${result.error}`, 'error');
+            }
+
+        } catch (error) {
+            showNotification(`网络错误: ${error.message}`, 'error');
+        }
+    }
+
+    createMerchantDetailModal(data) {
+        // 优化的弹窗HTML
+        const modalHtml = `
+            <div class="modal fade" id="merchantDetailModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-light">
+                            <h5 class="modal-title d-flex align-items-center">
+                                <i class="bi bi-shop me-2 text-primary"></i>
+                                商户分类 - ${data.merchant.name}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- 基本信息卡片 -->
+                            <div class="card mb-3">
+                                <div class="card-body py-2">
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <div class="text-muted small">交易次数</div>
+                                            <div class="fw-bold text-primary">${data.merchant.transaction_count}笔</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="text-muted small">总金额</div>
+                                            <div class="fw-bold ${data.merchant.total_amount >= 0 ? 'text-success' : 'text-danger'}">
+                                                ¥${data.merchant.total_amount.toFixed(2)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 最近交易 -->
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-2">
+                                    <i class="bi bi-clock-history me-1"></i>最近交易
+                                </h6>
+                                <div class="bg-light rounded p-2">
+                                    ${data.recent_transactions.slice(0, 3).map(t =>
+                                        `<div class="d-flex justify-content-between align-items-center py-1">
+                                            <span class="small text-muted">${t.date}</span>
+                                            <span class="small ${t.amount >= 0 ? 'text-success' : 'text-danger'} fw-bold">
+                                                ¥${t.amount.toFixed(2)}
+                                            </span>
+                                            <span class="small text-truncate ms-2" style="max-width: 120px;" title="${t.description}">
+                                                ${t.description}
+                                            </span>
+                                        </div>`
+                                    ).join('')}
+                                </div>
+                            </div>
+
+                            <!-- 分类选择 -->
+                            <div>
+                                <h6 class="text-muted mb-2">
+                                    <i class="bi bi-tags me-1"></i>选择分类
+                                </h6>
+                                <select class="form-select" id="categorySelect">
+                                    ${data.categories.map(cat => `
+                                        <option value="${cat.code}" ${cat.code === data.ai_suggestion.category ? 'selected' : ''}>
+                                            ${cat.name}${cat.code === data.ai_suggestion.category ? ' (AI推荐)' : ''}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-primary" id="confirmCategoryBtn">
+                                <i class="bi bi-check-lg me-1"></i>确认分类
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 移除已存在的弹窗并添加新弹窗
+        document.getElementById('merchantDetailModal')?.remove();
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // 简化的交互初始化
+        this.initModalInteractions(data);
+        new bootstrap.Modal(document.getElementById('merchantDetailModal')).show();
+    }
+
+    initModalInteractions(data) {
+        const modal = document.getElementById('merchantDetailModal');
+
+        modal.querySelector('#confirmCategoryBtn').addEventListener('click', async () => {
+            const selectedCategory = modal.querySelector('#categorySelect').value;
+            if (!selectedCategory) {
+                showNotification('请选择一个分类', 'warning');
+                return;
+            }
+
+            const categoryInfo = data.categories.find(c => c.code === selectedCategory);
+            const success = await this.confirmCategory(data.merchant.name, selectedCategory, categoryInfo.name);
+
+            if (success) {
+                bootstrap.Modal.getInstance(modal).hide();
+            }
+        });
     }
 
     async handleCategoryEdit(cell) {
@@ -191,7 +358,7 @@ export default class MerchantCategoriesPage extends BasePage {
                 this.merchants = result.data;
                 this.merchantsTable.setData(this.merchants);
                 this.updateStatistics();
-                
+
                 // 重新渲染图标
                 setTimeout(() => {
                     if (window.lucide) {

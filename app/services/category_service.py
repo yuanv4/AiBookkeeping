@@ -116,6 +116,68 @@ class SmartMerchantMatcher:
         normalized = re.sub(r'[^\w\u4e00-\u9fff]', '', normalized)
         return normalized
 
+    def get_ai_suggestion(self, merchant_name: str, transactions=None) -> Dict:
+        """
+        为商户生成AI分类建议
+
+        Args:
+            merchant_name (str): 商户名称
+            transactions (list, optional): 交易记录列表
+
+        Returns:
+            dict: {
+                'category': str,  # 建议的分类代码
+                'category_name': str,  # 分类显示名称
+                'confidence': int,  # 置信度 (0-100)
+                'reason': str  # 推荐理由
+            }
+        """
+        if not merchant_name:
+            return {
+                'category': 'other',
+                'category_name': CATEGORIES['other']['name'],
+                'confidence': 0,
+                'reason': '商户名称为空'
+            }
+
+        # 使用现有的分类逻辑
+        category, confidence_float = self.classify(merchant_name)
+        confidence = int(confidence_float * 100)
+
+        # 获取分类显示信息
+        category_info = CATEGORIES.get(category, CATEGORIES['other'])
+
+        # 生成推荐理由
+        reason = self._generate_reason(merchant_name, category, confidence_float)
+
+        return {
+            'category': category,
+            'category_name': category_info['name'],
+            'confidence': confidence,
+            'reason': reason
+        }
+
+
+
+    def _generate_reason(self, merchant_name: str, category: str, _: float) -> str:
+        """生成推荐理由"""
+        normalized_name = self.normalize_merchant_name(merchant_name)
+
+        # 精确匹配
+        if normalized_name in self.exact_rules:
+            return "基于精确匹配规则"
+
+        # 关键词匹配
+        for keyword, cat in self.keyword_rules.items():
+            if keyword in normalized_name and cat == category:
+                return f"商户名称包含关键词'{keyword}'"
+
+        # 模式匹配
+        for rule in self.pattern_rules:
+            if re.match(rule['pattern'], normalized_name) and rule['category'] == category:
+                return "基于商户名称模式匹配"
+
+        return "基于默认分类规则"
 
 class CategoryService:
     """简化的商户分类服务
