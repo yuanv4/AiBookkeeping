@@ -11,7 +11,6 @@
 import logging
 import re
 from typing import Dict, Optional, List
-from functools import lru_cache
 
 # 分类元数据定义（硬编码）
 CATEGORIES = {
@@ -130,11 +129,16 @@ class CategoryService:
         # 初始化智能匹配器
         self.matcher = SmartMerchantMatcher()
 
+        # 初始化用户规则管理器
+        from .user_rules import SimpleUserRules
+        self.user_rules = SimpleUserRules()
+
         self.logger.info(f"分类服务初始化完成: {len(self._categories)}个分类, 智能匹配器已就绪")
 
-    @lru_cache(maxsize=1000)
     def classify_merchant(self, merchant_name: str) -> str:
         """智能分类商户
+
+        优先级：用户自定义规则 > 智能匹配规则
 
         Args:
             merchant_name: 商户名称
@@ -145,6 +149,12 @@ class CategoryService:
         if not merchant_name:
             return 'other'
 
+        # 1. 优先查询用户自定义规则
+        user_category = self.user_rules.get_rule(merchant_name)
+        if user_category and user_category in self._categories:
+            return user_category
+
+        # 2. 使用智能匹配
         category, confidence = self.matcher.classify(merchant_name)
 
         # 记录低置信度分类用于后续优化
@@ -152,6 +162,26 @@ class CategoryService:
             self.logger.debug(f"低置信度分类: {merchant_name} -> {category} (置信度: {confidence:.2f})")
 
         return category
+
+    def update_merchant_category(self, merchant_name: str, category: str) -> bool:
+        """更新商户分类规则
+
+        Args:
+            merchant_name: 商户名称
+            category: 新的分类代码
+
+        Returns:
+            bool: 是否更新成功
+        """
+        if category not in self._categories:
+            self.logger.warning(f"无效的分类代码: {category}")
+            return False
+
+        return self.user_rules.set_rule(merchant_name, category)
+
+    def get_user_rules_count(self) -> int:
+        """获取用户自定义规则数量"""
+        return self.user_rules.get_rules_count()
 
     def classify_merchants_batch(self, merchant_names: List[str]) -> Dict[str, str]:
         """批量分类商户

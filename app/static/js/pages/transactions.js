@@ -115,6 +115,9 @@ export default class TransactionsPage extends BasePage {
                 // 加载分类配置
                 this.categoriesConfig = initialData.categories_config || {};
 
+                // 将分类配置设置为全局变量，供utils.js中的函数使用
+                window.categoriesConfig = this.categoriesConfig;
+
             } catch (error) {
                 console.error('解析页面数据时出错:', error);
                 this.transactions = [];

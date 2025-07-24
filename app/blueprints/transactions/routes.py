@@ -1,10 +1,15 @@
 # 使用重构后的服务层和路由助手
-from flask import request, render_template, current_app
+from flask import request, render_template, current_app, jsonify
 from app.utils.decorators import handle_errors
-from app.utils import DataUtils, get_transaction_service, get_account_service, get_categories_config
+from app.utils import DataUtils, get_transaction_service, get_account_service, get_categories_config, get_category_service
 from app.utils.route_helpers import get_common_filters, log_route_access, build_filter_summary
+from app.models import Transaction, db
+from app.services.category_service import CATEGORIES
+import logging
 
 from . import transactions_bp
+
+logger = logging.getLogger(__name__)
 
 @transactions_bp.route('/') # 蓝图根路径对应 /transactions/
 @handle_errors
@@ -61,3 +66,70 @@ def transactions_list_route(): # 重命名函数
         total_count=total_transactions,
         categories_config=categories_config
     )
+
+
+@transactions_bp.route('/api/transactions/<int:transaction_id>/category', methods=['PUT'])
+@handle_errors
+def update_transaction_category(transaction_id):
+    """更新交易分类并学习用户规则
+
+    Args:
+        transaction_id: 交易ID
+
+    Request Body:
+        {
+            "category": "dining"  // 新的分类代码
+        }
+
+    Returns:
+        {
+            "success": true,
+            "data": {
+                "updated_transactions": 5,  // 更新的交易数量
+                "merchant_name": "麦当劳",
+                "old_category": "other",
+                "new_category": "dining"
+            }
+        }
+    """
+    data = request.get_json()
+    new_category = data.get('category') if data else None
+
+    # 验证请求数据
+    if not new_category:
+        return DataUtils.format_api_response(False, error='缺少分类参数')
+
+    # 验证分类有效性
+    if new_category not in CATEGORIES:
+        return DataUtils.format_api_response(False, error='无效的分类代码')
+
+    # 获取交易记录
+    transaction = Transaction.query.get_or_404(transaction_id)
+    old_category = transaction.category
+    merchant_name = transaction.counterparty
+
+    if not merchant_name:
+        return DataUtils.format_api_response(False, error='交易缺少商户信息')
+
+    # 获取分类服务
+    category_service = get_category_service()
+
+    # 保存用户规则
+    if not category_service.update_merchant_category(merchant_name, new_category):
+        return DataUtils.format_api_response(False, error='保存用户规则失败')
+
+    # 批量更新同商户的所有交易
+    updated_count = Transaction.query.filter_by(counterparty=merchant_name).update({
+        'category': new_category
+    })
+
+    db.session.commit()
+
+    logger.info(f"用户更新分类: {merchant_name} {old_category} -> {new_category}, 影响 {updated_count} 笔交易")
+
+    return DataUtils.format_api_response(True, data={
+        'updated_transactions': updated_count,
+        'merchant_name': merchant_name,
+        'old_category': old_category,
+        'new_category': new_category
+    })
