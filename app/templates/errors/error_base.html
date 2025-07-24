@@ -47,21 +47,21 @@
                         <h5 class="fw-semibold mb-3">您可能在寻找：</h5>
                         <div class="row g-3">
                             <div class="col-sm-6">
-                                <a href="{{ url_for('main.dashboard') }}" class="text-decoration-none">
+                                <a href="{{ url_for('analysis.index') }}" class="text-decoration-none">
                                     <div class="card border-0 bg-light h-100">
                                         <div class="card-body text-center py-3">
-                                            {{ icon("layout-dashboard", "md", "text-primary mb-2") }}
-                                            <div class="small fw-medium">现金流仪表盘</div>
+                                            {{ icon("bar-chart-3", "md", "text-primary mb-2") }}
+                                            <div class="small fw-medium">财务分析</div>
                                         </div>
                                     </div>
                                 </a>
                             </div>
                             <div class="col-sm-6">
-                                <a href="{{ url_for('transactions_bp.transactions_list_route') }}" class="text-decoration-none">
+                                <a href="{{ url_for('merchant_categories.index') }}" class="text-decoration-none">
                                     <div class="card border-0 bg-light h-100">
                                         <div class="card-body text-center py-3">
-                                            {{ icon("receipt", "md", "text-primary mb-2") }}
-                                            <div class="small fw-medium">交易记录</div>
+                                            {{ icon("help-circle", "md", "text-primary mb-2") }}
+                                            <div class="small fw-medium">商户分类</div>
                                         </div>
                                     </div>
                                 </a>

@@ -329,6 +329,29 @@ export default class AnalysisPage extends BasePage {
         }
     }
 
+    // 动态刷新仪表盘数据
+    async refreshDashboardData(months = 12) {
+        try {
+            this.setLoading(true);
+
+            const response = await fetch(`/analysis/api/dashboard-data?months=${months}`);
+            const result = await response.json();
+
+            if (result.success) {
+                this.dashboardData = result.data;
+                this.updateDashboard(this.dashboardData);
+                console.log('仪表盘数据刷新成功');
+            } else {
+                throw new Error(result.error || '刷新仪表盘数据失败');
+            }
+        } catch (error) {
+            console.error('刷新仪表盘数据失败:', error);
+            this.showErrorState('仪表盘数据刷新失败');
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
     async loadAvailableMonths() {
         try {
             const response = await fetch('/analysis/api/available-months');
@@ -522,12 +545,20 @@ export default class AnalysisPage extends BasePage {
                     : 0;
 
                 const row = document.createElement('tr');
+                row.className = 'merchant-row';
+                row.style.cursor = 'pointer';
                 row.innerHTML = `
                     <td>${merchantName}</td>
                     <td class="text-end">${merchantData.transaction_count}次</td>
                     <td class="text-end merchant-amount">¥${Math.abs(merchantData.total_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td class="text-end">${merchantPercentage.toFixed(1)}%</td>
                 `;
+
+                // 添加点击事件查看商户详情
+                row.addEventListener('click', () => {
+                    this.showMerchantDetails(merchantName);
+                });
+
                 tbody.appendChild(row);
             });
 
@@ -554,9 +585,118 @@ export default class AnalysisPage extends BasePage {
 
         return card;
     }
+
+    // 显示商户详情弹窗
+    async showMerchantDetails(merchantName) {
+        try {
+            this.setLoading(true);
+
+            const response = await fetch(`/analysis/api/merchant-details/${encodeURIComponent(merchantName)}?month=${this.selectedMonth}`);
+            const result = await response.json();
+
+            if (result.success) {
+                this.renderMerchantDetailsModal(result.data);
+            } else {
+                throw new Error(result.error || '获取商户详情失败');
+            }
+        } catch (error) {
+            console.error('获取商户详情失败:', error);
+            showNotification('获取商户详情失败', 'error');
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    // 渲染商户详情模态框
+    renderMerchantDetailsModal(data) {
+        // 创建模态框HTML
+        const modalHtml = `
+            <div class="modal fade" id="merchantDetailsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">商户详情 - ${data.merchant_name}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="card-title">交易次数</h6>
+                                            <h4 class="text-primary">${data.statistics.transaction_count}次</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="card-title">总支出</h6>
+                                            <h4 class="text-danger">¥${Math.abs(data.statistics.total_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="card-title">平均金额</h6>
+                                            <h4 class="text-info">¥${Math.abs(data.statistics.average_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h6>最近交易记录</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>日期</th>
+                                            <th>描述</th>
+                                            <th class="text-end">金额</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.transactions.map(t => `
+                                            <tr>
+                                                <td>${t.date}</td>
+                                                <td>${t.description || '无描述'}</td>
+                                                <td class="text-end">¥${Math.abs(t.amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 移除已存在的模态框
+        const existingModal = document.getElementById('merchantDetailsModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // 添加新模态框到页面
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // 显示模态框
+        const modal = new bootstrap.Modal(document.getElementById('merchantDetailsModal'));
+        modal.show();
+
+        // 模态框关闭后清理
+        document.getElementById('merchantDetailsModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
 }
 
 // 初始化页面
 document.addEventListener('DOMContentLoaded', () => {
-    const page = new AnalysisPage();
+    new AnalysisPage();
 });

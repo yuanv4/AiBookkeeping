@@ -50,9 +50,19 @@ def create_error_response(error: Exception, status_code: int = 500) -> Tuple[Any
         }), status_code
     else:
         # Web请求返回HTML响应
-        return render_template('error.html',
-                             error=error_message,
-                             status_code=status_code), status_code
+        # 根据状态码选择合适的错误模板
+        if status_code == 404:
+            return render_template('errors/404.html',
+                                 error=error_message,
+                                 status_code=status_code), status_code
+        elif status_code == 500:
+            return render_template('errors/500.html',
+                                 error=error_message,
+                                 status_code=status_code), status_code
+        else:
+            return render_template('errors/error_base.html',
+                                 error=error_message,
+                                 status_code=status_code), status_code
 
 
 def handle_errors(func: Callable = None):

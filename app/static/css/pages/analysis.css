@@ -238,6 +238,22 @@ mark.bg-warning {
     background-color: var(--bs-primary-50);
 }
 
+/* 商户行交互样式 */
+.merchant-row {
+    transition: var(--bs-transition);
+}
+
+.merchant-row:hover {
+    background-color: var(--bs-primary-50) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.merchant-row:hover .merchant-amount {
+    color: var(--bs-primary) !important;
+    font-weight: var(--font-weight-bold);
+}
+
 /* 响应式表格优化 */
 @media (max-width: 768px) {
     .merchant-transactions-section .table th,

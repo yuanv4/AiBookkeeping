@@ -6,10 +6,9 @@
 
 import logging
 from flask import render_template, jsonify, request, redirect, url_for
-from datetime import datetime
 
 from . import analysis_bp
-from app.utils.decorators import handle_errors, validate_date_range
+from app.utils.decorators import handle_errors
 from app.utils import get_report_service, DataUtils, get_categories_config, get_valid_category_codes
 from app.utils.route_helpers import log_route_access
 
@@ -67,105 +66,23 @@ def index():
 
 @analysis_bp.route('/api/dashboard-data')
 @handle_errors
-@validate_date_range(['start_date', 'end_date'])
 def get_dashboard_data():
-    """获取仪表盘数据的API接口"""
+    """获取仪表盘数据的API接口 - 支持动态刷新"""
     log_route_access('dashboard-data', request.args.to_dict())
-
-    # 获取验证后的日期参数
-    start_date = request.validated_args['start_date']
-    end_date = request.validated_args['end_date']
 
     # 获取报告服务实例
     report_service = get_report_service()
 
-    # 获取期间汇总和月度趋势
-    period_summary = report_service.get_period_summary(start_date, end_date)
-    monthly_trend = report_service.get_monthly_trend(months=12)
+    # 获取月数参数，默认12个月
+    months = request.args.get('months', 12, type=int)
 
-    # 转换为前端期望的现金流数据格式
-    data = {
-        'period_summary': period_summary,
-        'monthly_trend': monthly_trend,
-        'cash_flow': monthly_trend  # 月度趋势可以作为现金流数据
-    }
+    # 获取仪表盘数据
+    dashboard_data = report_service.get_dashboard_data(months=months)
 
-    return DataUtils.format_api_response(success=True, data=data)
+    return DataUtils.format_api_response(success=True, data=dashboard_data)
 
 
-@analysis_bp.route('/api/expense-analysis')
-@handle_errors
-def get_expense_analysis():
-    """获取支出分析数据的API接口
-    
-    支持两种调用模式：
-    1. 传入target_month参数，返回完整的支出结构透视数据
-    2. 传入start_date和end_date参数，返回原有的支出分析数据
-    """
-    try:
-        target_month_str = request.args.get('target_month')
-        
-        # 新的增强模式：基于目标月份的完整支出分析
-        if target_month_str:
-            return _handle_enhanced_expense_analysis(target_month_str)
-        
-        # 基于日期范围的支出分析
-        else:
-            start_date_str = request.args.get('start_date')
-            end_date_str = request.args.get('end_date')
-            return _handle_expense_analysis(start_date_str, end_date_str)
-            
-    except Exception as e:
-        logger.error(f"获取支出分析数据失败: {str(e)}")
-        return DataUtils.format_api_response(success=False, error='服务器内部错误')
 
-
-def _handle_enhanced_expense_analysis(target_month_str):
-    """处理增强的支出分析请求"""
-    try:
-        # 解析目标月份
-        target_month = datetime.strptime(target_month_str, '%Y-%m').date()
-    except ValueError:
-        return DataUtils.format_api_response(success=False, error='月份格式错误，请使用 YYYY-MM 格式')
-    
-    # 获取报告服务
-    report_service = get_report_service()
-    
-    # 计算目标月份的开始和结束日期
-    from calendar import monthrange
-    start_date = target_month.replace(day=1)
-    last_day = monthrange(target_month.year, target_month.month)[1]
-    end_date = target_month.replace(day=last_day)
-    
-    # 获取支出构成数据
-    expense_composition = report_service.get_expense_composition(start_date, end_date)
-    
-    # 转换为前端期望的格式
-    enhanced_data = {
-        'expense_composition': expense_composition,
-        'period': {
-            'start_date': start_date.strftime('%Y-%m-%d'),
-            'end_date': end_date.strftime('%Y-%m-%d'),
-            'month': target_month.strftime('%Y-%m')
-        }
-    }
-    
-    return DataUtils.format_api_response(success=True, data=enhanced_data)
-
-
-def _handle_expense_analysis(start_date_str, end_date_str):
-    """处理支出分析请求"""
-    # 获取报告服务
-    report_service = get_report_service()
-    
-    # 使用DataUtils验证日期范围
-    start_date, end_date, error = DataUtils.validate_date_range(start_date_str, end_date_str)
-    if error:
-        return DataUtils.format_api_response(success=False, error=error)
-    
-    # 获取支出构成数据
-    data = report_service.get_expense_composition(start_date, end_date)
-    return DataUtils.format_api_response(success=True, data={'expense_composition': data})
 
 
 @analysis_bp.route('/api/merchant-analysis')

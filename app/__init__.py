@@ -73,9 +73,7 @@ def _register_blueprints(app):
     app.register_blueprint(analysis_bp, url_prefix='/analysis')
     app.logger.info("已注册 analysis_bp, 前缀 /analysis")
 
-    from .blueprints.transactions.routes import transactions_bp
-    app.register_blueprint(transactions_bp, url_prefix='/transactions')
-    app.logger.info("已注册 transactions_bp, 前缀 /transactions")
+
 
     from .blueprints.settings.routes import settings_bp
     app.register_blueprint(settings_bp, url_prefix='/settings')
