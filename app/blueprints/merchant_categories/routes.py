@@ -40,11 +40,20 @@ def get_uncategorized_merchants():
     # 获取分类服务
     category_service = get_category_service()
 
+    # 批量获取所有商户的AI建议，避免N+1查询问题
+    merchant_names = [merchant.merchant_name for merchant in merchants_data]
+    ai_suggestions = category_service.matcher.get_ai_suggestions_batch(merchant_names)
+
     # 转换为字典格式并添加AI建议
     merchants_list = []
     for merchant in merchants_data:
-        # 获取AI建议
-        ai_suggestion = category_service.matcher.get_ai_suggestion(merchant.merchant_name)
+        # 从批量结果中获取AI建议
+        ai_suggestion = ai_suggestions.get(merchant.merchant_name, {
+            'category': 'other',
+            'category_name': '其他',
+            'confidence': 0,
+            'reason': '无法分类'
+        })
 
         merchants_list.append({
             'id': hash(merchant.merchant_name) % 1000000,  # 生成简单ID
@@ -65,35 +74,40 @@ def update_merchant_category(merchant_name):
     """更新单个商户分类API"""
     data = request.get_json()
     new_category = data.get('category') if data else None
-    
+
     # 验证请求数据
     if not new_category:
         return DataUtils.format_api_response(False, error='缺少分类参数')
-    
+
     # 验证分类有效性
     from app.services.category_service import CATEGORIES
     if new_category not in CATEGORIES:
         return DataUtils.format_api_response(False, error='无效的分类代码')
-    
+
     # 获取分类服务并保存用户规则
     category_service = get_category_service()
     if not category_service.update_merchant_category(merchant_name, new_category):
         return DataUtils.format_api_response(False, error='保存用户规则失败')
-    
-    # 批量更新同商户的所有交易
-    updated_count = Transaction.query.filter_by(counterparty=merchant_name).update({
-        'category': new_category
-    })
-    
-    db.session.commit()
-    
-    logger.info(f"商户分类更新: {merchant_name} -> {new_category}, 影响 {updated_count} 笔交易")
-    
-    return DataUtils.format_api_response(True, data={
-        'updated_transactions': updated_count,
-        'merchant_name': merchant_name,
-        'new_category': new_category
-    })
+
+    try:
+        # 批量更新同商户的所有交易
+        updated_count = Transaction.query.filter_by(counterparty=merchant_name).update({
+            'category': new_category
+        })
+
+        db.session.commit()
+
+        logger.info(f"商户分类更新: {merchant_name} -> {new_category}, 影响 {updated_count} 笔交易")
+
+        return DataUtils.format_api_response(True, data={
+            'updated_transactions': updated_count,
+            'merchant_name': merchant_name,
+            'new_category': new_category
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"更新商户分类失败: {merchant_name} -> {new_category}, 错误: {e}")
+        return DataUtils.format_api_response(False, error='数据库更新失败')
 
 
 @merchant_categories_bp.route('/api/merchant-detail/<merchant_name>')
@@ -170,17 +184,22 @@ def confirm_ai_suggestion():
     if not category_service.update_merchant_category(merchant_name, category):
         return DataUtils.format_api_response(False, error='保存用户规则失败')
 
-    # 批量更新同商户的所有交易
-    updated_count = Transaction.query.filter_by(counterparty=merchant_name).update({
-        'category': category
-    })
+    try:
+        # 批量更新同商户的所有交易
+        updated_count = Transaction.query.filter_by(counterparty=merchant_name).update({
+            'category': category
+        })
 
-    db.session.commit()
+        db.session.commit()
 
-    logger.info(f"AI建议确认: {merchant_name} -> {category}, 影响 {updated_count} 笔交易")
+        logger.info(f"AI建议确认: {merchant_name} -> {category}, 影响 {updated_count} 笔交易")
 
-    return DataUtils.format_api_response(True, data={
-        'updated_transactions': updated_count,
-        'merchant_name': merchant_name,
-        'category': category
-    })
+        return DataUtils.format_api_response(True, data={
+            'updated_transactions': updated_count,
+            'merchant_name': merchant_name,
+            'category': category
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"确认AI建议失败: {merchant_name} -> {category}, 错误: {e}")
+        return DataUtils.format_api_response(False, error='数据库更新失败')

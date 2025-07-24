@@ -118,18 +118,23 @@ def update_transaction_category(transaction_id):
     if not category_service.update_merchant_category(merchant_name, new_category):
         return DataUtils.format_api_response(False, error='保存用户规则失败')
 
-    # 批量更新同商户的所有交易
-    updated_count = Transaction.query.filter_by(counterparty=merchant_name).update({
-        'category': new_category
-    })
+    try:
+        # 批量更新同商户的所有交易
+        updated_count = Transaction.query.filter_by(counterparty=merchant_name).update({
+            'category': new_category
+        })
 
-    db.session.commit()
+        db.session.commit()
 
-    logger.info(f"用户更新分类: {merchant_name} {old_category} -> {new_category}, 影响 {updated_count} 笔交易")
+        logger.info(f"用户更新分类: {merchant_name} {old_category} -> {new_category}, 影响 {updated_count} 笔交易")
 
-    return DataUtils.format_api_response(True, data={
-        'updated_transactions': updated_count,
-        'merchant_name': merchant_name,
-        'old_category': old_category,
-        'new_category': new_category
-    })
+        return DataUtils.format_api_response(True, data={
+            'updated_transactions': updated_count,
+            'merchant_name': merchant_name,
+            'old_category': old_category,
+            'new_category': new_category
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"更新交易分类失败: {merchant_name} {old_category} -> {new_category}, 错误: {e}")
+        return DataUtils.format_api_response(False, error='数据库更新失败')

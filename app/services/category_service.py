@@ -154,6 +154,21 @@ class SmartMerchantMatcher:
             'reason': reason
         }
 
+    def get_ai_suggestions_batch(self, merchant_names: List[str]) -> Dict[str, Dict]:
+        """
+        批量为商户生成AI分类建议，避免N+1查询问题
+
+        Args:
+            merchant_names: 商户名称列表
+
+        Returns:
+            dict: 商户名称到AI建议的映射
+        """
+        suggestions = {}
+        for merchant_name in merchant_names:
+            suggestions[merchant_name] = self.get_ai_suggestion(merchant_name)
+        return suggestions
+
 
 
     def _generate_reason(self, merchant_name: str, category: str, _: float) -> str:
