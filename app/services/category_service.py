@@ -59,7 +59,7 @@ CATEGORIES = {
     'uncategorized': {
         'name': '未分类',
         'icon': 'help-circle',
-        'color': 'secondary',
+        'color': 'warning',
         'description': '尚未分类的交易，需要手动处理'
     }
 }

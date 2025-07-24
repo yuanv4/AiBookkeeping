@@ -28,39 +28,28 @@
 }
 
 /* AI建议标签样式 */
-.ai-suggestion {
+.ai-suggestion-badge {
     display: inline-flex;
     align-items: center;
-    padding: 4px 8px;
-    border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: 1px solid;
+    border-radius: 6px;
+    padding: 4px 8px;
+    gap: 4px;
 }
 
-.ai-suggestion:hover {
+.ai-suggestion-badge:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    opacity: 0.9;
 }
 
-.ai-suggestion.high-confidence {
-    background-color: #d4edda;
-    color: #155724;
-    border-color: #c3e6cb;
-}
-
-.ai-suggestion.medium-confidence {
-    background-color: #fff3cd;
-    color: #856404;
-    border-color: #ffeaa7;
-}
-
-.ai-suggestion.low-confidence {
-    background-color: #f8f9fa;
-    color: #6c757d;
-    border-color: #dee2e6;
+.ai-suggestion-badge i {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
 }
 
 /* 优化的弹窗样式 */

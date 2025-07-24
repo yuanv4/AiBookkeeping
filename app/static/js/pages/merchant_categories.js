@@ -117,14 +117,17 @@ export default class MerchantCategoriesPage extends BasePage {
 
     formatAISuggestion(cell) {
         const suggestion = cell.getValue();
-        if (!suggestion) return '<span class="ai-suggestion low-confidence">未知❓</span>';
+        if (!suggestion) return '<span class="badge bg-secondary ai-suggestion-badge"><i data-lucide="help-circle"></i> 未知</span>';
 
-        const { confidence, category_name } = suggestion;
-        const level = confidence >= 90 ? 'high' : confidence >= 70 ? 'medium' : 'low';
-        const icon = confidence >= 90 ? '✓' : confidence >= 70 ? '?' : '❓';
+        const { confidence, category_name, category } = suggestion;
 
-        return `<span class="ai-suggestion ${level}-confidence" title="置信度: ${confidence}%">
-                    ${category_name}${icon}
+        // 获取分类颜色和图标
+        const categoryInfo = this.categoriesConfig[category];
+        const colorClass = categoryInfo ? categoryInfo.color : 'secondary';
+        const iconName = categoryInfo ? categoryInfo.icon : 'help-circle';
+
+        return `<span class="badge bg-${colorClass} ai-suggestion-badge" title="置信度: ${confidence}%">
+                    <i data-lucide="${iconName}"></i> ${category_name}
                 </span>`;
     }
 
