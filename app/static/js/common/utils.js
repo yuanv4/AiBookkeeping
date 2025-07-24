@@ -323,7 +323,7 @@ export function getTabulatorCommonConfig() {
         paginationSizeSelector: [10, 20, 50, 100],
         movableColumns: true,
         resizableRows: true,
-        selectable: true,
+        selectable: 1,
         locale: "zh-cn",
         langs: getTabulatorLocale(),
         headerFilterPlaceholder: "筛选...",
