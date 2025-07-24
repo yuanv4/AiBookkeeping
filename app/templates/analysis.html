@@ -1,20 +1,42 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, card, chart_container, page_header, loading_state %}
+{% from "macros.html" import icon, card, chart_container, page_header, stat_card, loading_state %}
 
-{% block title %}支出分类分析 - {{ config.APP_NAME }}{% endblock %}
+{% block title %}财务分析中心 - {{ config.APP_NAME }}{% endblock %}
 
 {% block page_css %}
-<link href="{{ url_for('static', filename='css/pages/expense-analysis.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/pages/analysis.css') }}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
 <div class="page-container">
-    {{ page_header("支出分类分析", "基于商户类型的智能支出分类与统计分析", "pie-chart") }}
-
-    <!-- 主要内容 -->
-    <div id="main-content">
-
-
+    {{ page_header("财务分析中心", "现金流健康监控与支出分类分析", "bar-chart-3") }}
+    
+    <!-- 统一的数据容器 -->
+    <div id="analysis-data" 
+         data-dashboard-data='{{ dashboard_data|tojson|safe }}'
+         data-categories-config='{{ categories_config|tojson|safe }}'
+         style="display: none;">
+    </div>
+    
+    <!-- 核心健康指标区域 (来自仪表盘) -->
+    <section id="health-metrics" class="mb-4">
+        <!-- 净现金趋势图 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                {{ chart_container("净现金趋势", "netWorthChart", "300px", "trending-up") }}
+            </div>
+        </div>
+        
+        <!-- KPI 指标卡片 -->
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4">
+            <div class="col">{{ stat_card("dollar-sign", "¥0.00", "当前总现金", "primary", "", "currentAssets") }}</div>
+            <div class="col">{{ stat_card("shield-check", "0个月", "应急储备月数", "warning", "", "emergencyReserveMonths") }}</div>
+            <div class="col">{{ stat_card("calculator", "¥0.00", "累计净收支", "info", "", "netIncome", "--", "netChange") }}</div>
+        </div>
+    </section>
+    
+    <!-- 支出分析区域 (来自支出分析) -->
+    <section id="expense-analysis" class="mb-4">
         <!-- 月度趋势图表 -->
         <div class="row mb-4">
             <div class="col-12">
@@ -39,6 +61,16 @@
                 {% endcall %}
             </div>
         </div>
+    </section>
+
+    <!-- 加载状态 -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-2">正在加载数据...</p>
+        </div>
     </div>
 
     <!-- 错误状态 -->
@@ -55,17 +87,7 @@
             重新加载
         </button>
     </div>
-
-    <!-- 统一的数据容器，供JavaScript使用 -->
-    <div id="page-data"
-         data-initial-data='{{ {
-             "categories_config": categories_config
-         }|tojson|safe }}'
-         style="display: none;">
-    </div>
 </div>
-
-
 {% endblock %}
 
 {% block page_vendor_scripts %}
@@ -82,15 +104,15 @@
 {% endblock %}
 
 {% block page_scripts %}
-<!-- 支出分类分析页面脚本 -->
-<script type="module" src="{{ url_for('static', filename='js/pages/expense_analysis.js') }}"></script>
+<!-- 财务分析页面脚本 -->
+<script type="module" src="{{ url_for('static', filename='js/pages/analysis.js') }}"></script>
 <script>
     // 全局页面实例，供内联事件处理器使用
-    window.expenseAnalysisPage = null;
+    window.analysisPage = null;
 
     // 页面加载完成后初始化
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('支出分类分析页面开始初始化');
+        console.log('财务分析页面开始初始化');
     });
 </script>
 {% endblock %}

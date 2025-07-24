@@ -63,10 +63,15 @@ def _register_blueprints(app):
     Args:
         app: Flask应用实例
     """
-    # 注册main蓝图（仪表盘和主页）
+    # 注册main蓝图（基础路由和重定向）
     from .blueprints.main import main_bp
     app.register_blueprint(main_bp)
     app.logger.info("已注册 main_bp")
+
+    # 注册新的分析模块蓝图（合并仪表盘和支出分析）
+    from .blueprints.analysis import analysis_bp
+    app.register_blueprint(analysis_bp, url_prefix='/analysis')
+    app.logger.info("已注册 analysis_bp, 前缀 /analysis")
 
     from .blueprints.transactions.routes import transactions_bp
     app.register_blueprint(transactions_bp, url_prefix='/transactions')
@@ -75,10 +80,6 @@ def _register_blueprints(app):
     from .blueprints.settings.routes import settings_bp
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.logger.info("已注册 settings_bp, 前缀 /settings")
-
-    from .blueprints.expense_analysis import expense_analysis_bp
-    app.register_blueprint(expense_analysis_bp, url_prefix='/expense-analysis')
-    app.logger.info("已注册 expense_analysis_bp, 前缀 /expense-analysis")
 
     from .blueprints.merchant_categories import merchant_categories_bp
     app.register_blueprint(merchant_categories_bp, url_prefix='/merchant-categories')
