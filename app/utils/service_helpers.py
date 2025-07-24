@@ -22,29 +22,11 @@ class ServiceContainer:
         self._initialized = False
         self.logger = logging.getLogger(__name__)
 
-    def get_bank_service(self):
-        """获取银行服务实例"""
-        if 'bank_service' not in self._services:
-            from ..services import BankService
-            self._services['bank_service'] = BankService()
-            self.logger.debug("创建BankService实例")
-        return self._services['bank_service']
-
-    def get_account_service(self):
-        """获取账户服务实例"""
-        if 'account_service' not in self._services:
-            from ..services import AccountService
-            bank_service = self.get_bank_service()
-            self._services['account_service'] = AccountService(bank_service)
-            self.logger.debug("创建AccountService实例")
-        return self._services['account_service']
-
     def get_transaction_service(self):
         """获取交易服务实例"""
         if 'transaction_service' not in self._services:
             from ..services import TransactionService
-            account_service = self.get_account_service()
-            self._services['transaction_service'] = TransactionService(account_service)
+            self._services['transaction_service'] = TransactionService()
             self.logger.debug("创建TransactionService实例")
         return self._services['transaction_service']
 
@@ -53,12 +35,8 @@ class ServiceContainer:
         """获取导入服务实例"""
         if 'import_service' not in self._services:
             from ..services import ImportService
-            bank_service = self.get_bank_service()
-            account_service = self.get_account_service()
             transaction_service = self.get_transaction_service()
-            self._services['import_service'] = ImportService(
-                bank_service, account_service, transaction_service
-            )
+            self._services['import_service'] = ImportService(transaction_service)
             self.logger.debug("创建ImportService实例")
         return self._services['import_service']
 
@@ -82,12 +60,10 @@ class ServiceContainer:
         """获取报告服务实例"""
         if 'report_service' not in self._services:
             from ..services import ReportService
-            bank_service = self.get_bank_service()
-            account_service = self.get_account_service()
             transaction_service = self.get_transaction_service()
             category_service = self.get_category_service()
             self._services['report_service'] = ReportService(
-                bank_service, account_service, transaction_service, category_service
+                transaction_service, category_service
             )
             self.logger.debug("创建ReportService实例")
         return self._services['report_service']
@@ -103,14 +79,6 @@ class ServiceContainer:
 _service_container = ServiceContainer()
 
 # 向后兼容的函数接口
-def get_bank_service():
-    """获取银行服务实例（向后兼容）"""
-    return _service_container.get_bank_service()
-
-def get_account_service():
-    """获取账户服务实例（向后兼容）"""
-    return _service_container.get_account_service()
-
 def get_transaction_service():
     """获取交易服务实例（向后兼容）"""
     return _service_container.get_transaction_service()
@@ -139,8 +107,6 @@ def check_services_health() -> dict:
     """检查所有服务的健康状态"""
     services_status = {}
     try:
-        services_status['bank'] = _service_container.get_bank_service() is not None
-        services_status['account'] = _service_container.get_account_service() is not None
         services_status['transaction'] = _service_container.get_transaction_service() is not None
         services_status['import'] = _service_container.get_import_service() is not None
         services_status['report'] = _service_container.get_report_service() is not None

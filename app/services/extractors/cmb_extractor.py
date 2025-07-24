@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Optional, Tuple
 
 from .base_extractor import BaseTransactionExtractor
-from ..models import ExtractedData
+from . import ExtractedData
 
 class CMBTransactionExtractor(BaseTransactionExtractor):
     """招商银行交易提取器"""
@@ -92,7 +92,7 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
             return ExtractedData(
                 bank_name=self.get_bank_name(),
                 bank_code=self.get_bank_code(),
-                name=name,
+                account_name=name,
                 account_number=account_number,
                 transactions=transactions_list
             )

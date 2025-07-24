@@ -6,14 +6,12 @@ from datetime import date
 import logging
 from functools import lru_cache
 
-from app.models import Transaction, Account, Bank
+from app.models import Transaction
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, and_, or_
-from sqlalchemy.orm import joinedload, selectinload
 from app.utils import DataUtils
 
 from .base_service import BaseService
-from .account_service import AccountService
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +19,9 @@ logger = logging.getLogger(__name__)
 class TransactionService(BaseService):
     """交易管理服务 - 提供交易的创建、查询、更新、删除等功能"""
 
-    def __init__(self, account_service: AccountService = None, db_session=None):
+    def __init__(self, db_session=None):
         """初始化交易服务"""
         super().__init__(db_session)
-        self.account_service = account_service or AccountService(db_session=db_session)
     
     def create_transaction(self, **kwargs) -> Transaction:
         """创建交易记录"""
@@ -62,13 +59,8 @@ class TransactionService(BaseService):
             交易记录列表
         """
         try:
-            # 根据是否需要关联数据选择查询策略
-            if include_relations:
-                query = Transaction.query.options(
-                    joinedload(Transaction.account).joinedload(Account.bank)
-                )
-            else:
-                query = Transaction.query
+            # 简化后的查询（不再需要关联查询）
+            query = Transaction.query
 
             if filters:
                 query = self._apply_filters(query, filters)
@@ -101,13 +93,8 @@ class TransactionService(BaseService):
     def _apply_filters(self, query, filters: dict):
         """应用过滤条件到查询"""
         try:
-            if 'account_id' in filters and filters['account_id']:
-                query = query.filter(Transaction.account_id == filters['account_id'])
-            
             if 'account_number' in filters and filters['account_number']:
-                account = self.account_service.get_account_by_number(filters['account_number'])
-                if account:
-                    query = query.filter(Transaction.account_id == account.id)
+                query = query.filter(Transaction.account_number == filters['account_number'])
             
             if 'start_date' in filters and filters['start_date']:
                 if isinstance(filters['start_date'], str):

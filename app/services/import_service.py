@@ -22,10 +22,8 @@ import logging
 import pandas as pd
 from typing import List, Any, Optional, Dict, Set, Union
 
-from .bank_service import BankService
-from .account_service import AccountService
 from .transaction_service import TransactionService
-from .models import ExtractedData, ImportConstants
+from .extractors import ExtractedData
 
 class ImportService:
     """文件导入和处理服务
@@ -39,29 +37,22 @@ class ImportService:
     - 简化了分类逻辑，提高了一致性
     """
 
-    def __init__(self, bank_service: BankService, account_service: AccountService, transaction_service: TransactionService, upload_folder: Optional[Union[str, Path]] = None, allowed_extensions: Optional[Set[str]] = None) -> None:
+    def __init__(self, transaction_service: TransactionService, upload_folder: Optional[Union[str, Path]] = None, allowed_extensions: Optional[Set[str]] = None) -> None:
         """初始化导入服务
 
         Args:
-            bank_service: 银行服务实例
-            account_service: 账户服务实例
             transaction_service: 交易服务实例
             upload_folder: 上传文件夹路径
             allowed_extensions: 允许的文件扩展名集合
         """
-        self.bank_service = bank_service
-        self.account_service = account_service
         self.transaction_service = transaction_service
         self.logger = logging.getLogger(self.__class__.__name__)
 
         # 设置上传文件夹
-        if upload_folder:
-            self.upload_folder = Path(upload_folder)
-        else:
-            self.upload_folder = Path(ImportConstants.DEFAULT_UPLOAD_FOLDER)
+        self.upload_folder = Path('uploads')
 
         # 设置允许的文件扩展名
-        self.allowed_extensions = allowed_extensions or ImportConstants.ALLOWED_EXTENSIONS
+        self.allowed_extensions = {'xlsx', 'xls'}
 
         # 加载提取器
         self._extractors = []
@@ -186,19 +177,6 @@ class ImportService:
             # 提取数据
             extracted_data = self.extract_from_file(file_path)
             
-            # 确保银行存在
-            bank = self.bank_service.get_or_create_bank(
-                name=extracted_data.bank_name,
-                code=extracted_data.bank_code
-            )
-
-            # 确保账户存在
-            account = self.account_service.get_or_create_account(
-                bank_id=bank.id,
-                account_number=extracted_data.account_number,
-                name=extracted_data.name
-            )
-            
             # 处理交易记录
             processed_count = 0
 
@@ -210,9 +188,13 @@ class ImportService:
                     counterparty = transaction_dict['counterparty']
                     extracted_merchant = counterparty
 
-                    # 创建交易记录数据
+                    # 创建交易记录数据（直接使用银行和账户信息）
                     transaction_data = {
-                        'account_id': account.id,
+                        'bank_name': extracted_data.bank_name,
+                        'bank_code': extracted_data.bank_code,
+                        'account_number': extracted_data.account_number,
+                        'account_name': extracted_data.account_name,
+                        'account_type': 'checking',  # 默认账户类型
                         'date': transaction_dict['date'],
                         'amount': transaction_dict['amount'],
                         'balance_after': transaction_dict['balance_after'],
@@ -256,7 +238,7 @@ class ImportService:
                     'success': True,
                     'bank': extracted_data.bank_name,
                     'account_number': extracted_data.account_number,
-                    'name': extracted_data.name,
+                    'account_name': extracted_data.account_name,
                     'record_count': processed_count,
                     'file_path': file_path
                 },

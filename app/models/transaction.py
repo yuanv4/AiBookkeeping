@@ -8,7 +8,16 @@ class Transaction(BaseModel):
     
     __tablename__ = 'transactions'
     
-    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False, index=True)
+    # 银行信息（直接嵌入，替代外键关系）
+    bank_name = db.Column(db.String(100), nullable=False, index=True)  # 银行名称
+    bank_code = db.Column(db.String(20), nullable=True, index=True)  # 银行代码
+
+    # 账户信息（直接嵌入，替代外键关系）
+    account_number = db.Column(db.String(50), nullable=False, index=True)  # 账户号码
+    account_name = db.Column(db.String(100), nullable=True)  # 账户名称
+    account_type = db.Column(db.String(20), default='checking')  # 账户类型
+
+    # 交易基本信息
     date = db.Column(db.Date, nullable=False, index=True)
     amount = db.Column(db.Numeric(15, 2), nullable=False, index=True)
     balance_after = db.Column(db.Numeric(15, 2), nullable=False, index=True)  # 交易后余额
@@ -16,17 +25,55 @@ class Transaction(BaseModel):
     description = db.Column(db.String(200), nullable=False, index=True)  # 交易描述
     currency = db.Column(db.String(3), default='CNY', nullable=False, index=True)
     reference_number = db.Column(db.String(50), index=True)  # 交易参考号
+
+    # 分类信息
     merchant_name = db.Column(db.String(128), nullable=True, index=True)  # 规范化的商家名称
     category = db.Column(db.String(50), nullable=True, index=True, default='other')  # 商户分类
-    
+
     # 索引优化
     __table_args__ = (
-        db.Index('idx_account_date', 'account_id', 'date'),
+        db.Index('idx_bank_account', 'bank_name', 'account_number'),
+        db.Index('idx_account_date', 'account_number', 'date'),
         db.Index('idx_date_amount', 'date', 'amount'),
+        db.Index('idx_bank_date', 'bank_name', 'date'),
     )
     
 
     
+    @validates('bank_name')
+    def validate_bank_name(self, _key, bank_name):
+        """验证银行名称"""
+        if not bank_name or not bank_name.strip():
+            raise ValueError('银行名称不能为空')
+        return bank_name.strip()
+
+    @validates('bank_code')
+    def validate_bank_code(self, _key, bank_code):
+        """验证银行代码"""
+        if bank_code:
+            bank_code = bank_code.strip().upper()
+            if len(bank_code) > 20:
+                raise ValueError('银行代码不能超过20个字符')
+        return bank_code
+
+    @validates('account_number')
+    def validate_account_number(self, _key, account_number):
+        """验证账户号码"""
+        if not account_number or not account_number.strip():
+            raise ValueError('账户号码不能为空')
+        account_number = account_number.strip()
+        if len(account_number) > 50:
+            raise ValueError('账户号码不能超过50个字符')
+        return account_number
+
+    @validates('account_type')
+    def validate_account_type(self, _key, account_type):
+        """验证账户类型"""
+        valid_types = ['checking', 'savings', 'credit', 'investment', 'loan', 'other']
+        if account_type and account_type.lower() not in valid_types:
+            raise ValueError(f'账户类型必须是以下之一: {", ".join(valid_types)}')
+        return account_type.lower() if account_type else 'checking'
+
     @validates('amount')
     def validate_amount(self, _key, amount):
         """验证交易金额"""
@@ -154,6 +201,54 @@ class Transaction(BaseModel):
         """获取绝对金额"""
         return abs(self.amount)
 
+    @classmethod
+    def get_by_account(cls, account_number: str):
+        """根据账户号码获取交易记录"""
+        return cls.query.filter_by(account_number=account_number.strip()).order_by(cls.date.desc()).all()
+
+    @classmethod
+    def get_by_bank(cls, bank_name: str):
+        """根据银行名称获取交易记录"""
+        return cls.query.filter_by(bank_name=bank_name.strip()).order_by(cls.date.desc()).all()
+
+    @classmethod
+    def get_account_summary(cls):
+        """获取账户汇总信息"""
+        from sqlalchemy import func
+        return cls.query.with_entities(
+            cls.bank_name,
+            cls.bank_code,
+            cls.account_number,
+            cls.account_name,
+            cls.account_type,
+            cls.currency,
+            func.max(cls.balance_after).label('latest_balance'),
+            func.max(cls.date).label('latest_date'),
+            func.count(cls.id).label('transaction_count')
+        ).group_by(
+            cls.bank_name,
+            cls.account_number
+        ).order_by(cls.bank_name, cls.account_number).all()
+
+    @classmethod
+    def get_distinct_banks(cls):
+        """获取所有不同的银行"""
+        from sqlalchemy import func
+        return cls.query.with_entities(
+            cls.bank_name,
+            cls.bank_code
+        ).distinct().order_by(cls.bank_name).all()
+
+    @classmethod
+    def get_distinct_accounts(cls):
+        """获取所有不同的账户"""
+        return cls.query.with_entities(
+            cls.bank_name,
+            cls.account_number,
+            cls.account_name,
+            cls.account_type
+        ).distinct().order_by(cls.bank_name, cls.account_number).all()
+
     def to_dict(self):
         """转换为字典"""
         result = super().to_dict()
@@ -165,7 +260,13 @@ class Transaction(BaseModel):
         result['absolute_amount'] = float(self.get_absolute_amount())
         result['merchant_name'] = self.merchant_name
         result['category'] = self.category
+        # 添加银行和账户信息
+        result['bank_name'] = self.bank_name
+        result['bank_code'] = self.bank_code
+        result['account_number'] = self.account_number
+        result['account_name'] = self.account_name
+        result['account_type'] = self.account_type
         return result
     
     def __repr__(self):
-        return f'<Transaction(id={self.id}, account_id={self.account_id}, date={self.date}, amount={self.amount})>'
+        return f'<Transaction(id={self.id}, bank={self.bank_name}, account={self.account_number}, date={self.date}, amount={self.amount})>'

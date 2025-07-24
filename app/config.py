@@ -14,15 +14,10 @@ class Config:
         db_path = os.path.join(project_root, 'instance', 'app.db')
         self.SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
 
-        # 文件上传配置
-        self.UPLOAD_FOLDER = 'uploads'
-        # ALLOWED_EXTENSIONS 统一在 ImportConstants 中定义
-
         # 日志配置
         self.LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
         self.LOG_FILE = 'logs/app.log'
         self.LOG_FORMAT = '%(asctime)s %(levelname)s %(name)s %(message)s'
-
 
     def init_app(self, app):
         """初始化应用配置"""
@@ -31,6 +26,4 @@ class Config:
             if key.isupper():
                 app.config[key] = value
 
-        # 确保必要目录存在
-        Path(self.UPLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
         Path(self.LOG_FILE).parent.mkdir(parents=True, exist_ok=True)

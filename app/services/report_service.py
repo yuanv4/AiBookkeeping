@@ -22,8 +22,6 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .base_service import BaseService
-from .bank_service import BankService
-from .account_service import AccountService
 from .transaction_service import TransactionService
 from .category_service import CategoryService
 from app.utils import DataUtils
@@ -36,19 +34,15 @@ class ReportService(BaseService):
     提供简化的财务分析和报告功能，专注于个人用户的核心需求。
     """
     
-    def __init__(self, bank_service: BankService, account_service: AccountService, transaction_service: TransactionService, category_service: CategoryService, db_session: Optional[Session] = None):
+    def __init__(self, transaction_service: TransactionService, category_service: CategoryService, db_session: Optional[Session] = None):
         """初始化报告服务
 
         Args:
-            bank_service: 银行服务实例
-            account_service: 账户服务实例
             transaction_service: 交易服务实例
             category_service: 分类服务实例
             db_session: 数据库会话，如果为None则使用默认会话
         """
         super().__init__(db_session)
-        self.bank_service = bank_service
-        self.account_service = account_service
         self.transaction_service = transaction_service
         self.category_service = category_service
 
@@ -65,28 +59,40 @@ class ReportService(BaseService):
             self.logger.error(f"Error getting current total assets: {e}")
             return Decimal('0.00')
 
-    def get_latest_balance_by_account(self, target_date: Optional[date] = None) -> Dict[int, Decimal]:
-        """获取每个账户的最新余额"""
+    def get_latest_balance_by_account(self, target_date: Optional[date] = None) -> Dict[str, Decimal]:
+        """获取每个账户的最新余额
+
+        Returns:
+            Dict[str, Decimal]: 账户号码到最新余额的映射
+        """
         try:
-            # 简化的实现：获取每个账户的最新交易记录的余额
-            accounts = Account.query.all()
+            from sqlalchemy import func
+
+            # 构建查询：按账户分组，获取每个账户的最新交易记录
+            query = self.db.query(
+                Transaction.account_number,
+                func.max(Transaction.date).label('latest_date')
+            ).group_by(Transaction.account_number)
+
+            if target_date:
+                query = query.filter(Transaction.date <= target_date)
+
+            # 获取每个账户的最新日期
+            latest_dates = query.all()
+
             balances = {}
-            
-            for account in accounts:
-                query = Transaction.query.filter_by(account_id=account.id)
-                if target_date:
-                    query = query.filter(Transaction.date <= target_date)
-                
-                latest_transaction = query.order_by(
-                    Transaction.date.desc(), 
-                    Transaction.created_at.desc()
-                ).first()
-                
+            for account_number, latest_date in latest_dates:
+                # 获取该账户在最新日期的最后一笔交易
+                latest_transaction = Transaction.query.filter_by(
+                    account_number=account_number,
+                    date=latest_date
+                ).order_by(Transaction.created_at.desc()).first()
+
                 if latest_transaction and latest_transaction.balance_after:
-                    balances[account.id] = latest_transaction.balance_after
+                    balances[account_number] = latest_transaction.balance_after
                 else:
-                    balances[account.id] = Decimal('0.00')
-            
+                    balances[account_number] = Decimal('0.00')
+
             return balances
         except Exception as e:
             self.logger.error(f"Error getting latest balances: {e}")
@@ -397,21 +403,25 @@ class ReportService(BaseService):
     def get_account_summary(self) -> List[Dict[str, Any]]:
         """获取账户汇总信息"""
         try:
-            accounts = self.account_service.get_all_accounts()
+            # 直接从Transaction模型获取账户汇总信息
+            account_summaries = Transaction.get_account_summary()
             balances = self.get_latest_balance_by_account()
-            
+
             summary = []
-            for account in accounts:
-                balance = balances.get(account.id, Decimal('0.00'))
+            for account_info in account_summaries:
+                balance = balances.get(account_info.account_number, Decimal('0.00'))
                 summary.append({
-                    'account_id': account.id,
-                    'name': account.name or '未命名账户',
-                    'account_number': account.account_number,
-                    'bank_name': account.bank.name if account.bank else '未知银行',
+                    'account_number': account_info.account_number,
+                    'name': account_info.account_name or '未命名账户',
+                    'bank_name': account_info.bank_name,
+                    'bank_code': account_info.bank_code,
+                    'account_type': account_info.account_type,
                     'balance': float(balance),
-                    'currency': account.currency or 'CNY'
+                    'currency': account_info.currency or 'CNY',
+                    'transaction_count': account_info.transaction_count,
+                    'latest_date': account_info.latest_date.strftime('%Y-%m-%d') if account_info.latest_date else None
                 })
-            
+
             return summary
         except Exception as e:
             self.logger.error(f"Error getting account summary: {e}")
@@ -693,7 +703,7 @@ class ReportService(BaseService):
                     transaction_list.append({
                         'date': transaction.date.strftime('%Y-%m-%d'),
                         'amount': abs(float(transaction.amount)),
-                        'account': transaction.account.name if transaction.account else None,
+                        'account': transaction.account_name,
                         'description': transaction.description
                     })
 

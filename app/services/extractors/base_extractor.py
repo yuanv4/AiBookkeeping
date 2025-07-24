@@ -8,7 +8,7 @@
 
 import pandas as pd
 from abc import ABC, abstractmethod
-from ..models import ExtractedData
+from . import ExtractedData
 
 
 class BaseTransactionExtractor(ABC):
