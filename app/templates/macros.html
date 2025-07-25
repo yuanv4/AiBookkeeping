@@ -366,23 +366,6 @@
 </div>
 {% endmacro %}
 
-{% macro empty_state(message="没有找到匹配的数据", icon_name="search-x", action_text="", action_url="", action_onclick="") %}
-<!-- 空状态组件 -->
-<div class="text-center py-5">
-  <div class="mb-3">
-    {{ icon(icon_name, "xl", "text-muted") }}
-  </div>
-  <p class="text-muted mb-3">{{ message }}</p>
-  {% if action_text %}
-  <button class="btn btn-sm btn-outline-primary"
-          {% if action_url %}onclick="window.location.href='{{ action_url }}'"{% endif %}
-          {% if action_onclick %}onclick="{{ action_onclick }}"{% endif %}>
-    {{ action_text }}
-  </button>
-  {% endif %}
-</div>
-{% endmacro %}
-
 {% macro breadcrumb(items=[]) %}
 <!-- 面包屑导航组件 -->
 <nav aria-label="面包屑导航" class="mb-4">
@@ -449,5 +432,28 @@
   {% if dismissible %}
   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
   {% endif %}
+</div>
+{% endmacro %}
+
+{% macro no_data_guide(page_type="analysis") %}
+<!-- 无数据状态引导 -->
+<div class="no-data-overlay">
+    <div class="no-data-content">
+        <div class="mb-4">
+            {{ icon("database-x", "xxl", "text-muted") }}
+        </div>
+        <h3 class="mb-3">欢迎使用 AiBookkeeping</h3>
+        <p class="text-muted mb-4">
+            {% if page_type == "analysis" %}
+            导入财务数据后，您将看到详细的分析报告。
+            {% else %}
+            导入数据后，系统将提供智能分类建议。
+            {% endif %}
+        </p>
+        <a href="{{ url_for('settings_bp.settings_index') }}" class="btn btn-primary btn-lg">
+            {{ icon("upload", "sm", "me-2") }}
+            立即导入数据
+        </a>
+    </div>
 </div>
 {% endmacro %}

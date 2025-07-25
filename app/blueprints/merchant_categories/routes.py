@@ -18,9 +18,13 @@ logger = logging.getLogger(__name__)
 @merchant_categories_bp.route('/')
 def index():
     """商户分类管理主页面"""
+    from app.utils import has_financial_data
+    has_data = has_financial_data()
+
     return render_template('merchant_categories.html',
                          page_title='商户分类管理',
-                         categories_config=get_categories_config())
+                         categories_config=get_categories_config(),
+                         has_data=has_data)
 
 
 @merchant_categories_bp.route('/api/uncategorized-merchants')

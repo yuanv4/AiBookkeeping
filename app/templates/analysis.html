@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, card, chart_container, page_header, stat_card, loading_state %}
+{% from "macros.html" import icon, card, chart_container, page_header, stat_card, loading_state, no_data_guide %}
 
 {% block title %}财务分析中心 - {{ config.APP_NAME }}{% endblock %}
 
@@ -8,6 +8,10 @@
 {% endblock %}
 
 {% block content %}
+{% if not has_data %}
+    {{ no_data_guide("analysis") }}
+{% endif %}
+
 {{ page_header("财务分析中心", "现金流健康监控与支出分类分析", "bar-chart-3") }}
 
 <!-- 统一的数据容器 -->

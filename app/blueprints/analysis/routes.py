@@ -32,11 +32,16 @@ def index():
         except Exception as e:
             logger.error(f"获取分类配置失败: {e}")
             categories_config = {}
-        
+
+        # 简单的数据检测
+        from app.utils import has_financial_data
+        has_data = has_financial_data()
+
         return render_template('analysis.html',
                              page_title='财务分析中心',
                              dashboard_data=dashboard_data,
-                             categories_config=categories_config)
+                             categories_config=categories_config,
+                             has_data=has_data)
                              
     except Exception as e:
         logger.error(f"加载财务分析页面失败: {str(e)}")

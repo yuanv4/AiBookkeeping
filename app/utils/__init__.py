@@ -14,6 +14,15 @@ from .service_helpers import (
     check_services_health
 )
 
+def has_financial_data():
+    """检测是否有财务数据的简单函数"""
+    try:
+        from app.models import Transaction
+        return Transaction.query.count() > 0
+    except Exception:
+        return True  # 出错时假设有数据，避免误显示
+
+
 __all__ = [
     'handle_errors',
     'register_template_filters',
@@ -27,5 +36,6 @@ __all__ = [
     'get_category_service',
     'get_categories_config',
     'get_valid_category_codes',
-    'check_services_health'
+    'check_services_health',
+    'has_financial_data'
 ]

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import page_header, data_card, alert_banner %}
+{% from "macros.html" import page_header, data_card, alert_banner, no_data_guide %}
 
 {% block title %}商户分类管理 - {{ config.APP_NAME }}{% endblock %}
 
@@ -10,6 +10,10 @@
 {% endblock %}
 
 {% block content %}
+{% if not has_data %}
+    {{ no_data_guide("merchant_categories") }}
+{% endif %}
+
 {{ page_header("商户分类管理", "管理未分类的商户，设置正确的分类", "help-circle") }}
 
 <!-- 商户列表表格 -->

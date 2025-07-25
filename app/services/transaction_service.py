@@ -135,29 +135,6 @@ class TransactionService(BaseService):
             self.logger.error(f"Error applying filters: {e}")
             raise
 
-    def check_duplicate_transaction(self, account_id: int, date: date, amount: Decimal, balance_after: Decimal = None) -> bool:
-        """检查交易是否重复"""
-        try:
-            # 标准化金额
-            normalized_amount = DataUtils.normalize_decimal(amount)
-            normalized_balance = DataUtils.normalize_decimal(balance_after) if balance_after is not None else None
-
-            # 使用 exists() 查询替代 first()，提高性能
-            query_conditions = [
-                Transaction.account_id == account_id,
-                Transaction.date == date,
-                Transaction.amount == normalized_amount,
-            ]
-            
-            if normalized_balance is not None:
-                query_conditions.append(Transaction.balance_after == normalized_balance)
-
-            return self.db.query(Transaction.query.filter(and_(*query_conditions)).exists()).scalar()
-
-        except Exception as e:
-            self.logger.error(f"重复检查异常: {e}")
-            return True
-
     def batch_check_duplicates(self, transactions_data: List[Dict[str, Any]]) -> List[bool]:
         """批量检查交易重复 - 提高批量导入性能"""
         try:
@@ -167,7 +144,7 @@ class TransactionService(BaseService):
             # 构建查询条件
             conditions = []
             for data in transactions_data:
-                account_id = data.get('account_id')
+                account_number = data.get('account_number')
                 date_val = data.get('date')
                 amount = DataUtils.normalize_decimal(data.get('amount'))
                 balance_after = data.get('balance_after')
@@ -176,7 +153,7 @@ class TransactionService(BaseService):
                     balance_after = DataUtils.normalize_decimal(balance_after)
 
                 condition = and_(
-                    Transaction.account_id == account_id,
+                    Transaction.account_number == account_number,
                     Transaction.date == date_val,
                     Transaction.amount == amount,
                     Transaction.balance_after == balance_after
@@ -189,14 +166,14 @@ class TransactionService(BaseService):
             # 构建重复记录的快速查找集合
             existing_set = set()
             for t in existing_transactions:
-                key = (t.account_id, t.date, t.amount, t.balance_after)
+                key = (t.account_number, t.date, t.amount, t.balance_after)
                 existing_set.add(key)
 
             # 检查每个交易是否重复
             results = []
             for data in transactions_data:
                 key = (
-                    data.get('account_id'),
+                    data.get('account_number'),
                     data.get('date'),
                     DataUtils.normalize_decimal(data.get('amount')),
                     DataUtils.normalize_decimal(data.get('balance_after')) if data.get('balance_after') is not None else None
