@@ -35,29 +35,39 @@
     {% block styles %}{% endblock %}
 </head>
 <body class="d-flex">
-    <!-- 侧边导航 -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <div class="d-flex align-items-center">
-                <div class="me-2">
-                    {{ icon("landmark", "md", "text-primary") }}
-                </div>
-                <h5 class="mb-0 fw-bold">{{ config.APP_NAME }}</h5>
-            </div>
-        </div>
+    <!-- 悬浮导航按钮 -->
+    <nav class="floating-nav" aria-label="主要导航">
+        {% set is_analysis_active = request.endpoint == 'analysis.index' or (request.blueprint and request.blueprint == 'analysis') %}
+        <a href="{{ url_for('analysis.index') }}"
+           class="fab {% if is_analysis_active %}active{% endif %}"
+           title="财务分析"
+           {% if is_analysis_active %}aria-current="page"{% endif %}>
+            {{ icon("bar-chart-3", "sm") }}
+            <span class="fab-label">财务分析</span>
+        </a>
 
-        <nav class="sidebar-nav">
-            <ul class="nav nav-pills flex-column gap-1">
-                {{ nav_link('analysis.index', '财务分析', 'bar-chart-3') }}
-                {{ nav_link('merchant_categories.index', '商户分类', 'help-circle') }}
-                {{ nav_link('settings_bp.settings_index', '系统设置', 'settings') }}
-            </ul>
-        </nav>
-    </div>
+        {% set is_categories_active = request.blueprint == 'merchant_categories' %}
+        <a href="{{ url_for('merchant_categories.index') }}"
+           class="fab {% if is_categories_active %}active{% endif %}"
+           title="商户分类"
+           {% if is_categories_active %}aria-current="page"{% endif %}>
+            {{ icon("help-circle", "sm") }}
+            <span class="fab-label">商户分类</span>
+        </a>
+
+        {% set is_settings_active = request.blueprint == 'settings_bp' %}
+        <a href="{{ url_for('settings_bp.settings_index') }}"
+           class="fab {% if is_settings_active %}active{% endif %}"
+           title="系统设置"
+           {% if is_settings_active %}aria-current="page"{% endif %}>
+            {{ icon("settings", "sm") }}
+            <span class="fab-label">系统设置</span>
+        </a>
+    </nav>
 
     <!-- 主内容区 -->
     <div class="main-content">
-        <div class="container-fluid p-4">
+        <div class="page-container p-4">
             <!-- 消息提示 -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}

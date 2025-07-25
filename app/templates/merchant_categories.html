@@ -10,11 +10,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    {{ page_header("商户分类管理", "管理未分类的商户，设置正确的分类", "help-circle") }}
+{{ page_header("商户分类管理", "管理未分类的商户，设置正确的分类", "help-circle") }}
 
-    <!-- 商户列表表格 -->
-    <div class="card border-0 shadow-sm">
+<!-- 商户列表表格 -->
+<div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-bottom">
             <div class="d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
@@ -31,7 +30,6 @@
             <div id="merchants-table"></div>
         </div>
     </div>
-</div>
 
 <!-- 页面数据 -->
 <script id="page-data" type="application/json">

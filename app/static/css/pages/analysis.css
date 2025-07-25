@@ -195,15 +195,10 @@ mark.bg-warning {
 
 /* 超宽屏优化 */
 @media (min-width: 1400px) {
-    .page-container {
-        max-width: 1320px;
-        margin: 0 auto;
-    }
-
     #health-metrics .chart-container {
         min-height: 400px;
     }
-    
+
     #expense-analysis .chart-container {
         min-height: 450px;
     }

@@ -17,7 +17,7 @@ from dateutil.relativedelta import relativedelta
 import logging
 from functools import lru_cache
 
-from app.models import Transaction, Account, db
+from app.models import Transaction, db
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 

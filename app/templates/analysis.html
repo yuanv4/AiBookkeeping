@@ -8,18 +8,17 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-container">
-    {{ page_header("财务分析中心", "现金流健康监控与支出分类分析", "bar-chart-3") }}
-    
-    <!-- 统一的数据容器 -->
-    <div id="analysis-data" 
-         data-dashboard-data='{{ dashboard_data|tojson|safe }}'
-         data-categories-config='{{ categories_config|tojson|safe }}'
-         style="display: none;">
-    </div>
-    
-    <!-- 核心健康指标区域 (来自仪表盘) -->
-    <section id="health-metrics" class="mb-4">
+{{ page_header("财务分析中心", "现金流健康监控与支出分类分析", "bar-chart-3") }}
+
+<!-- 统一的数据容器 -->
+<div id="analysis-data"
+     data-dashboard-data='{{ dashboard_data|tojson|safe }}'
+     data-categories-config='{{ categories_config|tojson|safe }}'
+     style="display: none;">
+</div>
+
+<!-- 核心健康指标区域 (来自仪表盘) -->
+<section id="health-metrics" class="mb-4">
         <!-- 净现金趋势图 -->
         <div class="row mb-4">
             <div class="col-12">
@@ -87,7 +86,6 @@
             重新加载
         </button>
     </div>
-</div>
 {% endblock %}
 
 {% block page_vendor_scripts %}
