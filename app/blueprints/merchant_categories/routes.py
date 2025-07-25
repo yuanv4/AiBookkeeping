@@ -22,7 +22,6 @@ def index():
     has_data = has_financial_data()
 
     return render_template('merchant_categories.html',
-                         page_title='商户分类管理',
                          categories_config=get_categories_config(),
                          has_data=has_data)
 

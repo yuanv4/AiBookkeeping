@@ -46,7 +46,6 @@ export default class MerchantCategoriesPage extends BasePage {
                 {
                     title: "商户名称",
                     field: "merchant_name",
-                    width: 200,
                     headerFilter: "input",
                     headerFilterPlaceholder: "搜索商户...",
                     responsive: 0,
@@ -58,7 +57,6 @@ export default class MerchantCategoriesPage extends BasePage {
                 {
                     title: "交易次数",
                     field: "transaction_count",
-                    width: 100,
                     sorter: "number",
                     responsive: 2,
                     formatter: function(cell) {
@@ -68,7 +66,6 @@ export default class MerchantCategoriesPage extends BasePage {
                 {
                     title: "总金额",
                     field: "total_amount",
-                    width: 120,
                     sorter: "number",
                     responsive: 1,
                     formatter: formatters.currency
@@ -76,7 +73,6 @@ export default class MerchantCategoriesPage extends BasePage {
                 {
                     title: "最近交易",
                     field: "latest_date",
-                    width: 120,
                     sorter: "date",
                     responsive: 3,
                     formatter: formatters.dateFormat
@@ -84,17 +80,10 @@ export default class MerchantCategoriesPage extends BasePage {
                 {
                     title: "AI建议",
                     field: "ai_suggestion",
-                    width: 120,
+                    hozAlign: "center",
                     responsive: 2,
                     formatter: (cell) => this.formatAISuggestion(cell),
                     cellClick: (_, cell) => this.showMerchantDetailModal(cell.getRow().getData())
-                },
-                {
-                    title: "操作",
-                    field: "actions",
-                    width: 80,
-                    responsive: 1,
-                    formatter: () => `<button class="btn btn-sm btn-success confirm-btn">确认</button>`
                 }
             ]
         });
@@ -113,8 +102,6 @@ export default class MerchantCategoriesPage extends BasePage {
         });
     }
 
-
-
     formatAISuggestion(cell) {
         const suggestion = cell.getValue();
         if (!suggestion) return '<span class="badge bg-secondary ai-suggestion-badge"><i data-lucide="help-circle"></i> 未知</span>';
@@ -126,8 +113,11 @@ export default class MerchantCategoriesPage extends BasePage {
         const colorClass = categoryInfo ? categoryInfo.color : 'secondary';
         const iconName = categoryInfo ? categoryInfo.icon : 'help-circle';
 
-        return `<span class="badge bg-${colorClass} ai-suggestion-badge" title="置信度: ${confidence}%">
-                    <i data-lucide="${iconName}"></i> ${category_name}
+        return `<span class="badge bg-light text-dark ai-suggestion-badge"
+                      title="置信度: ${confidence}%"
+                      style="border: 1px solid #dee2e6;">
+                    <i data-lucide="${iconName}" class="text-${colorClass}" style="margin-right: 4px;"></i>
+                    ${category_name}
                 </span>`;
     }
 
@@ -262,6 +252,9 @@ export default class MerchantCategoriesPage extends BasePage {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-success" id="quickConfirmBtn">
+                                <i data-lucide="check"></i> 确认AI建议
+                            </button>
                             <button type="button" class="btn btn-primary" id="confirmCategoryBtn">
                                 <i class="bi bi-check-lg me-1"></i>确认分类
                             </button>
@@ -283,6 +276,22 @@ export default class MerchantCategoriesPage extends BasePage {
     initModalInteractions(data) {
         const modal = document.getElementById('merchantDetailModal');
 
+        // 快速确认AI建议按钮
+        modal.querySelector('#quickConfirmBtn').addEventListener('click', async () => {
+            if (data.ai_suggestion) {
+                const success = await this.confirmCategory(
+                    data.merchant.name,
+                    data.ai_suggestion.category,
+                    data.ai_suggestion.category_name
+                );
+
+                if (success) {
+                    bootstrap.Modal.getInstance(modal).hide();
+                }
+            }
+        });
+
+        // 确认自选分类按钮
         modal.querySelector('#confirmCategoryBtn').addEventListener('click', async () => {
             const selectedCategory = modal.querySelector('#categorySelect').value;
             if (!selectedCategory) {

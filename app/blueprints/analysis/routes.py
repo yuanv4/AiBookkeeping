@@ -19,55 +19,28 @@ logger = logging.getLogger(__name__)
 @handle_errors
 def index():
     """财务分析主页面 - 合并仪表盘和支出分析功能"""
+    
+    # 获取报告服务
+    report_service = get_report_service()
+    
+    # 获取仪表盘数据
+    dashboard_data = report_service.get_dashboard_data()
+    
+    # 获取分类配置
     try:
-        # 获取报告服务
-        report_service = get_report_service()
-        
-        # 获取仪表盘数据
-        dashboard_data = report_service.get_dashboard_data()
-        
-        # 获取分类配置
-        try:
-            categories_config = get_categories_config()
-        except Exception as e:
-            logger.error(f"获取分类配置失败: {e}")
-            categories_config = {}
-
-        # 简单的数据检测
-        from app.utils import has_financial_data
-        has_data = has_financial_data()
-
-        return render_template('analysis.html',
-                             page_title='财务分析中心',
-                             dashboard_data=dashboard_data,
-                             categories_config=categories_config,
-                             has_data=has_data)
-                             
+        categories_config = get_categories_config()
     except Exception as e:
-        logger.error(f"加载财务分析页面失败: {str(e)}")
-        # 返回空数据结构
-        empty_dashboard_data = {
-            'period': {'start_date': '', 'end_date': '', 'days': 0},
-            'net_worth_trend': [],
-            'core_metrics': {
-                'current_total_assets': 0.0,
-                'total_income': 0.0,
-                'total_expense': 0.0,
-                'net_income': 0.0,
-                'income_change_percentage': 0.0,
-                'expense_change_percentage': 0.0,
-                'net_change_percentage': 0.0,
-                'emergency_reserve_months': 0.0
-            },
-            'cash_flow': [],
-            'income_composition': [],
-            'expense_composition': []
-        }
-        return render_template('analysis.html',
-                             page_title='财务分析中心',
-                             dashboard_data=empty_dashboard_data,
-                             categories_config={})
+        logger.error(f"获取分类配置失败: {e}")
+        categories_config = {}
 
+    # 简单的数据检测
+    from app.utils import has_financial_data
+    has_data = has_financial_data()
+
+    return render_template('analysis.html',
+                            dashboard_data=dashboard_data,
+                            categories_config=categories_config,
+                            has_data=has_data)
 
 @analysis_bp.route('/api/dashboard-data')
 @handle_errors
@@ -85,10 +58,6 @@ def get_dashboard_data():
     dashboard_data = report_service.get_dashboard_data(months=months)
 
     return DataUtils.format_api_response(success=True, data=dashboard_data)
-
-
-
-
 
 @analysis_bp.route('/api/merchant-analysis')
 @handle_errors
