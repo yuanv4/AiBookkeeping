@@ -168,48 +168,7 @@ def _classify_by_rules(merchant_name: str) -> Tuple[str, float]:
     return 'other', 0.0
 
 
-class SmartMerchantMatcher:
-    """简化的智能商户匹配器"""
 
-    def __init__(self):
-        # 使用新的简化配置
-        pass
-
-    def classify(self, merchant_name: str) -> Tuple[str, float]:
-        """分类商户并返回置信度（简化版）"""
-        return _classify_by_rules(merchant_name)
-
-    def normalize_merchant_name(self, name: str) -> str:
-        """标准化商户名称（委托给全局函数）"""
-        return _normalize_merchant_name(name)
-
-    def get_ai_suggestion(self, merchant_name: str) -> Dict:
-        """为商户生成AI分类建议（简化版）"""
-        if not merchant_name:
-            return {
-                'category': 'other',
-                'category_name': CATEGORIES['other']['name'],
-                'confidence': 0,
-                'reason': '商户名称为空'
-            }
-
-        category, confidence_float = self.classify(merchant_name)
-        confidence = int(confidence_float * 100)
-        category_info = CATEGORIES.get(category, CATEGORIES['other'])
-
-        # 简化的推荐理由
-        reason = f"基于关键词匹配识别为{category_info['name']}" if category != 'other' else "未找到匹配规则"
-
-        return {
-            'category': category,
-            'category_name': category_info['name'],
-            'confidence': confidence,
-            'reason': reason
-        }
-
-    def get_ai_suggestions_batch(self, merchant_names: List[str]) -> Dict[str, Dict]:
-        """批量为商户生成AI分类建议"""
-        return {name: self.get_ai_suggestion(name) for name in merchant_names}
 
 class CategoryService:
     """简化的商户分类服务
@@ -221,7 +180,6 @@ class CategoryService:
         """初始化分类服务"""
         self.logger = logging.getLogger(self.__class__.__name__)
         self._categories = CATEGORIES.copy()
-        self.matcher = SmartMerchantMatcher()
 
         # 缓存用户规则到内存
         self._user_rules_cache = _load_user_rules()
@@ -323,3 +281,31 @@ class CategoryService:
         """清除分类缓存"""
         self._user_rules_cache = _load_user_rules()
         self.logger.info("分类缓存已清除")
+
+    def get_ai_suggestion(self, merchant_name: str) -> Dict:
+        """为商户生成AI分类建议"""
+        if not merchant_name:
+            return {
+                'category': 'other',
+                'category_name': CATEGORIES['other']['name'],
+                'confidence': 0,
+                'reason': '商户名称为空'
+            }
+
+        category, confidence_float = _classify_by_rules(merchant_name)
+        confidence = int(confidence_float * 100)
+        category_info = CATEGORIES.get(category, CATEGORIES['other'])
+
+        # 简化的推荐理由
+        reason = f"基于关键词匹配识别为{category_info['name']}" if category != 'other' else "未找到匹配规则"
+
+        return {
+            'category': category,
+            'category_name': category_info['name'],
+            'confidence': confidence,
+            'reason': reason
+        }
+
+    def get_ai_suggestions_batch(self, merchant_names: List[str]) -> Dict[str, Dict]:
+        """批量为商户生成AI分类建议"""
+        return {name: self.get_ai_suggestion(name) for name in merchant_names}

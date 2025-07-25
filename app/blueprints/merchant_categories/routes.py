@@ -42,7 +42,7 @@ def get_uncategorized_merchants():
 
     # 批量获取所有商户的AI建议，避免N+1查询问题
     merchant_names = [merchant.merchant_name for merchant in merchants_data]
-    ai_suggestions = category_service.matcher.get_ai_suggestions_batch(merchant_names)
+    ai_suggestions = category_service.get_ai_suggestions_batch(merchant_names)
 
     # 转换为字典格式并添加AI建议
     merchants_list = []
@@ -134,7 +134,7 @@ def get_merchant_detail(merchant_name):
     } for t in transactions]
 
     # 获取AI建议
-    ai_suggestion = category_service.matcher.get_ai_suggestion(merchant_name)
+    ai_suggestion = category_service.get_ai_suggestion(merchant_name)
 
     # 获取所有可用分类
     categories = []

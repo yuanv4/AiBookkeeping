@@ -42,9 +42,6 @@ class TransactionService(BaseService):
         except Exception as e:
             self._handle_service_error(f"获取交易 ID={id}", e)
 
-    def get_transaction_by_id(self, transaction_id: int) -> Optional[Transaction]:
-        """根据ID获取交易（向后兼容）"""
-        return self.get_by_id(transaction_id)
 
     def get_transactions_filtered(self, filters: dict = None, page: int = None, per_page: int = None, include_relations: bool = False) -> List[Transaction]:
         """根据过滤条件获取交易记录
@@ -212,23 +209,7 @@ class TransactionService(BaseService):
             self.logger.error(f"批量重复检查异常: {e}")
             return [True] * len(transactions_data)  # 出错时假设都重复，避免重复导入
 
-    def batch_create_transactions(self, transactions_data: List[Dict[str, Any]]) -> List[Transaction]:
-        """批量创建交易记录"""
-        try:
-            transactions = []
-            for data in transactions_data:
-                # 直接使用Transaction模型，模型内部会进行验证
-                transaction = Transaction(**data)
-                self.db.add(transaction)
-                transactions.append(transaction)
 
-            self.db.commit()
-            self.logger.info(f"批量创建 {len(transactions)} 条交易记录")
-            return transactions
-        except Exception as e:
-            self.db.rollback()
-            self.logger.error(f"批量创建交易记录失败: {e}")
-            raise
 
     def update_transaction(self, transaction_id: int, **kwargs) -> bool:
         """更新交易记录"""
@@ -325,9 +306,3 @@ class TransactionService(BaseService):
             self.logger.error(f"Error getting transactions summary: {e}")
             return {'total_count': 0, 'income_sum': 0, 'expense_sum': 0, 'net_amount': 0}
 
-    def get_all(self) -> List[Transaction]:
-        """获取所有交易"""
-        try:
-            return Transaction.query.order_by(Transaction.date.desc(), Transaction.id.desc()).all()
-        except Exception as e:
-            self._handle_service_error("获取所有交易", e)

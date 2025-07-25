@@ -381,24 +381,6 @@ class ReportService(BaseService):
 
     # ==================== 简单统计方法 ====================
     
-    def get_top_expenses(self, start_date: date, end_date: date, limit: int = 10) -> List[Dict[str, Any]]:
-        """获取最大支出项目"""
-        try:
-            transactions = self.db.query(Transaction).filter(
-                Transaction.amount < 0,
-                Transaction.date >= start_date,
-                Transaction.date <= end_date
-            ).order_by(Transaction.amount.asc()).limit(limit).all()
-            
-            return [{
-                'date': transaction.date.strftime('%Y-%m-%d'),
-                'amount': float(abs(transaction.amount)),
-                'counterparty': transaction.counterparty or '未知',
-                'description': transaction.description or ''
-            } for transaction in transactions]
-        except Exception as e:
-            self.logger.error(f"Error getting top expenses: {e}")
-            return []
 
     def get_account_summary(self) -> List[Dict[str, Any]]:
         """获取账户汇总信息"""

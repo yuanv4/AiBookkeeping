@@ -42,18 +42,7 @@ class BaseService:
         self.logger.error(f"{operation} 失败: {error}")
         raise
     
-    def _log_operation(self, operation: str, details: str = ""):
-        """记录操作日志
-        
-        Args:
-            operation: 操作名称
-            details: 操作详情
-        """
-        if details:
-            self.logger.info(f"{operation}: {details}")
-        else:
-            self.logger.info(f"{operation}")
-    
+
     def _validate_id(self, id: int) -> bool:
         """验证ID参数
         
