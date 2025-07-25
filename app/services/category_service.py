@@ -1,18 +1,58 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-智能商户分类服务模块
+商户分类服务模块
 
-提供基于智能匹配的商户分类功能：
-- 分类元数据：硬编码在Python常量中
-- 商户映射：支持精确匹配、关键词匹配、模式匹配
+提供基于规则的商户分类功能：
+- 预定义分类规则（合并自merchant_config.py）
+- 用户自定义规则（合并自user_rules.py）
+- 智能匹配算法
+
 """
 
+import json
 import logging
 import re
-from typing import Dict, Optional, List
+from pathlib import Path
+from typing import Dict, List, Tuple
+from flask import current_app
 
-# 分类元数据定义（硬编码）
+# ==================== 配置数据区域 ====================
+
+CLASSIFICATION_RULES = {
+    'healthcare': {
+        'keywords': ['医院', '药店', '药房', '诊所', '体检'],
+        'confidence': 0.9
+    },
+    'finance': {
+        'keywords': ['银行', '保险', '证券', '基金', '理财', '投资', '代销', '汇差', '转账'],
+        'confidence': 0.9
+    },
+    'shopping': {
+        'keywords': ['超市', '商场', '百货', '购物', '便利店', '商行', '商城', '电商',
+                    '电子商务', '旗舰店', '铺子'],
+        'confidence': 0.8
+    },
+    'dining': {
+        'keywords': ['餐厅', '咖啡', '茶饮', '火锅', '烧烤', '美团', '饿了么', '煲仔饭',
+                    '牛肉面', '米线', '蜜雪冰城', '奶茶', '茶姬', '肠粉', '小炒', '家常菜',
+                    '餐饮', '拉面', '螺蛳粉', '烧鹅', '汤粉', '厨房', '快餐'],
+        'confidence': 0.8
+    },
+    'transport': {
+        'keywords': ['地铁', '公交', '出租', '加油', '停车', '深圳通', '公交卡', '地铁卡',
+                    '滴滴', '出行'],
+        'confidence': 0.8
+    },
+    'services': {
+        'keywords': ['快递', '物流', '通信', '宽带', '理发', '美容', '顺丰', '速运', '圆通',
+                    '中通', '韵达', '申通', '平台商户', '网络科技', '在线科技', '移动',
+                    '通讯', '信息技术', '供应链', '菜鸟'],
+        'confidence': 0.7
+    }
+}
+
+# 分类元数据定义
 CATEGORIES = {
     'dining': {
         'name': '餐饮支出',
@@ -64,70 +104,87 @@ CATEGORIES = {
     }
 }
 
+# ==================== 用户规则管理 ====================
 
-class SmartMerchantMatcher:
-    """智能商户匹配器
+def _get_user_rules_file_path() -> Path:
+    """获取用户规则文件路径"""
+    instance_path = current_app.instance_path
+    return Path(instance_path) / 'user_category_rules.json'
 
-    支持多种匹配策略：
-    1. 关键词匹配 - 包含特定关键词
-    2. 模式匹配 - 正则表达式匹配
-    """
+def _load_user_rules() -> Dict[str, str]:
+    """加载用户自定义规则"""
+    try:
+        file_path = _get_user_rules_file_path()
+        if not file_path.exists():
+            return {}
 
-    def __init__(self):
-        from .merchant_config import MERCHANT_CATEGORIES
-        self.keyword_categories = MERCHANT_CATEGORIES.get('keyword_categories', {})
-        self.pattern_categories = MERCHANT_CATEGORIES.get('pattern_categories', {})
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        logging.warning(f"读取用户规则失败: {e}")
+        return {}
 
-    def classify(self, merchant_name: str) -> tuple[str, float]:
-        """分类商户并返回置信度
+def _save_user_rules(rules: Dict[str, str]) -> bool:
+    """保存用户自定义规则"""
+    try:
+        file_path = _get_user_rules_file_path()
+        file_path.parent.mkdir(exist_ok=True)
 
-        Returns:
-            tuple: (category, confidence) 分类结果和置信度(0-1)
-        """
-        if not merchant_name:
-            return 'other', 0.0
+        # 原子写入
+        temp_path = file_path.with_suffix('.tmp')
+        with open(temp_path, 'w', encoding='utf-8') as f:
+            json.dump(rules, f, ensure_ascii=False, indent=2)
 
-        normalized_name = self.normalize_merchant_name(merchant_name)
+        temp_path.replace(file_path)
+        return True
+    except (IOError, OSError) as e:
+        logging.error(f"保存用户规则失败: {e}")
+        return False
 
-        # 2. 关键词匹配 (置信度: 0.8)
-        for category, keywords in self.keyword_categories.items():
-            for keyword in keywords:
-                if keyword in normalized_name:
-                    return category, 0.8
+# ==================== 分类逻辑 ====================
 
-        # 3. 模式匹配 (置信度: 0.6)
-        for category, patterns in self.pattern_categories.items():
-            for pattern in patterns:
-                if re.search(f'.*{pattern}.*', normalized_name):
-                    return category, 0.6
+def _normalize_merchant_name(name: str) -> str:
+    """标准化商户名称"""
+    if not name:
+        return ''
+    # 去除多余空格，转换为小写，移除特殊字符
+    normalized = re.sub(r'\s+', '', name.strip().lower())
+    normalized = re.sub(r'[^\w\u4e00-\u9fff]', '', normalized)
+    return normalized
 
+def _classify_by_rules(merchant_name: str) -> Tuple[str, float]:
+    """基于预定义规则分类商户"""
+    if not merchant_name:
         return 'other', 0.0
 
+    normalized_name = _normalize_merchant_name(merchant_name)
+
+    # 关键词匹配
+    for category, rule in CLASSIFICATION_RULES.items():
+        for keyword in rule['keywords']:
+            if keyword in normalized_name:
+                return category, rule['confidence']
+
+    return 'other', 0.0
+
+
+class SmartMerchantMatcher:
+    """简化的智能商户匹配器"""
+
+    def __init__(self):
+        # 使用新的简化配置
+        pass
+
+    def classify(self, merchant_name: str) -> Tuple[str, float]:
+        """分类商户并返回置信度（简化版）"""
+        return _classify_by_rules(merchant_name)
+
     def normalize_merchant_name(self, name: str) -> str:
-        """标准化商户名称"""
-        if not name:
-            return ''
-        # 去除多余空格，转换为小写，移除特殊字符
-        normalized = re.sub(r'\s+', '', name.strip().lower())
-        normalized = re.sub(r'[^\w\u4e00-\u9fff]', '', normalized)
-        return normalized
+        """标准化商户名称（委托给全局函数）"""
+        return _normalize_merchant_name(name)
 
-    def get_ai_suggestion(self, merchant_name: str, transactions=None) -> Dict:
-        """
-        为商户生成AI分类建议
-
-        Args:
-            merchant_name (str): 商户名称
-            transactions (list, optional): 交易记录列表
-
-        Returns:
-            dict: {
-                'category': str,  # 建议的分类代码
-                'category_name': str,  # 分类显示名称
-                'confidence': int,  # 置信度 (0-100)
-                'reason': str  # 推荐理由
-            }
-        """
+    def get_ai_suggestion(self, merchant_name: str) -> Dict:
+        """为商户生成AI分类建议（简化版）"""
         if not merchant_name:
             return {
                 'category': 'other',
@@ -136,15 +193,12 @@ class SmartMerchantMatcher:
                 'reason': '商户名称为空'
             }
 
-        # 使用现有的分类逻辑
         category, confidence_float = self.classify(merchant_name)
         confidence = int(confidence_float * 100)
-
-        # 获取分类显示信息
         category_info = CATEGORIES.get(category, CATEGORIES['other'])
 
-        # 生成推荐理由
-        reason = self._generate_reason(merchant_name, category, confidence_float)
+        # 简化的推荐理由
+        reason = f"基于关键词匹配识别为{category_info['name']}" if category != 'other' else "未找到匹配规则"
 
         return {
             'category': category,
@@ -154,113 +208,60 @@ class SmartMerchantMatcher:
         }
 
     def get_ai_suggestions_batch(self, merchant_names: List[str]) -> Dict[str, Dict]:
-        """
-        批量为商户生成AI分类建议，避免N+1查询问题
-
-        Args:
-            merchant_names: 商户名称列表
-
-        Returns:
-            dict: 商户名称到AI建议的映射
-        """
-        suggestions = {}
-        for merchant_name in merchant_names:
-            suggestions[merchant_name] = self.get_ai_suggestion(merchant_name)
-        return suggestions
-
-
-
-    def _generate_reason(self, merchant_name: str, category: str, _: float) -> str:
-        """生成推荐理由"""
-        normalized_name = self.normalize_merchant_name(merchant_name)
-
-        # 关键词匹配
-        for cat, keywords in self.keyword_categories.items():
-            if cat == category:
-                for keyword in keywords:
-                    if keyword in normalized_name:
-                        return f"商户名称包含关键词'{keyword}'"
-
-        # 模式匹配
-        for cat, patterns in self.pattern_categories.items():
-            if cat == category:
-                for pattern in patterns:
-                    if re.search(f'.*{pattern}.*', normalized_name):
-                        return "基于商户名称模式匹配"
-
-        return "基于默认分类规则"
+        """批量为商户生成AI分类建议"""
+        return {name: self.get_ai_suggestion(name) for name in merchant_names}
 
 class CategoryService:
     """简化的商户分类服务
 
-    提供基于混合配置的商户分类功能：
-    - 分类元数据：使用硬编码的CATEGORIES常量
-    - 商户映射：从YAML配置文件加载
+    合并了用户规则管理和智能匹配功能，提供统一的分类接口。
     """
 
     def __init__(self):
         """初始化分类服务"""
         self.logger = logging.getLogger(self.__class__.__name__)
-
-        # 直接使用硬编码的分类数据
         self._categories = CATEGORIES.copy()
-
-        # 初始化智能匹配器
         self.matcher = SmartMerchantMatcher()
 
-        # 初始化用户规则管理器
-        from .user_rules import SimpleUserRules
-        self.user_rules = SimpleUserRules()
+        # 缓存用户规则到内存
+        self._user_rules_cache = _load_user_rules()
 
-        self.logger.info(f"分类服务初始化完成: {len(self._categories)}个分类, 智能匹配器已就绪")
+        self.logger.info(f"分类服务初始化完成: {len(self._categories)}个分类")
 
     def classify_merchant(self, merchant_name: str) -> str:
-        """智能分类商户
+        """智能分类商户（简化版）
 
-        优先级：用户自定义规则 > 智能匹配规则
-
-        Args:
-            merchant_name: 商户名称
-
-        Returns:
-            str: 分类代码
+        优先级：用户自定义规则 > 预定义规则
         """
         if not merchant_name:
             return 'other'
 
-        # 1. 优先查询用户自定义规则
-        user_category = self.user_rules.get_rule(merchant_name)
+        # 1. 优先查询用户自定义规则（使用缓存）
+        user_category = self._user_rules_cache.get(merchant_name)
         if user_category and user_category in self._categories:
             return user_category
 
-        # 2. 使用智能匹配
-        category, confidence = self.matcher.classify(merchant_name)
+        # 2. 使用预定义规则
+        category, confidence = _classify_by_rules(merchant_name)
 
-        # 记录低置信度分类用于后续优化
         if confidence < 0.8:
             self.logger.debug(f"低置信度分类: {merchant_name} -> {category} (置信度: {confidence:.2f})")
 
         return category
 
     def update_merchant_category(self, merchant_name: str, category: str) -> bool:
-        """更新商户分类规则
-
-        Args:
-            merchant_name: 商户名称
-            category: 新的分类代码
-
-        Returns:
-            bool: 是否更新成功
-        """
+        """更新商户分类规则（简化版）"""
         if category not in self._categories:
             self.logger.warning(f"无效的分类代码: {category}")
             return False
 
-        return self.user_rules.set_rule(merchant_name, category)
+        # 更新缓存和文件
+        self._user_rules_cache[merchant_name] = category
+        return _save_user_rules(self._user_rules_cache)
 
     def get_user_rules_count(self) -> int:
         """获取用户自定义规则数量"""
-        return self.user_rules.get_rules_count()
+        return len(self._user_rules_cache)
 
     def classify_merchants_batch(self, merchant_names: List[str]) -> Dict[str, str]:
         """批量分类商户
@@ -274,41 +275,18 @@ class CategoryService:
         return {name: self.classify_merchant(name) for name in merchant_names}
 
     def get_classification_info(self, merchant_name: str) -> Dict:
-        """获取分类详细信息
-
-        Args:
-            merchant_name: 商户名称
-
-        Returns:
-            dict: 包含分类、置信度等信息
-        """
+        """获取分类详细信息（简化版）"""
         if not merchant_name:
             return {'category': 'other', 'confidence': 0.0, 'method': 'default'}
 
-        category, confidence = self.matcher.classify(merchant_name)
-
-        # 确定匹配方法
-        normalized_name = self.matcher.normalize_merchant_name(merchant_name)
-        method = 'default'
-
-        # 检查关键词匹配
-        for keywords in self.matcher.keyword_categories.values():
-            if any(keyword in normalized_name for keyword in keywords):
-                method = 'keyword_match'
-                break
-
-        # 如果没有关键词匹配，检查模式匹配
-        if method == 'default':
-            for patterns in self.matcher.pattern_categories.values():
-                if any(re.search(f'.*{pattern}.*', normalized_name) for pattern in patterns):
-                    method = 'pattern_match'
-                    break
+        category, confidence = _classify_by_rules(merchant_name)
+        method = 'keyword_match' if category != 'other' else 'default'
 
         return {
             'category': category,
             'confidence': confidence,
             'method': method,
-            'normalized_name': normalized_name
+            'normalized_name': _normalize_merchant_name(merchant_name)
         }
     
     def get_category_display_info(self, category: str) -> Dict[str, str]:
@@ -336,22 +314,12 @@ class CategoryService:
         return list(self._categories.keys())
 
     def classify_merchant_with_info(self, merchant_name: str) -> Dict[str, str]:
-        """对商户进行分类并返回完整的分类信息
-
-        Args:
-            merchant_name: 商户名称
-
-        Returns:
-            包含分类代码和显示信息的字典
-        """
+        """对商户进行分类并返回完整的分类信息"""
         category = self.classify_merchant(merchant_name)
         category_info = self.get_category_display_info(category)
-        return {
-            'code': category,
-            **category_info
-        }
+        return {'code': category, **category_info}
 
     def clear_cache(self) -> None:
         """清除分类缓存"""
-        self.classify_merchant.cache_clear()
+        self._user_rules_cache = _load_user_rules()
         self.logger.info("分类缓存已清除")
