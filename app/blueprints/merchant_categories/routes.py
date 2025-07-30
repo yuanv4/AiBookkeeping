@@ -83,7 +83,7 @@ def update_merchant_category(merchant_name):
         return DataUtils.format_api_response(False, error='缺少分类参数')
 
     # 验证分类有效性
-    from app.services.category_service import CATEGORIES
+    from app.constants.categories import CATEGORIES
     if new_category not in CATEGORIES:
         return DataUtils.format_api_response(False, error='无效的分类代码')
 
@@ -178,7 +178,7 @@ def confirm_ai_suggestion():
         return DataUtils.format_api_response(False, error='缺少必要参数')
 
     # 验证分类有效性
-    from app.services.category_service import CATEGORIES
+    from app.constants.categories import CATEGORIES
     if category not in CATEGORIES:
         return DataUtils.format_api_response(False, error='无效的分类代码')
 

@@ -208,17 +208,3 @@ body {
 .gap-1 { gap: var(--spacing-1) !important; }
 .gap-2 { gap: var(--spacing-2) !important; }
 .gap-3 { gap: var(--spacing-3) !important; }
-
-/* ========== 打印样式 ========== */
-
-@media print {
-    .floating-nav,
-    .btn,
-    .alert {
-        display: none !important;
-    }
-
-    .main-content {
-        padding-bottom: 0 !important;
-    }
-}

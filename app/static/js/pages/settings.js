@@ -3,7 +3,7 @@
  * 使用现代化的类结构重构文件上传和数据库管理功能
  */
 
-import { formatFileSize } from '../common/formatters.js';
+import { formatFileSize } from '../common/utils.js';
 import { showNotification } from '../common/notifications.js';
 import { apiService } from '../common/api-helpers.js';
 import { ui } from '../common/dom-utils.js';

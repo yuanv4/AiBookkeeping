@@ -21,36 +21,9 @@ def register_template_filters(app: Flask) -> None:
             return "¥0.00"
         return f"¥{float(n):.2f}"
 
-    @app.template_filter('percent')
-    def percent_filter(n: Optional[Union[int, float]], precision: int = 1) -> str:
-        """百分比格式化，默认保留1位小数，加%符号"""
-        if n is None:
-            return f"0.{'0' * precision}%"
-        return f"{float(n):.{precision}f}%"
+
     
-    @app.template_filter('decimal')
-    def decimal_filter(n, precision=2):
-        """小数格式化，默认保留2位小数"""
-        if n is None:
-            return f"0.{'0' * precision}"
-        return f"{float(n):.{precision}f}"
-    
-    # 数据处理过滤器
-    @app.template_filter('attr_list')
-    def attr_list_filter(obj_list, attr_name):
-        """从对象列表中提取指定属性，形成新列表
-        等效于 list|map(attribute=attr_name)|list
-        """
-        if not obj_list:
-            return []
-        return [getattr(obj, attr_name, None) for obj in obj_list]
-    
-    @app.template_filter('dict_list')
-    def dict_list_filter(dict_list, key):
-        """从字典列表中提取指定键的值，形成新列表"""
-        if not dict_list:
-            return []
-        return [item.get(key) for item in dict_list]
+
     
     # 分页数据序列化过滤器
     @app.template_filter('serialize_pagination')

@@ -18,35 +18,18 @@
     --bs-info: #17a2b8;
 
 /* 主色调变体 */
-    --bs-primary-50: rgba(0, 123, 255, 0.05);
     --bs-primary-100: rgba(0, 123, 255, 0.1);
-    --bs-primary-200: rgba(0, 123, 255, 0.2);
-    --bs-primary-300: rgba(0, 123, 255, 0.3);
-    --bs-primary-400: rgba(0, 123, 255, 0.4);
     --bs-primary-500: #007bff;
-    --bs-primary-600: #0056b3;
-    --bs-primary-700: #004085;
-    --bs-primary-800: #002752;
-    --bs-primary-900: #001a33;
 
 /* 成功色变体 */
-    --bs-success-50: rgba(40, 167, 69, 0.05);
     --bs-success-100: rgba(40, 167, 69, 0.1);
-    --bs-success-200: rgba(40, 167, 69, 0.2);
     --bs-success-500: #28a745;
-    --bs-success-600: #1e7e34;
-    --bs-success-700: #155724;
 
 /* 危险色变体 */
-    --bs-danger-50: rgba(220, 53, 69, 0.05);
     --bs-danger-100: rgba(220, 53, 69, 0.1);
-    --bs-danger-200: rgba(220, 53, 69, 0.2);
     --bs-danger-500: #dc3545;
-    --bs-danger-600: #c82333;
-    --bs-danger-700: #bd2130;
 
 /* 警告色变体 */
-    --bs-warning-50: rgba(255, 193, 7, 0.05);
     --bs-warning-100: rgba(255, 193, 7, 0.1);
     --bs-warning-200: rgba(255, 193, 7, 0.2);
     --bs-warning-500: #ffc107;
@@ -218,34 +201,8 @@ body {
     color: var(--bs-body-color);
 }
 
-/* 滚动条样式 */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
 
-::-webkit-scrollbar-track {
-    background: var(--bs-gray-100);
-    border-radius: var(--bs-border-radius-sm);
-}
 
-::-webkit-scrollbar-thumb {
-    background: var(--bs-gray-400);
-    border-radius: var(--bs-border-radius-sm);
-}
 
-::-webkit-scrollbar-thumb:hover {
-    background: var(--bs-gray-500);
-}
 
-/* 选择文本样式 */
-::selection {
-    background-color: var(--bs-primary-200);
-    color: var(--bs-primary-800);
-}
 
-/* 焦点样式 */
-:focus-visible {
-    outline: 2px solid var(--bs-primary);
-    outline-offset: 2px;
-}

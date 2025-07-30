@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 from flask import current_app
 
+from app.constants.categories import CATEGORIES
+
 # ==================== 配置数据区域 ====================
 
 CLASSIFICATION_RULES = {
@@ -52,57 +54,7 @@ CLASSIFICATION_RULES = {
     }
 }
 
-# 分类元数据定义
-CATEGORIES = {
-    'dining': {
-        'name': '餐饮支出',
-        'icon': 'coffee',
-        'color': 'primary',
-        'description': '餐厅、咖啡、外卖等饮食消费'
-    },
-    'transport': {
-        'name': '交通支出',
-        'icon': 'car',
-        'color': 'success',
-        'description': '地铁、打车、加油等出行费用'
-    },
-    'shopping': {
-        'name': '购物支出',
-        'icon': 'shopping-bag',
-        'color': 'info',
-        'description': '网购、超市、商场等购物消费'
-    },
-    'services': {
-        'name': '生活服务',
-        'icon': 'settings',
-        'color': 'warning',
-        'description': '通信、快递、美容等服务费用'
-    },
-    'healthcare': {
-        'name': '医疗健康',
-        'icon': 'heart',
-        'color': 'danger',
-        'description': '医院、药店、体检等医疗支出'
-    },
-    'finance': {
-        'name': '金融保险',
-        'icon': 'credit-card',
-        'color': 'secondary',
-        'description': '保险、转账等金融相关支出'
-    },
-    'other': {
-        'name': '其他支出',
-        'icon': 'more-horizontal',
-        'color': 'dark',
-        'description': '未分类的其他支出'
-    },
-    'uncategorized': {
-        'name': '未分类',
-        'icon': 'help-circle',
-        'color': 'warning',
-        'description': '尚未分类的交易，需要手动处理'
-    }
-}
+
 
 # ==================== 用户规则管理 ====================
 
@@ -155,7 +107,7 @@ def _normalize_merchant_name(name: str) -> str:
 def _classify_by_rules(merchant_name: str) -> Tuple[str, float]:
     """基于预定义规则分类商户"""
     if not merchant_name:
-        return 'other', 0.0
+        return 'uncategorized', 0.0
 
     normalized_name = _normalize_merchant_name(merchant_name)
 
@@ -165,10 +117,7 @@ def _classify_by_rules(merchant_name: str) -> Tuple[str, float]:
             if keyword in normalized_name:
                 return category, rule['confidence']
 
-    return 'other', 0.0
-
-
-
+    return 'uncategorized', 0.0
 
 class CategoryService:
     """简化的商户分类服务
@@ -192,7 +141,7 @@ class CategoryService:
         优先级：用户自定义规则 > 预定义规则
         """
         if not merchant_name:
-            return 'other'
+            return 'uncategorized'
 
         # 1. 优先查询用户自定义规则（使用缓存）
         user_category = self._user_rules_cache.get(merchant_name)
@@ -235,10 +184,10 @@ class CategoryService:
     def get_classification_info(self, merchant_name: str) -> Dict:
         """获取分类详细信息（简化版）"""
         if not merchant_name:
-            return {'category': 'other', 'confidence': 0.0, 'method': 'default'}
+            return {'category': 'uncategorized', 'confidence': 0.0, 'method': 'default'}
 
         category, confidence = _classify_by_rules(merchant_name)
-        method = 'keyword_match' if category != 'other' else 'default'
+        method = 'keyword_match' if category != 'uncategorized' else 'default'
 
         return {
             'category': category,
@@ -286,18 +235,18 @@ class CategoryService:
         """为商户生成AI分类建议"""
         if not merchant_name:
             return {
-                'category': 'other',
-                'category_name': CATEGORIES['other']['name'],
+                'category': 'uncategorized',
+                'category_name': CATEGORIES['uncategorized']['name'],
                 'confidence': 0,
                 'reason': '商户名称为空'
             }
 
         category, confidence_float = _classify_by_rules(merchant_name)
         confidence = int(confidence_float * 100)
-        category_info = CATEGORIES.get(category, CATEGORIES['other'])
+        category_info = CATEGORIES.get(category, CATEGORIES['uncategorized'])
 
         # 简化的推荐理由
-        reason = f"基于关键词匹配识别为{category_info['name']}" if category != 'other' else "未找到匹配规则"
+        reason = f"基于关键词匹配识别为{category_info['name']}" if category != 'uncategorized' else "未找到匹配规则"
 
         return {
             'category': category,

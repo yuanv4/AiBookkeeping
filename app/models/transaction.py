@@ -38,8 +38,6 @@ class Transaction(BaseModel):
         db.Index('idx_bank_date', 'bank_name', 'date'),
     )
     
-
-    
     @validates('bank_name')
     def validate_bank_name(self, _key, bank_name):
         """验证银行名称"""
@@ -168,17 +166,16 @@ class Transaction(BaseModel):
     def validate_category(self, _key, category):
         """验证分类字段"""
         if category is None:
-            return 'other'
+            return 'uncategorized'
 
-        # 简化验证逻辑，直接检查硬编码分类
-        from app.services.category_service import CATEGORIES
+        from app.constants.categories import CATEGORIES
         if category in CATEGORIES:
             return category
 
         import logging
         logger = logging.getLogger(__name__)
         logger.warning(f"无效的分类代码: {category}，已设置为默认分类")
-        return 'other'
+        return 'uncategorized'
     
     def get_transaction_type(self) -> str:
         """获取交易类型"""
@@ -210,34 +207,6 @@ class Transaction(BaseModel):
     def get_by_bank(cls, bank_name: str):
         """根据银行名称获取交易记录"""
         return cls.query.filter_by(bank_name=bank_name.strip()).order_by(cls.date.desc()).all()
-
-    @classmethod
-    def get_account_summary(cls):
-        """获取账户汇总信息"""
-        from sqlalchemy import func
-        return cls.query.with_entities(
-            cls.bank_name,
-            cls.bank_code,
-            cls.account_number,
-            cls.account_name,
-            cls.account_type,
-            cls.currency,
-            func.max(cls.balance_after).label('latest_balance'),
-            func.max(cls.date).label('latest_date'),
-            func.count(cls.id).label('transaction_count')
-        ).group_by(
-            cls.bank_name,
-            cls.account_number
-        ).order_by(cls.bank_name, cls.account_number).all()
-
-    @classmethod
-    def get_distinct_banks(cls):
-        """获取所有不同的银行"""
-        from sqlalchemy import func
-        return cls.query.with_entities(
-            cls.bank_name,
-            cls.bank_code
-        ).distinct().order_by(cls.bank_name).all()
 
     @classmethod
     def get_distinct_accounts(cls):

@@ -5,17 +5,7 @@
 * 包含各种实用的工具类和辅助样式
 */
 
-/* ========== 间距工具类 ========== */
-
-/* 外边距 */
-.m-0 { margin: 0 !important; }
-
-/* 内边距 */
-.p-0 { padding: 0 !important; }
-
-.p-3 { padding: var(--spacing-3) !important; }
-.p-4 { padding: var(--spacing-4) !important; }
-.p-5 { padding: var(--spacing-5) !important; }
+/* ========== 自定义工具类 ========== */
 
 /* ========== 文本工具类 ========== */
 
@@ -33,20 +23,11 @@
 }
 
 
-/* ========== 边框工具类 ========== */
+/* ========== 项目特定工具类 ========== */
 
-/* 边框半径 */
-
+/* 保留项目中实际使用的工具类 */
 .rounded { border-radius: var(--bs-border-radius) !important; }
-
-/* 边框宽度 */
-
-/* ========== 阴影工具类 ========== */
-
 .shadow-sm { box-shadow: var(--bs-box-shadow-sm) !important; }
-
-/* ========== 显示工具类 ========== */
-
 .d-none { display: none !important; }
 .d-block { display: block !important; }
 

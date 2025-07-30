@@ -1,8 +1,5 @@
 import logging
-import os
-import sys
-from logging.handlers import RotatingFileHandler
-from flask import Flask, request, render_template, jsonify
+from flask import Flask
 from flask_migrate import Migrate
 
 # 从同一目录的 config 模块导入配置类
@@ -17,28 +14,12 @@ migrate = Migrate()
 def configure_logging(app):
     """配置应用日志"""
     log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO'))
-    log_format = app.config.get('LOG_FORMAT', '%(asctime)s %(levelname)s %(name)s %(message)s')
 
-    # 基本的文件和控制台输出
-    log_file = app.config.get('LOG_FILE', 'logs/app.log')
-    # 确保日志目录存在
-    log_dir = os.path.dirname(log_file)
-    if log_dir and not os.path.exists(log_dir):
-        os.makedirs(log_dir, exist_ok=True)
-
-    # 使用基本的日志配置
+    # 简化的日志配置
     logging.basicConfig(
         level=log_level,
-        format=log_format,
-        handlers=[
-            logging.StreamHandler(),  # 控制台输出
-            RotatingFileHandler(
-                filename=log_file,
-                maxBytes=10 * 1024 * 1024,  # 10MB
-                backupCount=5,
-                encoding='utf-8'
-            )
-        ]
+        format='%(asctime)s %(levelname)s %(name)s %(message)s',
+        handlers=[logging.StreamHandler()]
     )
 
     app.logger.info(f"应用启动，日志级别: {logging.getLevelName(log_level)}")
@@ -67,13 +48,6 @@ def _register_blueprints(app):
     from .blueprints.main import main_bp
     app.register_blueprint(main_bp)
     app.logger.info("已注册 main_bp")
-
-    # 注册新的分析模块蓝图（合并仪表盘和支出分析）
-    from .blueprints.analysis import analysis_bp
-    app.register_blueprint(analysis_bp, url_prefix='/analysis')
-    app.logger.info("已注册 analysis_bp, 前缀 /analysis")
-
-
 
     from .blueprints.settings.routes import settings_bp
     app.register_blueprint(settings_bp, url_prefix='/settings')

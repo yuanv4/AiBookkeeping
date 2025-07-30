@@ -37,14 +37,7 @@
 <body class="d-flex">
     <!-- 悬浮导航按钮 -->
     <nav class="floating-nav" aria-label="主要导航">
-        {% set is_analysis_active = request.endpoint == 'analysis.index' or (request.blueprint and request.blueprint == 'analysis') %}
-        <a href="{{ url_for('analysis.index') }}"
-           class="fab {% if is_analysis_active %}active{% endif %}"
-           title="财务分析"
-           {% if is_analysis_active %}aria-current="page"{% endif %}>
-            {{ icon("bar-chart-3", "sm") }}
-            <span class="fab-label">财务分析</span>
-        </a>
+
 
         {% set is_categories_active = request.blueprint == 'merchant_categories' %}
         <a href="{{ url_for('merchant_categories.index') }}"

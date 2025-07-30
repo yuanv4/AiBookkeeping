@@ -67,7 +67,7 @@ class ImportService:
                 try:
                     extractor_instance = extractor_class()
                     self._extractors.append(extractor_instance)
-                    self.logger.info(f"加载提取器: {extractor_instance.get_bank_name()}")
+                    self.logger.info(f"加载提取器: {extractor_instance.BANK_NAME}")
                 except Exception as e:
                     self.logger.error(f"加载提取器失败 {extractor_class}: {e}")
         except ImportError as e:
@@ -285,10 +285,10 @@ class ImportService:
         for extractor in self._extractors:
             try:
                 if extractor.is_applicable(df_raw):
-                    self.logger.info(f"为文件 {file_path} 选择了提取器: {extractor.get_bank_name()}")
+                    self.logger.info(f"为文件 {file_path} 选择了提取器: {extractor.BANK_NAME}")
                     return extractor
             except Exception as e:
-                self.logger.debug(f"提取器 {extractor.get_bank_name()} 检查数据时出错: {e}")
+                self.logger.debug(f"提取器 {extractor.BANK_NAME} 检查数据时出错: {e}")
                 continue
 
         self.logger.warning(f"未找到适用于文件 {file_path} 的提取器")

@@ -1,8 +1,6 @@
-"""统一装饰器模块
+"""简化装饰器模块
 
-提供项目中所有装饰器功能：
-- 错误处理装饰器
-- 缓存装饰器
+提供核心装饰器功能。
 """
 
 import functools
@@ -11,9 +9,6 @@ from typing import Callable, Tuple, Any
 from flask import request, render_template, jsonify
 
 logger = logging.getLogger(__name__)
-
-
-
 
 
 def is_api_request() -> bool:
@@ -49,20 +44,38 @@ def create_error_response(error: Exception, status_code: int = 500) -> Tuple[Any
             'status_code': status_code
         }), status_code
     else:
-        # Web请求返回HTML响应
-        # 根据状态码选择合适的错误模板
+        # Web请求返回简洁的HTML响应
         if status_code == 404:
-            return render_template('errors/404.html',
-                                 error=error_message,
-                                 status_code=status_code), status_code
+            html_content = f"""
+            <!DOCTYPE html>
+            <html><head><title>页面未找到 - 404</title></head>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+                <h1>404 - 页面未找到</h1>
+                <p>您访问的页面不存在。</p>
+                <a href="/" style="color: #007bff; text-decoration: none;">返回首页</a>
+            </body></html>
+            """
         elif status_code == 500:
-            return render_template('errors/500.html',
-                                 error=error_message,
-                                 status_code=status_code), status_code
+            html_content = f"""
+            <!DOCTYPE html>
+            <html><head><title>服务器错误 - 500</title></head>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+                <h1>500 - 服务器错误</h1>
+                <p>服务器遇到了问题，请稍后重试。</p>
+                <a href="/" style="color: #007bff; text-decoration: none;">返回首页</a>
+            </body></html>
+            """
         else:
-            return render_template('errors/error_base.html',
-                                 error=error_message,
-                                 status_code=status_code), status_code
+            html_content = f"""
+            <!DOCTYPE html>
+            <html><head><title>错误 - {status_code}</title></head>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+                <h1>{status_code} - 错误</h1>
+                <p>{error_message}</p>
+                <a href="/" style="color: #007bff; text-decoration: none;">返回首页</a>
+            </body></html>
+            """
+        return html_content, status_code
 
 
 def handle_errors(func: Callable = None):
@@ -92,91 +105,8 @@ def handle_errors(func: Callable = None):
     else:
         return decorator(func)
 
-
-# ==================== 路由参数验证装饰器 ====================
-
-def validate_date_range(date_params=['start_date', 'end_date']):
-    """验证日期范围参数的装饰器
-
-    Args:
-        date_params: 需要验证的日期参数名列表
-
-    Usage:
-        @validate_date_range(['start_date', 'end_date'])
-        def my_route():
-            start_date = request.validated_args['start_date']
-            end_date = request.validated_args['end_date']
-    """
-    def decorator(func: Callable) -> Callable:
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            from flask import request
-            from app.utils import DataUtils
-
-            # 创建验证后的参数字典
-            if not hasattr(request, 'validated_args'):
-                request.validated_args = {}
-
-            # 验证日期参数
-            if len(date_params) >= 2:
-                start_param, end_param = date_params[0], date_params[1]
-                start_date_str = request.args.get(start_param)
-                end_date_str = request.args.get(end_param)
-
-                if start_date_str and end_date_str:
-                    start_date, end_date, error = DataUtils.validate_date_range(start_date_str, end_date_str)
-                    if error:
-                        return DataUtils.format_api_response(success=False, error=error)
-
-                    request.validated_args[start_param] = start_date
-                    request.validated_args[end_param] = end_date
-
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
-def validate_required_params(required_params):
-    """验证必需参数的装饰器
-
-    Args:
-        required_params: 必需参数名列表
-
-    Usage:
-        @validate_required_params(['category', 'month'])
-        def my_route():
-            category = request.validated_args['category']
-            month = request.validated_args['month']
-    """
-    def decorator(func: Callable) -> Callable:
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            from flask import request
-            from app.utils import DataUtils
-
-            # 创建验证后的参数字典
-            if not hasattr(request, 'validated_args'):
-                request.validated_args = {}
-
-            # 验证必需参数
-            for param in required_params:
-                value = request.args.get(param)
-                if not value:
-                    return DataUtils.format_api_response(
-                        success=False,
-                        error=f'缺少必需参数: {param}'
-                    )
-                request.validated_args[param] = value.strip()
-
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
 # 导出主要接口
 __all__ = [
     'handle_errors',
-    'create_error_response',
-    'validate_date_range',
-    'validate_required_params'
+    'create_error_response'
 ]

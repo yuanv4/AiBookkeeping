@@ -3,13 +3,11 @@
  * 使用Tabulator表格库实现商户列表展示和分类编辑功能
  */
 
-import BasePage from '../common/BasePage.js';
 import { showNotification } from '../common/notifications.js';
 import { getTabulatorCommonConfig, getTabulatorFormatters } from '../common/utils.js';
 
-export default class MerchantCategoriesPage extends BasePage {
+export default class MerchantCategoriesPage {
     constructor() {
-        super();
         this.merchants = [];
         this.merchantsTable = null;
         this.categoriesConfig = {};

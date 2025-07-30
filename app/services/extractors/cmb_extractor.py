@@ -90,8 +90,8 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
             
             # 返回标准化的提取数据
             return ExtractedData(
-                bank_name=self.get_bank_name(),
-                bank_code=self.get_bank_code(),
+                bank_name=self.BANK_NAME,
+                bank_code=self.BANK_CODE,
                 account_name=name,
                 account_number=account_number,
                 transactions=transactions_list

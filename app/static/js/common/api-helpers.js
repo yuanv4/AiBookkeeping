@@ -242,48 +242,4 @@ export async function post(url, data, showLoading = true) {
     return await apiService.post(url, data, { showLoading });
 }
 
-/**
- * 发送文件上传请求
- * @param {string} url - 请求URL
- * @param {FormData} formData - 表单数据
- * @param {Function} progressCallback - 进度回调函数
- * @returns {Promise} 请求Promise
- */
-export async function uploadFile(url, formData, progressCallback = null) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        // 监听上传进度
-        if (progressCallback && typeof progressCallback === 'function') {
-            xhr.upload.addEventListener('progress', (event) => {
-                if (event.lengthComputable) {
-                    const percentComplete = (event.loaded / event.total) * 100;
-                    progressCallback(percentComplete);
-                }
-            });
-        }
-        
-        // 监听请求完成
-        xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    resolve({ success: true, data: response });
-                } catch (error) {
-                    resolve({ success: true, data: xhr.responseText });
-                }
-            } else {
-                reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
-            }
-        });
-        
-        // 监听请求错误
-        xhr.addEventListener('error', () => {
-            reject(new Error('网络请求失败'));
-        });
-        
-        // 发送请求
-        xhr.open('POST', url);
-        xhr.send(formData);
-    });
-}
+

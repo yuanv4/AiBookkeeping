@@ -18,17 +18,7 @@ class BaseTransactionExtractor(ABC):
     BANK_CODE: str = NotImplemented
     BANK_NAME: str = NotImplemented
     
-    def get_bank_code(self) -> str:
-        """获取银行代码，如CMB、CCB等"""
-        if self.BANK_CODE is NotImplemented:
-            raise NotImplementedError(f"{self.__class__.__name__} 必须定义 BANK_CODE 类属性")
-        return self.BANK_CODE
 
-    def get_bank_name(self) -> str:
-        """获取银行名称，如招商银行、建设银行等"""
-        if self.BANK_NAME is NotImplemented:
-            raise NotImplementedError(f"{self.__class__.__name__} 必须定义 BANK_NAME 类属性")
-        return self.BANK_NAME
 
     @abstractmethod
     def is_applicable(self, df: pd.DataFrame) -> bool:

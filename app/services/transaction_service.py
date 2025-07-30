@@ -6,22 +6,21 @@ from datetime import date
 import logging
 from functools import lru_cache
 
-from app.models import Transaction
+from app.models import Transaction, db
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, and_, or_
 from app.utils import DataUtils
 
-from .base_service import BaseService
-
 logger = logging.getLogger(__name__)
 
 
-class TransactionService(BaseService):
+class TransactionService:
     """交易管理服务 - 提供交易的创建、查询、更新、删除等功能"""
 
     def __init__(self, db_session=None):
         """初始化交易服务"""
-        super().__init__(db_session)
+        self.db = db_session or db.session
+        self.logger = logging.getLogger(self.__class__.__name__)
     
     def create_transaction(self, **kwargs) -> Transaction:
         """创建交易记录"""
@@ -36,11 +35,12 @@ class TransactionService(BaseService):
     def get_by_id(self, id: int) -> Optional[Transaction]:
         """根据ID获取交易"""
         try:
-            if not self._validate_id(id):
+            if not (isinstance(id, int) and id > 0):
                 return None
             return Transaction.get_by_id(id)
         except Exception as e:
-            self._handle_service_error(f"获取交易 ID={id}", e)
+            self.logger.error(f"获取交易 ID={id} 失败: {e}")
+            raise
 
 
     def get_transactions_filtered(self, filters: dict = None, page: int = None, per_page: int = None, include_relations: bool = False) -> List[Transaction]:
@@ -83,9 +83,7 @@ class TransactionService(BaseService):
             self.logger.error(f"Error getting filtered transactions: {e}")
             raise
 
-    def get_transactions_with_relations(self, filters: dict = None, page: int = None, per_page: int = None) -> List[Transaction]:
-        """获取交易记录，预加载关联数据避免N+1问题（向后兼容方法）"""
-        return self.get_transactions_filtered(filters=filters, page=page, per_page=per_page, include_relations=True)
+
 
     def _apply_filters(self, query, filters: dict):
         """应用过滤条件到查询"""

@@ -3,14 +3,11 @@
  * 提供基础的辅助函数和工具方法
  *
  * 注意：专门功能已拆分到独立模块：
- * - 格式化函数 → formatters.js
- * - 验证函数 → validators.js
  * - 通知系统 → notifications.js
  * - API请求 → api-helpers.js
  * - DOM操作 → dom-utils.js
  */
 
-import { formatCurrency } from './formatters.js';
 import { getCSSColor } from './dom-utils.js';
 
 /**
@@ -137,15 +134,6 @@ export const urlHandler = {
 // UI组件已迁移到 dom-utils.js
 
 /**
- * ECharts 轻量级工具函数
- * 提供项目统一的图表配置和工具函数，不封装ECharts API
- */
-
-/**
- * 获取项目颜色配置
- * @returns {Object} 颜色配置对象
- */
-/**
  * 从CSS变量动态获取颜色值
  * @param {string} colorName - Bootstrap颜色名称（如 'primary', 'success'）
  * @returns {string} 颜色值
@@ -157,108 +145,52 @@ export function getCSSColorValue(colorName) {
 }
 
 /**
- * 获取通用的图表样式配置
- * @returns {Object} 样式配置对象
+ * 格式化文件大小
+ * @param {number} bytes - 字节数
+ * @returns {string} 格式化后的文件大小字符串
  */
-export function getChartStyles() {
-    return {
-        tooltip: {
-            backgroundColor: getCSSColor('--bs-card-bg') || '#ffffff',
-            borderColor: getCSSColor('--bs-border-color') || '#dee2e6',
-            borderWidth: 1,
-            textStyle: {
-                color: getCSSColor('--bs-body-color') || '#212529',
-                fontSize: 12
-            }
-        },
-        grid: {
-            left: '3%',
-            right: '4%',
-            bottom: '3%',
-            containLabel: true
-        },
-        axisStyle: {
-            axisLine: {
-                lineStyle: { color: getCSSColor('--bs-border-color') || '#dee2e6' }
-            },
-            axisLabel: {
-                color: getCSSColor('--bs-secondary') || '#6c757d',
-                fontSize: 11
-            },
-            splitLine: {
-                lineStyle: { color: getCSSColor('--bs-border-color-translucent') || 'rgba(0,0,0,.125)' }
-            }
-        }
-    };
+export function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 /**
- * 简单的图表实例管理器（防止内存泄漏）
+ * 格式化日期为 YYYY-MM-DD 格式
+ * @param {Date} date - 要格式化的日期对象
+ * @returns {string} 格式化后的日期字符串
  */
-export const ChartRegistry = {
-    charts: new Map(),
-
-    /**
-     * 注册图表实例
-     * @param {string} id - 图表ID
-     * @param {Object} chart - ECharts实例
-     */
-    register(id, chart) {
-        // 先销毁现有实例
-        this.destroy(id);
-
-        // 注册新实例
-        this.charts.set(id, chart);
-
-        // 添加响应式支持
-        const resizeHandler = () => {
-            if (chart && !chart.isDisposed()) {
-                chart.resize();
-            }
-        };
-        window.addEventListener('resize', resizeHandler);
-        chart._resizeHandler = resizeHandler;
-    },
-
-    /**
-     * 销毁图表实例
-     * @param {string} id - 图表ID
-     */
-    destroy(id) {
-        const chart = this.charts.get(id);
-        if (chart && !chart.isDisposed()) {
-            // 移除resize监听器
-            if (chart._resizeHandler) {
-                window.removeEventListener('resize', chart._resizeHandler);
-            }
-            chart.dispose();
-            this.charts.delete(id);
-        }
-    },
-
-    /**
-     * 获取图表实例
-     * @param {string} id - 图表ID
-     * @returns {Object|null} ECharts实例
-     */
-    get(id) {
-        return this.charts.get(id) || null;
-    },
-
-    /**
-     * 销毁所有图表实例
-     */
-    destroyAll() {
-        this.charts.forEach((_, id) => {
-            this.destroy(id);
-        });
+export function formatDate(date) {
+    if (!(date instanceof Date)) {
+        console.warn('formatDate: 参数必须是 Date 对象');
+        return '';
     }
-};
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
-// 页面卸载时清理所有图表实例
-window.addEventListener('beforeunload', () => {
-    ChartRegistry.destroyAll();
-});
+/**
+ * 格式化货币金额
+ * @param {number} amount - 金额
+ * @param {string} currency - 货币符号，默认为 '¥'
+ * @param {number} decimals - 小数位数，默认为 2
+ * @returns {string} 格式化后的货币字符串
+ */
+export function formatCurrency(amount, currency = '¥', decimals = 2) {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+        return `${currency}0.00`;
+    }
+    const formatted = Number(amount).toFixed(decimals);
+    return `${currency}${formatted}`;
+}
+
+
+
+
 
 /**
  * Tabulator 表格工具函数
@@ -567,7 +499,7 @@ export function getFinancialTableColumns(categoriesConfig = {}) {
 }
 
 /**
- * Tabulator实例管理器（类似ChartRegistry）
+ * Tabulator实例管理器
  */
 export const TableRegistry = {
     tables: new Map(),
