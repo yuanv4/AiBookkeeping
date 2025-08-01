@@ -27,9 +27,6 @@ class Transaction(BaseModel):
     reference_number = db.Column(db.String(50), index=True)  # 交易参考号
     category = db.Column(db.String(50), nullable=False, index=True)  # 商户分类
 
-    # 规范化的商家名称
-    merchant_name = db.Column(db.String(128), nullable=True, index=True)  
-
     # 索引优化
     __table_args__ = (
         db.Index('idx_bank_account', 'bank_name', 'account_number'),
@@ -227,7 +224,6 @@ class Transaction(BaseModel):
         result['is_income'] = self.is_income()
         result['is_expense'] = self.is_expense()
         result['absolute_amount'] = float(self.get_absolute_amount())
-        result['merchant_name'] = self.merchant_name
         result['category'] = self.category
         # 添加银行和账户信息
         result['bank_name'] = self.bank_name

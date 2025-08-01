@@ -99,7 +99,7 @@ def upload_file_route():
                 result_message_display += f"  {bank}: {summary['files']} 个文件，{summary['records']} 条记录\n"
 
             flash(result_message_display, 'success')
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('main.index'))
         else:
             # 处理失败
             if is_api_request():

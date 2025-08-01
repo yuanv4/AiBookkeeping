@@ -18,8 +18,11 @@ class BaseModel(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    
 
+    def save(self) -> None:
+        """Save the model instance to the database."""
+        db.session.add(self)
+        db.session.commit()
 
     def delete(self) -> None:
         """Delete the model instance from the database."""

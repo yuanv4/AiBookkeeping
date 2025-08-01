@@ -178,10 +178,6 @@ class ImportService:
             transactions_data = []
             for transaction_dict in extracted_data.transactions:
                 try:
-                    # 保留原始交易对方信息作为商户名称
-                    counterparty = transaction_dict['counterparty']
-                    extracted_merchant = counterparty
-
                     # 创建交易记录数据（直接使用银行和账户信息）
                     transaction_data = {
                         'bank_name': extracted_data.bank_name,
@@ -195,7 +191,6 @@ class ImportService:
                         'currency': transaction_dict['currency'],
                         'description': transaction_dict['description'],
                         'counterparty': transaction_dict['counterparty'],
-                        'merchant_name': extracted_merchant,
                         'category': transaction_dict['category'],
                     }
                     transactions_data.append(transaction_data)
