@@ -77,13 +77,18 @@ class ExtractorService:
             # 转换交易数据为字典列表
             transactions_list = []
             for _, row in transactions_df.iterrows():
+                # 处理counterparty字段：当为空时使用description作为fallback
+                counterparty = row['counterparty']
+                if pd.isna(counterparty) or str(counterparty).strip() == '':
+                    counterparty = f"银行内部-{row['description']}"
+
                 transaction_dict = {
                     'date': row['date'].date() if hasattr(row['date'], 'date') else row['date'],
                     'amount': row['amount'],
                     'balance_after': row['balance_after'],
                     'currency': row['currency'],
                     'description': row['description'],
-                    'counterparty': row['counterparty'],
+                    'counterparty': counterparty,
                     'category': 'uncategorized',
                 }
                 transactions_list.append(transaction_dict)
