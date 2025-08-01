@@ -11,7 +11,7 @@
 - 文件清理和错误处理
 
 业务逻辑:
-- 分类设置：所有支出交易统一设为'未分类'状态
+- 分类设置：由提取器负责设置交易分类
 - 重复检查：避免重复导入相同的交易记录
 - 错误处理：提供完整的异常处理和日志记录
 """
@@ -29,12 +29,6 @@ class ImportService:
     """文件导入和处理服务
 
     提供完整的文件导入流程，从文件上传到数据入库。
-    所有新导入的支出交易将设置为'未分类'状态，等待用户手动分类。
-
-    简化说明:
-    - 禁用了智能自动分类功能
-    - 所有支出交易统一设为'uncategorized'
-    - 简化了分类逻辑，提高了一致性
     """
 
     def __init__(self, transaction_service: TransactionService, upload_folder: Optional[Union[str, Path]] = None, allowed_extensions: Optional[Set[str]] = None) -> None:
@@ -202,7 +196,7 @@ class ImportService:
                         'description': transaction_dict['description'],
                         'counterparty': transaction_dict['counterparty'],
                         'merchant_name': extracted_merchant,
-                        'category': 'uncategorized',
+                        'category': transaction_dict['category'],
                     }
                     transactions_data.append(transaction_data)
 

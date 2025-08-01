@@ -85,6 +85,7 @@ class CMBTransactionExtractor(BaseTransactionExtractor):
                     'currency': row['currency'],
                     'description': row['description'],
                     'counterparty': row['counterparty'],
+                    'category': 'uncategorized',
                 }
                 transactions_list.append(transaction_dict)
             
