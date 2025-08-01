@@ -55,20 +55,8 @@
 </li>
 {% endmacro %}
 
-{% macro file_uploader(id="file-uploader", accept_types=".xlsx,.xls,.csv", instructions="") %}
+{% macro file_uploader(id="file-uploader", accept_types=".xlsx,.xls,.csv") %}
 <div class="text-center py-4">
-    {% if instructions %}
-    <h5 class="fw-bold mb-3 text-start">{{ instructions }}</h5>
-    {% else %}
-    <h5 class="fw-bold mb-3 text-start">如何获得银行账单文件：</h5>
-    <ol class="text-muted mb-4 text-start">
-        <li>打开手机银行</li>
-        <li>找到打印流水</li>
-        <li>输入您的邮箱</li>
-        <li>将解压后的文件上传</li>
-    </ol>
-    {% endif %}
-    
     <div class="border border-2 border-dashed rounded-3 p-5 bg-light bg-opacity-50 position-relative file-drop-zone" 
          id="{{ id ~ '-drop-zone' }}" 
          style="transition: all 0.2s ease; cursor: pointer;">

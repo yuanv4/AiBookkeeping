@@ -450,25 +450,14 @@ export class DatabaseFeature {
         // 使用统一的确认对话框
         const confirmed = await ui.showConfirmationModal({
             title: '危险操作警告',
-            text: '此操作将删除所有交易数据和分析结果，且无法恢复！您确定要继续吗？',
-            icon: 'warning',
-            confirmButtonText: '确定删除',
-            cancelButtonText: '取消'
+            message: '此操作将删除所有交易数据和分析结果，且无法恢复！您确定要继续吗？',
+            confirmText: '确定删除',
+            cancelText: '取消',
+            type: 'danger'
         });
 
         if (confirmed) {
-            // 第二次确认
-            const finalConfirmed = await ui.showConfirmationModal({
-                title: '最后确认',
-                text: '您真的要删除所有数据吗？此操作不可逆！',
-                icon: 'error',
-                confirmButtonText: '确认删除',
-                cancelButtonText: '取消'
-            });
-
-            if (finalConfirmed) {
-                this.executeDelete(deleteUrl);
-            }
+            this.executeDelete(deleteUrl);
         }
     }
     

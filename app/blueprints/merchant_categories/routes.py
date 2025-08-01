@@ -115,10 +115,15 @@ def update_merchant_category(merchant_name):
     return _update_merchant_category_internal(merchant_name, new_category, '商户分类更新')
 
 
-@merchant_categories_bp.route('/api/merchant-detail/<merchant_name>')
+@merchant_categories_bp.route('/api/merchant-detail')
 @handle_errors
-def get_merchant_detail(merchant_name):
+def get_merchant_detail():
     """获取商户详细信息用于弹窗显示"""
+    # 从查询参数获取商户名称
+    merchant_name = request.args.get('name')
+    if not merchant_name:
+        return DataUtils.format_api_response(False, error='缺少商户名称参数')
+
     # 获取商户的交易记录
     transactions = Transaction.query.filter_by(
         counterparty=merchant_name,

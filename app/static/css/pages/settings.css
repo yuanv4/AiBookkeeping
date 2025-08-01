@@ -5,29 +5,10 @@
 * 系统设置页面特定的样式定义
 */
 
-/* ========== 专业网格布局 ========== */
-
-.settings-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: var(--spacing-4);
-    margin-bottom: var(--spacing-4);
-}
-
-/* 响应式：移动端垂直堆叠 */
+/* 响应式设计 */
 @media (max-width: 768px) {
-    .settings-grid {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-3);
-    }
-
-    /* 移动端进一步紧凑化 */
     .danger-section .card-body {
         padding: var(--spacing-2) var(--spacing-3) !important;
-    }
-
-    .quick-actions-area .card-body {
-        padding: var(--spacing-3) !important;
     }
 }
 

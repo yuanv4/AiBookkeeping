@@ -12,7 +12,32 @@ logger = logging.getLogger(__name__)
 @settings_bp.route('/')
 def settings_index():
     """设置页面主页"""
-    return render_template('settings.html')
+    from app.utils import get_transaction_service
+    from app.models import Transaction
+
+    try:
+        # 获取统计数据
+        transaction_service = get_transaction_service()
+        summary = transaction_service.get_transactions_summary()
+
+        # 获取最新记录的创建时间
+        latest_transaction = Transaction.query.order_by(Transaction.created_at.desc()).first()
+        last_updated = latest_transaction.created_at if latest_transaction else None
+
+        # 判断系统状态
+        system_status = 'normal' if summary['total_count'] >= 0 else 'error'
+
+        return render_template('settings.html',
+                             total_records=summary['total_count'],
+                             last_updated=last_updated,
+                             system_status=system_status)
+    except Exception as e:
+        logger.error(f"获取系统统计数据失败: {e}")
+        # 出错时使用默认值
+        return render_template('settings.html',
+                             total_records=0,
+                             last_updated=None,
+                             system_status='error')
 
 @settings_bp.route('/delete_database', methods=['POST'])
 @handle_errors

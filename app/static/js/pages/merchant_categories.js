@@ -193,7 +193,8 @@ class MerchantDetailPanel {
 
             if (!detailData) {
                 // 获取详细信息
-                const response = await fetch(`/merchant-categories/api/merchant-detail/${encodeURIComponent(merchantData.merchant_name)}`);
+                const params = new URLSearchParams({ name: merchantData.merchant_name });
+                const response = await fetch(`/merchant-categories/api/merchant-detail?${params}`);
                 const result = await response.json();
 
                 if (result.success) {
@@ -271,10 +272,19 @@ class MerchantDetailPanel {
 
         this.container.innerHTML = `
             <div class="detail-content active">
-                <!-- 商户基本信息 -->
+                <!-- 商户名称 -->
+                <div class="mb-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h5 class="mb-0 text-primary fw-bold" style="word-break: break-all;">
+                            <i data-lucide="building" class="me-2"></i>${merchant.name}
+                        </h5>
+                    </div>
+                </div>
+
+                <!-- 商户统计信息 -->
                 <div class="mb-4">
                     <h6 class="detail-section-title mb-3">
-                        <i data-lucide="building" class="me-2"></i>基本信息
+                        <i data-lucide="bar-chart" class="me-2"></i>统计信息
                     </h6>
                     <div class="row g-3">
                         <div class="col-6">

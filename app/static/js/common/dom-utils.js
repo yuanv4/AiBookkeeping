@@ -49,31 +49,30 @@ export const ui = {
             `;
 
             // 创建并添加模态框到页面
-            const modalElement = this.createDOMElement(modalHtml);
-            document.body.appendChild(modalElement);
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modalElement = document.getElementById('confirmationModal');
 
             // 初始化Bootstrap模态框
             const modal = new bootstrap.Modal(modalElement);
             
             // 绑定事件
             const confirmBtn = modalElement.querySelector('#confirmBtn');
-            const handleConfirm = () => {
-                modal.hide();
-                resolve(true);
-            };
-            
-            confirmBtn.addEventListener('click', handleConfirm);
-            
-            // 监听模态框关闭事件，清理DOM
-            modalElement.addEventListener('hidden.bs.modal', () => {
-                document.body.removeChild(modalElement);
-            });
+            let isResolved = false;
 
-            // 监听取消事件
-            modalElement.addEventListener('hidden.bs.modal', (e) => {
-                if (e.target === modalElement) {
-                    resolve(false);
+            const handleConfirm = () => {
+                isResolved = true;
+                resolve(true);
+                modal.hide();
+            };
+
+            confirmBtn.addEventListener('click', handleConfirm);
+
+            // 统一的模态框关闭处理
+            modalElement.addEventListener('hidden.bs.modal', () => {
+                if (!isResolved) {
+                    resolve(false); // 用户取消或关闭
                 }
+                modalElement.remove(); // 清理DOM
             });
 
             // 显示模态框

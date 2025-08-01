@@ -8,34 +8,48 @@
 {% endblock %}
 
 {% block content %}
-<!-- 专业网格布局：2+1列 -->
-<div class="settings-grid">
-    <!-- 主要功能区域：文件上传 (2/3宽度) -->
-    <div class="main-function-area">
-        {% call card("文件上传", "cloud-upload", "bg-white") %}
-            {{ file_uploader() }}
-        {% endcall %}
+<!-- 文件上传区域 - 全宽度 -->
+<div class="mb-4">
+    <div class="row">
+        <div class="col-12">
+            {% call card("文件上传", "cloud-upload", "bg-white") %}
+                {{ file_uploader() }}
+            {% endcall %}
+        </div>
     </div>
+</div>
 
-    <!-- 快速操作面板 (1/3宽度) -->
-    <div class="quick-actions-area">
-        {% call card("快速操作", "zap", "bg-light") %}
-            <div class="d-flex flex-column gap-2">
-                <div class="text-center">
-                    <div class="text-muted small mb-2">系统状态</div>
-                    <div class="badge bg-success">正常运行</div>
+<!-- 系统信息区域 - 全宽度 -->
+<div class="mb-4">
+    <div class="row">
+        <div class="col-12">
+            {% call card("系统信息", "info", "bg-light") %}
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="text-muted small mb-1">系统状态</div>
+                        {% if system_status == 'normal' %}
+                            <div class="badge bg-success">正常运行</div>
+                        {% elif system_status == 'error' %}
+                            <div class="badge bg-danger">异常</div>
+                        {% else %}
+                            <div class="badge bg-warning">未知</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small mb-1">数据记录</div>
+                        <div class="fw-bold">{{ total_records | default(0) }} 条</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small mb-1">最后更新</div>
+                        {% if last_updated %}
+                            <div class="small">{{ last_updated.strftime('%Y-%m-%d %H:%M') }}</div>
+                        {% else %}
+                            <div class="small text-muted">暂无数据</div>
+                        {% endif %}
+                    </div>
                 </div>
-                <hr class="my-2">
-                <div class="text-center">
-                    <div class="text-muted small mb-1">数据记录</div>
-                    <div class="fw-bold">-- 条</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-muted small mb-1">最后更新</div>
-                    <div class="small">--</div>
-                </div>
-            </div>
-        {% endcall %}
+            {% endcall %}
+        </div>
     </div>
 </div>
 
