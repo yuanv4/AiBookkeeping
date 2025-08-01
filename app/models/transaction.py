@@ -10,11 +10,11 @@ class Transaction(BaseModel):
     
     # 银行信息（直接嵌入，替代外键关系）
     bank_name = db.Column(db.String(100), nullable=False, index=True)  # 银行名称
-    bank_code = db.Column(db.String(20), nullable=True, index=True)  # 银行代码
+    bank_code = db.Column(db.String(20), nullable=False, index=True)  # 银行代码
 
     # 账户信息（直接嵌入，替代外键关系）
     account_number = db.Column(db.String(50), nullable=False, index=True)  # 账户号码
-    account_name = db.Column(db.String(100), nullable=True)  # 账户名称
+    account_name = db.Column(db.String(100), nullable=False)  # 账户名称
     account_type = db.Column(db.String(20), default='checking')  # 账户类型
 
     # 交易基本信息
@@ -25,10 +25,10 @@ class Transaction(BaseModel):
     description = db.Column(db.String(200), nullable=False, index=True)  # 交易描述
     currency = db.Column(db.String(3), default='CNY', nullable=False, index=True)
     reference_number = db.Column(db.String(50), index=True)  # 交易参考号
+    category = db.Column(db.String(50), nullable=False, index=True)  # 商户分类
 
-    # 分类信息
-    merchant_name = db.Column(db.String(128), nullable=True, index=True)  # 规范化的商家名称
-    category = db.Column(db.String(50), nullable=True, index=True, default='other')  # 商户分类
+    # 规范化的商家名称
+    merchant_name = db.Column(db.String(128), nullable=True, index=True)  
 
     # 索引优化
     __table_args__ = (
@@ -168,7 +168,7 @@ class Transaction(BaseModel):
         if category is None:
             return 'uncategorized'
 
-        from app.constants.categories import CATEGORIES
+        from app.configs.categories import CATEGORIES
         if category in CATEGORIES:
             return category
 

@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 class Config:
     """简化的应用配置类"""
@@ -14,10 +13,8 @@ class Config:
         db_path = os.path.join(project_root, 'instance', 'app.db')
         self.SQLALCHEMY_DATABASE_URI = f'sqlite:///{db_path}'
 
-        # 日志配置
+        # 日志配置 - 保持简洁，使用合理默认值
         self.LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
-        self.LOG_FILE = 'logs/app.log'
-        self.LOG_FORMAT = '%(asctime)s %(levelname)s %(name)s %(message)s'
 
     def init_app(self, app):
         """初始化应用配置"""
@@ -25,5 +22,3 @@ class Config:
         for key, value in self.__dict__.items():
             if key.isupper():
                 app.config[key] = value
-
-        Path(self.LOG_FILE).parent.mkdir(parents=True, exist_ok=True)

@@ -2,7 +2,7 @@ import logging
 from flask import Flask
 from flask_migrate import Migrate
 
-# 从同一目录的 config 模块导入配置类
+# 从同一目录的 config.py 文件导入配置类
 from .config import Config
 from .utils.template_filters import register_template_filters
 
@@ -12,17 +12,54 @@ from .models import db
 migrate = Migrate()
 
 def configure_logging(app):
-    """配置应用日志"""
-    log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO'))
+    """配置应用日志 - 使用Config类提供的配置"""
+    from pathlib import Path
 
-    # 简化的日志配置
+    # 直接使用app.config中已经处理好的配置，不设置默认值
+    log_level = getattr(logging, app.config['LOG_LEVEL'])
+    log_format = '%(asctime)s %(levelname)s %(name)s %(message)s'
+    log_date_format = '%Y-%m-%d %H:%M:%S'
+    log_file = 'logs/app.log'
+
+    # 创建统一的格式化器
+    formatter = logging.Formatter(log_format, log_date_format)
+
+    # 创建处理器列表
+    handlers = []
+
+    # 1. 控制台处理器（始终添加）
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    handlers.append(console_handler)
+
+    # 2. 文件处理器（尝试添加，失败时继续）
+    file_output_enabled = False
+    try:
+        # 确保日志目录存在（统一在这里处理）
+        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
+
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler.setFormatter(formatter)
+        handlers.append(file_handler)
+        file_output_enabled = True
+    except Exception as e:
+        # 文件处理器创建失败时，记录警告但继续运行
+        print(f"警告：无法创建日志文件处理器 ({log_file}): {e}")
+        file_output_enabled = False
+
+    # 配置根日志记录器
     logging.basicConfig(
         level=log_level,
-        format='%(asctime)s %(levelname)s %(name)s %(message)s',
-        handlers=[logging.StreamHandler()]
+        handlers=handlers,
+        force=True  # 强制重新配置，覆盖之前的配置
     )
 
+    # 记录日志配置信息
     app.logger.info(f"应用启动，日志级别: {logging.getLevelName(log_level)}")
+    if file_output_enabled:
+        app.logger.info(f"日志输出: 控制台 + 文件({log_file})")
+    else:
+        app.logger.warning("日志输出: 仅控制台（文件输出失败）")
 
 def _initialize_database_and_services(app):
     """初始化数据库和服务

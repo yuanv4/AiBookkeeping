@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def _update_merchant_category_internal(merchant_name: str, category: str, operation_name: str):
     """内部函数：更新商户分类的通用逻辑"""
     # 验证分类有效性
-    from app.constants.categories import CATEGORIES
+    from app.configs.categories import CATEGORIES
     if category not in CATEGORIES:
         return DataUtils.format_api_response(False, error='无效的分类代码')
 

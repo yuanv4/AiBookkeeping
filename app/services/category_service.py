@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 from flask import current_app
 
-from app.constants.categories import CATEGORIES
+from app.configs.categories import CATEGORIES
 
 # ==================== 配置数据区域 ====================
 

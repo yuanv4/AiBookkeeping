@@ -23,7 +23,7 @@ import pandas as pd
 from typing import List, Any, Optional, Dict, Set, Union
 
 from .transaction_service import TransactionService
-from .extractors import ExtractedData
+from . import ExtractedData
 
 class ImportService:
     """文件导入和处理服务
@@ -55,7 +55,7 @@ class ImportService:
     def _load_extractors(self) -> None:
         """加载所有可用的提取器"""
         try:
-            from .extractors import ALL_EXTRACTORS
+            from . import ALL_EXTRACTORS
             
             for extractor_class in ALL_EXTRACTORS:
                 try:
