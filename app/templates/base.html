@@ -45,6 +45,14 @@
         </div>
 
         <div class="sidebar-menu">
+            {% set is_analytics_active = request.blueprint == 'analytics' %}
+            <a href="{{ url_for('analytics.analytics_index') }}"
+               class="sidebar-item {% if is_analytics_active %}active{% endif %}"
+               {% if is_analytics_active %}aria-current="page"{% endif %}>
+                {{ icon("bar-chart-3", "sm") }}
+                <span class="sidebar-text">数据分析</span>
+            </a>
+
             {% set is_categories_active = request.blueprint == 'merchant_categories' %}
             <a href="{{ url_for('merchant_categories.index') }}"
                class="sidebar-item {% if is_categories_active %}active{% endif %}"

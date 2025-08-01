@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "macros.html" import card, data_card, no_data_guide %}
+
+{% block title %}数据分析 - AiBookkeeping{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/analytics.css') }}">
+{% endblock %}
+
+{% block content %}
+{% if not has_data %}
+    {{ no_data_guide() }}
+{% else %}
+
+{% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='js/pages/analytics.js') }}"></script>
+{% endblock %}

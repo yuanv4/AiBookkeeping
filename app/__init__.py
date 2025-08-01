@@ -86,6 +86,11 @@ def _register_blueprints(app):
     app.register_blueprint(main_bp)
     app.logger.info("已注册 main_bp")
 
+    # 注册分析页面蓝图
+    from .blueprints.analytics import analytics_bp
+    app.register_blueprint(analytics_bp, url_prefix='/analytics')
+    app.logger.info("已注册 analytics_bp, 前缀 /analytics")
+
     from .blueprints.settings.routes import settings_bp
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.logger.info("已注册 settings_bp, 前缀 /settings")
