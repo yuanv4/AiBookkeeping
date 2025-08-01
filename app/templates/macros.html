@@ -5,29 +5,6 @@
   {%- if extra_classes %} {{ extra_classes }}{% endif %}"></i><span class="icon-text position-absolute" style="clip: rect(0,0,0,0); width: 1px; height: 1px; overflow: hidden;">{{ name }}</span>
 {% endmacro %}
 
-{% macro page_header(title, subtitle="", icon_name="") %}
-<!-- 统一页头组件 - Bootstrap 重构版 -->
-<div class="bg-white border-bottom shadow-sm p-4 mb-4">
-    <div class="row align-items-center">
-        <div class="col-md-8">
-            <div class="d-flex align-items-center">
-                {% if icon_name %}
-                <div class="me-3 bg-primary bg-opacity-10 rounded-3 d-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
-                    {{ icon(icon_name, "lg", "text-primary") }}
-                </div>
-                {% endif %}
-                <div>
-                    <h1 class="fw-bold mb-1 fs-2">{{ title }}</h1>
-                    {% if subtitle %}
-                    <p class="text-muted mb-0">{{ subtitle }}</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endmacro %}
-
 {% macro card(title="", icon_name="", header_class="", body_class="") %}
 <div class="card h-100 shadow-sm border-0">
   {% if title %}

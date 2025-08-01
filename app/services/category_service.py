@@ -54,8 +54,6 @@ CLASSIFICATION_RULES = {
     }
 }
 
-
-
 # ==================== 用户规则管理 ====================
 
 def _get_user_rules_file_path() -> Path:
@@ -113,9 +111,8 @@ def _classify_by_rules(merchant_name: str) -> Tuple[str, float]:
 
     # 关键词匹配
     for category, rule in CLASSIFICATION_RULES.items():
-        for keyword in rule['keywords']:
-            if keyword in normalized_name:
-                return category, rule['confidence']
+        if any(keyword in normalized_name for keyword in rule['keywords']):
+            return category, rule['confidence']
 
     return 'uncategorized', 0.0
 
@@ -150,10 +147,6 @@ class CategoryService:
 
         # 2. 使用预定义规则
         category, confidence = _classify_by_rules(merchant_name)
-
-        if confidence < 0.8:
-            self.logger.debug(f"低置信度分类: {merchant_name} -> {category} (置信度: {confidence:.2f})")
-
         return category
 
     def update_merchant_category(self, merchant_name: str, category: str) -> bool:
@@ -166,36 +159,6 @@ class CategoryService:
         self._user_rules_cache[merchant_name] = category
         return _save_user_rules(self._user_rules_cache)
 
-    def get_user_rules_count(self) -> int:
-        """获取用户自定义规则数量"""
-        return len(self._user_rules_cache)
-
-    def classify_merchants_batch(self, merchant_names: List[str]) -> Dict[str, str]:
-        """批量分类商户
-
-        Args:
-            merchant_names: 商户名称列表
-
-        Returns:
-            dict: 商户名称到分类的映射
-        """
-        return {name: self.classify_merchant(name) for name in merchant_names}
-
-    def get_classification_info(self, merchant_name: str) -> Dict:
-        """获取分类详细信息（简化版）"""
-        if not merchant_name:
-            return {'category': 'uncategorized', 'confidence': 0.0, 'method': 'default'}
-
-        category, confidence = _classify_by_rules(merchant_name)
-        method = 'keyword_match' if category != 'uncategorized' else 'default'
-
-        return {
-            'category': category,
-            'confidence': confidence,
-            'method': method,
-            'normalized_name': _normalize_merchant_name(merchant_name)
-        }
-    
     def get_category_display_info(self, category: str) -> Dict[str, str]:
         """获取分类的显示信息
 
@@ -219,17 +182,6 @@ class CategoryService:
     def get_valid_category_codes(self) -> List[str]:
         """获取所有有效的分类代码列表"""
         return list(self._categories.keys())
-
-    def classify_merchant_with_info(self, merchant_name: str) -> Dict[str, str]:
-        """对商户进行分类并返回完整的分类信息"""
-        category = self.classify_merchant(merchant_name)
-        category_info = self.get_category_display_info(category)
-        return {'code': category, **category_info}
-
-    def clear_cache(self) -> None:
-        """清除分类缓存"""
-        self._user_rules_cache = _load_user_rules()
-        self.logger.info("分类缓存已清除")
 
     def get_ai_suggestion(self, merchant_name: str) -> Dict:
         """为商户生成AI分类建议"""

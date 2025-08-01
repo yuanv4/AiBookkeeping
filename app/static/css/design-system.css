@@ -93,11 +93,6 @@
     --font-weight-bold: 700;
 
 /* 字体大小 */
-    --font-size-xs: 0.75rem;
-    --font-size-sm: 0.875rem;
-    --font-size-base: 1rem;
-    --font-size-lg: 1.125rem;
-    --font-size-xl: 1.25rem;
     --font-size-2xl: 1.5rem;
     --font-size-3xl: 1.875rem;
     --font-size-4xl: 2.25rem;
@@ -110,25 +105,25 @@
 /* ========== 间距系统 ========== */
 
     --spacing-0: 0;
-    --spacing-1: 0.25rem;
-    --spacing-2: 0.5rem;
-    --spacing-3: 0.75rem;
-    --spacing-4: 1rem;
-    --spacing-5: 1.25rem;
-    --spacing-6: 1.5rem;
-    --spacing-8: 2rem;
-    --spacing-10: 2.5rem;
-    --spacing-12: 3rem;
-    --spacing-16: 4rem;
-    --spacing-20: 5rem;
+    --spacing-1: 0.2rem;     /* 减少20%: 0.25rem -> 0.2rem */
+    --spacing-2: 0.4rem;     /* 减少20%: 0.5rem -> 0.4rem */
+    --spacing-3: 0.6rem;     /* 减少20%: 0.75rem -> 0.6rem */
+    --spacing-4: 0.8rem;     /* 减少20%: 1rem -> 0.8rem */
+    --spacing-5: 1rem;       /* 减少20%: 1.25rem -> 1rem */
+    --spacing-6: 1.2rem;     /* 减少20%: 1.5rem -> 1.2rem */
+    --spacing-8: 1.6rem;     /* 减少20%: 2rem -> 1.6rem */
+    --spacing-10: 2rem;      /* 减少20%: 2.5rem -> 2rem */
+    --spacing-12: 2.4rem;    /* 减少20%: 3rem -> 2.4rem */
+    --spacing-16: 3.2rem;    /* 减少20%: 4rem -> 3.2rem */
+    --spacing-20: 4rem;      /* 减少20%: 5rem -> 4rem */
 
 /* ========== 边框系统 ========== */
 
-    --bs-border-radius: 8px;
-    --bs-border-radius-sm: 4px;
-    --bs-border-radius-lg: 12px;
-    --bs-border-radius-xl: 16px;
-    --bs-border-radius-2xl: 24px;
+    --bs-border-radius: 6px;        /* 更精细: 8px -> 6px */
+    --bs-border-radius-sm: 3px;     /* 更精细: 4px -> 3px */
+    --bs-border-radius-lg: 9px;     /* 更精细: 12px -> 9px */
+    --bs-border-radius-xl: 12px;    /* 更精细: 16px -> 12px */
+    --bs-border-radius-2xl: 18px;   /* 更精细: 24px -> 18px */
     --bs-border-radius-pill: 50rem;
 
     --border-width-thin: 1px;
@@ -137,11 +132,11 @@
 
 /* ========== 阴影系统 ========== */
 
-    --bs-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --bs-box-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --bs-box-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-    --bs-box-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
-    --bs-box-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.15);
+    --bs-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);        /* 更精细: 减少模糊和透明度 */
+    --bs-box-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);     /* 更精细: 减少透明度 */
+    --bs-box-shadow-lg: 0 6px 12px rgba(0, 0, 0, 0.08);    /* 更精细: 减少距离和透明度 */
+    --bs-box-shadow-xl: 0 12px 20px rgba(0, 0, 0, 0.08);   /* 更精细: 减少距离和透明度 */
+    --bs-box-shadow-2xl: 0 20px 40px rgba(0, 0, 0, 0.12);  /* 更精细: 减少距离和透明度 */
 
 /* 内阴影 */
     --box-shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.1);

@@ -252,10 +252,10 @@ export function getTabulatorCommonConfig() {
         responsiveLayout: "hide",
         pagination: "local",
         paginationSize: 20,
-        paginationSizeSelector: [10, 20, 50, 100],
+        paginationSizeSelector: false, // 禁用分页大小选择器，固定为20
         movableColumns: true,
         resizableRows: true,
-        selectable: 1,
+        selectable: 1, // 启用内置选择功能，限制只能选择一行
         locale: "zh-cn",
         langs: getTabulatorLocale(),
         headerFilterPlaceholder: "筛选...",

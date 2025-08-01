@@ -35,27 +35,32 @@
     {% block styles %}{% endblock %}
 </head>
 <body class="d-flex">
-    <!-- 悬浮导航按钮 -->
-    <nav class="floating-nav" aria-label="主要导航">
+    <!-- 左侧导航栏 -->
+    <nav class="sidebar" aria-label="主要导航">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                {{ icon("dollar-sign", "md", "text-primary") }}
+                <span class="brand-text">AI记账</span>
+            </div>
+        </div>
 
+        <div class="sidebar-menu">
+            {% set is_categories_active = request.blueprint == 'merchant_categories' %}
+            <a href="{{ url_for('merchant_categories.index') }}"
+               class="sidebar-item {% if is_categories_active %}active{% endif %}"
+               {% if is_categories_active %}aria-current="page"{% endif %}>
+                {{ icon("help-circle", "sm") }}
+                <span class="sidebar-text">商户分类</span>
+            </a>
 
-        {% set is_categories_active = request.blueprint == 'merchant_categories' %}
-        <a href="{{ url_for('merchant_categories.index') }}"
-           class="fab {% if is_categories_active %}active{% endif %}"
-           title="商户分类"
-           {% if is_categories_active %}aria-current="page"{% endif %}>
-            {{ icon("help-circle", "sm") }}
-            <span class="fab-label">商户分类</span>
-        </a>
-
-        {% set is_settings_active = request.blueprint == 'settings_bp' %}
-        <a href="{{ url_for('settings_bp.settings_index') }}"
-           class="fab {% if is_settings_active %}active{% endif %}"
-           title="系统设置"
-           {% if is_settings_active %}aria-current="page"{% endif %}>
-            {{ icon("settings", "sm") }}
-            <span class="fab-label">系统设置</span>
-        </a>
+            {% set is_settings_active = request.blueprint == 'settings_bp' %}
+            <a href="{{ url_for('settings_bp.settings_index') }}"
+               class="sidebar-item {% if is_settings_active %}active{% endif %}"
+               {% if is_settings_active %}aria-current="page"{% endif %}>
+                {{ icon("settings", "sm") }}
+                <span class="sidebar-text">系统设置</span>
+            </a>
+        </div>
     </nav>
 
     <!-- 主内容区 -->

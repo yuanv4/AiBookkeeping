@@ -1,6 +1,6 @@
 /**
  * 商户分类管理页面的JavaScript逻辑
- * 使用Tabulator表格库实现商户列表展示和分类编辑功能
+ * 使用Tabulator表格库实现商户列表展示和AI推荐分类功能
  */
 
 import { showNotification } from '../common/notifications.js';
@@ -10,22 +10,17 @@ export default class MerchantCategoriesPage {
     constructor() {
         this.merchants = [];
         this.merchantsTable = null;
-        this.categoriesConfig = {};
     }
 
     init() {
-        // 加载页面数据
-        const pageDataElement = document.getElementById('page-data');
-        if (pageDataElement) {
-            const initialData = JSON.parse(pageDataElement.textContent);
-            this.categoriesConfig = initialData.categories_config || {};
-        }
-
         // 初始化表格
         this.initMerchantsTable();
 
-        // 设置事件委托
-        this.setupEventDelegation();
+        // 初始化详情面板
+        this.detailPanel = new MerchantDetailPanel();
+
+        // 设置行点击事件
+        this.setupRowClickEvents();
 
         // 加载商户数据
         this.loadMerchantsData();
@@ -38,7 +33,7 @@ export default class MerchantCategoriesPage {
         this.merchantsTable = new Tabulator("#merchants-table", {
             ...commonConfig,
             data: this.merchants,
-            paginationSize: 50,
+            paginationSize: 20,
             placeholder: "暂无未分类商户",
             columns: [
                 {
@@ -71,51 +66,45 @@ export default class MerchantCategoriesPage {
                 {
                     title: "最近交易",
                     field: "latest_date",
-                    sorter: "date",
+                    sorter: "string", // 改为字符串排序，YYYY/MM/DD格式天然支持正确排序
                     responsive: 3,
                     formatter: formatters.dateFormat
                 },
                 {
                     title: "AI建议",
                     field: "ai_suggestion",
-                    hozAlign: "center",
+                    hozAlign: "left",
                     responsive: 2,
-                    formatter: (cell) => this.formatAISuggestion(cell),
-                    cellClick: (_, cell) => this.showMerchantDetailModal(cell.getRow().getData())
+                    formatter: (cell) => this.formatAISuggestion(cell)
                 }
             ]
         });
     }
 
-    setupEventDelegation() {
-        // 使用事件委托处理确认按钮点击
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('confirm-btn')) {
-                const row = e.target.closest('.tabulator-row');
-                if (row) {
-                    const merchantData = this.merchantsTable.getRow(row).getData();
-                    this.confirmAISuggestion(merchantData.id);
-                }
+    setupRowClickEvents() {
+        // 使用Tabulator内置的选择状态变化事件
+        this.merchantsTable.on("rowSelectionChanged", (_, rows) => {
+            if (rows.length > 0) {
+                // 有行被选中，显示商户详情
+                const selectedRow = rows[0]; // 由于限制只能选择一行，取第一个
+                const merchantData = selectedRow.getData();
+                this.detailPanel.showMerchant(merchantData);
+            } else {
+                // 没有行被选中，隐藏详情面板
+                this.detailPanel.hideMerchant();
             }
         });
     }
 
     formatAISuggestion(cell) {
         const suggestion = cell.getValue();
-        if (!suggestion) return '<span class="badge bg-secondary ai-suggestion-badge"><i data-lucide="help-circle"></i> 未知</span>';
+        if (!suggestion || suggestion.confidence === 0) {
+            return '<span class="text-dark"><i data-lucide="help-circle" class="me-1"></i>未分类</span>';
+        }
 
-        const { confidence, category_name, category } = suggestion;
-
-        // 获取分类颜色和图标
-        const categoryInfo = this.categoriesConfig[category];
-        const colorClass = categoryInfo ? categoryInfo.color : 'secondary';
-        const iconName = categoryInfo ? categoryInfo.icon : 'help-circle';
-
-        return `<span class="badge bg-light text-dark ai-suggestion-badge"
-                      title="置信度: ${confidence}%"
-                      style="border: 1px solid #dee2e6;">
-                    <i data-lucide="${iconName}" class="text-${colorClass}" style="margin-right: 4px;"></i>
-                    ${category_name}
+        const icon = window.CATEGORIES_CONFIG?.[suggestion.category]?.icon || 'help-circle';
+        return `<span class="text-dark" title="置信度: ${suggestion.confidence}%">
+                    <i data-lucide="${icon}" class="me-1"></i>${suggestion.category_name}
                 </span>`;
     }
 
@@ -151,214 +140,6 @@ export default class MerchantCategoriesPage {
         }
     }
 
-    async confirmAISuggestion(merchantId) {
-        const merchant = this.merchants.find(m => m.id === merchantId);
-        if (!merchant?.ai_suggestion) {
-            showNotification('无法找到商户信息', 'error');
-            return;
-        }
-
-        await this.confirmCategory(
-            merchant.merchant_name,
-            merchant.ai_suggestion.category,
-            merchant.ai_suggestion.category_name
-        );
-    }
-
-    async showMerchantDetailModal(merchant) {
-        try {
-            // 获取商户详细信息
-            const response = await fetch(`/merchant-categories/api/merchant-detail/${encodeURIComponent(merchant.merchant_name)}`);
-            const result = await response.json();
-
-            if (result.success) {
-                this.createMerchantDetailModal(result.data);
-            } else {
-                showNotification(`获取商户详情失败: ${result.error}`, 'error');
-            }
-
-        } catch (error) {
-            showNotification(`网络错误: ${error.message}`, 'error');
-        }
-    }
-
-    createMerchantDetailModal(data) {
-        // 优化的弹窗HTML
-        const modalHtml = `
-            <div class="modal fade" id="merchantDetailModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header bg-light">
-                            <h5 class="modal-title d-flex align-items-center">
-                                <i class="bi bi-shop me-2 text-primary"></i>
-                                商户分类 - ${data.merchant.name}
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <!-- 基本信息卡片 -->
-                            <div class="card mb-3">
-                                <div class="card-body py-2">
-                                    <div class="row text-center">
-                                        <div class="col-6">
-                                            <div class="text-muted small">交易次数</div>
-                                            <div class="fw-bold text-primary">${data.merchant.transaction_count}笔</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="text-muted small">总金额</div>
-                                            <div class="fw-bold ${data.merchant.total_amount >= 0 ? 'text-success' : 'text-danger'}">
-                                                ¥${data.merchant.total_amount.toFixed(2)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 最近交易 -->
-                            <div class="mb-3">
-                                <h6 class="text-muted mb-2">
-                                    <i class="bi bi-clock-history me-1"></i>最近交易
-                                </h6>
-                                <div class="bg-light rounded p-2">
-                                    ${data.recent_transactions.slice(0, 3).map(t =>
-                                        `<div class="d-flex justify-content-between align-items-center py-1">
-                                            <span class="small text-muted">${t.date}</span>
-                                            <span class="small ${t.amount >= 0 ? 'text-success' : 'text-danger'} fw-bold">
-                                                ¥${t.amount.toFixed(2)}
-                                            </span>
-                                            <span class="small text-truncate ms-2" style="max-width: 120px;" title="${t.description}">
-                                                ${t.description}
-                                            </span>
-                                        </div>`
-                                    ).join('')}
-                                </div>
-                            </div>
-
-                            <!-- 分类选择 -->
-                            <div>
-                                <h6 class="text-muted mb-2">
-                                    <i class="bi bi-tags me-1"></i>选择分类
-                                </h6>
-                                <select class="form-select" id="categorySelect">
-                                    ${data.categories.map(cat => `
-                                        <option value="${cat.code}" ${cat.code === data.ai_suggestion.category ? 'selected' : ''}>
-                                            ${cat.name}${cat.code === data.ai_suggestion.category ? ' (AI推荐)' : ''}
-                                        </option>
-                                    `).join('')}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="button" class="btn btn-success" id="quickConfirmBtn">
-                                <i data-lucide="check"></i> 确认AI建议
-                            </button>
-                            <button type="button" class="btn btn-primary" id="confirmCategoryBtn">
-                                <i class="bi bi-check-lg me-1"></i>确认分类
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // 移除已存在的弹窗并添加新弹窗
-        document.getElementById('merchantDetailModal')?.remove();
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        // 简化的交互初始化
-        this.initModalInteractions(data);
-        new bootstrap.Modal(document.getElementById('merchantDetailModal')).show();
-    }
-
-    initModalInteractions(data) {
-        const modal = document.getElementById('merchantDetailModal');
-
-        // 快速确认AI建议按钮
-        modal.querySelector('#quickConfirmBtn').addEventListener('click', async () => {
-            if (data.ai_suggestion) {
-                const success = await this.confirmCategory(
-                    data.merchant.name,
-                    data.ai_suggestion.category,
-                    data.ai_suggestion.category_name
-                );
-
-                if (success) {
-                    bootstrap.Modal.getInstance(modal).hide();
-                }
-            }
-        });
-
-        // 确认自选分类按钮
-        modal.querySelector('#confirmCategoryBtn').addEventListener('click', async () => {
-            const selectedCategory = modal.querySelector('#categorySelect').value;
-            if (!selectedCategory) {
-                showNotification('请选择一个分类', 'warning');
-                return;
-            }
-
-            const categoryInfo = data.categories.find(c => c.code === selectedCategory);
-            const success = await this.confirmCategory(data.merchant.name, selectedCategory, categoryInfo.name);
-
-            if (success) {
-                bootstrap.Modal.getInstance(modal).hide();
-            }
-        });
-    }
-
-    async handleCategoryEdit(cell) {
-        const rowData = cell.getRow().getData();
-        const newCategory = cell.getValue();
-        const merchantName = rowData.merchant_name;
-
-        try {
-            // 显示加载状态
-            cell.getElement().style.opacity = '0.5';
-
-            const response = await fetch(`/merchant-categories/api/merchant/${encodeURIComponent(merchantName)}/category`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    category: newCategory
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                const data = result.data;
-                const categoryName = this.categoriesConfig[newCategory]?.name || newCategory;
-                
-                showNotification(
-                    `已将 ${data.merchant_name} 的分类更新为 ${categoryName}，共影响 ${data.updated_transactions} 笔交易`,
-                    'success'
-                );
-
-                // 从表格中移除已分类的商户
-                cell.getRow().delete();
-
-                // 更新商户数组和统计信息
-                this.merchants = this.merchants.filter(m => m.merchant_name !== data.merchant_name);
-                this.updateStatistics();
-
-            } else {
-                // 更新失败，恢复原值
-                cell.restoreOldValue();
-                showNotification(`更新失败: ${result.error}`, 'error');
-            }
-
-        } catch (error) {
-            // 网络错误，恢复原值
-            cell.restoreOldValue();
-            showNotification(`网络错误: ${error.message}`, 'error');
-        } finally {
-            // 恢复显示状态
-            cell.getElement().style.opacity = '1';
-        }
-    }
-
     async loadMerchantsData() {
         try {
             const response = await fetch('/merchant-categories/api/uncategorized-merchants');
@@ -370,11 +151,7 @@ export default class MerchantCategoriesPage {
                 this.updateStatistics();
 
                 // 重新渲染图标
-                setTimeout(() => {
-                    if (window.lucide) {
-                        window.lucide.createIcons();
-                    }
-                }, 100);
+                if (window.lucide) window.lucide.createIcons();
             } else {
                 showNotification('加载商户数据失败', 'error');
             }
@@ -385,14 +162,6 @@ export default class MerchantCategoriesPage {
 
     updateStatistics() {
         const count = this.merchants.length;
-
-        // 更新统计卡片（如果存在）
-        const countElement = document.getElementById('uncategorized-count');
-        if (countElement) {
-            countElement.textContent = count;
-        }
-
-        // 更新表格标题中的统计信息
         const badgeElement = document.getElementById('merchant-count-badge');
         if (badgeElement) {
             badgeElement.textContent = `(共 ${count} 个商户)`;
@@ -400,8 +169,186 @@ export default class MerchantCategoriesPage {
     }
 }
 
+/**
+ * 商户详情面板类
+ * 管理右侧详情面板的显示和交互
+ */
+class MerchantDetailPanel {
+    constructor() {
+        this.container = document.getElementById('merchant-detail-panel');
+        this.currentMerchant = null;
+        this.cache = new Map();
+    }
+
+    async showMerchant(merchantData) {
+        this.currentMerchant = merchantData;
+
+        // 显示加载状态
+        this.showLoadingState();
+
+        try {
+            // 检查缓存
+            const cacheKey = merchantData.merchant_name;
+            let detailData = this.cache.get(cacheKey);
+
+            if (!detailData) {
+                // 获取详细信息
+                const response = await fetch(`/merchant-categories/api/merchant-detail/${encodeURIComponent(merchantData.merchant_name)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    detailData = result.data;
+                    // 缓存5分钟
+                    this.cache.set(cacheKey, detailData);
+                    setTimeout(() => this.cache.delete(cacheKey), 5 * 60 * 1000);
+                } else {
+                    this.showErrorState(result.error);
+                    return;
+                }
+            }
+
+            // 显示详情内容
+            this.showDetailContent(detailData);
+
+        } catch (error) {
+            this.showErrorState(error.message);
+        }
+    }
+
+    hideMerchant() {
+        this.currentMerchant = null;
+
+        // 显示空状态
+        this.container.innerHTML = `
+            <div class="detail-empty-state">
+                <div class="mb-3">
+                    <i data-lucide="mouse-pointer-click" class="text-muted" style="width: 48px; height: 48px;"></i>
+                </div>
+                <h6 class="text-muted mb-2">选择商户查看详情</h6>
+                <p class="text-muted small mb-0">
+                    点击左侧表格中的任意商户行<br>
+                    查看详细信息和快速分类
+                </p>
+            </div>
+        `;
+
+        // 重新渲染图标
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    showLoadingState() {
+        this.container.innerHTML = `
+            <div class="detail-loading-state text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+                <h6 class="text-muted mb-2">加载商户详情</h6>
+                <p class="text-muted small mb-0">正在获取详细信息...</p>
+            </div>
+        `;
+    }
+
+    showErrorState(errorMessage) {
+        this.container.innerHTML = `
+            <div class="detail-error-state text-center py-5">
+                <div class="mb-3">
+                    <i data-lucide="alert-circle" class="text-danger" style="width: 48px; height: 48px;"></i>
+                </div>
+                <h6 class="text-danger mb-2">加载失败</h6>
+                <p class="text-muted small mb-3">${errorMessage}</p>
+                <button class="btn btn-sm btn-outline-primary" onclick="this.closest('.detail-error-state').parentElement.previousElementSibling.click()">
+                    重试
+                </button>
+            </div>
+        `;
+
+        // 重新渲染图标
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    showDetailContent(data) {
+        const { merchant, ai_suggestion, recent_transactions, categories } = data;
+
+        this.container.innerHTML = `
+            <div class="detail-content active">
+                <!-- 商户基本信息 -->
+                <div class="mb-4">
+                    <h6 class="detail-section-title mb-3">
+                        <i data-lucide="building" class="me-2"></i>基本信息
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-center p-3 detail-card">
+                                <div class="text-muted small">交易次数</div>
+                                <div class="fw-bold detail-value-primary fs-5">${merchant.transaction_count}</div>
+                                <div class="text-muted small">笔</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 detail-card">
+                                <div class="text-muted small">总金额</div>
+                                <div class="fw-bold ${merchant.total_amount >= 0 ? 'detail-value-success' : 'detail-value-danger'} fs-5">
+                                    ¥${merchant.total_amount.toFixed(2)}
+                                </div>
+                                <div class="text-muted small">元</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近交易记录 (移动到第二位) -->
+                <div class="mb-4">
+                    <h6 class="detail-section-title mb-3">
+                        <i data-lucide="clock" class="me-2"></i>最近交易记录
+                    </h6>
+                    <div class="transaction-list p-2" style="max-height: 200px; overflow-y: auto;">
+                        ${recent_transactions.slice(0, 8).map(t => `
+                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light">
+                                <div class="small text-muted">${t.date}</div>
+                                <div class="small ${t.amount >= 0 ? 'detail-value-success' : 'detail-value-danger'}">
+                                    ¥${t.amount.toFixed(2)}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- 选择分类 (融入AI置信度信息) -->
+                <div>
+                    <h6 class="detail-section-title mb-3">
+                        <i data-lucide="tags" class="me-2"></i>选择分类
+                    </h6>
+                    <div class="p-3 ai-analysis-card">
+                        <div class="row g-2">
+                            ${categories.slice(0, 6).map(cat => {
+                                const isAIRecommended = ai_suggestion.confidence > 0 && ai_suggestion.category_name === cat.name;
+                                const confidenceText = isAIRecommended ? ` ${ai_suggestion.confidence}%` : '';
+                                const buttonClass = isAIRecommended ? 'btn btn-sm w-100 ai-recommended-btn' : 'btn btn-sm w-100 category-btn-normal';
+
+                                return `
+                                    <div class="col-6">
+                                        <button class="${buttonClass}"
+                                                onclick="window.merchantCategoriesPage.confirmCategory('${merchant.name}', '${cat.code}', '${cat.name}')">
+                                            <i data-lucide="${cat.icon}" class="me-1"></i>
+                                            ${cat.name}${confidenceText}
+                                        </button>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 重新渲染图标
+        if (window.lucide) window.lucide.createIcons();
+    }
+}
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
     const page = new MerchantCategoriesPage();
+    window.merchantCategoriesPage = page; // 全局引用供详情面板使用
     page.init();
 });

@@ -40,6 +40,16 @@
     box-shadow: var(--bs-box-shadow);
 }
 
+/* 卡片内容区域紧凑化 */
+.card-body {
+    padding: var(--spacing-4) !important; /* 覆盖Bootstrap默认的p-3，使用更紧凑的间距 */
+}
+
+.card-header {
+    padding: var(--spacing-3) var(--spacing-4) !important; /* 减少头部的垂直间距 */
+    border-bottom: var(--border-width-thin) solid var(--bs-border-color);
+}
+
 @keyframes cardFadeIn {
 from {
     opacity: 0;
