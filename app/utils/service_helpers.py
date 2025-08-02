@@ -27,10 +27,3 @@ def get_categories_config():
     """获取分类配置"""
     from app.configs.categories import CATEGORIES
     return CATEGORIES
-
-def get_valid_category_codes():
-    """获取有效分类代码列表"""
-    from app.configs.categories import CATEGORIES
-    return list(CATEGORIES.keys())
-
-

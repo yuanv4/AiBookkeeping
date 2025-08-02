@@ -254,7 +254,7 @@ export function getTabulatorCommonConfig() {
         paginationSize: 20,
         paginationSizeSelector: false, // 禁用分页大小选择器，固定为20
         movableColumns: true,
-        resizableRows: true,
+        resizableRows: false,
         selectable: 1, // 启用内置选择功能，限制只能选择一行
         locale: "zh-cn",
         langs: getTabulatorLocale(),

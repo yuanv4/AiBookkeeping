@@ -10,7 +10,7 @@ from .data_utils import DataUtils
 from .service_helpers import (
     get_transaction_service,
     get_import_service, get_category_service,
-    get_categories_config, get_valid_category_codes
+    get_categories_config
 )
 
 def has_financial_data():
@@ -31,6 +31,5 @@ __all__ = [
     'get_import_service',
     'get_category_service',
     'get_categories_config',
-    'get_valid_category_codes',
     'has_financial_data'
 ]

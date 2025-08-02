@@ -179,10 +179,6 @@ class CategoryService:
         """获取所有分类信息"""
         return self._categories
 
-    def get_valid_category_codes(self) -> List[str]:
-        """获取所有有效的分类代码列表"""
-        return list(self._categories.keys())
-
     def get_ai_suggestion(self, merchant_name: str) -> Dict:
         """为商户生成AI分类建议"""
         if not merchant_name:
