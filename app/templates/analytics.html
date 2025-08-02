@@ -11,8 +11,15 @@
 {% if not has_data %}
     {{ no_data_guide() }}
 {% else %}
-
+<div class="container-fluid p-4">
+    <h2>月度分类支出趋势</h2>
+    <div id="expense-chart" style="height: 400px; margin-top: 20px;"></div>
+</div>
 {% endif %}
+{% endblock %}
+
+{% block page_vendor_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
 {% endblock %}
 
 {% block page_scripts %}
