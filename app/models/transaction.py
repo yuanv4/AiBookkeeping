@@ -173,23 +173,6 @@ class Transaction(BaseModel):
         logger = logging.getLogger(__name__)
         logger.warning(f"无效的分类代码: {category}，已设置为默认分类")
         return 'uncategorized'
-    
-    def get_transaction_type(self) -> str:
-        """获取交易类型"""
-        if self.amount > 0:
-            return 'income'
-        elif self.amount < 0:
-            return 'expense'
-        else:
-            return 'transfer'
-
-    def is_income(self):
-        """是否为收入"""
-        return self.amount > 0
-
-    def is_expense(self):
-        """是否为支出"""
-        return self.amount < 0
 
     def get_absolute_amount(self):
         """获取绝对金额"""
@@ -221,8 +204,6 @@ class Transaction(BaseModel):
         result['amount'] = float(self.amount)
         result['balance_after'] = float(self.balance_after) if self.balance_after else None
         result['date'] = self.date.isoformat() if self.date else None
-        result['is_income'] = self.is_income()
-        result['is_expense'] = self.is_expense()
         result['absolute_amount'] = float(self.get_absolute_amount())
         result['category'] = self.category
         # 添加银行和账户信息
