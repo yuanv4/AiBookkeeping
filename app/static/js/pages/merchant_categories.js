@@ -286,22 +286,28 @@ class MerchantDetailPanel {
                     <h6 class="detail-section-title mb-3">
                         <i data-lucide="bar-chart" class="me-2"></i>统计信息
                     </h6>
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <div class="text-center p-3 detail-card">
-                                <div class="text-muted small">交易次数</div>
-                                <div class="fw-bold detail-value-primary fs-5">${merchant.transaction_count}</div>
-                                <div class="text-muted small">笔</div>
-                            </div>
+                    <div class="detail-card p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">总交易</span>
+                            <span class="fw-bold detail-value-primary">${merchant.transaction_count} 笔</span>
                         </div>
-                        <div class="col-6">
-                            <div class="text-center p-3 detail-card">
-                                <div class="text-muted small">总金额</div>
-                                <div class="fw-bold ${merchant.total_amount >= 0 ? 'detail-value-success' : 'detail-value-danger'} fs-5">
-                                    ¥${merchant.total_amount.toFixed(2)}
-                                </div>
-                                <div class="text-muted small">元</div>
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-success small">
+                                <i data-lucide="trending-up" class="me-1" style="width: 12px; height: 12px;"></i>收入
+                            </span>
+                            <span class="fw-bold text-success">${merchant.income_count || 0} 笔</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-danger small">
+                                <i data-lucide="trending-down" class="me-1" style="width: 12px; height: 12px;"></i>支出
+                            </span>
+                            <span class="fw-bold text-danger">${merchant.expense_count || 0} 笔</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">净金额</span>
+                            <span class="fw-bold ${merchant.total_amount >= 0 ? 'detail-value-success' : 'detail-value-danger'}">
+                                ¥${merchant.total_amount.toFixed(2)}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -323,16 +329,15 @@ class MerchantDetailPanel {
                     </div>
                 </div>
 
-                <!-- 选择分类 (融入AI置信度信息) -->
+                <!-- 分类选择 -->
                 <div>
                     <h6 class="detail-section-title mb-3">
                         <i data-lucide="tags" class="me-2"></i>选择分类
                     </h6>
                     <div class="p-3 ai-analysis-card">
                         <div class="row g-2">
-                            ${categories.slice(0, 6).map(cat => {
+                            ${categories.slice(0, 8).map(cat => {
                                 const isAIRecommended = ai_suggestion.confidence > 0 && ai_suggestion.category_name === cat.name;
-                                const confidenceText = isAIRecommended ? ` ${ai_suggestion.confidence}%` : '';
                                 const buttonClass = isAIRecommended ? 'btn btn-sm w-100 ai-recommended-btn' : 'btn btn-sm w-100 category-btn-normal';
 
                                 return `
@@ -340,7 +345,8 @@ class MerchantDetailPanel {
                                         <button class="${buttonClass}"
                                                 onclick="window.merchantCategoriesPage.confirmCategory('${merchant.name}', '${cat.code}', '${cat.name}')">
                                             <i data-lucide="${cat.icon}" class="me-1"></i>
-                                            ${cat.name}${confidenceText}
+                                            ${cat.name}
+                                            ${isAIRecommended ? `<span class="badge bg-light text-dark ms-1">${ai_suggestion.confidence}%</span>` : ''}
                                         </button>
                                     </div>
                                 `;

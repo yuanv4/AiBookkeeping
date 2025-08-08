@@ -143,12 +143,21 @@ def get_merchant_detail():
         'description': t.description or '无描述'
     } for t in transactions]
 
+    # 统计交易信息
+    income_count = sum(1 for t in transactions if t.amount > 0)
+    expense_count = sum(1 for t in transactions if t.amount < 0)
+    total_amount = sum(float(t.amount) for t in transactions)
+    transaction_count = len(transactions)
+
     # 获取AI建议
     ai_suggestion = category_service.get_ai_suggestion(merchant_name)
 
     # 获取所有可用分类
+    available_categories = category_service.get_all_categories()
+
+    # 格式化分类选项
     categories = []
-    for code, info in category_service.get_all_categories().items():
+    for code, info in available_categories.items():
         if code != 'uncategorized':  # 排除未分类选项
             categories.append({
                 'code': code,
@@ -156,15 +165,13 @@ def get_merchant_detail():
                 'icon': info['icon']
             })
 
-    # 计算基本统计信息
-    total_amount = sum(float(t.amount) for t in transactions)
-    transaction_count = len(transactions)
-
     return DataUtils.format_api_response(True, data={
         'merchant': {
             'name': merchant_name,
             'transaction_count': transaction_count,
-            'total_amount': total_amount
+            'total_amount': total_amount,
+            'income_count': income_count,
+            'expense_count': expense_count
         },
         'ai_suggestion': ai_suggestion,
         'recent_transactions': transaction_data,

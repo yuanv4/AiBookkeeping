@@ -3,10 +3,10 @@
 """
 商户分类服务模块
 
-提供基于规则的商户分类功能：
-- 预定义分类规则（合并自merchant_config.py）
-- 用户自定义规则（合并自user_rules.py）
-- 智能匹配算法
+提供基于商户类型的智能分类功能：
+- 商户类型分类规则
+- 用户自定义规则管理
+- 智能AI分类建议
 
 """
 
@@ -22,35 +22,40 @@ from app.configs.categories import CATEGORIES
 # ==================== 配置数据区域 ====================
 
 CLASSIFICATION_RULES = {
+    'employer': {
+        'keywords': ['代发工资', '工资', '薪水', '薪酬'],
+        'confidence': 0.95
+    },
+    'ecommerce': {
+        'keywords': ['京东', '拼多多', '天猫', '淘宝', '商城', '旗舰店', '电子商务'],
+        'confidence': 0.9
+    },
+    'financial': {
+        'keywords': ['朝朝宝', '理财', '基金', '投资', '太平洋人寿', '保险', '银行', '代销理财', '待清算电子汇差'],
+        'confidence': 0.9
+    },
+    'personal': {
+        'keywords': ['微信转账', '个人转账'],
+        'confidence': 0.95
+    },
+    'utilities': {
+        'keywords': ['物业服务', '燃气集团', '供水', '广东移动', '深***勤物业', '深***气集团', '深***吉供水'],
+        'confidence': 0.9
+    },
     'healthcare': {
-        'keywords': ['医院', '药店', '药房', '诊所', '体检'],
+        'keywords': ['医院', '药店', '诊所', '体检'],
         'confidence': 0.9
     },
-    'finance': {
-        'keywords': ['银行', '保险', '证券', '基金', '理财', '投资', '代销', '汇差', '转账'],
-        'confidence': 0.9
-    },
-    'shopping': {
-        'keywords': ['超市', '商场', '百货', '购物', '便利店', '商行', '商城', '电商',
-                    '电子商务', '旗舰店', '铺子'],
+    'lifestyle': {
+        'keywords': [
+            # 餐饮关键词
+            '美团', '饿了么', '餐厅', '咖啡', '北京三快在线科技',
+            # 交通关键词  
+            '高德打车', '深圳通', '地铁', '公交', '滴滴', '出行',
+            # 其他服务关键词
+            '快递', '理发', '美容', '维修', '成都所见所得科技'
+        ],
         'confidence': 0.8
-    },
-    'dining': {
-        'keywords': ['餐厅', '咖啡', '茶饮', '火锅', '烧烤', '美团', '饿了么', '煲仔饭',
-                    '牛肉面', '米线', '蜜雪冰城', '奶茶', '茶姬', '肠粉', '小炒', '家常菜',
-                    '餐饮', '拉面', '螺蛳粉', '烧鹅', '汤粉', '厨房', '快餐'],
-        'confidence': 0.8
-    },
-    'transport': {
-        'keywords': ['地铁', '公交', '出租', '加油', '停车', '深圳通', '公交卡', '地铁卡',
-                    '滴滴', '出行'],
-        'confidence': 0.8
-    },
-    'services': {
-        'keywords': ['快递', '物流', '通信', '宽带', '理发', '美容', '顺丰', '速运', '圆通',
-                    '中通', '韵达', '申通', '平台商户', '网络科技', '在线科技', '移动',
-                    '通讯', '信息技术', '供应链', '菜鸟'],
-        'confidence': 0.7
     }
 }
 
@@ -102,24 +107,27 @@ def _normalize_merchant_name(name: str) -> str:
     normalized = re.sub(r'[^\w\u4e00-\u9fff]', '', normalized)
     return normalized
 
-def _classify_by_rules(merchant_name: str) -> Tuple[str, float]:
+def _classify_by_rules(merchant_name: str, description: str = '') -> Tuple[str, float]:
     """基于预定义规则分类商户"""
     if not merchant_name:
         return 'uncategorized', 0.0
 
     normalized_name = _normalize_merchant_name(merchant_name)
+    normalized_desc = _normalize_merchant_name(description) if description else ''
 
-    # 关键词匹配
+    # 在分类规则中查找匹配
     for category, rule in CLASSIFICATION_RULES.items():
-        if any(keyword in normalized_name for keyword in rule['keywords']):
-            return category, rule['confidence']
+        # 在商户名称和描述中查找关键词
+        for keyword in rule['keywords']:
+            if keyword in normalized_name or keyword in normalized_desc:
+                return category, rule['confidence']
 
     return 'uncategorized', 0.0
 
 class CategoryService:
-    """简化的商户分类服务
+    """商户分类服务
 
-    合并了用户规则管理和智能匹配功能，提供统一的分类接口。
+    提供基于商户类型的智能分类功能。
     """
 
     def __init__(self):
@@ -132,10 +140,15 @@ class CategoryService:
 
         self.logger.info(f"分类服务初始化完成: {len(self._categories)}个分类")
 
-    def classify_merchant(self, merchant_name: str) -> str:
-        """智能分类商户（简化版）
+    def classify_merchant(self, merchant_name: str, description: str = '') -> str:
+        """智能分类商户
 
-        优先级：用户自定义规则 > 预定义规则
+        Args:
+            merchant_name: 商户名称
+            description: 交易描述
+
+        Returns:
+            分类代码
         """
         if not merchant_name:
             return 'uncategorized'
@@ -146,8 +159,16 @@ class CategoryService:
             return user_category
 
         # 2. 使用预定义规则
-        category, confidence = _classify_by_rules(merchant_name)
+        category, confidence = _classify_by_rules(merchant_name, description)
         return category
+
+    def get_all_categories(self) -> Dict:
+        """获取所有分类
+
+        Returns:
+            分类字典
+        """
+        return self._categories
 
     def update_merchant_category(self, merchant_name: str, category: str) -> bool:
         """更新商户分类规则（简化版）"""
@@ -179,8 +200,16 @@ class CategoryService:
         """获取所有分类信息"""
         return self._categories
 
-    def get_ai_suggestion(self, merchant_name: str) -> Dict:
-        """为商户生成AI分类建议"""
+    def get_ai_suggestion(self, merchant_name: str, description: str = '') -> Dict:
+        """为商户生成AI分类建议
+
+        Args:
+            merchant_name: 商户名称
+            description: 交易描述
+
+        Returns:
+            包含分类建议的字典
+        """
         if not merchant_name:
             return {
                 'category': 'uncategorized',
@@ -189,12 +218,15 @@ class CategoryService:
                 'reason': '商户名称为空'
             }
 
-        category, confidence_float = _classify_by_rules(merchant_name)
+        category, confidence_float = _classify_by_rules(merchant_name, description)
         confidence = int(confidence_float * 100)
         category_info = CATEGORIES.get(category, CATEGORIES['uncategorized'])
 
-        # 简化的推荐理由
-        reason = f"基于关键词匹配识别为{category_info['name']}" if category != 'uncategorized' else "未找到匹配规则"
+        # 生成推荐理由
+        if category != 'uncategorized':
+            reason = f"基于关键词匹配识别为{category_info['name']}"
+        else:
+            reason = "未找到匹配的分类规则"
 
         return {
             'category': category,
@@ -204,5 +236,15 @@ class CategoryService:
         }
 
     def get_ai_suggestions_batch(self, merchant_names: List[str]) -> Dict[str, Dict]:
-        """批量为商户生成AI分类建议"""
-        return {name: self.get_ai_suggestion(name) for name in merchant_names}
+        """批量为商户生成AI分类建议
+
+        Args:
+            merchant_names: 商户名称列表
+
+        Returns:
+            商户名称到分类建议的映射
+        """
+        suggestions = {}
+        for merchant_name in merchant_names:
+            suggestions[merchant_name] = self.get_ai_suggestion(merchant_name)
+        return suggestions
