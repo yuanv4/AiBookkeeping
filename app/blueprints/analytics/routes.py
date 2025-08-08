@@ -1,9 +1,10 @@
 """分析页面路由"""
 
-from flask import render_template, jsonify
-from app.utils import get_transaction_service, has_financial_data, handle_errors, DataUtils
+from flask import render_template
+from app.utils import has_financial_data, handle_errors, DataUtils
 from app.models import Transaction
 from app.models.base import db
+from app.configs.categories import CATEGORIES
 from sqlalchemy import func
 from . import analytics_bp
 import logging
@@ -25,13 +26,7 @@ def analytics_index():
 def get_monthly_expenses():
     """获取月度商户类型支出数据API"""
     try:
-        # 检查是否有已分类的支出数据
-        categorized_expense_count = Transaction.query.filter(
-            Transaction.amount < 0,
-            Transaction.category != 'uncategorized'
-        ).count()
-
-        # 查询月度商户类型支出数据 (使用SQLite兼容的strftime函数)
+        # 查询月度商户类型支出数据
         query_result = db.session.query(
             func.strftime('%Y-%m', Transaction.date).label('month'),
             Transaction.category,
@@ -60,10 +55,8 @@ def get_monthly_expenses():
         months = sorted(list(months_set))
 
         # 构造系列数据
-        from app.configs.categories import CATEGORIES
         series = []
         for category, amounts_by_month in categories_data.items():
-            category_info = CATEGORIES.get(category, {})
             series_data = []
 
             # 为每个月份填充数据，缺失的月份填0
@@ -71,13 +64,14 @@ def get_monthly_expenses():
                 series_data.append(amounts_by_month.get(month, 0))
 
             series.append({
-                'name': f"{category_info.get('name', category)}支出",
+                'category': category,
                 'data': series_data
             })
 
         return DataUtils.format_api_response(True, data={
             'months': months,
-            'series': series
+            'series': series,
+            'categories': CATEGORIES
         })
 
     except Exception as e:

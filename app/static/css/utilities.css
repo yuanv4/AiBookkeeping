@@ -31,6 +31,11 @@
 .d-none { display: none !important; }
 .d-block { display: block !important; }
 
+/* 紫色工具类 */
+.text-purple { color: var(--bs-purple) !important; }
+.bg-purple { background-color: var(--bs-purple) !important; }
+.border-purple { border-color: var(--bs-purple) !important; }
+
 .d-flex { display: flex !important; }
 .d-inline-flex { display: inline-flex !important; }
 

@@ -38,7 +38,7 @@ CATEGORIES = {
     'lifestyle': {
         'name': '生活消费',
         'icon': 'coffee',
-        'color': 'primary',
+        'color': 'purple',
         'description': '餐饮、交通、娱乐等生活消费'
     },
     'uncategorized': {

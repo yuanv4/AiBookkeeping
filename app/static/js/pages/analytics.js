@@ -3,6 +3,8 @@
  * 实现月度分类支出堆叠面积图
  */
 
+import { getCSSColorValue } from '../common/utils.js';
+
 // 加载月度支出数据
 async function loadExpenseData() {
     try {
@@ -23,17 +25,21 @@ async function loadExpenseData() {
 
 // 创建堆叠面积图
 function createChart(data) {
-    const chart = echarts.init(document.getElementById('expense-chart'));
+    const chart = window.echarts.init(document.getElementById('expense-chart'));
+    const { categories } = data;
 
-    // 分类颜色配置
-    const categoryColors = {
-        'dining': '#0d6efd',      // primary
-        'transport': '#198754',   // success
-        'shopping': '#0dcaf0',    // info
-        'services': '#ffc107',    // warning
-        'healthcare': '#dc3545',  // danger
-        'finance': '#6c757d'      // secondary
-    };
+    // 获取分类颜色
+    function getCategoryColor(category) {
+        const categoryInfo = categories[category];
+        const colorName = categoryInfo?.color || 'secondary';
+        return getCSSColorValue(colorName);
+    }
+
+    // 获取分类中文名称
+    function getCategoryName(category) {
+        const categoryInfo = categories[category];
+        return categoryInfo?.name || category;
+    }
 
     // 构造ECharts配置
     const option = {
@@ -67,7 +73,7 @@ function createChart(data) {
             }
         },
         legend: {
-            data: data.series.map(s => s.name),
+            data: data.series.map(s => getCategoryName(s.category)),
             top: 30
         },
         grid: {
@@ -116,7 +122,7 @@ function createChart(data) {
             }
         ],
         series: data.series.map(seriesItem => ({
-            name: seriesItem.name,
+            name: getCategoryName(seriesItem.category),
             type: 'line',
             stack: 'Total',
             areaStyle: {},
@@ -125,15 +131,7 @@ function createChart(data) {
             },
             data: seriesItem.data,
             itemStyle: {
-                color: categoryColors[Object.keys(categoryColors).find(key =>
-                    seriesItem.name.includes(key) ||
-                    (key === 'dining' && seriesItem.name.includes('餐饮')) ||
-                    (key === 'transport' && seriesItem.name.includes('交通')) ||
-                    (key === 'shopping' && seriesItem.name.includes('购物')) ||
-                    (key === 'services' && seriesItem.name.includes('服务')) ||
-                    (key === 'healthcare' && seriesItem.name.includes('医疗')) ||
-                    (key === 'finance' && seriesItem.name.includes('金融'))
-                )] || '#6c757d'
+                color: getCategoryColor(seriesItem.category)
             }
         }))
     };
