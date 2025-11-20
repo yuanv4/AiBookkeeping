@@ -39,7 +39,7 @@
     <nav class="sidebar" aria-label="主要导航">
         <div class="sidebar-header">
             <div class="sidebar-brand">
-                {{ icon("dollar-sign", "md", "text-primary") }}
+                {{ icon("dollar-sign", "md", "text-white") }}
                 <span class="brand-text">AI记账</span>
             </div>
         </div>
@@ -73,7 +73,7 @@
 
     <!-- 主内容区 -->
     <div class="main-content">
-        <div class="page-container p-4">
+        <div class="page-container">
             <!-- 消息提示 -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}

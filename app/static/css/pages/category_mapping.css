@@ -1,0 +1,226 @@
+/* 分类映射管理页面样式 */
+
+/* 统计卡片样式 */
+.card.bg-primary,
+.card.bg-success,
+.card.bg-warning,
+.card.bg-info {
+    border: none;
+    transition: transform 0.2s ease-in-out;
+}
+
+.card.bg-primary:hover,
+.card.bg-success:hover,
+.card.bg-warning:hover,
+.card.bg-info:hover {
+    transform: translateY(-2px);
+}
+
+/* 表格样式 */
+#mapping-table {
+    height: 500px;
+}
+
+/* 映射状态徽章 */
+.mapping-status-mapped {
+    background-color: #28a745;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+.mapping-status-unmapped {
+    background-color: #ffc107;
+    color: #212529;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+/* 交易数量徽章 */
+.transaction-count {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* 未映射分类列表 */
+.unmapped-category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f3f4;
+    transition: background-color 0.2s;
+}
+
+.unmapped-category-item:hover {
+    background-color: #f8f9fa;
+}
+
+.unmapped-category-name {
+    font-weight: 500;
+    color: #495057;
+}
+
+.unmapped-category-count {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.unmapped-category-action {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.unmapped-category-item:hover .unmapped-category-action {
+    opacity: 1;
+}
+
+/* 目标分类标签 */
+.category-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.category-tag.food { background-color: #d4edda; color: #155724; }
+.category-tag.shopping { background-color: #d1ecf1; color: #0c5460; }
+.category-tag.transport { background-color: #fff3cd; color: #856404; }
+.category-tag.entertainment { background-color: #f8d7da; color: #721c24; }
+.category-tag.salary { background-color: #d1ecf1; color: #0c5460; }
+.category-tag.finance { background-color: #e2e3e5; color: #383d41; }
+.category-tag.utilities { background-color: #d4edda; color: #155724; }
+.category-tag.health { background-color: #f8d7da; color: #721c24; }
+.category-tag.education { background-color: #e7f5ff; color: #084298; }
+.category-tag.other { background-color: #e9ecef; color: #495057; }
+
+/* 批量映射界面 */
+.batch-mapping-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    background-color: #f8f9fa;
+}
+
+.batch-mapping-source {
+    flex: 1;
+    font-weight: 500;
+}
+
+.batch-mapping-target {
+    width: 200px;
+}
+
+.batch-mapping-check {
+    width: 60px;
+    text-align: center;
+}
+
+/* 搜索和过滤 */
+.table-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.search-filter {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* 状态指示器 */
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-indicator.active {
+    background-color: #28a745;
+}
+
+.status-indicator.inactive {
+    background-color: #6c757d;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 0.75rem;
+    }
+
+    #mapping-table {
+        height: 400px;
+    }
+
+    .table-actions {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .search-filter {
+        justify-content: center;
+    }
+}
+
+/* 加载动画 */
+.loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 图标对齐 */
+.icon-with-text {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* 隐藏的批量操作复选框 */
+.tabulator-row .tabulator-cell[data-field="select"] {
+    width: 50px;
+}
+
+/* 成功/错误消息 */
+.message-success {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.message-error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    margin-top: 0.5rem;
+}

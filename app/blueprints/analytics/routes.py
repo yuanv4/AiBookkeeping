@@ -2,10 +2,10 @@
 
 from flask import render_template
 from app.utils import has_financial_data, handle_errors, DataUtils
-from app.models import Transaction
+from app.models import CoreTransaction, Entry, Account
 from app.models.base import db
 from app.configs.categories import CATEGORIES
-from sqlalchemy import func
+from sqlalchemy import func, and_
 from . import analytics_bp
 import logging
 
@@ -26,47 +26,40 @@ def analytics_index():
 def get_monthly_expenses():
     """获取月度商户类型支出数据API"""
     try:
-        # 查询月度商户类型支出数据
-        query_result = db.session.query(
-            func.strftime('%Y-%m', Transaction.date).label('month'),
-            Transaction.category,
-            func.sum(func.abs(Transaction.amount)).label('amount')
-        ).filter(
-            Transaction.amount < 0,
-            Transaction.category != 'uncategorized'
-        ).group_by('month', Transaction.category).order_by('month').all()
-
-        # 构造ECharts所需的数据格式
-        months_set = set()
-        categories_data = {}
-
-        # 收集所有月份和分类数据
-        for row in query_result:
-            month = row.month
-            category = row.category
-            amount = float(row.amount)
-
-            months_set.add(month)
-            if category not in categories_data:
-                categories_data[category] = {}
-            categories_data[category][month] = amount
-
-        # 排序月份
-        months = sorted(list(months_set))
-
-        # 构造系列数据
-        series = []
-        for category, amounts_by_month in categories_data.items():
-            series_data = []
-
-            # 为每个月份填充数据，缺失的月份填0
-            for month in months:
-                series_data.append(amounts_by_month.get(month, 0))
-
-            series.append({
-                'category': category,
-                'data': series_data
+        # 获取所有 ASSET 类型的账户（实际资金账户）
+        asset_accounts = Account.query.filter_by(type='ASSET').all()
+        asset_account_ids = [acc.id for acc in asset_accounts]
+        
+        if not asset_account_ids:
+            return DataUtils.format_api_response(True, data={
+                'months': [],
+                'series': [],
+                'categories': CATEGORIES
             })
+        
+        # 查询这些账户的支出分录（amount < 0）
+        # 并关联交易获取日期信息
+        query_result = db.session.query(
+            func.strftime('%Y-%m', CoreTransaction.date).label('month'),
+            func.sum(func.abs(Entry.amount)).label('amount')
+        ).join(
+            Entry, Entry.transaction_id == CoreTransaction.id
+        ).filter(
+            Entry.account_id.in_(asset_account_ids),
+            Entry.amount < 0,  # 支出
+            CoreTransaction.type == 'EXPENSE'
+        ).group_by('month').order_by('month').all()
+
+        # 简化版：暂时不按分类统计（因为需要重新设计分类逻辑）
+        # 构造ECharts所需的数据格式
+        months = [row.month for row in query_result]
+        amounts = [float(row.amount) for row in query_result]
+
+        # 构造系列数据（单一系列：总支出）
+        series = [{
+            'category': 'lifestyle',  # 默认分类
+            'data': amounts
+        }]
 
         return DataUtils.format_api_response(True, data={
             'months': months,

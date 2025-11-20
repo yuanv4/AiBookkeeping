@@ -68,9 +68,9 @@ def _initialize_database_and_services(app):
         app: Flask应用实例
     """
     with app.app_context():
-        # Create database tables
-        db.create_all()
-        app.logger.info("数据库表已创建")
+        # Database tables are managed by Alembic migrations
+        # db.create_all() is disabled during refactoring
+        app.logger.info("数据库表由 Alembic 管理")
 
         # 服务将按需初始化，无需预先创建
         app.logger.info("服务层将按需初始化")
@@ -99,6 +99,11 @@ def _register_blueprints(app):
     app.register_blueprint(merchant_categories_bp, url_prefix='/merchant-categories')
     app.logger.info("已注册 merchant_categories_bp, 前缀 /merchant-categories")
 
+    # 注册分类管理蓝图
+    from .blueprints.category_mapping import category_mapping_bp
+    app.register_blueprint(category_mapping_bp, url_prefix='/category-mapping')
+    app.logger.info("已注册 category_mapping_bp, 前缀 /category-mapping")
+
 
 def create_app():
     """创建Flask应用实例
@@ -106,11 +111,16 @@ def create_app():
     Returns:
         配置完成的Flask应用实例
     """
-    app = Flask(__name__)
+    app = Flask(__name__, static_url_path='/static')
 
     # 直接实例化配置类
     config = Config()
     config.init_app(app)
+    
+    # 【关键修复】在创建 app 后立即修正 MIME 类型映射
+    import mimetypes
+    mimetypes.add_type('application/javascript', '.js', strict=True)
+    mimetypes.add_type('text/css', '.css', strict=True)
 
     # Initialize extensions
     db.init_app(app)
@@ -140,5 +150,39 @@ def create_app():
         return create_error_response(error, 500)
 
     app.logger.info("已注册统一错误处理器")
+
+    # 【Windows MIME 类型修复】覆盖静态文件路由以强制正确的 MIME 类型
+    from werkzeug.utils import safe_join
+    import os
+    
+    @app.route('/static/<path:filename>')
+    def serve_static(filename):
+        """自定义静态文件服务，强制设置正确的 MIME 类型"""
+        try:
+            filepath = safe_join(app.static_folder, filename)
+            if not os.path.exists(filepath):
+                from flask import abort
+                abort(404)
+            
+            # 读取文件内容
+            with open(filepath, 'rb') as f:
+                content = f.read()
+            
+            # 根据扩展名设置正确的 MIME 类型
+            from flask import Response
+            if filename.endswith('.js'):
+                response = Response(content, mimetype='application/javascript')
+            elif filename.endswith('.css'):
+                response = Response(content, mimetype='text/css')
+            else:
+                response = Response(content)
+                # 让 Flask 自动检测其他文件类型
+            
+            response.headers['Cache-Control'] = 'no-cache'
+            return response
+        except Exception as e:
+            app.logger.error(f"Error serving static file {filename}: {e}")
+            from flask import abort
+            abort(500)
 
     return app

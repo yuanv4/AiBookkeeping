@@ -10,74 +10,85 @@
 body {
     display: flex;
     min-height: 100vh;
+    background-color: var(--bs-body-bg);
 }
 
 /* ========== 左侧导航栏 ========== */
 
 .sidebar {
-    width: 240px;
+    width: var(--sidebar-width);
     min-height: 100vh;
-    background: var(--surface-card);
-    border-right: 1px solid var(--bs-border-color);
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border-color);
     display: flex;
     flex-direction: column;
     position: fixed;
     left: 0;
     top: 0;
     z-index: var(--z-fixed);
+    color: var(--sidebar-color);
+    transition: width var(--transition-normal);
 }
 
 .sidebar-header {
-    padding: var(--spacing-4);
-    border-bottom: 1px solid var(--bs-border-color);
+    padding: var(--spacing-5);
+    border-bottom: 1px solid var(--sidebar-border-color);
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
 }
 
 .sidebar-brand {
     display: flex;
     align-items: center;
-    gap: var(--spacing-2);
-    font-weight: 600;
-    font-size: 1.125rem;
-    color: var(--bs-gray-900);
+    gap: var(--spacing-3);
+    font-weight: var(--font-weight-bold);
+    font-size: 1.25rem;
+    color: #ffffff;
+    text-decoration: none;
 }
 
 .brand-text {
-    color: var(--bs-gray-900);
+    color: #ffffff;
+    letter-spacing: -0.025em;
 }
 
 .sidebar-menu {
     flex: 1;
-    padding: var(--spacing-3);
+    padding: var(--spacing-4);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-1);
+    gap: var(--spacing-2);
+    overflow-y: auto;
 }
 
 .sidebar-item {
     display: flex;
     align-items: center;
     gap: var(--spacing-3);
-    padding: var(--spacing-3);
+    padding: var(--spacing-3) var(--spacing-4);
     border-radius: var(--bs-border-radius);
-    color: var(--bs-gray-700);
+    color: var(--bs-gray-400);
     text-decoration: none;
-    transition: var(--bs-transition);
-    font-weight: 500;
+    transition: var(--transition-fast);
+    font-weight: var(--font-weight-medium);
+    border: 1px solid transparent;
 }
 
 .sidebar-item:hover {
-    background: var(--bs-gray-100);
-    color: var(--bs-primary);
+    background: var(--sidebar-hover-bg);
+    color: #ffffff;
 }
 
 .sidebar-item.active {
-    background: var(--bs-primary-100);
-    color: var(--bs-primary);
-    font-weight: 600;
+    background: var(--sidebar-active-bg);
+    color: var(--sidebar-active-color);
+    font-weight: var(--font-weight-semibold);
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.3); /* Glow effect */
 }
 
 .sidebar-text {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
 }
 
 /* ========== 主内容区域 ========== */
@@ -86,7 +97,8 @@ body {
     flex: 1;
     min-height: 100vh;
     background-color: var(--surface-background);
-    margin-left: 240px; /* 为左侧导航栏留出空间 */
+    margin-left: var(--sidebar-width); /* 为左侧导航栏留出空间 */
+    transition: margin-left var(--transition-normal);
 }
 
 
@@ -107,102 +119,122 @@ body {
 /* ========== 响应式设计 ========== */
 
 /* 平板设备 */
-@media (max-width: 768px) {
+@media (max-width: 992px) {
     .sidebar {
-        width: 200px;
+        width: 80px;
     }
-
+    
     .main-content {
-        margin-left: 200px;
+        margin-left: 80px;
     }
-
-    .sidebar-brand {
-        font-size: 1rem;
+    
+    .sidebar-header {
+        padding: var(--spacing-3);
+        justify-content: center;
     }
-
-    .sidebar-text {
-        font-size: 0.85rem;
+    
+    .sidebar-brand .brand-text {
+        display: none;
+    }
+    
+    .sidebar-menu {
+        padding: var(--spacing-2);
+        align-items: center;
+    }
+    
+    .sidebar-item {
+        padding: var(--spacing-3);
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .sidebar-item .sidebar-text {
+        display: none;
     }
 }
 
 /* 小屏手机设备 */
 @media (max-width: 576px) {
+    /* 移动端需要一个遮罩层或者底部导航，暂时保留原来的侧边栏逻辑但优化宽度 */
     .sidebar {
-        width: 180px;
+        width: 64px; 
+        transform: translateX(-100%); /* 默认隐藏 */
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
     }
 
     .main-content {
-        margin-left: 180px;
+        margin-left: 0;
     }
-
-    .sidebar-header {
-        padding: var(--spacing-3);
-    }
-
-    .sidebar-menu {
-        padding: var(--spacing-2);
-    }
-
-    .sidebar-item {
-        padding: var(--spacing-2);
-        gap: var(--spacing-2);
-    }
+    
+    /* 这里可能需要JS配合切换显示，或者暂时保持简单的自适应 */
 }
 
 /* ========== 消息提示布局 ========== */
 
 .alert {
     border-radius: var(--bs-border-radius);
-    border: var(--border-width-thin) solid transparent;
-    margin-bottom: var(--spacing-4);
+    border: none;
+    box-shadow: var(--bs-box-shadow-sm);
+    margin-bottom: var(--spacing-6);
+    padding: var(--spacing-4);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
 }
 
 /* ========== 模态框布局 ========== */
 
 .modal-content {
-    border-radius: var(--bs-border-radius-lg);
+    border-radius: var(--bs-border-radius-xl);
     border: none;
     box-shadow: var(--bs-box-shadow-2xl);
+    overflow: hidden;
 }
 
 .modal-header {
-    border-bottom: var(--border-width-thin) solid var(--bs-gray-200);
+    border-bottom: 1px solid var(--bs-gray-100);
     padding: var(--spacing-6);
+    background: var(--surface-card);
 }
 
 .modal-body {
     padding: var(--spacing-6);
+    background: var(--surface-card);
 }
 
 .modal-footer {
-    border-top: var(--border-width-thin) solid var(--bs-gray-200);
-    padding: var(--spacing-6);
+    border-top: 1px solid var(--bs-gray-100);
+    padding: var(--spacing-4) var(--spacing-6);
+    background: var(--bs-gray-50);
 }
 
 /* ========== 页面容器 ========== */
 
 .page-container {
     width: 100%;
-    /* 移除最大宽度限制，实现全宽桌面端布局 */
-    /* max-width: var(--container-max-width); */
     margin: 0 auto;
-    padding-left: var(--spacing-4);
-    padding-right: var(--spacing-4);
+    padding: var(--spacing-6) var(--spacing-8);
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: var(--spacing-4);
+    }
 }
 
 /* ========== 网格布局优化 ========== */
 
 .row {
-    margin-left: calc(var(--spacing-3) * -1);
-    margin-right: calc(var(--spacing-3) * -1);
-}
-
-.row > * {
-    padding-left: var(--spacing-3);
-    padding-right: var(--spacing-3);
+    --bs-gutter-x: var(--spacing-6);
+    --bs-gutter-y: var(--spacing-6);
 }
 
 /* 间距工具类 */
 .gap-1 { gap: var(--spacing-1) !important; }
 .gap-2 { gap: var(--spacing-2) !important; }
 .gap-3 { gap: var(--spacing-3) !important; }
+.gap-4 { gap: var(--spacing-4) !important; }
+.gap-5 { gap: var(--spacing-5) !important; }

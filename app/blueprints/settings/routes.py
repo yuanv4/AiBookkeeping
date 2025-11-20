@@ -12,16 +12,15 @@ logger = logging.getLogger(__name__)
 @settings_bp.route('/')
 def settings_index():
     """设置页面主页"""
-    from app.utils import get_transaction_service
-    from app.models import Transaction
+    from app.utils import TransactionCompatLayer
+    from app.models import CoreTransaction
 
     try:
-        # 获取统计数据
-        transaction_service = get_transaction_service()
-        summary = transaction_service.get_transactions_summary()
+        # 获取统计数据 (使用兼容层)
+        summary = TransactionCompatLayer.get_summary()
 
         # 获取最新记录的创建时间
-        latest_transaction = Transaction.query.order_by(Transaction.created_at.desc()).first()
+        latest_transaction = CoreTransaction.query.order_by(CoreTransaction.created_at.desc()).first()
         last_updated = latest_transaction.created_at if latest_transaction else None
 
         # 判断系统状态
@@ -42,10 +41,8 @@ def settings_index():
 @settings_bp.route('/delete_database', methods=['POST'])
 @handle_errors
 def delete_database():
-    """删除数据库中的所有数据（重构后使用统一响应格式）"""
+    """删除数据库中的所有数据"""
     logger.info("访问数据库删除路由")
-
-    # 记录操作日志
     logger.warning("开始执行数据库删除操作")
 
     # 删除所有表
@@ -66,7 +63,7 @@ def delete_database():
 @settings_bp.route('/upload', methods=['GET', 'POST'])
 @handle_errors
 def upload_file_route():
-    """文件上传页面 - 从upload蓝图迁移过来，支持API和Web请求"""
+    """文件上传页面"""
     if request.method == 'POST':
         if 'file' not in request.files:
             if is_api_request():
@@ -85,6 +82,7 @@ def upload_file_route():
         processing_time = time.time() - start_time
 
         if processed_files_result:
+            # 统计逻辑保持不变
             uploaded_filenames = [f.filename for f in files if f.filename]
             total_records = sum(file_info.get('record_count', 0) for file_info in processed_files_result)
 

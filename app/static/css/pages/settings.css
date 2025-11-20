@@ -62,8 +62,8 @@
     padding: 0.25rem 0.75rem;
     border-radius: 1rem;
     font-size: 0.75rem;
-    background: #f8f9fa;
-    color: #6c757d;
+    background: var(--bs-gray-50);
+    color: var(--bs-gray-500);
     transition: all 0.3s ease;
     border: 2px solid transparent;
     position: relative;
@@ -73,7 +73,7 @@
     background: var(--bs-primary);
     color: white;
     border-color: var(--bs-primary);
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    box-shadow: 0 0 0 0.2rem var(--bs-primary-100);
 }
 
 .stage-dot.completed {
@@ -101,13 +101,13 @@
 
 /* 成功和错误状态样式 */
 .processing-indicator.success {
-    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-    border: 1px solid #c3e6cb;
+    background: linear-gradient(135deg, var(--bs-success-100) 0%, #d1fae5 100%);
+    border: 1px solid var(--bs-success-500);
 }
 
 .processing-indicator.error {
-    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-    border: 1px solid #f5c6cb;
+    background: linear-gradient(135deg, var(--bs-danger-100) 0%, #ffe4e6 100%);
+    border: 1px solid var(--bs-danger-500);
 }
 
 .processing-stage.success {
@@ -129,15 +129,16 @@
 
 @keyframes pulse {
     0% {
-        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4);
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
     }
     70% {
-        box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
+        box-shadow: 0 0 0 10px rgba(79, 70, 229, 0);
     }
     100% {
-        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
     }
 }
+
 
 .stage-dot.completed {
     animation: bounce 0.6s ease-out;

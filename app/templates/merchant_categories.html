@@ -74,9 +74,9 @@
 {% block page_scripts %}
 <!-- 分类配置数据 -->
 <script>
-window.CATEGORIES_CONFIG = {{ categories_config | tojson }};
+window.CATEGORIES = {{ categories | tojson }};
 </script>
 <!-- Tabulator JS -->
 <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
-<script type="module" src="{{ url_for('static', filename='js/pages/merchant_categories.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/merchant_categories_new.js') }}"></script>
 {% endblock %}

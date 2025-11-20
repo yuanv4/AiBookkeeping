@@ -589,9 +589,9 @@ export function createTransactionsTable(containerId, data = [], options = {}, ca
 
             // 根据金额大小添加样式
             if (data.amount > 1000) {
-                element.style.backgroundColor = "#e8f5e8";
+                element.style.backgroundColor = "#D1FAE5"; // var(--bs-success-100)
             } else if (data.amount < -1000) {
-                element.style.backgroundColor = "#ffeaea";
+                element.style.backgroundColor = "#FFE4E6"; // var(--bs-danger-100)
             }
         },
         ...options

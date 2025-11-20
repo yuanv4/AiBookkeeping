@@ -16,7 +16,7 @@ export class UploadFeature {
         this.baseId = baseId;
         this.selectedFiles = [];
         this.config = {
-            allowedExtensions: ['.xlsx', '.xls'],
+            allowedExtensions: ['.xlsx', '.xls', '.csv'],
             maxFileSize: 50 * 1024 * 1024, // 50MB
             maxFiles: 10
         };
@@ -72,7 +72,11 @@ export class UploadFeature {
             }, false);
             
             // 点击拖拽区域触发文件选择
-            this.elements.dropZone.addEventListener('click', () => {
+            this.elements.dropZone.addEventListener('click', (e) => {
+                // 如果点击的是文件输入框本身，或者是其中的按钮（虽然按钮阻止了冒泡，但为了保险），则忽略
+                if (e.target === this.elements.fileInput || (this.elements.selectButton && this.elements.selectButton.contains(e.target))) {
+                    return;
+                }
                 if (this.elements.fileInput) {
                     this.elements.fileInput.click();
                 }

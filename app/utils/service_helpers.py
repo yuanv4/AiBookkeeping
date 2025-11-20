@@ -7,21 +7,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def get_transaction_service():
-    """获取交易服务实例"""
-    from ..services import TransactionService
-    return TransactionService()
-
 def get_import_service():
     """获取导入服务实例"""
     from ..services import ImportService
-    transaction_service = get_transaction_service()
-    return ImportService(transaction_service)
-
-def get_category_service():
-    """获取分类服务实例"""
-    from ..services import CategoryService
-    return CategoryService()
+    return ImportService()
 
 def get_categories_config():
     """获取分类配置"""

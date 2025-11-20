@@ -6,9 +6,9 @@
 {% endmacro %}
 
 {% macro card(title="", icon_name="", header_class="", body_class="") %}
-<div class="card h-100 shadow-sm border-0">
+<div class="card h-100">
   {% if title %}
-  <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between {{ header_class }}">
+  <div class="card-header d-flex align-items-center justify-content-between {{ header_class }}">
     <div class="d-flex align-items-center">
       {% if icon_name %}
       <div class="me-2 bg-light rounded-2 d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem;">
@@ -123,7 +123,7 @@
 
 {% macro data_card(title, value, icon_name="", trend="", trend_value="", color="primary", size="md", clickable=false, onclick="") %}
 <!-- 数据展示卡片组件 -->
-<div class="card h-100 shadow-sm border-0 {% if clickable %}cursor-pointer{% endif %} data-card"
+<div class="card h-100 {% if clickable %}cursor-pointer{% endif %} data-card"
      {% if clickable and onclick %}onclick="{{ onclick }}"{% endif %}>
   <div class="card-body p-4 d-flex align-items-center">
     {% if icon_name %}

@@ -93,64 +93,65 @@
     max-height: 120px;
     overflow-y: auto;
     background-color: #ffffff;
-    border: 1px solid rgba(0, 123, 255, 0.2);
-    border-radius: 8px;
+    border: 1px solid var(--bs-primary-100);
+    border-radius: var(--bs-border-radius);
 }
 
 .detail-card {
     background-color: #ffffff;
-    border: 1px solid rgba(0, 123, 255, 0.2);
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
-    border-radius: 8px;
+    border: 1px solid var(--bs-primary-100);
+    box-shadow: var(--bs-box-shadow-sm);
+    border-radius: var(--bs-border-radius);
 }
 
 .detail-section-title {
-    color: #495057;
+    color: var(--bs-gray-700);
     font-weight: 600;
 }
 
 .ai-analysis-card {
     background-color: #ffffff;
-    border: 2px solid rgba(0, 123, 255, 0.3);
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
-    border-radius: 8px;
+    border: 2px solid var(--bs-primary-100);
+    box-shadow: var(--bs-box-shadow-sm);
+    border-radius: var(--bs-border-radius);
 }
 .detail-btn-primary {
-    background-color: #007bff;
-    border-color: #007bff;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
     color: #ffffff;
 }
 
 .workspace-sidebar .text-muted {
-    color: #6c757d !important;
+    color: var(--bs-gray-500) !important;
 }
 
 .workspace-sidebar .detail-section-title {
-    color: #495057 !important;
+    color: var(--bs-gray-700) !important;
 }
 
 .workspace-sidebar .small {
-    color: #6c757d;
+    color: var(--bs-gray-500);
 }
 .detail-value-primary {
-    color: #007bff;
+    color: var(--bs-primary);
     font-weight: 600;
 }
 
 .detail-value-success {
-    color: #28a745;
+    color: var(--bs-success);
     font-weight: 600;
 }
 
 .detail-value-danger {
-    color: #dc3545;
+    color: var(--bs-danger);
     font-weight: 600;
 }
 
 
 .ai-analysis-card hr {
     margin: 12px 0;
-    opacity: 0.3;
+    opacity: 0.1;
+    border-color: var(--bs-gray-900);
 }
 
 .ai-analysis-card .text-muted.small {
@@ -159,33 +160,35 @@
 
 /* AI推荐按钮的特殊样式 - 深蓝背景 + 白色文字 */
 .ai-recommended-btn {
-    background-color: #0056b3 !important;
-    border-color: #0056b3 !important;
+    background-color: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
     color: #ffffff !important;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     min-height: 38px;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
 }
 
 .ai-recommended-btn:hover {
-    background-color: #004085 !important;
-    border-color: #004085 !important;
+    background-color: #4338CA !important; /* Indigo 700 */
+    border-color: #4338CA !important;
     color: #ffffff !important;
+    box-shadow: 0 4px 6px rgba(79, 70, 229, 0.4);
 }
 
 .category-btn-normal {
     background-color: #ffffff !important;
-    border-color: rgba(0, 123, 255, 0.5) !important;
-    color: #000000 !important;
+    border-color: var(--bs-gray-300) !important;
+    color: var(--bs-gray-700) !important;
     font-weight: 500;
 }
 
 .category-btn-normal:hover {
-    background-color: #f8f9fa !important;
-    border-color: rgba(0, 123, 255, 0.7) !important;
-    color: #000000 !important;
+    background-color: var(--bs-gray-50) !important;
+    border-color: var(--bs-primary) !important;
+    color: var(--bs-primary) !important;
 }
 
 .ai-recommended-btn [data-lucide] {
@@ -194,31 +197,36 @@
 }
 
 .category-btn-normal [data-lucide] {
-    color: #000000 !important;
-    stroke: #000000 !important;
+    color: var(--bs-gray-500) !important;
+    stroke: var(--bs-gray-500) !important;
+}
+
+.category-btn-normal:hover [data-lucide] {
+    color: var(--bs-primary) !important;
+    stroke: var(--bs-primary) !important;
 }
 
 .ai-recommended-btn:active,
 .ai-recommended-btn.active {
-    background-color: #003d82 !important;
-    border-color: #003d82 !important;
+    background-color: #3730A3 !important; /* Indigo 800 */
+    border-color: #3730A3 !important;
     color: #ffffff !important;
 }
 
 .ai-recommended-btn:focus {
-    box-shadow: 0 0 0 0.2rem rgba(0, 86, 179, 0.5) !important;
+    box-shadow: 0 0 0 3px var(--bs-primary-100) !important;
     outline: none;
 }
 
 .category-btn-normal:active,
 .category-btn-normal.active {
-    background-color: #e9ecef !important;
-    border-color: rgba(0, 123, 255, 0.8) !important;
-    color: #000000 !important;
+    background-color: var(--bs-primary-50) !important;
+    border-color: var(--bs-primary) !important;
+    color: var(--bs-primary) !important;
 }
 
 .category-btn-normal:focus {
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+    box-shadow: 0 0 0 3px var(--bs-primary-100) !important;
     outline: none;
 }
 

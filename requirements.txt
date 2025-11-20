@@ -11,8 +11,9 @@ Alembic>=1.13.0
 
 # ==================== 数据处理 ====================
 # Excel文件处理和数据分析
-pandas>=2.1.0           # 数据处理核心库
+# pandas>=2.1.0           # 数据处理核心库 (Removed dependency)
 openpyxl>=3.1.0         # Excel文件读写支持
+xlrd>=2.0.1             # XLS文件读取支持
 
 # 日期时间处理
 python-dateutil>=2.8.2  # 日期计算和解析

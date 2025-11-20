@@ -4,10 +4,19 @@ This package contains all database models and related functionality.
 """
 
 from .base import db, BaseModel
-from .transaction import Transaction
+from .account import Account
+from .core import CoreTransaction, Entry
+from .category_mapping import CategoryMapping
+from .dto import AccountIdentifier, EntryData, TransactionDTO
 
 __all__ = [
     'db',
     'BaseModel',
-    'Transaction'
+    'Account',
+    'CoreTransaction',
+    'Entry',
+    'CategoryMapping',
+    'AccountIdentifier',
+    'EntryData',
+    'TransactionDTO'
 ]

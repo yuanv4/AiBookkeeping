@@ -1,35 +1,29 @@
-"""Utils package for the Flask application.
+"""Utils package initialization"""
 
-This package contains utility functions, decorators, and helper classes.
-"""
-
-# 聚合所有工具函数/类
-from .decorators import handle_errors
-from .template_filters import register_template_filters
 from .data_utils import DataUtils
-from .service_helpers import (
-    get_transaction_service,
-    get_import_service, get_category_service,
-    get_categories_config
-)
+from .service_helpers import get_import_service
+from .compat_layer import TransactionCompatLayer
+from .template_filters import register_template_filters
+from .category_utils import CategoryUtils
+from .decorators import handle_errors
 
 def has_financial_data():
-    """检测是否有财务数据的简单函数"""
-    try:
-        from app.models import Transaction
-        return Transaction.query.count() > 0
-    except Exception:
-        return True  # 出错时假设有数据，避免误显示
+    """检查是否有财务数据"""
+    from app.models import CoreTransaction
+    return CoreTransaction.query.count() > 0
 
+def get_categories_config():
+    """获取分类配置"""
+    from app.configs.categories import CATEGORIES
+    return CATEGORIES
 
 __all__ = [
-    'handle_errors',
-    'register_template_filters',
     'DataUtils',
-    # 服务获取函数
-    'get_transaction_service',
     'get_import_service',
-    'get_category_service',
-    'get_categories_config',
-    'has_financial_data'
+    'TransactionCompatLayer',
+    'register_template_filters',
+    'CategoryUtils',
+    'handle_errors',
+    'has_financial_data',
+    'get_categories_config'
 ]
