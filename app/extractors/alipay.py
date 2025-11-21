@@ -77,7 +77,7 @@ class AliPayExtractor(BaseExtractor):
                     date_val = row_dict.get('交易创建时间') or row_dict.get('交易时间')
                     if not date_val:
                         continue
-                    
+
                     # 解析金额和方向
                     amount_str = row_dict.get('金额（元）') or row_dict.get('金额', '0')
                     direction = row_dict.get('收/支', '').strip()

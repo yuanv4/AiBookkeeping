@@ -95,10 +95,6 @@ def _register_blueprints(app):
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.logger.info("已注册 settings_bp, 前缀 /settings")
 
-    from .blueprints.merchant_categories import merchant_categories_bp
-    app.register_blueprint(merchant_categories_bp, url_prefix='/merchant-categories')
-    app.logger.info("已注册 merchant_categories_bp, 前缀 /merchant-categories")
-
     # 注册分类管理蓝图
     from .blueprints.category_mapping import category_mapping_bp
     app.register_blueprint(category_mapping_bp, url_prefix='/category-mapping')

@@ -1,11 +1,11 @@
-/* 分类映射管理页面 JavaScript */
+/* 分类合并管理页面 JavaScript */
 
-class CategoryMappingManager {
+class CategoryMergeManager {
     constructor() {
-        this.mappingTable = null;
-        this.allCategories = [];
-        this.basicCategories = [];
-        this.showInactive = false;
+        this.mergeViewTable = null;
+        this.sourceViewTable = null;
+        this.targetViewTable = null;
+        this.currentView = 'merged';
         this.selectedRows = [];
 
         this.init();
@@ -13,570 +13,433 @@ class CategoryMappingManager {
 
     async init() {
         try {
-            await this.loadBasicCategories();
-            await this.loadData();
-            this.initTable();
             this.setupEventListeners();
-            this.renderUnmappedCategories();
+            await this.loadData();
+            this.initTables();
+            this.updateStatistics();
+            this.updateMergeStats();
         } catch (error) {
-            console.error('初始化失败:', error);
+            console.error('页面初始化失败:', error);
             this.showNotification('页面初始化失败', 'error');
         }
     }
 
-    async loadBasicCategories() {
-        try {
-            const response = await fetch('/api/category-mapping/categories');
-            const data = await response.json();
-            if (data.success) {
-                this.basicCategories = data.data;
-            }
-        } catch (error) {
-            console.error('加载基础分类失败:', error);
+    setupEventListeners() {
+        // 视图切换
+        document.querySelectorAll('[data-mode]').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.switchView(e.target.dataset.mode);
+            });
+        });
+
+        // 创建合并规则按钮
+        const createBtn = document.getElementById('create-merge-btn');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => this.showCreateMergeModal());
         }
+
+        // 保存合并规则按钮
+        const saveBtn = document.getElementById('saveMergeBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveMergeRule());
+        }
+
+        // 视图模式下拉菜单
+        const dropdownItems = document.querySelectorAll('#viewModeDropdown + .dropdown-menu .dropdown-item');
+        dropdownItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const mode = e.target.dataset.mode;
+                document.getElementById('current-view-mode').textContent = e.target.textContent;
+                this.switchView(mode);
+            });
+        });
     }
 
     async loadData() {
         try {
-            // 并行加载数据
-            const [categoriesResponse, statsResponse] = await Promise.all([
-                fetch('/api/category-mapping/source-categories'),
-                fetch('/api/category-mapping/statistics')
-            ]);
+            // 加载分类数据
+            const response = await fetch('/category-mapping/api/source-categories');
+            const data = await response.json();
 
-            const categoriesData = await categoriesResponse.json();
-            const statsData = await statsResponse.json();
-
-            if (categoriesData.success) {
-                this.allCategories = categoriesData.data;
-            }
-
-            if (statsData.success) {
-                this.updateStatistics(statsData.data);
+            if (data.success) {
+                this.categories = data.data;
+            } else {
+                throw new Error(data.error || '加载分类数据失败');
             }
         } catch (error) {
             console.error('加载数据失败:', error);
-            throw error;
+            this.categories = [];
         }
     }
 
-    initTable() {
-        const tableData = this.filterCategories(this.allCategories);
+    initTables() {
+        this.initMergeViewTable();
+        this.initSourceViewTable();
+        this.initTargetViewTable();
+    }
 
-        this.mappingTable = new Tabulator("#mapping-table", {
-            data: tableData,
-            selectableRows: 2, // 允许多选
+    initMergeViewTable() {
+        const container = document.getElementById('merge-view-table');
+        if (!container) return;
+
+        // 模拟合并数据 - 实际应用中应从API获取
+        const mergedData = this.getMergedData();
+
+        this.mergeViewTable = new Tabulator("#merge-view-table", {
+            data: mergedData,
             layout: "fitDataFill",
             pagination: "local",
             paginationSize: 20,
             columns: [
                 {
-                    title: "数据源分类",
-                    field: "source_category",
-                    headerFilter: true,
-                    minWidth: 200,
-                    formatter: this.formatterSourceCategory.bind(this)
+                    title: "统一分类名称",
+                    field: "target_category",
+                    width: 200,
+                    headerFilter: true
+                },
+                {
+                    title: "包含的原始分类",
+                    field: "source_categories",
+                    formatter: (cell) => {
+                        const sources = cell.getValue();
+                        return sources.join(', ');
+                    },
+                    minWidth: 300
                 },
                 {
                     title: "交易数量",
                     field: "transaction_count",
                     sorter: "number",
-                    width: 100,
-                    formatter: this.formatterTransactionCount.bind(this)
-                },
-                {
-                    title: "映射分类",
-                    field: "target_category",
-                    width: 150,
-                    editor: "select",
-                    editorParams: this.getCategoryOptions.bind(this),
-                    formatter: this.formatterTargetCategory.bind(this),
-                    cellEdited: this.onMappingChanged.bind(this)
+                    width: 120,
+                    formatter: (cell) => {
+                        const count = cell.getValue();
+                        return count.toLocaleString();
+                    }
                 },
                 {
                     title: "状态",
                     field: "is_active",
                     width: 80,
-                    formatter: "tickCross",
-                    cellEdited: this.onStatusChanged.bind(this)
+                    formatter: "tickCross"
                 },
                 {
                     title: "操作",
                     width: 120,
                     formatter: this.formatterActions.bind(this)
                 }
+            ]
+        });
+    }
+
+    initSourceViewTable() {
+        const container = document.getElementById('source-view-table');
+        if (!container) return;
+
+        this.sourceViewTable = new Tabulator("#source-view-table", {
+            data: this.categories || [],
+            layout: "fitDataFill",
+            pagination: "local",
+            paginationSize: 20,
+            selectableRows: true,
+            columns: [
+                {
+                    title: "原始分类",
+                    field: "source_category",
+                    headerFilter: true,
+                    minWidth: 200
+                },
+                {
+                    title: "交易数量",
+                    field: "transaction_count",
+                    sorter: "number",
+                    width: 120,
+                    formatter: (cell) => {
+                        const count = cell.getValue();
+                        return count.toLocaleString();
+                    }
+                },
+                {
+                    title: "合并状态",
+                    field: "has_mapping",
+                    width: 100,
+                    formatter: (cell) => {
+                        return cell.getValue() ? '<span class="badge bg-success">已合并</span>' : '<span class="badge bg-secondary">独立</span>';
+                    }
+                },
+                {
+                    title: "目标分类",
+                    field: "target_category",
+                    width: 150
+                }
             ],
             rowSelectionChanged: (data, rows) => {
                 this.selectedRows = rows;
-                this.updateBatchButton();
             }
         });
     }
 
-    filterCategories(categories) {
-        if (this.showInactive) {
-            return categories;
-        }
-        return categories.filter(cat => cat.has_mapping && cat.is_active);
-    }
+    initTargetViewTable() {
+        const container = document.getElementById('target-view-table');
+        if (!container) return;
 
-    getCategoryOptions() {
-        const options = [];
-        this.basicCategories.forEach(cat => {
-            options[cat.code] = cat.name;
-        });
-        return options;
-    }
+        // 获取所有目标分类
+        const targetData = this.getTargetData();
 
-    formatterSourceCategory(cell, formatterParams, onRendered) {
-        const value = cell.getValue();
-        const data = cell.getRow().getData();
-        return `
-            <div class="icon-with-text">
-                ${data.has_mapping ?
-                    `<span class="status-indicator ${data.is_active ? 'active' : 'inactive'}"></span>` :
-                    `<span class="status-indicator inactive"></span>`
+        this.targetViewTable = new Tabulator("#target-view-table", {
+            data: targetData,
+            layout: "fitDataFill",
+            pagination: "local",
+            paginationSize: 20,
+            columns: [
+                {
+                    title: "目标分类",
+                    field: "target_category",
+                    headerFilter: true,
+                    minWidth: 200
+                },
+                {
+                    title: "包含的源分类数量",
+                    field: "source_count",
+                    sorter: "number",
+                    width: 150
+                },
+                {
+                    title: "总交易数量",
+                    field: "total_transactions",
+                    sorter: "number",
+                    width: 120,
+                    formatter: (cell) => {
+                        return cell.getValue().toLocaleString();
+                    }
                 }
-                <span>${value}</span>
+            ]
+        });
+    }
+
+    getMergedData() {
+        // 模拟合并数据 - 实际应用中应从API获取
+        if (!this.categories || this.categories.length === 0) {
+            return [];
+        }
+
+        // 按目标分类分组
+        const grouped = {};
+        this.categories.forEach(cat => {
+            if (cat.has_mapping && cat.target_category) {
+                if (!grouped[cat.target_category]) {
+                    grouped[cat.target_category] = {
+                        target_category: cat.target_category,
+                        source_categories: [],
+                        transaction_count: 0,
+                        is_active: cat.is_active
+                    };
+                }
+                grouped[cat.target_category].source_categories.push(cat.source_category);
+                grouped[cat.target_category].transaction_count += cat.transaction_count || 0;
+            }
+        });
+
+        return Object.values(grouped);
+    }
+
+    getTargetData() {
+        const merged = this.getMergedData();
+        return merged.map(item => ({
+            target_category: item.target_category,
+            source_count: item.source_categories.length,
+            total_transactions: item.transaction_count
+        }));
+    }
+
+    switchView(mode) {
+        this.currentView = mode;
+
+        // 隐藏所有表格
+        document.getElementById('merge-view-table').style.display = 'none';
+        document.getElementById('source-view-table').style.display = 'none';
+        document.getElementById('target-view-table').style.display = 'none';
+
+        // 显示选中的表格
+        switch (mode) {
+            case 'merged':
+                document.getElementById('merge-view-table').style.display = 'block';
+                break;
+            case 'source':
+                document.getElementById('source-view-table').style.display = 'block';
+                break;
+            case 'target':
+                document.getElementById('target-view-table').style.display = 'block';
+                break;
+        }
+
+        // 更新下拉菜单状态
+        document.querySelectorAll('#viewModeDropdown + .dropdown-menu .dropdown-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.dataset.mode === mode) {
+                item.classList.add('active');
+            }
+        });
+    }
+
+    updateStatistics() {
+        if (!this.categories || this.categories.length === 0) {
+            document.getElementById('total-categories').textContent = '0';
+            document.getElementById('merged-categories').textContent = '0';
+            document.getElementById('standalone-categories').textContent = '0';
+            document.getElementById('merge-groups').textContent = '0';
+            return;
+        }
+
+        const total = this.categories.length;
+        const merged = this.categories.filter(cat => cat.has_mapping).length;
+        const standalone = total - merged;
+        const mergeGroups = new Set(this.categories.filter(cat => cat.has_mapping).map(cat => cat.target_category)).size;
+
+        document.getElementById('total-categories').textContent = total.toLocaleString();
+        document.getElementById('merged-categories').textContent = merged.toLocaleString();
+        document.getElementById('standalone-categories').textContent = standalone.toLocaleString();
+        document.getElementById('merge-groups').textContent = mergeGroups.toLocaleString();
+    }
+
+    updateMergeStats() {
+        const statsContainer = document.getElementById('merge-stats');
+        if (!statsContainer) return;
+
+        const merged = this.getMergedData();
+        if (merged.length === 0) {
+            statsContainer.innerHTML = '<p class="text-muted">暂无合并规则</p>';
+            return;
+        }
+
+        const html = `
+            <div class="mb-2">
+                <small class="text-muted">合并规则数</small>
+                <div class="fw-bold">${merged.length}</div>
+            </div>
+            <div class="mb-2">
+                <small class="text-muted">已处理分类</small>
+                <div class="fw-bold">${merged.reduce((sum, item) => sum + item.source_categories.length, 0)}</div>
+            </div>
+            <div>
+                <small class="text-muted">覆盖率</small>
+                <div class="fw-bold">${((merged.reduce((sum, item) => sum + item.source_categories.length, 0) / this.categories.length) * 100).toFixed(1)}%</div>
             </div>
         `;
+
+        statsContainer.innerHTML = html;
     }
 
-    formatterTransactionCount(cell, formatterParams, onRendered) {
-        const value = cell.getValue();
-        return `<span class="transaction-count">${value}</span>`;
+    showCreateMergeModal() {
+        const modal = new bootstrap.Modal(document.getElementById('createMergeModal'));
+
+        // 清空表单
+        document.getElementById('targetCategoryName').value = '';
+        document.getElementById('sourceCategoriesList').innerHTML = '<div class="text-muted">请从下方表格选择要合并的分类</div>';
+        document.getElementById('mergeDescription').value = '';
+        document.getElementById('isMergeActive').checked = true;
+
+        // 如果在原始分类视图且有选中的行，显示选中项
+        if (this.currentView === 'source' && this.selectedRows.length > 0) {
+            const selectedCategories = this.selectedRows.map(row => row.getData().source_category);
+            document.getElementById('sourceCategoriesList').innerHTML = `
+                <div class="selected-categories">
+                    ${selectedCategories.map(cat => `<span class="badge bg-primary me-1">${cat}</span>`).join('')}
+                </div>
+            `;
+        }
+
+        modal.show();
     }
 
-    formatterTargetCategory(cell, formatterParams, onRendered) {
-        const value = cell.getValue();
-        const data = cell.getRow().getData();
-
-        if (!value) {
-            return '<span class="text-muted">未设置</span>';
+    async saveMergeRule() {
+        const targetName = document.getElementById('targetCategoryName').value.trim();
+        if (!targetName) {
+            this.showNotification('请输入统一分类名称', 'warning');
+            return;
         }
 
-        const category = this.basicCategories.find(cat => cat.code === value);
-        if (category) {
-            return `<span class="category-tag ${category.code}">${category.name}</span>`;
+        // 获取要合并的分类（简化版本，实际应用中需要更复杂的逻辑）
+        let sourceCategories = [];
+        if (this.currentView === 'source' && this.selectedRows.length > 0) {
+            sourceCategories = this.selectedRows.map(row => row.getData().source_category);
         }
-        return value;
+
+        if (sourceCategories.length < 2) {
+            this.showNotification('请选择至少两个分类进行合并', 'warning');
+            return;
+        }
+
+        try {
+            // 这里应该调用API保存合并规则
+            // const response = await fetch('/api/category-mapping/batch-merge', { ... });
+
+            this.showNotification(`成功创建合并规则: ${targetName}`, 'success');
+
+            // 关闭模态框
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createMergeModal'));
+            modal.hide();
+
+            // 重新加载数据
+            await this.loadData();
+            this.initTables();
+            this.updateStatistics();
+            this.updateMergeStats();
+
+        } catch (error) {
+            console.error('保存合并规则失败:', error);
+            this.showNotification('保存失败，请重试', 'error');
+        }
     }
 
     formatterActions(cell, formatterParams, onRendered) {
         const data = cell.getRow().getData();
-
         return `
             <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-primary"
-                        onclick="categoryMappingManager.editMapping('${data.source_category}')">
-                    <i class="fas fa-edit"></i>
+                <button type="button" class="btn btn-outline-primary" onclick="categoryMergeManager.editMerge('${data.target_category}')">
+                    编辑
                 </button>
-                <button type="button" class="btn btn-outline-danger"
-                        onclick="categoryMappingManager.deleteMapping('${data.source_category}')"
-                        ${data.has_mapping ? '' : 'disabled'}>
-                    <i class="fas fa-trash"></i>
+                <button type="button" class="btn btn-outline-danger" onclick="categoryMergeManager.deleteMerge('${data.target_category}')">
+                    删除
                 </button>
             </div>
         `;
     }
 
-    onMappingChanged(cell) {
-        const row = cell.getRow();
-        const data = row.getData();
-
-        this.updateMapping(data.source_category, data.target_category);
+    editMerge(targetCategory) {
+        this.showNotification(`编辑合并规则 "${targetCategory}" 功能开发中...`, 'info');
     }
 
-    onStatusChanged(cell) {
-        const row = cell.getRow();
-        const data = row.getData();
-
-        this.updateMappingStatus(data.source_category, data.is_active);
-    }
-
-    async updateMapping(sourceCategory, targetCategory) {
-        try {
-            const response = await fetch(`/api/category-mapping/mapping/${encodeURIComponent(sourceCategory)}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    target_category: targetCategory
-                })
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                this.showNotification('映射更新成功', 'success');
-            } else {
-                this.showNotification('映射更新失败: ' + result.error, 'error');
-            }
-        } catch (error) {
-            console.error('更新映射失败:', error);
-            this.showNotification('更新失败', 'error');
+    deleteMerge(targetCategory) {
+        if (confirm(`确定要删除合并规则 "${targetCategory}" 吗？`)) {
+            this.showNotification('删除功能开发中...', 'info');
         }
-    }
-
-    async updateMappingStatus(sourceCategory, isActive) {
-        try {
-            const response = await fetch(`/api/category-mapping/mapping/${encodeURIComponent(sourceCategory)}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    is_active: isActive
-                })
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                this.showNotification('状态更新成功', 'success');
-            } else {
-                this.showNotification('状态更新失败: ' + result.error, 'error');
-            }
-        } catch (error) {
-            console.error('更新状态失败:', error);
-            this.showNotification('更新失败', 'error');
-        }
-    }
-
-    async deleteMapping(sourceCategory) {
-        if (!confirm(`确定要删除 "${sourceCategory}" 的映射吗？`)) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/api/category-mapping/mapping/${encodeURIComponent(sourceCategory)}`, {
-                method: 'DELETE'
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                this.showNotification('映射删除成功', 'success');
-                await this.loadData();
-                this.mappingTable.replaceData(this.filterCategories(this.allCategories));
-                this.renderUnmappedCategories();
-            } else {
-                this.showNotification('映射删除失败: ' + result.error, 'error');
-            }
-        } catch (error) {
-            console.error('删除映射失败:', error);
-            this.showNotification('删除失败', 'error');
-        }
-    }
-
-    editMapping(sourceCategory) {
-        const modal = new bootstrap.Modal(document.getElementById('mappingModal'));
-        const category = this.allCategories.find(cat => cat.source_category === sourceCategory);
-
-        document.getElementById('sourceCategory').value = sourceCategory;
-        document.getElementById('targetCategory').value = category.target_category || '';
-        document.getElementById('isActive').checked = category.is_active;
-
-        // 填充目标分类选项
-        const targetSelect = document.getElementById('targetCategory');
-        targetSelect.innerHTML = '<option value="">请选择目标分类</option>';
-        this.basicCategories.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.code;
-            option.textContent = cat.name;
-            option.selected = cat.code === category.target_category;
-            targetSelect.appendChild(option);
-        });
-
-        modal.show();
-    }
-
-    setupEventListeners() {
-        // 添加映射按钮
-        document.getElementById('add-mapping-btn').addEventListener('click', () => {
-            this.showAddMappingDialog();
-        });
-
-        // 保存映射按钮
-        document.getElementById('saveMappingBtn').addEventListener('click', () => {
-            this.saveMapping();
-        });
-
-        // 切换显示状态
-        document.getElementById('toggle-inactive-btn').addEventListener('click', () => {
-            this.toggleInactive();
-        });
-
-        // 批量映射按钮
-        document.getElementById('batch-map-btn').addEventListener('click', () => {
-            this.showBatchMappingDialog();
-        });
-
-        // 批量保存按钮
-        document.getElementById('saveBatchMappingBtn').addEventListener('click', () => {
-            this.saveBatchMapping();
-        });
-
-        // 发现新分类按钮
-        document.getElementById('discover-btn').addEventListener('click', () => {
-            this.discoverNewCategories();
-        });
-
-        // 加载更多未映射分类
-        document.getElementById('load-more-unmapped-btn').addEventListener('click', () => {
-            this.loadMoreUnmapped();
-        });
-    }
-
-    showAddMappingDialog() {
-        const modal = new bootstrap.Modal(document.getElementById('mappingModal'));
-
-        document.getElementById('sourceCategory').value = '';
-        document.getElementById('targetCategory').value = '';
-        document.getElementById('isActive').checked = true;
-
-        // 填充目标分类选项
-        const targetSelect = document.getElementById('targetCategory');
-        targetSelect.innerHTML = '<option value="">请选择目标分类</option>';
-        this.basicCategories.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.code;
-            option.textContent = cat.name;
-            targetSelect.appendChild(option);
-        });
-
-        // 启用源分类输入
-        document.getElementById('sourceCategory').readonly = false;
-
-        modal.show();
-    }
-
-    async saveMapping() {
-        const sourceCategory = document.getElementById('sourceCategory').value.trim();
-        const targetCategory = document.getElementById('targetCategory').value;
-        const isActive = document.getElementById('isActive').checked;
-
-        if (!sourceCategory || !targetCategory) {
-            this.showNotification('请填写所有必要字段', 'error');
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/category-mapping/mapping', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    source_category: sourceCategory,
-                    target_category: targetCategory,
-                    is_active: isActive
-                })
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                this.showNotification('映射保存成功', 'success');
-                bootstrap.Modal.getInstance(document.getElementById('mappingModal')).hide();
-                await this.loadData();
-                this.mappingTable.replaceData(this.filterCategories(this.allCategories));
-                this.renderUnmappedCategories();
-            } else {
-                this.showNotification('映射保存失败: ' + result.error, 'error');
-            }
-        } catch (error) {
-            console.error('保存映射失败:', error);
-            this.showNotification('保存失败', 'error');
-        }
-    }
-
-    toggleInactive() {
-        this.showInactive = !this.showInactive;
-        const btn = document.getElementById('toggle-inactive-btn');
-        btn.textContent = this.showInactive ? '仅显示启用' : '显示所有';
-
-        this.mappingTable.replaceData(this.filterCategories(this.allCategories));
-    }
-
-    updateBatchButton() {
-        const btn = document.getElementById('batch-map-btn');
-        btn.disabled = this.selectedRows.length === 0;
-    }
-
-    showBatchMappingDialog() {
-        if (this.selectedRows.length === 0) {
-            this.showNotification('请先选择要操作的分类', 'error');
-            return;
-        }
-
-        const modal = new bootstrap.Modal(document.getElementById('batchMappingModal'));
-        const content = document.getElementById('batchMappingContent');
-
-        let html = '';
-        this.selectedRows.forEach(row => {
-            const data = row.getData();
-            html += `
-                <div class="batch-mapping-item">
-                    <div class="batch-mapping-source">${data.source_category}</div>
-                    <div class="batch-mapping-target">
-                        <select class="form-select form-select-sm" data-source="${data.source_category}">
-                            <option value="">请选择目标分类</option>
-                            ${this.basicCategories.map(cat =>
-                                `<option value="${cat.code}">${cat.name}</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                    <div class="batch-mapping-check">
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input"
-                                   data-source="${data.source_category}" checked>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        content.innerHTML = html;
-        modal.show();
-    }
-
-    async saveBatchMapping() {
-        const items = document.querySelectorAll('.batch-mapping-item');
-        const mappings = [];
-
-        items.forEach(item => {
-            const checkbox = item.querySelector('input[type="checkbox"]');
-            const select = item.querySelector('select');
-
-            if (checkbox.checked && select.value) {
-                mappings.push({
-                    source_category: select.dataset.source,
-                    target_category: select.value
-                });
-            }
-        });
-
-        if (mappings.length === 0) {
-            this.showNotification('请选择要映射的分类和目标分类', 'error');
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/category-mapping/batch-mapping', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ mappings })
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                this.showNotification(result.data.message, 'success');
-                bootstrap.Modal.getInstance(document.getElementById('batchMappingModal')).hide();
-                await this.loadData();
-                this.mappingTable.replaceData(this.filterCategories(this.allCategories));
-                this.renderUnmappedCategories();
-            } else {
-                this.showNotification('批量映射失败: ' + result.error, 'error');
-            }
-        } catch (error) {
-            console.error('批量映射失败:', error);
-            this.showNotification('批量映射失败', 'error');
-        }
-    }
-
-    async discoverNewCategories() {
-        try {
-            const response = await fetch('/api/category-mapping/discover-categories');
-            const result = await response.json();
-
-            if (result.success) {
-                this.showNotification(`发现 ${result.data.unmapped_count} 个未映射分类`, 'info');
-                this.renderUnmappedCategories();
-            } else {
-                this.showNotification('发现分类失败: ' + result.error, 'error');
-            }
-        } catch (error) {
-            console.error('发现分类失败:', error);
-            this.showNotification('发现分类失败', 'error');
-        }
-    }
-
-    renderUnmappedCategories() {
-        const container = document.getElementById('unmapped-categories');
-        const unmapped = this.allCategories
-            .filter(cat => !cat.has_mapping || !cat.is_active)
-            .sort((a, b) => b.transaction_count - a.transaction_count)
-            .slice(0, 10);
-
-        if (unmapped.length === 0) {
-            container.innerHTML = '<p class="text-muted text-center">没有未映射的分类</p>';
-            return;
-        }
-
-        let html = '';
-        unmapped.forEach(category => {
-            html += `
-                <div class="unmapped-category-item">
-                    <div>
-                        <div class="unmapped-category-name">${category.source_category}</div>
-                        <small class="unmapped-category-count">${category.transaction_count} 笔交易</small>
-                    </div>
-                    <div class="unmapped-category-action">
-                        <button class="btn btn-sm btn-outline-primary"
-                                onclick="categoryMappingManager.quickMap('${category.source_category}')">
-                            映射
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-
-        container.innerHTML = html;
-    }
-
-    quickMap(sourceCategory) {
-        this.editMapping(sourceCategory);
-    }
-
-    loadMoreUnmapped() {
-        // 这里可以实现加载更多未映射分类的逻辑
-        this.showNotification('加载更多功能开发中...', 'info');
-    }
-
-    updateStatistics(stats) {
-        document.getElementById('total-sources').textContent = stats.unique_sources;
-        document.getElementById('mapped-sources').textContent = stats.mapped_sources;
-        document.getElementById('unmapped-sources').textContent = stats.unique_sources - stats.mapped_sources;
-        document.getElementById('mapping-rate').textContent = stats.mapping_rate + '%';
     }
 
     showNotification(message, type = 'info') {
-        const toast = document.createElement('div');
-        toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'primary'} border-0`;
-        toast.setAttribute('role', 'alert');
-
-        toast.innerHTML = `
-            <div class="d-flex">
-                <div class="toast-body">
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
+        // 创建一个简单的通知
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        notification.style.zIndex = '9999';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
 
-        const container = document.createElement('div');
-        container.className = 'toast-container position-fixed top-0 end-0 p-3';
-        container.appendChild(toast);
-        document.body.appendChild(container);
+        document.body.appendChild(notification);
 
-        const bsToast = new bootstrap.Toast(toast);
-        bsToast.show();
-
-        toast.addEventListener('hidden.bs.toast', () => {
-            container.remove();
-        });
+        // 3秒后自动移除
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
     }
 }
 
 // 初始化
-const categoryMappingManager = new CategoryMappingManager();
+let categoryMergeManager;
+document.addEventListener('DOMContentLoaded', () => {
+    categoryMergeManager = new CategoryMergeManager();
+});

@@ -240,7 +240,7 @@ class ImportService:
             return None
 
         # 按优先级尝试不同字段名
-        category_fields = ['交易类型', '类型', '分类', '摘要', 'category']
+        category_fields = ['交易分类', '交易类型', '类型', '分类', '摘要', 'category']
 
         for field in category_fields:
             value = dto.raw_data.get(field)

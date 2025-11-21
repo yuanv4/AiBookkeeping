@@ -3,14 +3,15 @@
 提供分类映射管理页面和API端点
 """
 
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, redirect, url_for
 from app.utils.decorators import handle_errors
 from app.utils import DataUtils
-from app.models import CategoryMapping, CoreTransaction, db
+from app.models import CategoryMapping, CoreTransaction, Entry, Account, db
 from app.utils.category_mapping import (
     get_all_source_categories, create_mapping, delete_mapping,
-    get_category_statistics, get_unmapped_merchants
+    get_category_statistics, get_unmapped_merchants, get_merchant_details_by_name
 )
+from app.utils.category_utils import CategoryUtils
 from app.configs.basic_categories import get_category_options
 from sqlalchemy import func
 import logging
@@ -20,10 +21,34 @@ from . import category_mapping_bp
 logger = logging.getLogger(__name__)
 
 
+def _format_mapping_response(mapping: CategoryMapping, message: str):
+    """辅助函数：格式化映射对象的API响应"""
+    return DataUtils.format_api_response(True, data={
+        'message': message,
+        'mapping': {
+            'source_category': mapping.source_category,
+            'target_category': mapping.target_category,
+            'is_active': mapping.is_active
+        }
+    })
+
+
 @category_mapping_bp.route('/')
 def index():
     """分类管理主页面"""
     return render_template('category_mapping.html')
+
+
+@category_mapping_bp.route('/merchant-categories')
+@category_mapping_bp.route('/merchant-categories/')
+def redirect_from_old_merchant_categories():
+    """向后兼容：重定向旧的商户分类URL到分类管理页面
+
+    这个路由确保旧的 /merchant-categories URL 仍然可以访问，
+    自动重定向到新的 /category-mapping 页面。
+    使用301永久重定向，告诉浏览器和搜索引擎URL已永久更改。
+    """
+    return redirect(url_for('category_mapping.index'), code=301)
 
 
 @category_mapping_bp.route('/api/source-categories')
@@ -71,14 +96,8 @@ def create_mapping_endpoint():
 
     try:
         mapping = create_mapping(source_category, target_category, is_active)
-        return DataUtils.format_api_response(True, data={
-            'message': f'已将 "{source_category}" 映射为 "{target_category}"',
-            'mapping': {
-                'source_category': mapping.source_category,
-                'target_category': mapping.target_category,
-                'is_active': mapping.is_active
-            }
-        })
+        message = f'已将 "{source_category}" 映射为 "{target_category}"'
+        return _format_mapping_response(mapping, message)
     except Exception as e:
         logger.error(f"创建映射失败: {source_category} -> {target_category}, 错误: {e}")
         db.session.rollback()
@@ -107,15 +126,9 @@ def update_mapping(source_category):
             mapping.is_active = is_active
 
         db.session.commit()
-
-        return DataUtils.format_api_response(True, data={
-            'message': f'已更新映射 "{source_category}"',
-            'mapping': {
-                'source_category': mapping.source_category,
-                'target_category': mapping.target_category,
-                'is_active': mapping.is_active
-            }
-        })
+        
+        message = f'已更新映射 "{source_category}"'
+        return _format_mapping_response(mapping, message)
     except Exception as e:
         logger.error(f"更新映射失败: {source_category}, 错误: {e}")
         db.session.rollback()
@@ -184,9 +197,27 @@ def batch_mapping():
 @category_mapping_bp.route('/api/unmapped-merchants')
 @handle_errors
 def get_unmapped_merchants_endpoint():
-    """获取未映射分类的商户列表（用于商户分类页面）"""
+    """获取未映射分类的商户列表（用于商户分类页面）
+
+    支持AI推荐功能
+    """
     limit = request.args.get('limit', 50, type=int)
+    include_ai = request.args.get('include_ai', 'false').lower() == 'true'
+
     merchants = get_unmapped_merchants(limit)
+
+    # 如果需要AI推荐，批量获取
+    if include_ai and merchants:
+        merchant_names = [m['merchant_name'] for m in merchants]
+        ai_suggestions = CategoryUtils.get_ai_suggestions_batch(merchant_names)
+
+        # 将AI推荐添加到每个商户数据中
+        for merchant in merchants:
+            merchant['ai_suggestion'] = ai_suggestions.get(merchant['merchant_name'], {
+                'category': 'uncategorized',
+                'category_name': '未知',
+                'confidence': 0
+            })
 
     return DataUtils.format_api_response(True, data=merchants)
 
@@ -246,3 +277,23 @@ def discover_categories():
         'unmapped_count': len(unmapped),
         'unmapped_categories': unmapped[:100]  # 限制返回数量
     })
+
+
+@category_mapping_bp.route('/api/merchant-detail')
+@handle_errors
+def get_merchant_detail():
+    """获取商户详细信息（按原始分类分组）
+
+    迁移自商户分类蓝图，用于商户视图的详情面板。
+    数据获取和处理逻辑已移至 utils.category_mapping.get_merchant_details_by_name
+    """
+    merchant_name = request.args.get('name')
+    if not merchant_name:
+        return DataUtils.format_api_response(False, error='缺少商户名称参数')
+
+    details = get_merchant_details_by_name(merchant_name)
+
+    if not details:
+        return DataUtils.format_api_response(False, error='未找到该商户的交易记录')
+
+    return DataUtils.format_api_response(True, data=details)

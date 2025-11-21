@@ -46,23 +46,6 @@ class CategoryUtils:
         
         return cls._user_rules_cache
 
-    @classmethod
-    def save_user_rule(cls, merchant_name: str, category: str) -> bool:
-        """保存用户自定义规则"""
-        rules = cls._load_user_rules()
-        rules[merchant_name] = category
-        cls._user_rules_cache = rules # 更新缓存
-        
-        try:
-            path = cls._get_user_rules_path()
-            path.parent.mkdir(exist_ok=True)
-            with open(path, 'w', encoding='utf-8') as f:
-                json.dump(rules, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            logger.error(f"保存规则失败: {e}")
-            return False
-
     @staticmethod
     def normalize_name(name: str) -> str:
         if not name: return ''

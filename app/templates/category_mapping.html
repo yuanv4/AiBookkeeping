@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}分类映射管理 - {{ config.APP_NAME }}{% endblock %}
+{% block title %}分类合并管理 - {{ config.APP_NAME }}{% endblock %}
 
 {% block page_css %}
 <link href="{{ url_for('static', filename='css/pages/category_mapping.css') }}" rel="stylesheet">
@@ -15,17 +15,13 @@
         <div class="col">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h3 class="mb-1">分类映射管理</h3>
-                    <p class="text-muted">配置数据源分类到目标分类的映射规则</p>
+                    <h3 class="mb-1">分类合并管理</h3>
+                    <p class="text-muted">将不同数据源中含义相同但名称不同的分类进行统一合并</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary" id="discover-btn">
-                        {{ icon('search', 'sm', 'me-1') }}
-                        发现新分类
-                    </button>
-                    <button class="btn btn-primary" id="add-mapping-btn">
+                    <button class="btn btn-primary" id="create-merge-btn">
                         {{ icon('plus', 'sm', 'me-1') }}
-                        添加映射
+                        创建合并规则
                     </button>
                 </div>
             </div>
@@ -40,10 +36,10 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-title mb-0">数据源分类</h6>
-                            <h4 class="mb-0" id="total-sources">-</h4>
+                            <h4 class="mb-0" id="total-categories">-</h4>
                         </div>
                         <div class="align-self-center">
-                            {{ icon('database', 'lg') }}
+                            {{ icon('tags', 'lg') }}
                         </div>
                     </div>
                 </div>
@@ -54,11 +50,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="card-title mb-0">已映射</h6>
-                            <h4 class="mb-0" id="mapped-sources">-</h4>
+                            <h6 class="card-title mb-0">已合并分类</h6>
+                            <h4 class="mb-0" id="merged-categories">-</h4>
                         </div>
                         <div class="align-self-center">
-                            {{ icon('check-circle', 'lg') }}
+                            {{ icon('git-merge', 'lg') }}
                         </div>
                     </div>
                 </div>
@@ -69,11 +65,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="card-title mb-0">未映射</h6>
-                            <h4 class="mb-0" id="unmapped-sources">-</h4>
+                            <h6 class="card-title mb-0">独立分类</h6>
+                            <h4 class="mb-0" id="standalone-categories">-</h4>
                         </div>
                         <div class="align-self-center">
-                            {{ icon('alert-circle', 'lg') }}
+                            {{ icon('tag', 'lg') }}
                         </div>
                     </div>
                 </div>
@@ -84,11 +80,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="card-title mb-0">映射覆盖率</h6>
-                            <h4 class="mb-0" id="mapping-rate">-</h4>
+                            <h6 class="card-title mb-0">合并组数</h6>
+                            <h4 class="mb-0" id="merge-groups">-</h4>
                         </div>
                         <div class="align-self-center">
-                            {{ icon('percent', 'lg') }}
+                            {{ icon('layers', 'lg') }}
                         </div>
                     </div>
                 </div>
@@ -98,114 +94,94 @@
 
     <!-- 主要内容区域 -->
     <div class="row">
-        <!-- 分类映射表格 -->
-        <div class="col-lg-8">
+        <!-- 分类合并表格 -->
+        <div class="col-lg-9">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="mb-0">分类映射表</h6>
-                        <small class="text-muted">配置数据源分类到目标分类的映射关系</small>
+                        <h6 class="mb-0">分类合并表</h6>
+                        <small class="text-muted">管理不同数据源中的分类合并规则</small>
                     </div>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-outline-secondary" id="toggle-inactive-btn">
-                            显示所有
-                        </button>
-                        <button class="btn btn-sm btn-outline-success" id="batch-map-btn">
-                            批量映射
-                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="viewModeDropdown" data-bs-toggle="dropdown">
+                                <span id="current-view-mode">合并视图</span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item active" href="#" data-mode="merged">合并视图</a></li>
+                                <li><a class="dropdown-item" href="#" data-mode="source">原始分类视图</a></li>
+                                <li><a class="dropdown-item" href="#" data-mode="target">目标分类视图</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body p-0">
-                    <div id="mapping-table"></div>
+                    <!-- 合并视图表格 -->
+                    <div id="merge-view-table"></div>
+
+                    <!-- 原始分类视图表格（默认隐藏） -->
+                    <div id="source-view-table" style="display: none;"></div>
+
+                    <!-- 目标分类视图表格（默认隐藏） -->
+                    <div id="target-view-table" style="display: none;"></div>
                 </div>
             </div>
         </div>
 
         <!-- 右侧面板 -->
-        <div class="col-lg-4">
-            <!-- 未映射分类 -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        {{ icon('alert-triangle', 'sm', 'me-2') }}
-                        未映射分类（按交易数排序）
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div id="unmapped-categories"></div>
-                    <div class="text-center mt-3">
-                        <button class="btn btn-sm btn-outline-primary" id="load-more-unmapped-btn">
-                            加载更多
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 快速统计 -->
+        <div class="col-lg-3">
+            <!-- 合并统计 -->
             <div class="card">
                 <div class="card-header">
-                    <h6 class="mb-0">映射统计</h6>
+                    <h6 class="mb-0">合并统计</h6>
                 </div>
                 <div class="card-body">
-                    <div id="mapping-stats"></div>
+                    <div id="merge-stats"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 映射对话框 -->
-<div class="modal fade" id="mappingModal" tabindex="-1">
+<!-- 创建合并规则对话框 -->
+<div class="modal fade" id="createMergeModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">创建分类映射</h5>
+                <h5 class="modal-title">创建分类合并规则</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="mappingForm">
+                <form id="mergeForm">
                     <div class="mb-3">
-                        <label for="sourceCategory" class="form-label">数据源分类</label>
-                        <input type="text" class="form-control" id="sourceCategory" readonly>
+                        <label for="targetCategoryName" class="form-label">统一分类名称</label>
+                        <input type="text" class="form-control" id="targetCategoryName" placeholder="例如：餐饮、交通、娱乐" required>
+                        <div class="form-text">这是合并后显示的标准分类名称</div>
                     </div>
                     <div class="mb-3">
-                        <label for="targetCategory" class="form-label">目标分类</label>
-                        <select class="form-select" id="targetCategory" required>
-                            <option value="">请选择目标分类</option>
-                        </select>
+                        <label for="sourceCategoriesList" class="form-label">要合并的分类</label>
+                        <div id="sourceCategoriesList" class="border rounded p-2 bg-light">
+                            <div class="text-muted">请从下方表格选择要合并的分类</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mergeDescription" class="form-label">合并说明（可选）</label>
+                        <textarea class="form-control" id="mergeDescription" rows="2" placeholder="说明为什么这些分类需要合并..."></textarea>
                     </div>
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="isActive" checked>
-                        <label class="form-check-label" for="isActive">启用映射</label>
+                        <input type="checkbox" class="form-check-input" id="isMergeActive" checked>
+                        <label class="form-check-label" for="isMergeActive">启用合并规则</label>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="saveMappingBtn">保存映射</button>
+                <button type="button" class="btn btn-primary" id="saveMergeBtn">创建合并</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 批量映射对话框 -->
-<div class="modal fade" id="batchMappingModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">批量创建映射</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="batchMappingContent"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-success" id="saveBatchMappingBtn">批量保存</button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block page_scripts %}

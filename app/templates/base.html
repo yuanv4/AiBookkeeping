@@ -53,12 +53,12 @@
                 <span class="sidebar-text">数据分析</span>
             </a>
 
-            {% set is_categories_active = request.blueprint == 'merchant_categories' %}
-            <a href="{{ url_for('merchant_categories.index') }}"
+            {% set is_categories_active = request.blueprint == 'category_mapping' %}
+            <a href="{{ url_for('category_mapping.index') }}"
                class="sidebar-item {% if is_categories_active %}active{% endif %}"
                {% if is_categories_active %}aria-current="page"{% endif %}>
-                {{ icon("help-circle", "sm") }}
-                <span class="sidebar-text">商户分类</span>
+                {{ icon("git-branch", "sm") }}
+                <span class="sidebar-text">分类管理</span>
             </a>
 
             {% set is_settings_active = request.blueprint == 'settings_bp' %}

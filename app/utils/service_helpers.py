@@ -11,8 +11,3 @@ def get_import_service():
     """获取导入服务实例"""
     from ..services import ImportService
     return ImportService()
-
-def get_categories_config():
-    """获取分类配置"""
-    from app.configs.categories import CATEGORIES
-    return CATEGORIES

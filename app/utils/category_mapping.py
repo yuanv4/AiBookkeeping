@@ -3,50 +3,11 @@
 处理数据源分类到目标分类的映射和查询
 """
 
-from app.models import CoreTransaction, CategoryMapping, db
+from app.models import CoreTransaction, CategoryMapping, db, Account, Entry
 from sqlalchemy import func
-
-
-def get_transaction_category(transaction: CoreTransaction) -> str:
-    """
-    通过映射表获取交易的最终分类
-
-    Args:
-        transaction: CoreTransaction 对象
-
-    Returns:
-        str: 映射后的分类，如未映射则返回 'uncategorized'
-    """
-    if not transaction.source_category:
-        return 'uncategorized'
-
-    mapping = CategoryMapping.query.filter_by(
-        source_category=transaction.source_category,
-        is_active=True
-    ).first()
-
-    return mapping.target_category if mapping else 'uncategorized'
-
-
-def get_merchant_category(merchant_name: str) -> str:
-    """
-    获取商户的目标分类（基于最新交易的映射）
-
-    Args:
-        merchant_name: 商户名称
-
-    Returns:
-        str: 映射后的分类，如未映射则返回 'uncategorized'
-    """
-    # 查找该商户的最新交易
-    latest_tx = CoreTransaction.query.filter_by(
-        merchant_name=merchant_name
-    ).order_by(CoreTransaction.date.desc()).first()
-
-    if not latest_tx:
-        return 'uncategorized'
-
-    return get_transaction_category(latest_tx)
+from .category_utils import CategoryUtils
+from app.configs.basic_categories import get_category_options
+from collections import defaultdict
 
 
 def get_all_source_categories() -> list:
@@ -127,6 +88,112 @@ def get_unmapped_merchants(limit: int = 50) -> list:
         })
 
     return result
+
+
+def get_merchant_details_by_name(merchant_name: str) -> dict:
+    """
+    获取商户详细信息，优化查询以避免 N+1 问题。
+
+    Args:
+        merchant_name: 商户名称
+
+    Returns:
+        dict: 包含商户详情的字典，如果找不到则返回 None
+    """
+    # 1. 一次性查询该商户的所有交易和相关的 Entry/Account
+    transactions = db.session.query(
+        CoreTransaction,
+        Entry,
+        Account
+    ).join(Entry, CoreTransaction.id == Entry.transaction_id)\
+    .join(Account, Entry.account_id == Account.id)\
+    .filter(CoreTransaction.merchant_name == merchant_name)\
+    .order_by(CoreTransaction.date.desc()).all()
+
+    if not transactions:
+        return None
+
+    # 2. 数据预处理和分组
+    source_category_groups = defaultdict(lambda: {
+        'transaction_count': 0,
+        'total_amount': 0.0,
+        'latest_date': None,
+        'recent_transactions': []
+    })
+    total_transactions = 0
+    total_amount = 0.0
+    income_count = 0
+    expense_count = 0
+
+    processed_tx_ids = set()
+
+    for tx, entry, account in transactions:
+        if account.type != 'ASSET':
+            continue
+
+        if tx.id not in processed_tx_ids:
+            total_transactions += 1
+            processed_tx_ids.add(tx.id)
+
+        group = source_category_groups[tx.source_category]
+        amount = float(entry.amount)
+
+        group['transaction_count'] += 1
+        group['total_amount'] += abs(amount)
+        total_amount += abs(amount)
+        
+        if group['latest_date'] is None or tx.date > group['latest_date']:
+            group['latest_date'] = tx.date
+        
+        if amount > 0:
+            income_count += 1
+        else:
+            expense_count += 1
+
+        if len(group['recent_transactions']) < 8:
+            group['recent_transactions'].append({
+                'date': tx.date.strftime('%Y-%m-%d'),
+                'amount': abs(amount),
+                'description': tx.description
+            })
+
+    source_categories = list(source_category_groups.keys())
+
+    # 3. 一次性查询所有相关的分类映射
+    mappings = CategoryMapping.query.filter(
+        CategoryMapping.source_category.in_(source_categories)
+    ).all()
+    mappings_dict = {m.source_category: m for m in mappings}
+
+    # 4. 构建最终的分组数据
+    groups = []
+    for source_cat, data in source_category_groups.items():
+        mapping = mappings_dict.get(source_cat)
+        groups.append({
+            'source_category': source_cat,
+            'transaction_count': data['transaction_count'],
+            'total_amount': data['total_amount'],
+            'latest_date': data['latest_date'].strftime('%Y-%m-%d'),
+            'mapped_category': mapping.target_category if mapping and mapping.is_active else None,
+            'is_mapped': mapping is not None and mapping.is_active,
+            'recent_transactions': data['recent_transactions']
+        })
+
+    # 5. 获取AI推荐
+    ai_suggestion = CategoryUtils.get_ai_suggestion(merchant_name)
+
+    return {
+        'merchant': {
+            'name': merchant_name,
+            'transaction_count': total_transactions,
+            'total_amount': total_amount,
+            'income_count': income_count,
+            'expense_count': expense_count
+        },
+        'category_groups': groups,
+        'categories': get_category_options(),
+        'ai_suggestion': ai_suggestion
+    }
 
 
 def create_mapping(source_category: str, target_category: str, is_active: bool = True) -> CategoryMapping:

@@ -224,3 +224,92 @@
     border-radius: 0.25rem;
     margin-top: 0.5rem;
 }
+
+/* 商户详情面板样式 */
+.merchant-detail-content {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.merchant-detail-content .card {
+    transition: all 0.2s ease;
+}
+
+.merchant-detail-content .card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 视图切换过渡效果 */
+#mapping-table,
+#merchant-table {
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* 商户表格样式 */
+#merchant-table {
+    min-height: 500px;
+}
+
+/* AI推荐徽章样式 */
+.badge.bg-success-subtle {
+    background-color: #d1e7dd !important;
+    color: #0f5132 !important;
+    font-weight: 500;
+}
+
+/* 快速分类按钮样式 */
+.merchant-detail-content .btn-outline-primary {
+    transition: all 0.2s ease;
+}
+
+.merchant-detail-content .btn-outline-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+/* 视图切换按钮组样式 */
+.btn-group[role="group"] .btn {
+    transition: all 0.2s ease;
+}
+
+.btn-group[role="group"] .btn.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+/* 商户详情面板空状态 */
+#merchant-detail-panel .text-muted {
+    color: #6c757d !important;
+}
+
+/* 分类分组卡片样式 */
+.merchant-detail-content .card-body {
+    transition: background-color 0.2s ease;
+}
+
+.merchant-detail-content .card:hover .card-body {
+    background-color: #f8f9fa;
+}
+
+/* 统计卡片网格 */
+.merchant-detail-content .row.g-2 {
+    margin-bottom: 1rem;
+}
+
+/* 响应式优化 */
+@media (max-width: 992px) {
+    #merchant-detail-panel-card {
+        margin-top: 1rem;
+    }
+}
