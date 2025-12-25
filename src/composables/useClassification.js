@@ -49,7 +49,7 @@ export function useClassification() {
       console.log('正在生成分类体系...')
       const categories = await adapter.value.generateCategorySystem(transactions)
 
-      categoryStore.setCategories(categories)
+      await categoryStore.setCategories(categories)
       console.log(`✅ 分类体系生成成功，共 ${categories.length} 个分类`)
 
       return categories
@@ -89,7 +89,7 @@ export function useClassification() {
       )
 
       // 保存分类结果
-      categoryStore.updateCategory(txId, {
+      await categoryStore.updateCategory(txId, {
         category: result.category,
         subcategory: result.subcategory,
         confidence: result.confidence,
@@ -147,7 +147,7 @@ export function useClassification() {
         }
       })
 
-      categoryStore.batchUpdateCategories(updates)
+      await categoryStore.batchUpdateCategories(updates)
 
       progress.value.current = transactions.length
       console.log(`✅ 批量分类完成，共 ${results.length} 笔`)
@@ -166,16 +166,16 @@ export function useClassification() {
   /**
    * 手动更新交易分类
    */
-  function updateTransactionCategory(transaction, categoryName) {
+  async function updateTransactionCategory(transaction, categoryName) {
     const txId = transaction.id || generateTransactionId(transaction)
     const existing = categoryStore.getTransactionCategory(txId)
 
     // 记录纠正历史
     if (existing && existing.category !== categoryName) {
-      categoryStore.addCorrection(txId, existing.category, categoryName)
+      await categoryStore.addCorrection(txId, existing.category, categoryName)
     }
 
-    categoryStore.updateCategory(txId, {
+    await categoryStore.updateCategory(txId, {
       category: categoryName,
       isManual: true
     })

@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia'
-import { storage, STORAGE_KEYS } from '../utils/storage'
+import { categoriesRepo, transactionCategoriesRepo, correctionsRepo, configRepo } from '../repositories/index.js'
+import { rowsToMapping, mappingToRows } from '../utils/categoryMapping.js'
+import { errorHandler } from '../utils/errorHandler.js'
+import { useNotificationStore } from './notificationStore.js'
 
 export const useCategoryStore = defineStore('category', {
   state: () => ({
@@ -13,13 +16,15 @@ export const useCategoryStore = defineStore('category', {
     // 用户纠正历史
     corrections: [],
 
-    // AI 配置
+    // AI 配置(唯一真源)
     aiConfig: {
-      provider: 'ollama', // 'ollama' | 'openai'
+      provider: 'ollama', // 'ollama' | 'openai' | 'qianwen'
       apiKey: '',
       baseURL: 'http://localhost:11434/v1',
       model: 'qwen2.5:7b',
-      timeout: 30000
+      timeout: 30000,
+      enabled: false,           // 新增: 是否启用 AI 分类
+      fallbackToRules: true     // 新增: AI 失败时回退到规则分类
     }
   }),
 
@@ -55,55 +60,81 @@ export const useCategoryStore = defineStore('category', {
 
   actions: {
     /**
-     * 从 localStorage 加载数据
+     * 从 IndexedDB 加载数据
      */
-    loadFromStorage() {
-      this.categories = storage.get(STORAGE_KEYS.CATEGORIES, [])
-      this.transactionCategories = storage.get(STORAGE_KEYS.TRANSACTION_CATEGORIES, {})
-      this.corrections = storage.get(STORAGE_KEYS.CORRECTIONS, [])
-      this.aiConfig = storage.get(STORAGE_KEYS.AI_CONFIG, this.aiConfig)
+    async loadFromStorage() {
+      try {
+        const categoriesData = await Promise.all([
+          categoriesRepo.getAll(),
+          transactionCategoriesRepo.getAll(),
+          correctionsRepo.getAll(),
+          configRepo.get('ai_config')
+        ])
+
+        this.categories = categoriesData[0]
+        // transactionCategories: 数组行 → 对象映射
+        this.transactionCategories = rowsToMapping(categoriesData[1])
+        this.corrections = categoriesData[2]
+        this.aiConfig = categoriesData[3] || this.aiConfig
+      } catch (error) {
+        const { message, type } = errorHandler.normalizeStorageError(error)
+        const notificationStore = useNotificationStore()
+        notificationStore.show(message, type)
+        throw error
+      }
     },
 
     /**
-     * 保存数据到 localStorage
+     * 保存数据到 IndexedDB
      */
-    saveToStorage() {
-      storage.set(STORAGE_KEYS.CATEGORIES, this.categories)
-      storage.set(STORAGE_KEYS.TRANSACTION_CATEGORIES, this.transactionCategories)
-      storage.set(STORAGE_KEYS.CORRECTIONS, this.corrections)
-      storage.set(STORAGE_KEYS.AI_CONFIG, this.aiConfig)
+    async saveToStorage() {
+      try {
+        // ⚠️ 深拷贝所有数据,避免保存响应式对象
+        await categoriesRepo.bulkAdd(JSON.parse(JSON.stringify(this.categories)))
+        // transactionCategories: 对象映射 → 数组行
+        await transactionCategoriesRepo.bulkSet(JSON.parse(JSON.stringify(this.transactionCategories)))
+        await correctionsRepo.bulkAdd(JSON.parse(JSON.stringify(this.corrections)))
+        // ⚠️ 深拷贝 aiConfig,避免保存响应式对象
+        const aiConfigPlain = JSON.parse(JSON.stringify(this.aiConfig))
+        await configRepo.set('ai_config', aiConfigPlain)
+      } catch (error) {
+        const { message, type } = errorHandler.normalizeStorageError(error)
+        const notificationStore = useNotificationStore()
+        notificationStore.show(message, type)
+        throw error
+      }
     },
 
     /**
      * 更新分类体系
      */
-    setCategories(categories) {
+    async setCategories(categories) {
       this.categories = categories
-      this.saveToStorage()
+      await this.saveToStorage()
     },
 
     /**
      * 更新交易的分类
      */
-    updateCategory(transactionId, categoryData) {
+    async updateCategory(transactionId, categoryData) {
       this.transactionCategories[transactionId] = {
         ...categoryData,
         updatedAt: new Date().toISOString()
       }
-      this.saveToStorage()
+      await this.saveToStorage()
     },
 
     /**
      * 批量更新交易分类
      */
-    batchUpdateCategories(updates) {
+    async batchUpdateCategories(updates) {
       updates.forEach(({ transactionId, categoryData }) => {
         this.transactionCategories[transactionId] = {
           ...categoryData,
           updatedAt: new Date().toISOString()
         }
       })
-      this.saveToStorage()
+      await this.saveToStorage()
     },
 
     /**
@@ -116,32 +147,32 @@ export const useCategoryStore = defineStore('category', {
     /**
      * 记录用户纠正
      */
-    addCorrection(transactionId, originalCategory, correctedCategory) {
+    async addCorrection(transactionId, originalCategory, correctedCategory) {
       this.corrections.push({
         transactionId,
         originalCategory,
         correctedCategory,
         timestamp: new Date().toISOString()
       })
-      this.saveToStorage()
+      await this.saveToStorage()
     },
 
     /**
      * 更新 AI 配置
      */
-    updateAIConfig(config) {
+    async updateAIConfig(config) {
       this.aiConfig = { ...this.aiConfig, ...config }
-      this.saveToStorage()
+      await this.saveToStorage()
     },
 
     /**
      * 清空分类数据（保留 AI 配置）
      */
-    clearCategories() {
+    async clearCategories() {
       this.categories = []
       this.transactionCategories = {}
       this.corrections = []
-      this.saveToStorage()
+      await this.saveToStorage()
     }
   }
 })

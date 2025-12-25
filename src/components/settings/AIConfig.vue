@@ -135,13 +135,15 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { AI_PROVIDERS } from '../../config/aiConfig.js'
-import { loadAIConfig, saveAIConfig, validateAIConfig } from '../../config/aiConfig.js'
+import { AI_PROVIDERS, validateAIConfig } from '../../config/aiConfig.js'
+import { useCategoryStore } from '../../stores/categoryStore.js'
 import { testAIConfig } from '../../utils/aiCategorizer.js'
+
+const categoryStore = useCategoryStore()
 
 // 状态
 const providers = AI_PROVIDERS
-const localConfig = ref({ enabled: false, provider: 'qianwen', apiKey: '', model: '', fallbackToRules: true })
+const localConfig = ref({ enabled: false, provider: 'ollama', apiKey: '', baseURL: 'http://localhost:11434/v1', model: 'qwen2.5:7b', timeout: 30000, fallbackToRules: true })
 const showApiKey = ref(false)
 const testing = ref(false)
 const saving = ref(false)
@@ -150,8 +152,7 @@ const saveResult = ref(null)
 
 // 加载配置
 onMounted(() => {
-  const saved = loadAIConfig()
-  localConfig.value = { ...localConfig.value, ...saved }
+  localConfig.value = { ...localConfig.value, ...categoryStore.aiConfig }
 })
 
 // 监听配置变化，清除测试结果
@@ -190,24 +191,16 @@ async function testConnection() {
 }
 
 // 保存配置
-function saveConfig() {
+async function saveConfig() {
   saving.value = true
   saveResult.value = null
 
   try {
-    const success = saveAIConfig(localConfig.value)
-
-    if (success) {
-      saveResult.value = true
-      setTimeout(() => {
-        saveResult.value = null
-      }, 2000)
-    } else {
-      testResult.value = {
-        success: false,
-        message: '保存配置失败，请检查浏览器存储权限'
-      }
-    }
+    await categoryStore.updateAIConfig(localConfig.value)
+    saveResult.value = true
+    setTimeout(() => {
+      saveResult.value = null
+    }, 2000)
   } catch (error) {
     testResult.value = {
       success: false,

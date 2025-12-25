@@ -4,7 +4,7 @@
  */
 
 import { CATEGORIES } from './categoryRules.js'
-import { getProviderConfig, loadAIConfig } from '../config/aiConfig.js'
+import { getProviderConfig } from '../config/aiConfig.js'
 
 /**
  * 使用 AI 分类交易
@@ -13,7 +13,12 @@ import { getProviderConfig, loadAIConfig } from '../config/aiConfig.js'
  * @returns {Promise<string>} - 分类名称
  */
 export async function categorizeByAI(transaction, aiConfig) {
-  const config = aiConfig || loadAIConfig()
+  // ⚠️ 不再调用 loadAIConfig(),aiConfig 必须由调用方传入
+  if (!aiConfig) {
+    throw new Error('AI 配置未提供，请从 categoryStore 获取')
+  }
+
+  const config = aiConfig
 
   if (!config.enabled || !config.apiKey) {
     throw new Error('AI 未启用或缺少 API Key')

@@ -8,7 +8,10 @@ import {
   deduplicateTransactions
 } from '../utils/dataModel.js'
 import { batchCategorize } from '../utils/categorizer.js'
-import { loadAIConfig } from '../config/aiConfig.js'
+import { useCategoryStore } from './categoryStore.js'
+import { transactionsRepo, configRepo } from '../repositories/index.js'
+import { errorHandler } from '../utils/errorHandler.js'
+import { useNotificationStore } from './notificationStore.js'
 
 export const useAppStore = defineStore('app', () => {
   // 状态
@@ -65,11 +68,39 @@ export const useAppStore = defineStore('app', () => {
     files.value = []
   }
 
-  // 清空所有数据
+  // 清空所有数据(需要确认)
   function clearAllData() {
-    files.value = []
-    transactions.value = []
-    localStorage.removeItem('transactions')
+    // 不在 store 里直接清理,而是返回清理指令,由 UI 层处理
+    return {
+      needConfirm: true,
+      message: '清除所有数据将删除所有已上传的文件和解析结果,建议先导出备份。',
+      dataTypes: [
+        `交易记录 (${transactions.value.length} 条)`,
+        `分类数据`,
+        `AI 配置`,
+        `筛选器和偏好设置`
+      ]
+    }
+  }
+
+  // 执行清理(由 UI 调用)
+  async function performClearAll() {
+    const categoryStore = useCategoryStore()
+    const notificationStore = useNotificationStore()
+
+    try {
+      files.value = []
+      transactions.value = []
+      await transactionsRepo.clear()
+      await configRepo.clear()
+      categoryStore.$reset() // 重置 categoryStore
+      notificationStore.show('数据已清除', 'success')
+      return { success: true }
+    } catch (error) {
+      const { message, type } = errorHandler.normalizeStorageError(error)
+      notificationStore.show(message, type)
+      throw error
+    }
   }
 
   // 检测平台
@@ -247,17 +278,18 @@ export const useAppStore = defineStore('app', () => {
 
       // 自动分类
       console.log('🏷️ 开始自动分类交易...')
-      const aiConfig = loadAIConfig()
+      const categoryStore = useCategoryStore()
+      const aiConfig = categoryStore.aiConfig  // ✅ 从 categoryStore 获取
       const categorizedTransactions = await batchCategorize(uniqueTransactions, {
         useAI: aiConfig.enabled,
         aiConfig: aiConfig,
-        fallbackToRules: true
+        fallbackToRules: aiConfig.fallbackToRules
       })
 
       transactions.value = categorizedTransactions
 
-      // 保存到 localStorage
-      saveTransactions()
+      // 保存到 IndexedDB
+      await saveTransactions()
       console.log(`✅ 分类完成，共 ${categorizedTransactions.length} 条交易`)
     } catch (error) {
       console.error('处理文件失败:', error)
@@ -267,24 +299,27 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
-  // 保存交易数据到 localStorage
-  function saveTransactions() {
+  // 保存交易数据到 IndexedDB
+  async function saveTransactions() {
     try {
-      localStorage.setItem('transactions', JSON.stringify(transactions.value))
+      await transactionsRepo.bulkAdd(transactions.value)
     } catch (error) {
-      console.error('保存交易数据失败:', error)
+      const { message, type } = errorHandler.normalizeStorageError(error)
+      const notificationStore = useNotificationStore()
+      notificationStore.show(message, type)
+      throw error
     }
   }
 
-  // 从 localStorage 加载交易数据
-  function loadTransactions() {
+  // 从 IndexedDB 加载交易数据
+  async function loadTransactions() {
     try {
-      const saved = localStorage.getItem('transactions')
-      if (saved) {
-        transactions.value = JSON.parse(saved)
-      }
+      transactions.value = await transactionsRepo.getAll()
     } catch (error) {
-      console.error('加载交易数据失败:', error)
+      const { message, type } = errorHandler.normalizeStorageError(error)
+      const notificationStore = useNotificationStore()
+      notificationStore.show(message, type)
+      throw error
     }
   }
 
@@ -302,6 +337,7 @@ export const useAppStore = defineStore('app', () => {
     removeFile,
     clearFiles,
     clearAllData,
+    performClearAll,
     detectPlatform,
     parseFile,
     processFiles,

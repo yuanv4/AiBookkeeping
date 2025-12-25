@@ -227,9 +227,9 @@ function exportData() {
   XLSX.writeFile(workbook, `账单汇总_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
-function confirmClearData() {
+async function confirmClearData() {
   if (confirm('确定要清除所有数据吗？此操作不可恢复。')) {
-    appStore.clearAllData()
+    await appStore.performClearAll()
   }
 }
 </script>
