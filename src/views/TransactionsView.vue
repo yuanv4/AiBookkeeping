@@ -196,13 +196,13 @@ function getPlatformLabel(tx) {
 
 .empty-state h3 {
   font-size: 20px;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 10px 0;
 }
 
 .empty-state p {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0 0 20px 0;
 }
 
@@ -229,23 +229,23 @@ function getPlatformLabel(tx) {
 
 .filter-group label {
   font-size: 13px;
-  color: #4b5563;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .filter-group input,
 .filter-group select {
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color var(--duration-base) ease;
 }
 
 .filter-group input:focus,
 .filter-group select:focus {
-  border-color: #667eea;
+  border-color: var(--border-strong);
 }
 
 .search-box input {
@@ -266,7 +266,7 @@ table {
 }
 
 thead {
-  background: #f9fafb;
+  background: var(--table-header-bg);
 }
 
 th {
@@ -274,20 +274,20 @@ th {
   text-align: left;
   font-size: 13px;
   font-weight: 600;
-  color: #4b5563;
-  border-bottom: 1px solid #e5e7eb;
+  color: var(--text-secondary);
+  border-bottom: var(--table-border);
   white-space: nowrap;
 }
 
 td {
   padding: 12px 15px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: var(--table-border);
   font-size: 14px;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 tbody tr:hover {
-  background: #f9fafb;
+  background: var(--table-hover-bg);
 }
 
 .badge {
@@ -299,28 +299,28 @@ tbody tr:hover {
 }
 
 .badge-alipay {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--color-gray-100);
+  color: var(--color-info);
 }
 
 .badge-wechat {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--color-gray-100);
+  color: var(--color-success);
 }
 
 .badge-bank {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--color-gray-100);
+  color: var(--color-warning);
 }
 
 .badge-income {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--color-gray-100);
+  color: var(--color-success);
 }
 
 .badge-expense {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--color-gray-100);
+  color: var(--color-danger);
 }
 
 .category-badge {
@@ -333,7 +333,7 @@ tbody tr:hover {
 }
 
 .text-muted {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
@@ -343,26 +343,26 @@ tbody tr:hover {
   align-items: center;
   gap: 15px;
   padding: 20px;
-  border-top: 1px solid #e5e7eb;
+  border-top: var(--table-border);
 }
 
 .page-info {
   font-size: 14px;
-  color: #4b5563;
+  color: var(--text-secondary);
 }
 
 .btn {
   padding: 8px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-base) ease;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-primary);
   color: white;
   text-decoration: none;
   display: inline-block;
@@ -373,14 +373,14 @@ tbody tr:hover {
 }
 
 .btn-secondary {
-  background: white;
-  color: #4b5563;
-  border: 1px solid #d1d5db;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: var(--border-default);
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #667eea;
+  background: var(--color-gray-50);
+  border-color: var(--border-strong);
 }
 
 .btn-sm {

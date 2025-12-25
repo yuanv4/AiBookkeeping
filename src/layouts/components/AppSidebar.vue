@@ -59,117 +59,123 @@ function toggleCollapse() {
 .sidebar {
   width: 240px;
   height: 100vh;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: var(--bg-sidebar);
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
+  transition: width var(--duration-slow) var(--ease-in-out);
   position: fixed;
   left: 0;
   top: 0;
   z-index: 100;
+  border-right: var(--sidebar-border);
 }
 
 .sidebar.collapsed {
-  width: 70px;
+  width: 64px;
 }
 
 .sidebar-header {
-  padding: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--spacing-5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: white;
+  gap: var(--spacing-3);
+  color: var(--text-inverse);
 }
 
 .brand-icon {
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .brand-text {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
 }
 
 .brand-icon-only {
   background: none;
   border: none;
-  font-size: 28px;
+  font-size: 24px;
   cursor: pointer;
   padding: 0;
   width: 100%;
   display: flex;
   justify-content: center;
+  color: var(--text-inverse);
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 20px 10px;
+  padding: var(--spacing-5) var(--spacing-2);
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--spacing-1);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 15px;
-  color: rgba(255, 255, 255, 0.8);
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  color: var(--text-tertiary);
   text-decoration: none;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-base) var(--ease-out);
   white-space: nowrap;
   overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-inverse);
 }
 
 .nav-item.active {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  font-weight: 500;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-inverse);
+  font-weight: var(--font-semibold);
 }
 
 .nav-icon {
-  font-size: 20px;
+  font-size: 18px;
   flex-shrink: 0;
 }
 
 .nav-text {
-  font-size: 15px;
+  font-size: var(--text-sm);
 }
 
 .sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--spacing-5);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .collapse-btn {
   width: 100%;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 6px;
-  color: white;
+  padding: var(--spacing-2);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  color: var(--text-inverse);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all var(--duration-base) var(--ease-out);
+  font-size: var(--text-sm);
 }
 
 .collapse-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* 响应式 */
 @media (max-width: 768px) {
   .sidebar {
-    width: 70px;
+    width: 64px;
   }
 
   .sidebar.collapsed {

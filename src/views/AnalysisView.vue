@@ -86,13 +86,13 @@ function handleCategoryClick(category) {
 
 .empty-state h3 {
   font-size: 20px;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 10px 0;
 }
 
 .empty-state p {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0 0 20px 0;
 }
 
@@ -118,7 +118,7 @@ function handleCategoryClick(category) {
 .chart-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 15px 0;
 }
 
@@ -129,17 +129,17 @@ function handleCategoryClick(category) {
 .btn {
   padding: 10px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-base) ease;
   text-decoration: none;
   display: inline-block;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-primary);
   color: white;
 }
 

@@ -144,14 +144,14 @@ function confirmClearData() {
 .settings-title {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 30px 0;
+  color: var(--text-primary);
+  margin: 0 0 24px 0;
 }
 
 .section {
-  margin-bottom: 30px;
-  padding-bottom: 30px;
-  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: var(--card-border);
 }
 
 .section:last-child {
@@ -162,8 +162,8 @@ function confirmClearData() {
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 15px 0;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
 }
 
 .section-content {
@@ -176,7 +176,7 @@ function confirmClearData() {
 
 .section-desc {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
   flex: 1;
   min-width: 200px;
@@ -185,17 +185,17 @@ function confirmClearData() {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 15px;
+  gap: 16px;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 15px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: var(--card-border);
 }
 
 .stat-icon {
@@ -208,52 +208,52 @@ function confirmClearData() {
 
 .stat-label {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .stat-value.income {
-  color: #10b981;
+  color: var(--color-success);
 }
 
 .stat-value.expense {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .danger-zone {
-  background: #fef2f2;
+  background: var(--bg-card);
   padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-danger);
 }
 
 .danger-zone .section-title {
-  color: #dc2626;
+  color: var(--color-danger);
 }
 
 .danger-zone .section-desc {
-  color: #991b1b;
+  color: var(--text-secondary);
 }
 
 .info-box {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 16px;
 }
 
 .info-item {
   display: flex;
-  gap: 15px;
-  padding: 15px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: var(--card-border);
 }
 
 .info-icon {
@@ -268,36 +268,38 @@ function confirmClearData() {
 .info-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .info-desc {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.5;
 }
 
 .btn {
   padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
+  border: var(--input-border);
+  border-radius: var(--input-radius);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-base);
   white-space: nowrap;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  border-color: var(--color-primary);
+  color: var(--text-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  background: var(--color-primary);
+  color: white;
 }
 
 .btn-primary:disabled {
@@ -306,12 +308,13 @@ function confirmClearData() {
 }
 
 .btn-danger {
-  background: #ef4444;
-  color: white;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
-.btn-danger:hover {
-  background: #dc2626;
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: white;
 }
 
 /* 响应式 */

@@ -258,13 +258,13 @@ function confirmClearData() {
 .welcome-title {
   font-size: 28px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 10px 0;
 }
 
 .welcome-subtitle {
   font-size: 16px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -288,18 +288,16 @@ function confirmClearData() {
 }
 
 .feature-card {
-  background: white;
+  background: var(--bg-card);
   padding: 25px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   text-align: center;
-  border: 1px solid #e5e7eb;
-  transition: all 0.3s ease;
+  border: var(--card-border);
+  transition: border-color var(--duration-base) ease;
 }
 
 .feature-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-  transform: translateY(-2px);
+  border-color: var(--border-strong);
 }
 
 .feature-icon {
@@ -310,13 +308,13 @@ function confirmClearData() {
 .feature-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .feature-desc {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.5;
 }
@@ -328,7 +326,7 @@ function confirmClearData() {
 .platforms-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 20px 0;
 }
 
@@ -344,7 +342,7 @@ function confirmClearData() {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #4b5563;
+  color: var(--text-secondary);
 }
 
 .platform-icon {
@@ -377,19 +375,18 @@ function confirmClearData() {
 }
 
 .summary-card {
-  background: white;
+  background: var(--bg-card);
   padding: 20px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   gap: 15px;
-  border: 1px solid #e5e7eb;
-  transition: all 0.3s ease;
+  border: var(--card-border);
+  transition: border-color var(--duration-base) ease;
 }
 
 .summary-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  border-color: var(--border-strong);
 }
 
 .summary-icon {
@@ -402,22 +399,22 @@ function confirmClearData() {
 
 .summary-label {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 5px;
 }
 
 .summary-value {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .summary-card.income .summary-value {
-  color: #10b981;
+  color: var(--color-success);
 }
 
 .summary-card.expense .summary-value {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .charts-grid {
@@ -433,7 +430,7 @@ function confirmClearData() {
 .chart-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 15px 0;
 }
 
@@ -449,12 +446,13 @@ function confirmClearData() {
 }
 
 .modal-content {
-  background: white;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
   overflow: auto;
+  border: var(--card-border);
 }
 
 .modal-header {
@@ -462,13 +460,13 @@ function confirmClearData() {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: var(--border-default);
 }
 
 .modal-header h2 {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -476,7 +474,7 @@ function confirmClearData() {
   background: none;
   border: none;
   font-size: 28px;
-  color: #6b7280;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
   width: 30px;
@@ -484,11 +482,11 @@ function confirmClearData() {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .modal-close:hover {
-  background: #f3f4f6;
+  background: var(--color-gray-100);
 }
 
 .modal-body {
@@ -504,21 +502,20 @@ function confirmClearData() {
 .btn {
   padding: 10px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-base) ease;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-primary);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
   opacity: 0.9;
-  transform: translateY(-1px);
 }
 
 .btn-primary:disabled {
@@ -527,23 +524,23 @@ function confirmClearData() {
 }
 
 .btn-secondary {
-  background: white;
-  color: #4b5563;
-  border: 1px solid #d1d5db;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: var(--border-default);
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #667eea;
+  background: var(--color-gray-50);
+  border-color: var(--border-strong);
 }
 
 .btn-danger {
-  background: #ef4444;
+  background: var(--color-danger);
   color: white;
 }
 
 .btn-danger:hover {
-  background: #dc2626;
+  opacity: 0.9;
 }
 
 .btn-lg {

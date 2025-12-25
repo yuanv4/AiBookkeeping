@@ -120,24 +120,24 @@ function formatFileSize(bytes) {
 }
 
 .upload-area {
-  border: 2px dashed #d1d5db;
-  border-radius: 12px;
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-lg);
   padding: 40px 20px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: #f9fafb;
+  transition: all var(--duration-base) ease;
+  background: var(--color-gray-50);
   position: relative;
 }
 
 .upload-area:hover {
-  border-color: #667eea;
-  background: #f3f4f6;
+  border-color: var(--border-strong);
+  background: var(--color-gray-100);
 }
 
 .upload-area.dragging {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  border-color: var(--border-strong);
+  background: var(--color-gray-100);
 }
 
 .upload-icon {
@@ -148,13 +148,13 @@ function formatFileSize(bytes) {
 .upload-text {
   font-size: 16px;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .upload-hint {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .file-input {
@@ -173,15 +173,14 @@ function formatFileSize(bytes) {
   align-items: center;
   justify-content: space-between;
   padding: 12px 15px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  background: var(--bg-card);
+  border: var(--card-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-base) ease;
 }
 
 .file-item:hover {
-  border-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  border-color: var(--border-strong);
 }
 
 .file-info {
@@ -208,7 +207,7 @@ function formatFileSize(bytes) {
 .file-name {
   font-size: 14px;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -216,7 +215,7 @@ function formatFileSize(bytes) {
 
 .file-meta {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .btn-sm {
@@ -225,15 +224,15 @@ function formatFileSize(bytes) {
 }
 
 .btn-danger {
-  background: #ef4444;
+  background: var(--color-danger);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: opacity var(--duration-base) ease;
 }
 
 .btn-danger:hover {
-  background: #dc2626;
+  opacity: 0.9;
 }
 </style>

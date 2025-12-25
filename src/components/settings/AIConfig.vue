@@ -221,26 +221,27 @@ function saveConfig() {
 
 <style scoped>
 .ai-config-panel {
-  background: #f8f9fa;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: var(--card-border);
   padding: 24px;
-  margin-bottom: 20px;
 }
 
 .config-header h3 {
   margin: 0 0 8px 0;
-  font-size: 1.3rem;
-  color: #333;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .config-desc {
   margin: 0;
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .config-form {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .form-group {
@@ -250,30 +251,37 @@ function saveConfig() {
 .form-label {
   display: block;
   font-weight: 500;
-  margin-bottom: 8px;
-  color: #333;
+  margin-bottom: 6px;
+  color: var(--text-primary);
 }
 
 .form-select,
 .form-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: var(--input-border);
+  border-radius: var(--input-radius);
   font-size: 0.95rem;
-  transition: border-color 0.3s;
+  background: var(--bg-card);
+  transition: border-color var(--duration-base);
 }
 
 .form-select:focus,
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--color-primary);
+}
+
+.form-select:hover,
+.form-input:hover {
+  border-color: var(--color-primary-hover);
 }
 
 .form-input:disabled,
 .form-select:disabled {
-  background: #f5f5f5;
+  background: var(--bg-disabled);
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .input-with-action {
@@ -286,17 +294,17 @@ function saveConfig() {
 }
 
 .icon-button {
-  padding: 10px 16px;
-  background: #f0f0f0;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: var(--input-border);
+  border-radius: var(--input-radius);
   cursor: pointer;
-  font-size: 1.2rem;
-  transition: all 0.3s;
+  font-size: 1.1rem;
+  transition: background-color var(--duration-base);
 }
 
 .icon-button:hover:not(:disabled) {
-  background: #e0e0e0;
+  background: var(--bg-hover);
 }
 
 .icon-button:disabled {
@@ -307,16 +315,17 @@ function saveConfig() {
 .form-hint {
   margin-top: 6px;
   font-size: 0.85rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .hint-link {
-  color: #667eea;
+  color: var(--color-primary);
   text-decoration: none;
+  font-weight: 500;
 }
 
 .hint-link:hover {
-  text-decoration: underline;
+  color: var(--color-primary-hover);
 }
 
 .checkbox-group {
@@ -330,7 +339,7 @@ function saveConfig() {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  font-weight: normal;
+  font-size: 0.95rem;
 }
 
 .checkbox {
@@ -343,16 +352,17 @@ function saveConfig() {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px;
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 6px;
+  padding: 16px;
+  background: var(--bg-card);
+  border: var(--card-border);
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
-  color: #856404;
+  color: var(--text-secondary);
 }
 
 .hint-icon {
-  font-size: 1.2rem;
+  font-size: 1rem;
+  color: var(--color-primary);
 }
 
 .hint-detail {
@@ -369,56 +379,61 @@ function saveConfig() {
 .btn {
   flex: 1;
   padding: 12px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
+  border: var(--input-border);
+  border-radius: var(--input-radius);
+  font-size: 0.95rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--duration-base);
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .btn-secondary {
-  background: #6c757d;
-  color: white;
+  color: var(--text-secondary);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #5a6268;
+  background: var(--bg-hover);
+  border-color: var(--text-secondary);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-primary);
   color: white;
+  border: 1px solid var(--color-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
 .test-result,
 .save-result {
   margin-top: 16px;
   padding: 12px;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: var(--card-border);
 }
 
 .test-result.success,
 .save-result.success {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border-color: var(--color-success);
 }
 
 .test-result.error {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: #fef2f2;
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 </style>

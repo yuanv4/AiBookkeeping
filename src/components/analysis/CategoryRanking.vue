@@ -214,10 +214,10 @@ function calculateTrend(categoryName, currentMonths) {
 
 <style scoped>
 .ranking-container {
-  background: white;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: var(--card-border);
 }
 
 .ranking-header {
@@ -232,7 +232,7 @@ function calculateTrend(categoryName, currentMonths) {
 .ranking-title {
   margin: 0;
   font-size: 1.2rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .time-range-selector {
@@ -242,20 +242,20 @@ function calculateTrend(categoryName, currentMonths) {
 
 .range-button {
   padding: 6px 16px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
+  background: var(--color-gray-50);
+  border: var(--border-default);
   border-radius: 20px;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--duration-base) ease;
 }
 
 .range-button:hover {
-  background: #e8e8e8;
+  background: var(--color-gray-100);
 }
 
 .range-button.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-primary);
   color: white;
   border-color: transparent;
 }
@@ -272,19 +272,18 @@ function calculateTrend(categoryName, currentMonths) {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  border-radius: 8px;
-  background: #f8f9fa;
-  transition: all 0.3s;
+  border-radius: var(--radius-md);
+  background: var(--color-gray-50);
+  transition: background var(--duration-base) ease;
 }
 
 .ranking-item:hover {
-  background: #f0f1f3;
-  transform: translateX(4px);
+  background: var(--color-gray-100);
 }
 
 .ranking-item.top {
-  background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
-  border: 1px solid #ffe0e0;
+  background: var(--color-gray-50);
+  border: 1px solid var(--border-default);
 }
 
 .ranking-rank {
@@ -300,7 +299,7 @@ function calculateTrend(categoryName, currentMonths) {
 
 .rank-number {
   font-weight: bold;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .ranking-icon {
@@ -318,26 +317,26 @@ function calculateTrend(categoryName, currentMonths) {
 
 .ranking-name {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   font-size: 1rem;
 }
 
 .ranking-amount {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .ranking-bar-wrapper {
   height: 8px;
-  background: #e9ecef;
-  border-radius: 4px;
+  background: var(--color-gray-200);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   align-self: center;
 }
 
 .ranking-bar {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: width 0.5s ease;
 }
 
@@ -350,7 +349,7 @@ function calculateTrend(categoryName, currentMonths) {
 
 .ranking-percent {
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   font-size: 1.1rem;
 }
 
@@ -360,11 +359,11 @@ function calculateTrend(categoryName, currentMonths) {
 }
 
 .ranking-trend.up {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .ranking-trend.down {
-  color: #28a745;
+  color: var(--color-success);
 }
 
 .ranking-loading,
@@ -374,7 +373,7 @@ function calculateTrend(categoryName, currentMonths) {
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .ranking-loading {
@@ -390,8 +389,8 @@ function calculateTrend(categoryName, currentMonths) {
 .spinner {
   width: 20px;
   height: 20px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border: 3px solid var(--color-gray-200);
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

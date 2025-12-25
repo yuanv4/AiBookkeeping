@@ -32,12 +32,12 @@ onMounted(() => {
 .main-layout {
   display: flex;
   min-height: 100vh;
-  background: #f3f4f6;
+  background: var(--bg-body);
 }
 
 .main-content-wrapper {
   flex: 1;
-  margin-left: 240px;
+  margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -45,14 +45,14 @@ onMounted(() => {
 
 .main-content {
   flex: 1;
-  padding: 30px;
+  padding: var(--spacing-6);
   overflow-y: auto;
 }
 
 /* 路由过渡动画 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity var(--duration-slow) var(--ease-out);
 }
 
 .fade-enter-from,
@@ -63,11 +63,11 @@ onMounted(() => {
 /* 响应式 */
 @media (max-width: 768px) {
   .main-content-wrapper {
-    margin-left: 70px;
+    margin-left: var(--sidebar-width-collapsed);
   }
 
   .main-content {
-    padding: 15px;
+    padding: var(--spacing-4);
   }
 }
 </style>

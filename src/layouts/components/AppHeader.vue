@@ -41,13 +41,13 @@ const pageSubtitle = computed(() => {
 
 <style scoped>
 .app-header {
-  height: 70px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
+  height: var(--header-height);
+  background: var(--header-bg);
+  border-bottom: var(--header-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 30px;
+  padding: 0 var(--spacing-6);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -56,52 +56,59 @@ const pageSubtitle = computed(() => {
 .header-left {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-1);
 }
 
 .page-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
   margin: 0;
 }
 
 .page-subtitle {
-  font-size: 13px;
-  color: #6b7280;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--spacing-4);
 }
 
 .data-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-2);
 }
 
 .data-count {
-  padding: 6px 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: var(--spacing-1) var(--spacing-3);
+  background: var(--color-primary);
+  color: var(--text-inverse);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border: 1px solid var(--color-primary);
+  transition: background-color var(--duration-base) var(--ease-out);
+}
+
+.data-count:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 /* 响应式 */
 @media (max-width: 768px) {
   .app-header {
-    padding: 0 15px;
-    height: 60px;
+    padding: 0 var(--spacing-4);
+    height: 56px;
   }
 
   .page-title {
-    font-size: 17px;
+    font-size: var(--text-lg);
   }
 
   .page-subtitle {

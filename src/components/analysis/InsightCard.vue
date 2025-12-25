@@ -224,16 +224,16 @@ function analyzeHabits(transactions) {
 
 <style scoped>
 .insight-container {
-  background: white;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: var(--card-border);
 }
 
 .insight-title {
   margin: 0 0 20px 0;
   font-size: 1.2rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .insight-grid {
@@ -247,40 +247,35 @@ function analyzeHabits(transactions) {
   align-items: flex-start;
   gap: 12px;
   padding: 16px;
-  border-radius: 8px;
-  background: #f8f9fa;
-  border-left: 4px solid #667eea;
-  transition: transform 0.3s, box-shadow 0.3s;
+  border-radius: var(--radius-md);
+  background: var(--color-gray-50);
+  border: var(--card-border);
+  border-left-width: 3px;
+  transition: border-color var(--duration-base) ease;
 }
 
 .insight-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--border-strong);
 }
 
 .insight-card.primary {
-  border-left-color: #667eea;
-  background: linear-gradient(135deg, #f0f2ff 0%, #fff 100%);
+  border-left-color: var(--color-gray-800);
 }
 
 .insight-card.secondary {
-  border-left-color: #6c757d;
-  background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+  border-left-color: var(--color-gray-600);
 }
 
 .insight-card.accent {
-  border-left-color: #ffc107;
-  background: linear-gradient(135deg, #fff8e1 0%, #fff 100%);
+  border-left-color: var(--color-warning);
 }
 
 .insight-card.success {
-  border-left-color: #28a745;
-  background: linear-gradient(135deg, #f0fff4 0%, #fff 100%);
+  border-left-color: var(--color-success);
 }
 
 .insight-card.info {
-  border-left-color: #17a2b8;
-  background: linear-gradient(135deg, #e8f8f9 0%, #fff 100%);
+  border-left-color: var(--color-info);
 }
 
 .insight-card.full-width {
@@ -299,20 +294,20 @@ function analyzeHabits(transactions) {
 
 .insight-label {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .insight-value {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .insight-desc {
   font-size: 0.85rem;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .insight-change {
@@ -325,11 +320,11 @@ function analyzeHabits(transactions) {
 }
 
 .insight-change.up {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .insight-change.down {
-  color: #28a745;
+  color: var(--color-success);
 }
 
 .insight-list {
@@ -341,7 +336,7 @@ function analyzeHabits(transactions) {
 .insight-list li {
   padding: 6px 0;
   font-size: 0.9rem;
-  color: #555;
+  color: var(--text-secondary);
   position: relative;
   padding-left: 16px;
 }
@@ -350,7 +345,7 @@ function analyzeHabits(transactions) {
   content: '•';
   position: absolute;
   left: 0;
-  color: #17a2b8;
+  color: var(--color-info);
   font-weight: bold;
 }
 
@@ -361,7 +356,7 @@ function analyzeHabits(transactions) {
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .insight-loading {
@@ -377,8 +372,8 @@ function analyzeHabits(transactions) {
 .spinner {
   width: 20px;
   height: 20px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border: 3px solid var(--color-gray-200);
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
