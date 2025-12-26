@@ -66,8 +66,8 @@ export function useClassification() {
    * 分类单笔交易
    */
   async function classifyTransaction(transaction) {
-    // 生成交易 ID
-    const txId = transaction.id || generateTransactionId(transaction)
+    // 获取交易 ID（必需）
+    const txId = transaction.transactionId
 
     // 检查缓存
     const cached = categoryStore.getTransactionCategory(txId)
@@ -134,7 +134,7 @@ export function useClassification() {
       // 批量保存结果
       const updates = results.map((result, index) => {
         const tx = transactions[index]
-        const txId = tx.id || generateTransactionId(tx)
+        const txId = tx.transactionId
         return {
           transactionId: txId,
           categoryData: {
@@ -167,7 +167,7 @@ export function useClassification() {
    * 手动更新交易分类
    */
   async function updateTransactionCategory(transaction, categoryName) {
-    const txId = transaction.id || generateTransactionId(transaction)
+    const txId = transaction.transactionId
     const existing = categoryStore.getTransactionCategory(txId)
 
     // 记录纠正历史
@@ -182,20 +182,10 @@ export function useClassification() {
   }
 
   /**
-   * 生成交易唯一标识
-   */
-  function generateTransactionId(transaction) {
-    const { transactionTime, counterparty, amount, description } = transaction
-    return `${transactionTime}_${counterparty}_${amount}_${description || ''}`
-      .replace(/\s+/g, '_')
-      .substring(0, 100)
-  }
-
-  /**
    * 获取交易分类
    */
   function getTransactionCategory(transaction) {
-    const txId = transaction.id || generateTransactionId(transaction)
+    const txId = transaction.transactionId
     return categoryStore.getTransactionCategory(txId)
   }
 

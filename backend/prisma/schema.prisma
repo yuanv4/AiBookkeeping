@@ -1,0 +1,116 @@
+// Prisma Schema for AI Bookkeeping Backend
+// 数据库: SQLite
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 用户表
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // bcrypt hash
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  configs AppConfig[]
+}
+
+// 交易表（主键：transactionId）
+model Transaction {
+  transactionId   String   @id
+  platform        String
+  bankName        String?
+  transactionTime DateTime
+  transactionType String
+  amount          Float
+  fee             Float?
+  counterparty    String?
+  category        String?
+  description     String?
+  paymentMethod   String?
+  account         String?
+  status          String?
+  merchantOrderId String?
+  remark          String?
+  originalData    String?  // JSON 字符串
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transactionCategories TransactionCategory[]
+
+  @@index([transactionTime])
+  @@index([platform])
+}
+
+// 分类体系表
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  color       String?
+  icon        String?
+  parentId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 交易分类映射表（一行对应一个交易的分类）
+model TransactionCategory {
+  id            String   @id @default(uuid())
+  transactionId String   @unique
+  category      String
+  subcategory   String?
+  confidence    Float?
+  reasoning     String?
+  classifiedAt  DateTime @default(now())
+  isManual      Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+
+  transaction Transaction @relation(fields: [transactionId], references: [transactionId], onDelete: Cascade)
+}
+
+// 用户纠正历史表
+model Correction {
+  id                String   @id @default(uuid())
+  transactionId     String
+  originalCategory  String
+  correctedCategory String
+  timestamp         DateTime
+  createdAt         DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([timestamp])
+}
+
+// 应用配置表（通用 KV）
+model AppConfig {
+  id        String   @id @default(uuid())
+  userId    String
+  key       String
+  value     String   // JSON 字符串
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([key])
+}
+
+// 备份表
+model Backup {
+  id        String   @id @default(uuid())
+  timestamp BigInt
+  checksum  String
+  data      String   // JSON 字符串
+  size      Int
+  createdAt DateTime @default(now())
+
+  @@index([timestamp(sort: Desc)])
+}

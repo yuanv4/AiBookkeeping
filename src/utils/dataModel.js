@@ -6,7 +6,7 @@
 // 统一账单数据结构
 export const UNIFIED_TRANSACTION_SCHEMA = {
   // 基础信息
-  id: 'string',                    // 唯一标识
+  transactionId: 'string',         // 唯一标识（主键）
   platform: 'string',              // 平台: alipay/wechat/bank
   bankName: 'string',              // 银行名称（仅银行账单）
   originalData: 'object',          // 原始数据
@@ -30,7 +30,6 @@ export const UNIFIED_TRANSACTION_SCHEMA = {
   status: 'string',                // 交易状态
 
   // 订单信息
-  transactionId: 'string',         // 交易单号
   merchantOrderId: 'string',       // 商户单号
   remark: 'string'                 // 备注
 }
@@ -95,10 +94,11 @@ export const CMB_FIELD_MAPPING = {
 }
 
 /**
- * 生成唯一ID
+ * 生成唯一交易ID（transactionId）
+ * 格式: platform_原始单号_时间戳_random
  */
-export function generateId(platform, transactionId, time) {
-  const hash = transactionId || time || Date.now()
+export function generateTransactionId(platform, merchantTransactionId, time) {
+  const hash = merchantTransactionId || time || Date.now()
   return `${platform}_${hash}_${Math.random().toString(36).substr(2, 9)}`
 }
 
@@ -199,7 +199,7 @@ export function mapAlipayTransaction(raw) {
   mapped.amount = parseAmount(raw['金额'], incomeExpense)
   mapped.transactionTime = parseTransactionTime(raw['交易时间'])
   mapped.platform = 'alipay'
-  mapped.id = generateId('alipay', raw['交易订单号'] || '', raw['交易时间'])
+  mapped.transactionId = generateTransactionId('alipay', raw['交易订单号'] || '', raw['交易时间'])
   mapped.originalData = raw
 
   return mapped
@@ -223,7 +223,7 @@ export function mapWechatTransaction(raw) {
   mapped.amount = parseAmount(raw['金额(元)'], incomeExpense)
   mapped.transactionTime = parseTransactionTime(raw['交易时间'])
   mapped.platform = 'wechat'
-  mapped.id = generateId('wechat', raw['交易单号'] || '', raw['交易时间'])
+  mapped.transactionId = generateTransactionId('wechat', raw['交易单号'] || '', raw['交易时间'])
   mapped.originalData = raw
 
   return mapped
@@ -252,7 +252,7 @@ export function mapCCBTransaction(raw) {
 
   mapped.platform = 'bank'
   mapped.bankName = '建设银行'
-  mapped.id = generateId('ccb', raw['序号'] || '', raw['交易日期'])
+  mapped.transactionId = generateTransactionId('ccb', raw['序号'] || '', raw['交易日期'])
   mapped.originalData = raw
 
   return mapped
@@ -281,7 +281,7 @@ export function mapCMBTransaction(raw) {
 
   mapped.platform = 'bank'
   mapped.bankName = '招商银行'
-  mapped.id = generateId('cmb', raw['记账日期'] + raw['交易金额'], raw['记账日期'])
+  mapped.transactionId = generateTransactionId('cmb', raw['记账日期'] + raw['交易金额'], raw['记账日期'])
   mapped.originalData = raw
 
   return mapped

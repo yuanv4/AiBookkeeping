@@ -1,0 +1,101 @@
+TAP version 14
+📦 数据库不存在,开始初始化...
+  ⏳ 正在创建数据库表...
+  ✅ 数据库表创建成功
+✅ 管理员用户已存在,跳过创建
+# Subtest: setup
+    1..0
+ok 1 - setup # time=2372.237ms
+
+{"level":30,"time":1766729436707,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-1","req":{"method":"POST","url":"/api/auth/register","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1766729436811,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-1","res":{"statusCode":201},"responseTime":102.77019999921322,"msg":"request completed"}
+# Subtest: POST /api/auth/register - 用户注册
+    ok 1 - should be equal
+    ok 2 - 响应应该成功
+    ok 3 - 应该返回 token
+    ok 4 - 应该返回用户信息
+    ok 5 - 用户名应该匹配
+    ok 6 - 不应该返回密码
+    1..6
+ok 2 - POST /api/auth/register - 用户注册 # time=114.803ms
+
+{"level":30,"time":1766729436813,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-2","req":{"method":"POST","url":"/api/auth/register","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1766729436814,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-2","res":{"statusCode":409},"responseTime":1.1992000006139278,"msg":"request completed"}
+# Subtest: POST /api/auth/register - 重复注册应该失败
+    ok 1 - should be equal
+    1..1
+ok 3 - POST /api/auth/register - 重复注册应该失败 # time=1.76ms
+
+# Subtest: POST /api/auth/register - 缺少必填字段应该失败
+    ok 1 - should be equal
+    1..1
+ok 4 - POST /api/auth/register - 缺少必填字段应该失败 # time=0.838ms
+
+{"level":30,"time":1766729436814,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-3","req":{"method":"POST","url":"/api/auth/register","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1766729436815,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-3","res":{"statusCode":400},"responseTime":0.3181999996304512,"msg":"request completed"}
+{"level":30,"time":1766729436816,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-4","req":{"method":"POST","url":"/api/auth/login","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1766729436887,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-4","res":{"statusCode":200},"responseTime":71.2778999991715,"msg":"request completed"}
+# Subtest: POST /api/auth/login - 用户登录
+    ok 1 - should be equal
+    ok 2 - 响应应该成功
+    ok 3 - 应该返回 token
+    ok 4 - 应该返回用户信息
+    ok 5 - 用户名应该匹配
+    1..5
+ok 5 - POST /api/auth/login - 用户登录 # time=72.082ms
+
+{"level":30,"time":1766729436888,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-5","req":{"method":"POST","url":"/api/auth/login","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1766729436960,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-5","res":{"statusCode":401},"responseTime":72.51700000092387,"msg":"request completed"}
+# Subtest: POST /api/auth/login - 错误的密码应该失败
+    ok 1 - should be equal
+    ok 2 - 响应应该失败
+    1..2
+ok 6 - POST /api/auth/login - 错误的密码应该失败 # time=73.251ms
+
+{"level":30,"time":1766729436961,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-6","req":{"method":"POST","url":"/api/auth/login","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1766729436962,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-6","res":{"statusCode":401},"responseTime":0.9357000030577183,"msg":"request completed"}
+# Subtest: POST /api/auth/login - 不存在的用户应该失败
+    ok 1 - should be equal
+    1..1
+ok 7 - POST /api/auth/login - 不存在的用户应该失败 # time=1.478ms
+
+{"level":30,"time":1766729436963,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-7","req":{"method":"GET","url":"/api/auth/me","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1766729436965,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-7","res":{"statusCode":200},"responseTime":2.0262000001966953,"msg":"request completed"}
+# Subtest: GET /api/auth/me - 获取当前用户信息
+    ok 1 - should be equal
+    ok 2 - 响应应该成功
+    ok 3 - 应该返回用户数据
+    ok 4 - 用户名应该匹配
+    1..4
+ok 8 - GET /api/auth/me - 获取当前用户信息 # time=2.714ms
+
+# Subtest: GET /api/auth/me - 没有 token 应该失败
+    ok 1 - should be equal
+    1..1
+ok 9 - GET /api/auth/me - 没有 token 应该失败 # time=1.701ms
+
+# Subtest: GET /api/auth/me - 无效的 token 应该失败
+    ok 1 - should be equal
+    1..1
+ok 10 - GET /api/auth/me - 无效的 token 应该失败 # time=0.848ms
+
+# Subtest: POST /api/auth/refresh - 刷新 token
+    ok 1 - should be equal
+    ok 2 - 响应应该成功
+    ok 3 - 应该返回新的 token
+    1..3
+ok 11 - POST /api/auth/refresh - 刷新 token # time=0.855ms
+
+{"level":30,"time":1766729436966,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-8","req":{"method":"GET","url":"/api/auth/me","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1766729436966,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-8","res":{"statusCode":401},"err":{"type":"FastifyError","message":"No Authorization was found in request.headers","stack":"FastifyError: No Authorization was found in request.headers\n    at lookupToken (D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\jwt\\jwt.js:278:13)\n    at _Request.requestVerify [as jwtVerify] (D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\jwt\\jwt.js:487:15)\n    at useGlobalOptions (D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\jwt\\jwt.js:455:31)\n    at new Promise (<anonymous>)\n    at _Request.requestVerify [as jwtVerify] (D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\jwt\\jwt.js:454:14)\n    at Object.authenticate (file:///D:/AiBookkeeping/backend/src/app.js:36:21)\n    at hookIterator (D:\\AiBookkeeping\\backend\\node_modules\\fastify\\lib\\hooks.js:408:10)\n    at next (D:\\AiBookkeeping\\backend\\node_modules\\fastify\\lib\\hooks.js:242:18)\n    at D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\cors\\index.js:215:12\n    at resolveOriginOption (D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\cors\\index.js:168:129)","code":"FST_JWT_NO_AUTHORIZATION_IN_HEADER","name":"FastifyError","statusCode":401},"msg":"No Authorization was found in request.headers"}
+{"level":30,"time":1766729436967,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-8","res":{"statusCode":401},"responseTime":1.2405999973416328,"msg":"request completed"}
+{"level":30,"time":1766729436968,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-9","req":{"method":"GET","url":"/api/auth/me","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1766729436968,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-9","res":{"statusCode":401},"err":{"type":"FastifyError","message":"Authorization token is invalid: The token is malformed.","stack":"FastifyError: Authorization token is invalid: The token is malformed.\n    at decode (D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\jwt\\jwt.js:236:15)\n    at _Request.requestVerify [as jwtVerify] (D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\jwt\\jwt.js:492:26)\n    at useGlobalOptions (D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\jwt\\jwt.js:455:31)\n    at new Promise (<anonymous>)\n    at _Request.requestVerify [as jwtVerify] (D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\jwt\\jwt.js:454:14)\n    at Object.authenticate (file:///D:/AiBookkeeping/backend/src/app.js:36:21)\n    at hookIterator (D:\\AiBookkeeping\\backend\\node_modules\\fastify\\lib\\hooks.js:408:10)\n    at next (D:\\AiBookkeeping\\backend\\node_modules\\fastify\\lib\\hooks.js:242:18)\n    at D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\cors\\index.js:215:12\n    at resolveOriginOption (D:\\AiBookkeeping\\backend\\node_modules\\@fastify\\cors\\index.js:168:129)","code":"FST_JWT_AUTHORIZATION_TOKEN_INVALID","name":"FastifyError","statusCode":401},"msg":"Authorization token is invalid: The token is malformed."}
+{"level":30,"time":1766729436968,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-9","res":{"statusCode":401},"responseTime":0.4415999986231327,"msg":"request completed"}
+{"level":30,"time":1766729436969,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-a","req":{"method":"POST","url":"/api/auth/refresh","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1766729436969,"pid":42776,"hostname":"DESKTOP-CQN62IM","reqId":"req-a","res":{"statusCode":200},"responseTime":0.31870000064373016,"msg":"request completed"}
+# Subtest: teardown
+    1..0
+ok 12 - teardown # time=33.79ms
+
+1..12

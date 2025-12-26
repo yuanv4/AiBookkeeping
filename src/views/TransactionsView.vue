@@ -70,7 +70,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="tx in paginatedTransactions" :key="tx.id">
+              <tr v-for="tx in paginatedTransactions" :key="tx.transactionId">
                 <td>{{ formatDateTime(tx.transactionTime) }}</td>
                 <td>
                   <span class="badge" :class="`badge-${tx.platform}`">

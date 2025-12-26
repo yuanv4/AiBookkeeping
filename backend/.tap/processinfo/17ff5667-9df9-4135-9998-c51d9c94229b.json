@@ -1,0 +1,31 @@
+{
+  "date": "2025-12-26T06:10:35.226Z",
+  "argv": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "D:\\AiBookkeeping\\backend\\node_modules\\prisma\\build\\index.js",
+    "db",
+    "push",
+    "--skip-generate"
+  ],
+  "execArgv": [],
+  "NODE_OPTIONS": "\"--import=file:///D:/AiBookkeeping/backend/node_modules/@tapjs/processinfo/dist/esm/import.mjs\"",
+  "cwd": "D:\\AiBookkeeping\\backend",
+  "pid": 45816,
+  "ppid": 45932,
+  "parent": "cda01fa2-5399-4065-a224-4dd9b5a55a19",
+  "uuid": "17ff5667-9df9-4135-9998-c51d9c94229b",
+  "files": [
+    "D:\\AiBookkeeping\\backend\\node_modules\\prisma\\build\\index.js"
+  ],
+  "sources": {},
+  "root": "e1bf8798-9d71-4dc9-9a9f-aa074de063a9",
+  "code": 0,
+  "signal": null,
+  "runtime": 688.8645,
+  "globalsAdded": [
+    "DEBUG",
+    "DEBUG_COLORS",
+    "PRISMA_WASM_PANIC_REGISTRY",
+    "parcelRequire1308"
+  ]
+}

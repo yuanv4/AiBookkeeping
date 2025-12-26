@@ -3,7 +3,14 @@ const APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0'
 
 /**
  * 导出完整应用数据为 JSON
- * ⚠️ API Key 策略: 不包含 apiKey,恢复后用户重新填写
+ *
+ * ⚠️ API Key 策略（前端本地保存，后端不存储）:
+ * - apiKey 设置为 undefined,不导出
+ * - 导入后需用户重新填写 apiKey
+ * - 后端迁移时同样不存储 apiKey 到数据库
+ *
+ * @param {Object} aiConfig - AI 配置（包含 apiKey）
+ * @returns {Object} - 导出数据（apiKey 已移除）
  */
 export async function exportToJSON(transactions, categories, transactionCategories, corrections, aiConfig) {
   const data = {

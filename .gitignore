@@ -44,6 +44,8 @@ coverage/
 # tmp/
 temp/
 *.tmp
+nul
+NUL
 
 # 操作系统文件
 .DS_Store
@@ -51,9 +53,20 @@ Thumbs.db
 desktop.ini
 
 # Claude Code 相关
-.claude/
-.playwright-mcp/
+.claude/*
+!.claude/commands/
+.playwright-mcp
 
 # 调试文件
 *.cpuprofile
 *.heapsnapshot
+
+# 后端特定
+backend/data/
+backend/*.db
+backend/*.db-journal
+backend/prisma/migrations/
+
+# 临时测试文件
+test-*.html
+*.test.js.snap

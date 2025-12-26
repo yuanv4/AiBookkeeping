@@ -17,14 +17,19 @@ export const useCategoryStore = defineStore('category', {
     corrections: [],
 
     // AI 配置(唯一真源)
+    // ⚠️ API Key 策略: 前端本地保存,后端不存储
+    // - 前端: apiKey 保存在 IndexedDB/app_config (当前实现)
+    // - 导出/备份: apiKey 脱敏为 '******' 或 undefined (dataExporter.js, backupManager.js)
+    // - 后端迁移: 后端数据库不存储 apiKey,仅存储 provider/baseURL/model/enabled/fallbackToRules
+    // - 恢复逻辑: 导入后用户需重新填写 apiKey
     aiConfig: {
       provider: 'ollama', // 'ollama' | 'openai' | 'qianwen'
-      apiKey: '',
+      apiKey: '',         // ⚠️ 敏感信息,不导出到后端
       baseURL: 'http://localhost:11434/v1',
       model: 'qwen2.5:7b',
       timeout: 30000,
-      enabled: false,           // 新增: 是否启用 AI 分类
-      fallbackToRules: true     // 新增: AI 失败时回退到规则分类
+      enabled: false,           // 是否启用 AI 分类
+      fallbackToRules: true     // AI 失败时回退到规则分类
     }
   }),
 

@@ -4,11 +4,7 @@
     <div class="main-content-wrapper">
       <AppHeader />
       <main class="main-content">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
+        <slot />
       </main>
     </div>
   </div>
@@ -19,12 +15,20 @@ import { onMounted } from 'vue'
 import AppSidebar from './components/AppSidebar.vue'
 import AppHeader from './components/AppHeader.vue'
 import { useAppStore } from '../stores/appStore.js'
+import { authApi } from '../api/index.js'
+import { isRemoteMode } from '../repositories/index.js'
 
 const appStore = useAppStore()
 
 onMounted(() => {
-  // 加载保存的交易数据
-  appStore.loadTransactions()
+  // 只在 local 模式或已登录状态下加载数据
+  const isRemote = isRemoteMode()
+  const isAuthenticated = authApi.isAuthenticated()
+
+  if (!isRemote || isAuthenticated) {
+    // 加载保存的交易数据
+    appStore.loadTransactions()
+  }
 })
 </script>
 

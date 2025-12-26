@@ -1,0 +1,33 @@
+{
+  "date": "2025-12-26T06:10:34.652Z",
+  "argv": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+    "exec",
+    "--",
+    "prisma",
+    "db",
+    "push",
+    "--skip-generate"
+  ],
+  "execArgv": [],
+  "NODE_OPTIONS": "\"--import=file:///D:/AiBookkeeping/backend/node_modules/@tapjs/processinfo/dist/esm/import.mjs\"",
+  "cwd": "D:\\AiBookkeeping\\backend",
+  "pid": 46500,
+  "ppid": 44088,
+  "parent": "e1bf8798-9d71-4dc9-9a9f-aa074de063a9",
+  "uuid": "cda01fa2-5399-4065-a224-4dd9b5a55a19",
+  "files": [
+    "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js",
+    "C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\chalk\\source\\index.js",
+    "C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\supports-color\\index.js",
+    "C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\chalk\\source\\vendor\\ansi-styles\\index.js",
+    "C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\chalk\\source\\vendor\\supports-color\\index.js",
+    "C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\chalk\\source\\utilities.js"
+  ],
+  "sources": {},
+  "root": "e1bf8798-9d71-4dc9-9a9f-aa074de063a9",
+  "code": 0,
+  "signal": null,
+  "runtime": 1363.8764
+}
