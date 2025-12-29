@@ -8,6 +8,15 @@ import { execSync } from 'child_process'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+// 动态解析数据库绝对路径，确保无论从哪里运行都指向正确的数据库文件
+const backendDir = path.resolve(__dirname, '../..')
+const dbAbsolutePath = path.join(backendDir, 'data', 'bookkeeping.db')
+
+// 设置 DATABASE_URL 环境变量为绝对路径
+process.env.DATABASE_URL = `file:${dbAbsolutePath}`
+
+console.log(`📂 数据库路径: ${dbAbsolutePath}`)
+
 const prisma = new PrismaClient()
 
 /**
@@ -34,9 +43,15 @@ export async function initializeDatabase() {
       // 运行 prisma db push 创建表结构
       console.log('  ⏳ 正在创建数据库表...')
       try {
+        // 设置环境变量，确保 Prisma CLI 使用正确的数据库路径
+        const env = {
+          ...process.env,
+          DATABASE_URL: `file:${dbAbsolutePath}`
+        }
         execSync('npx prisma db push --skip-generate', {
           cwd: path.join(__dirname, '../../'),
-          stdio: 'pipe'
+          stdio: 'pipe',
+          env
         })
         console.log('  ✅ 数据库表创建成功')
       } catch (error) {
@@ -52,9 +67,15 @@ export async function initializeDatabase() {
       // 无论数据库是否存在,都运行一次 prisma db push 确保表结构是最新的
       console.log('  ⏳ 检查数据库表结构...')
       try {
+        // 设置环境变量，确保 Prisma CLI 使用正确的数据库路径
+        const env = {
+          ...process.env,
+          DATABASE_URL: `file:${dbAbsolutePath}`
+        }
         execSync('npx prisma db push --skip-generate', {
           cwd: path.join(__dirname, '../../'),
-          stdio: 'pipe'
+          stdio: 'pipe',
+          env
         })
         console.log('  ✅ 数据库表结构检查完成')
       } catch (error) {
