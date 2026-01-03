@@ -24,35 +24,42 @@ export default async function transactionRoutes(fastify) {
       })
     }
 
+    request.log.info(`收到 ${transactions.length} 条交易记录`)
+
     // 批量 upsert（Prisma 不支持原生批量 upsert，需要逐个处理）
     const results = []
     for (const tx of transactions) {
-      const result = await prisma.transaction.upsert({
-        where: { transactionId: tx.transactionId },
-        update: {
+      try {
+        // 清理数据:移除 undefined 和 null 值
+        const cleanData = {
+          transactionId: tx.transactionId,
           platform: tx.platform,
-          bankName: tx.bankName,
+          bankName: tx.bankName || null,
           transactionTime: new Date(tx.transactionTime),
           transactionType: tx.transactionType,
           amount: tx.amount,
-          fee: tx.fee,
-          counterparty: tx.counterparty,
-          category: tx.category,
-          description: tx.description,
-          paymentMethod: tx.paymentMethod,
-          account: tx.account,
-          status: tx.status,
-          merchantOrderId: tx.merchantOrderId,
-          remark: tx.remark,
-          originalData: tx.originalData ? JSON.stringify(tx.originalData) : null
-        },
-        create: {
-          ...tx,
-          transactionTime: new Date(tx.transactionTime),
+          fee: tx.fee || null,
+          counterparty: tx.counterparty || null,
+          category: tx.category || null,
+          description: tx.description || null,
+          paymentMethod: tx.paymentMethod || null,
+          account: tx.account || null,
+          status: tx.status || null,
+          merchantOrderId: tx.merchantOrderId || null,
+          remark: tx.remark || null,
           originalData: tx.originalData ? JSON.stringify(tx.originalData) : null
         }
-      })
-      results.push(result)
+
+        const result = await prisma.transaction.upsert({
+          where: { transactionId: cleanData.transactionId },
+          update: cleanData,
+          create: cleanData
+        })
+        results.push(result)
+      } catch (error) {
+        request.log.error(`处理交易失败: ${tx.transactionId}`, error)
+        throw error
+      }
     }
 
     return {

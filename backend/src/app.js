@@ -16,7 +16,9 @@ export async function createApp() {
   const app = Fastify({
     logger: {
       level: process.env.LOG_LEVEL || 'info'
-    }
+    },
+    // 增加请求体大小限制（默认 1MB，改为 10MB）
+    bodyLimit: 10 * 1024 * 1024
   })
 
   // 注册 CORS 插件

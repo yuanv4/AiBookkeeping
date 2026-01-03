@@ -33,6 +33,20 @@
           </div>
         </div>
 
+        <!-- 年度对比分析 -->
+        <div class="card chart-card full-width">
+          <div class="chart-container">
+            <YearlyComparisonChart :transactions="transactions" />
+          </div>
+        </div>
+
+        <!-- 收支结构分析 -->
+        <div class="card chart-card full-width">
+          <div class="chart-container">
+            <StructureAnalysisChart :transactions="transactions" />
+          </div>
+        </div>
+
         <!-- 分类排行榜 -->
         <div class="card chart-card full-width">
           <h3 class="chart-title">🏆 分类消费排行</h3>
@@ -53,6 +67,8 @@ import InsightCard from '../components/analysis/InsightCard.vue'
 import TrendChart from '../components/charts/TrendChart.vue'
 import CategoryPie from '../components/charts/CategoryPie.vue'
 import CategoryRanking from '../components/analysis/CategoryRanking.vue'
+import YearlyComparisonChart from '../components/charts/YearlyComparisonChart.vue'
+import StructureAnalysisChart from '../components/charts/StructureAnalysisChart.vue'
 
 const router = useRouter()
 const appStore = useAppStore()

@@ -179,3 +179,82 @@ export function calculateCategoryStats(transactions, categories) {
 
   return stats.filter(s => s.transactionCount > 0)
 }
+
+/**
+ * 计算年度对比数据
+ * @param {Array} transactions - 交易列表
+ * @returns {Array} 年度对比数据
+ */
+export function processYearlyComparison(transactions) {
+  const yearlyMap = new Map()
+
+  transactions.forEach(tx => {
+    const year = new Date(tx.transactionTime).getFullYear()
+    if (!yearlyMap.has(year)) {
+      yearlyMap.set(year, { income: 0, expense: 0, count: 0 })
+    }
+    const data = yearlyMap.get(year)
+    if (tx.amount > 0) {
+      data.income += tx.amount
+    } else {
+      data.expense += Math.abs(tx.amount)
+    }
+    data.count++
+  })
+
+  return Array.from(yearlyMap.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([year, data]) => ({
+      year,
+      income: Number(data.income.toFixed(2)),
+      expense: Number(data.expense.toFixed(2)),
+      net: Number((data.income - data.expense).toFixed(2)),
+      count: data.count
+    }))
+}
+
+/**
+ * 计算收支结构数据
+ * @param {Array} transactions - 交易列表
+ * @param {string} type - 'income' | 'expense'
+ * @returns {Object} 结构数据
+ */
+export function processStructureAnalysis(transactions, type = 'expense') {
+  // 筛选数据
+  const filtered = transactions.filter(t => {
+    return type === 'income' ? t.amount > 0 : t.amount < 0
+  })
+
+  // 按周期分组
+  const grouped = new Map()
+
+  filtered.forEach(t => {
+    const month = t.transactionTime.substring(0, 7) // YYYY-MM
+    if (!grouped.has(month)) {
+      grouped.set(month, {})
+    }
+
+    const cat = t.category || '未分类'
+    if (!grouped.get(month)[cat]) {
+      grouped.get(month)[cat] = 0
+    }
+    grouped.get(month)[cat] += Math.abs(t.amount)
+  })
+
+  // 提取所有分类和周期
+  const periods = Array.from(grouped.keys()).sort()
+  const allCategories = [...new Set(periods.flatMap(p => Object.keys(grouped.get(p))))]
+
+  // 构建数据矩阵
+  const data = periods.map(period => {
+    const catData = grouped.get(period)
+    return allCategories.map(cat => Number((catData[cat] || 0).toFixed(2)))
+  })
+
+  return {
+    periods,
+    categories: allCategories,
+    data,
+    total: Number(filtered.reduce((sum, t) => sum + Math.abs(t.amount), 0).toFixed(2))
+  }
+}
