@@ -53,8 +53,7 @@ Thumbs.db
 desktop.ini
 
 # Claude Code 相关
-.claude/*
-!.claude/commands/
+.claude/
 .playwright-mcp
 
 # 调试文件

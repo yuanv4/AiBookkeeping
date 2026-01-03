@@ -42,7 +42,7 @@ export const ALIPAY_FIELD_MAPPING = {
   '交易分类': 'category',
   '交易对方': 'counterparty',
   '商品说明': 'description',
-  '收/支': 'incomeExpense',
+  // '收/支': 'incomeExpense', // 不在 schema 中,仅用于计算 transactionType
   '金额': 'amount',
   '收/付款方式': 'paymentMethod',
   '交易状态': 'status',
@@ -60,7 +60,7 @@ export const WECHAT_FIELD_MAPPING = {
   '交易类型': 'category',
   '交易对方': 'counterparty',
   '商品': 'description',
-  '收/支': 'incomeExpense',
+  // '收/支': 'incomeExpense', // 不在 schema 中,仅用于计算 transactionType
   '金额(元)': 'amount',
   '支付方式': 'paymentMethod',
   '当前状态': 'status',
@@ -247,8 +247,9 @@ export function mapCCBTransaction(raw) {
   mapped.description = raw['摘要'] || ''
   mapped.counterparty = raw['对方账号与户名'] || ''
   mapped.transactionTime = parseTransactionTime(raw['交易日期'])
-  mapped.balance = parseAmount(raw['账户余额'])
-  mapped.location = raw['交易地点/附言'] || ''
+  // balance 和 location 不在数据库 schema 中,保持在 originalData 中即可
+  // mapped.balance = parseAmount(raw['账户余额'])
+  // mapped.location = raw['交易地点/附言'] || ''
 
   mapped.platform = 'bank'
   mapped.bankName = '建设银行'
@@ -276,8 +277,9 @@ export function mapCMBTransaction(raw) {
   mapped.description = raw['交易摘要'] || ''
   mapped.counterparty = raw['对手信息'] || ''
   mapped.transactionTime = parseTransactionTime(raw['记账日期'])
-  mapped.balance = parseAmount(raw['联机余额'])
-  mapped.currency = raw['货币'] || 'CNY'
+  // balance 和 currency 不在数据库 schema 中,保持在 originalData 中即可
+  // mapped.balance = parseAmount(raw['联机余额'])
+  // mapped.currency = raw['货币'] || 'CNY'
 
   mapped.platform = 'bank'
   mapped.bankName = '招商银行'
