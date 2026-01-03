@@ -84,7 +84,7 @@
                 </td>
                 <td>
                   <span v-if="tx.category" class="category-badge" :style="{ backgroundColor: getCategoryColor(tx.category) }">
-                    {{ getCategoryIcon(tx.category) }} {{ tx.category }}
+                    {{ tx.category }}
                   </span>
                   <span v-else class="text-muted">未分类</span>
                 </td>
@@ -129,7 +129,19 @@
 import { computed } from 'vue'
 import { useAppStore } from '../stores/appStore.js'
 import { useFilterStore } from '../stores/filterStore.js'
-import { getCategoryIcon, getCategoryColor } from '../utils/categoryRules.js'
+
+// 预定义颜色数组
+const COLORS = [
+  '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+  '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'
+]
+
+// 根据分类名称生成固定颜色
+function getCategoryColor(categoryName) {
+  if (!categoryName) return '#999'
+  const index = categoryName.charCodeAt(0) % COLORS.length
+  return COLORS[index]
+}
 
 const appStore = useAppStore()
 const filterStore = useFilterStore()

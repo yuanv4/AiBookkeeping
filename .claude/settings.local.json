@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run setup:prisma:*)",
+      "Bash(ls:*)",
+      "Bash(copy:*)",
+      "Bash(npm run dev)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run seed:*)",
+      "Bash(npm run prisma:seed:*)",
+      "Bash(curl:*)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "Bash(node test_transaction.js:*)",
+      "Bash(powershell:*)",
+      "Skill(ccommit)",
+      "Skill(ccommit:*)",
+      "Bash(git rm:*)",
+      "Bash(rm:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build)"
+    ]
+  }
+}

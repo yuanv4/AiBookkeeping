@@ -53,8 +53,8 @@ Thumbs.db
 desktop.ini
 
 # Claude Code 相关
-.claude/
-.playwright-mcp
+# .claude/
+# .playwright-mcp
 
 # 调试文件
 *.cpuprofile

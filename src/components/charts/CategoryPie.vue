@@ -60,8 +60,13 @@ import {
   TooltipComponent,
   LegendComponent
 } from 'echarts/components'
-import { CATEGORY_RULES } from '../../utils/categoryRules.js'
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns'
+
+// 预定义颜色数组
+const COLORS = [
+  '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+  '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'
+]
 
 // 注册 ECharts 组件
 use([
@@ -106,11 +111,10 @@ const pieData = computed(() => {
   // 过滤掉零支出的分类
   const data = categoryStats
     .filter(cat => cat.total > 0)
-    .map(cat => ({
+    .map((cat, index) => ({
       name: cat.name,
       value: cat.total,
-      color: cat.color,
-      icon: cat.icon
+      color: COLORS[index % COLORS.length]
     }))
 
   return data.length > 0 ? data : null
@@ -181,22 +185,10 @@ const chartOption = computed(() => {
  * 计算分类统计数据
  */
 function calculateCategoryStats(transactions, months) {
-  const stats = []
+  const stats = new Map()
   const now = new Date()
   const startDate = startOfMonth(subMonths(now, months - 1))
   const endDate = endOfMonth(now)
-
-  // 初始化所有分类
-  for (const [name, config] of Object.entries(CATEGORY_RULES)) {
-    if (name === '其他') continue
-
-    stats.push({
-      name,
-      icon: config.icon,
-      color: config.color,
-      total: 0
-    })
-  }
 
   // 统计每个分类的支出
   transactions.forEach(t => {
@@ -207,15 +199,19 @@ function calculateCategoryStats(transactions, months) {
     // 只统计支出（负数）
     if (t.amount >= 0) return
 
-    const category = t.category || '其他'
-    const stat = stats.find(s => s.name === category)
+    const category = t.category || '未分类'
 
-    if (stat) {
-      stat.total += Math.abs(t.amount)
+    if (!stats.has(category)) {
+      stats.set(category, {
+        name: category,
+        total: 0
+      })
     }
+
+    stats.get(category).total += Math.abs(t.amount)
   })
 
-  return stats
+  return Array.from(stats.values())
 }
 
 /**

@@ -26,7 +26,6 @@
           <span v-if="index < 3" class="medal">{{ ['🥇', '🥈', '🥉'][index] }}</span>
           <span v-else class="rank-number">{{ index + 1 }}</span>
         </div>
-        <div class="ranking-icon">{{ item.icon }}</div>
         <div class="ranking-info">
           <div class="ranking-name">{{ item.name }}</div>
           <div class="ranking-amount">¥{{ item.total.toFixed(2) }}</div>
@@ -68,8 +67,13 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { CATEGORY_RULES } from '../../utils/categoryRules.js'
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns'
+
+// 预定义颜色数组
+const COLORS = [
+  '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+  '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'
+]
 
 // Props
 const props = defineProps({
@@ -102,6 +106,10 @@ const rankings = computed(() => {
   const sorted = stats
     .filter(item => item.total > 0)
     .sort((a, b) => b.total - a.total)
+    .map((item, index) => ({
+      ...item,
+      color: COLORS[index % COLORS.length]
+    }))
 
   // 计算百分比和趋势
   const total = sorted.reduce((sum, item) => sum + item.total, 0)
@@ -117,22 +125,10 @@ const rankings = computed(() => {
  * 计算分类统计数据
  */
 function calculateCategoryStats(transactions, months) {
-  const stats = []
+  const stats = new Map()
   const now = new Date()
   const startDate = startOfMonth(subMonths(now, months - 1))
   const endDate = endOfMonth(now)
-
-  // 初始化所有分类
-  for (const [name, config] of Object.entries(CATEGORY_RULES)) {
-    if (name === '其他') continue
-
-    stats.push({
-      name,
-      icon: config.icon,
-      color: config.color,
-      total: 0
-    })
-  }
 
   // 统计每个分类的支出
   transactions.forEach(t => {
@@ -143,15 +139,19 @@ function calculateCategoryStats(transactions, months) {
     // 只统计支出（负数）
     if (t.amount >= 0) return
 
-    const category = t.category || '其他'
-    const stat = stats.find(s => s.name === category)
+    const category = t.category || '未分类'
 
-    if (stat) {
-      stat.total += Math.abs(t.amount)
+    if (!stats.has(category)) {
+      stats.set(category, {
+        name: category,
+        total: 0
+      })
     }
+
+    stats.get(category).total += Math.abs(t.amount)
   })
 
-  return stats
+  return Array.from(stats.values())
 }
 
 /**
@@ -268,7 +268,7 @@ function calculateTrend(categoryName, currentMonths) {
 
 .ranking-item {
   display: grid;
-  grid-template-columns: 40px 40px 1fr 2fr auto;
+  grid-template-columns: 40px 1fr 2fr auto;
   align-items: center;
   gap: 16px;
   padding: 16px;
@@ -300,13 +300,6 @@ function calculateTrend(categoryName, currentMonths) {
 .rank-number {
   font-weight: bold;
   color: var(--text-tertiary);
-}
-
-.ranking-icon {
-  font-size: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .ranking-info {
@@ -403,16 +396,16 @@ function calculateTrend(categoryName, currentMonths) {
 /* 响应式 */
 @media (max-width: 768px) {
   .ranking-item {
-    grid-template-columns: 30px 30px 1fr;
+    grid-template-columns: 30px 1fr;
     gap: 8px;
   }
 
   .ranking-bar-wrapper {
-    grid-column: 3 / -1;
+    grid-column: 2 / -1;
   }
 
   .ranking-stats {
-    grid-column: 3 / -1;
+    grid-column: 2 / -1;
     flex-direction: row;
     justify-content: space-between;
   }

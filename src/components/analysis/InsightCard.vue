@@ -43,7 +43,6 @@
 
       <!-- Top 分类 -->
       <div class="insight-card success" v-if="insights.topCategory">
-        <div class="insight-icon">{{ insights.topCategory.icon }}</div>
         <div class="insight-content">
           <div class="insight-label">最高支出分类</div>
           <div class="insight-value">{{ insights.topCategory.name }}</div>
@@ -80,7 +79,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns'
-import { getCategoryIcon } from '../../utils/categoryRules.js'
 
 // Props
 const props = defineProps({
@@ -154,8 +152,7 @@ const insights = computed(() => {
   const topCategory = topCategoryEntry ? {
     name: topCategoryEntry[0],
     amount: topCategoryEntry[1],
-    percent: ((topCategoryEntry[1] / monthlyExpense) * 100).toFixed(1),
-    icon: getCategoryIcon(topCategoryEntry[0])
+    percent: ((topCategoryEntry[1] / monthlyExpense) * 100).toFixed(1)
   } : null
 
   // 消费习惯分析

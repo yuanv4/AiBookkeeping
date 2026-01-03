@@ -44,7 +44,12 @@ import {
   GridComponent
 } from 'echarts/components'
 import { processStructureAnalysis } from '../../utils/chartDataProcessor.js'
-import { getCategoryColor } from '../../utils/categoryRules.js'
+
+// 预定义颜色数组
+const COLORS = [
+  '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+  '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'
+]
 
 // 注册 ECharts 组件
 use([
@@ -104,7 +109,7 @@ const stackedOption = computed(() => {
   if (!structureData.value) return {}
 
   const { periods, categories, data } = structureData.value
-  const colors = categories.map(cat => getCategoryColor(cat))
+  const colors = categories.map((cat, index) => COLORS[index % COLORS.length])
 
   // 生成系列数据
   const series = categories.map((cat, index) => ({
