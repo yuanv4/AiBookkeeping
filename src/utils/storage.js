@@ -24,7 +24,6 @@ export const STORAGE_KEYS = {
   CATEGORIES: 'categories',
   TRANSACTION_CATEGORIES: 'transaction_categories',
   CORRECTIONS: 'corrections',
-  AI_CONFIG: 'ai_config',
   FILTERS: 'filters',                 // 预留
   PREFERENCES: 'preferences'          // 预留
 }

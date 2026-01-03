@@ -32,7 +32,7 @@ export default async function migrationRoutes(fastify) {
       }
     }
 
-    const { transactions, categories, transactionCategories, corrections, aiConfig } = exportData.data
+    const { transactions, categories, transactionCategories, corrections } = exportData.data
     const userId = request.user.userId
 
     // 导入交易数据（幂等：重复导入不重复）
@@ -120,28 +120,6 @@ export default async function migrationRoutes(fastify) {
         })
         corrCount++
       }
-    }
-
-    // 导入 AI 配置（不包含 apiKey）
-    if (aiConfig && typeof aiConfig === 'object') {
-      const { apiKey, ...configWithoutApiKey } = aiConfig
-
-      await prisma.appConfig.upsert({
-        where: {
-          userId_key: {
-            userId,
-            key: 'ai_config'
-          }
-        },
-        update: {
-          value: JSON.stringify(configWithoutApiKey)
-        },
-        create: {
-          userId,
-          key: 'ai_config',
-          value: JSON.stringify(configWithoutApiKey)
-        }
-      })
     }
 
     return {

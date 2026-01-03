@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
-import { categoriesRepo, transactionCategoriesRepo, correctionsRepo, configRepo } from '../repositories/index.js'
+import { categoriesRepo, transactionCategoriesRepo, correctionsRepo } from '../repositories/index.js'
 import { rowsToMapping, mappingToRows } from '../utils/categoryMapping.js'
 import { errorHandler } from '../utils/errorHandler.js'
 import { useNotificationStore } from './notificationStore.js'
 
 export const useCategoryStore = defineStore('category', {
   state: () => ({
-    // AI 生成的分类体系
+    // 分类体系
     categories: [],
 
     // 交易分类映射
@@ -14,23 +14,7 @@ export const useCategoryStore = defineStore('category', {
     transactionCategories: {},
 
     // 用户纠正历史
-    corrections: [],
-
-    // AI 配置(唯一真源)
-    // ⚠️ API Key 策略: 前端本地保存,后端不存储
-    // - 前端: apiKey 保存在 IndexedDB/app_config (当前实现)
-    // - 导出/备份: apiKey 脱敏为 '******' 或 undefined (dataExporter.js, backupManager.js)
-    // - 后端迁移: 后端数据库不存储 apiKey,仅存储 provider/baseURL/model/enabled/fallbackToRules
-    // - 恢复逻辑: 导入后用户需重新填写 apiKey
-    aiConfig: {
-      provider: 'ollama', // 'ollama' | 'openai' | 'qianwen'
-      apiKey: '',         // ⚠️ 敏感信息,不导出到后端
-      baseURL: 'http://localhost:11434/v1',
-      model: 'qwen2.5:7b',
-      timeout: 30000,
-      enabled: false,           // 是否启用 AI 分类
-      fallbackToRules: true     // AI 失败时回退到规则分类
-    }
+    corrections: []
   }),
 
   getters: {
@@ -72,15 +56,13 @@ export const useCategoryStore = defineStore('category', {
         const categoriesData = await Promise.all([
           categoriesRepo.getAll(),
           transactionCategoriesRepo.getAll(),
-          correctionsRepo.getAll(),
-          configRepo.get('ai_config')
+          correctionsRepo.getAll()
         ])
 
         this.categories = categoriesData[0]
         // transactionCategories: 数组行 → 对象映射
         this.transactionCategories = rowsToMapping(categoriesData[1])
         this.corrections = categoriesData[2]
-        this.aiConfig = categoriesData[3] || this.aiConfig
       } catch (error) {
         const { message, type } = errorHandler.normalizeStorageError(error)
         const notificationStore = useNotificationStore()
@@ -99,9 +81,6 @@ export const useCategoryStore = defineStore('category', {
         // transactionCategories: 对象映射 → 数组行
         await transactionCategoriesRepo.bulkSet(JSON.parse(JSON.stringify(this.transactionCategories)))
         await correctionsRepo.bulkAdd(JSON.parse(JSON.stringify(this.corrections)))
-        // ⚠️ 深拷贝 aiConfig,避免保存响应式对象
-        const aiConfigPlain = JSON.parse(JSON.stringify(this.aiConfig))
-        await configRepo.set('ai_config', aiConfigPlain)
       } catch (error) {
         const { message, type } = errorHandler.normalizeStorageError(error)
         const notificationStore = useNotificationStore()
@@ -163,15 +142,7 @@ export const useCategoryStore = defineStore('category', {
     },
 
     /**
-     * 更新 AI 配置
-     */
-    async updateAIConfig(config) {
-      this.aiConfig = { ...this.aiConfig, ...config }
-      await this.saveToStorage()
-    },
-
-    /**
-     * 清空分类数据（保留 AI 配置）
+     * 清空分类数据
      */
     async clearCategories() {
       this.categories = []

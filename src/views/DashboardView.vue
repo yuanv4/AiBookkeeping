@@ -36,11 +36,6 @@
             <p class="feature-desc">自动识别微信、支付宝、银行等不同平台账单格式</p>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">🏷️</div>
-            <h3 class="feature-title">AI 自动分类</h3>
-            <p class="feature-desc">使用人工智能自动为每笔交易打上消费分类标签</p>
-          </div>
-          <div class="feature-card">
             <div class="feature-icon">📈</div>
             <h3 class="feature-title">数据可视化</h3>
             <p class="feature-desc">丰富的图表展示，让您的消费习惯一目了然</p>

@@ -64,6 +64,8 @@ desktop.ini
 backend/data/
 backend/*.db
 backend/*.db-journal
+backend/**/*.db
+backend/**/*.db-journal
 backend/prisma/migrations/
 
 # 临时测试文件

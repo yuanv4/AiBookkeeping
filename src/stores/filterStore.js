@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { CATEGORIES } from '../utils/categoryRules.js'
 
 export const useFilterStore = defineStore('filter', {
   state: () => ({
@@ -35,10 +34,6 @@ export const useFilterStore = defineStore('filter', {
       )
     },
 
-    /**
-     * 分类列表
-     */
-    categories: () => CATEGORIES
   },
 
   actions: {
@@ -114,7 +109,7 @@ export const useFilterStore = defineStore('filter', {
       }
 
       // 分类筛选
-      const category = this.filterCategory || (this.selectedCategory ? CATEGORIES[this.selectedCategory]?.name : null)
+      const category = this.filterCategory || this.selectedCategory
       if (category) {
         result = result.filter(t => (t.category || '其他') === category)
       }

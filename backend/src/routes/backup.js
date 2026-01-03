@@ -15,19 +15,11 @@ export default async function backupRoutes(fastify) {
     const userId = request.user.userId
 
     // 并行获取所有数据
-    const [transactions, categories, transactionCategories, corrections, aiConfig] = await Promise.all([
+    const [transactions, categories, transactionCategories, corrections] = await Promise.all([
       prisma.transaction.findMany(),
       prisma.category.findMany(),
       prisma.transactionCategory.findMany(),
-      prisma.correction.findMany(),
-      prisma.appConfig.findUnique({
-        where: {
-          userId_key: {
-            userId,
-            key: 'ai_config'
-          }
-        }
-      })
+      prisma.correction.findMany()
     ])
 
     // 转换交易分类映射为对象格式（前端业务层格式）
@@ -43,20 +35,6 @@ export default async function backupRoutes(fastify) {
       }
     })
 
-    // 构建 AI 配置（脱敏 apiKey）
-    let aiConfigValue = {}
-    if (aiConfig) {
-      try {
-        aiConfigValue = JSON.parse(aiConfig.value)
-        // 脱敏 apiKey
-        if (aiConfigValue.apiKey) {
-          aiConfigValue.apiKey = '******'
-        }
-      } catch {
-        aiConfigValue = {}
-      }
-    }
-
     const backupData = {
       schemaVersion: '1.0.0',
       appVersion: '1.0.0',
@@ -65,8 +43,7 @@ export default async function backupRoutes(fastify) {
         transactions,
         categories,
         transactionCategories: transactionCategoriesMapping,
-        corrections,
-        aiConfig: aiConfigValue
+        corrections
       }
     }
 

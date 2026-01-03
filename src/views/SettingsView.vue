@@ -4,17 +4,9 @@
       <!-- 侧边栏标签 -->
       <div class="settings-tabs">
         <router-link
-          to="/settings/ai"
-          class="tab-item"
-          :class="{ active: $route.path.startsWith('/settings/ai') || $route.path === '/settings' }"
-        >
-          <span class="tab-icon">🤖</span>
-          <span class="tab-label">AI 配置</span>
-        </router-link>
-        <router-link
           to="/settings/data"
           class="tab-item"
-          :class="{ active: $route.path.startsWith('/settings/data') }"
+          :class="{ active: $route.path.startsWith('/settings/data') || $route.path === '/settings' }"
         >
           <span class="tab-icon">💾</span>
           <span class="tab-label">数据管理</span>

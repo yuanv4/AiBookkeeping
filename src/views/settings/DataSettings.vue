@@ -138,8 +138,7 @@ async function exportData() {
         appStore.transactions,
         categoryStore.categories,
         categoryStore.transactionCategories,
-        categoryStore.corrections,
-        categoryStore.aiConfig
+        categoryStore.corrections
       )
       content = JSON.stringify(data, null, 2)
       filename = `账单备份_${new Date().toISOString().slice(0, 10)}.json`

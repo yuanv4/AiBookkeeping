@@ -35,14 +35,8 @@ const routes = [
     name: 'Settings',
     component: () => import('../views/SettingsView.vue'),
     meta: { title: '设置', requiresAuth: true },
-    redirect: '/settings/ai',
+    redirect: '/settings/data',
     children: [
-      {
-        path: 'ai',
-        name: 'AISettings',
-        component: () => import('../components/settings/AIConfig.vue'),
-        meta: { title: 'AI 配置', requiresAuth: true }
-      },
       {
         path: 'data',
         name: 'DataSettings',
@@ -61,7 +55,7 @@ const router = createRouter({
 // 路由守卫:检查认证状态
 router.beforeEach((to, from, next) => {
   // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - AI 账单汇集工具` : 'AI 账单汇集工具'
+  document.title = to.meta.title ? `${to.meta.title} - 智能账单汇集工具` : '智能账单汇集工具'
 
   // 公开路由(如登录页)不需要认证
   if (to.meta.public) {

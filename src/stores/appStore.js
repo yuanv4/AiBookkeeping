@@ -7,7 +7,6 @@ import {
   mergeTransactions,
   deduplicateTransactions
 } from '../utils/dataModel.js'
-import { batchCategorize } from '../utils/categorizer.js'
 import { useCategoryStore } from './categoryStore.js'
 import { transactionsRepo, configRepo } from '../repositories/index.js'
 import { errorHandler } from '../utils/errorHandler.js'
@@ -77,7 +76,6 @@ export const useAppStore = defineStore('app', () => {
       dataTypes: [
         `交易记录 (${transactions.value.length} 条)`,
         `分类数据`,
-        `AI 配置`,
         `筛选器和偏好设置`
       ]
     }
@@ -275,22 +273,11 @@ export const useAppStore = defineStore('app', () => {
 
       // 合并和去重
       const uniqueTransactions = deduplicateTransactions(allTransactions)
-
-      // 自动分类
-      console.log('🏷️ 开始自动分类交易...')
-      const categoryStore = useCategoryStore()
-      const aiConfig = categoryStore.aiConfig  // ✅ 从 categoryStore 获取
-      const categorizedTransactions = await batchCategorize(uniqueTransactions, {
-        useAI: aiConfig.enabled,
-        aiConfig: aiConfig,
-        fallbackToRules: aiConfig.fallbackToRules
-      })
-
-      transactions.value = categorizedTransactions
+      transactions.value = uniqueTransactions
 
       // 保存到 IndexedDB
       await saveTransactions()
-      console.log(`✅ 分类完成，共 ${categorizedTransactions.length} 条交易`)
+      console.log(`✅ 处理完成，共 ${uniqueTransactions.length} 条交易`)
     } catch (error) {
       console.error('处理文件失败:', error)
       throw error
