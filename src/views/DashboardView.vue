@@ -125,9 +125,6 @@
         </div>
       </div>
 
-      <!-- 消费洞察 -->
-      <InsightCard :transactions="transactions" />
-
       <!-- 图表区域 -->
       <div class="charts-grid">
         <div class="card chart-card">
@@ -170,7 +167,6 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/appStore.js'
 import FileUploader from '../components/common/FileUploader.vue'
-import InsightCard from '../components/analysis/InsightCard.vue'
 import TrendChart from '../components/charts/TrendChart.vue'
 import CategoryPie from '../components/charts/CategoryPie.vue'
 import * as XLSX from 'xlsx'

@@ -12,9 +12,6 @@
 
     <!-- 分析内容 -->
     <div v-else class="analysis-content">
-      <!-- 消费洞察 -->
-      <InsightCard :transactions="transactions" />
-
       <!-- 图表网格 -->
       <div class="charts-section">
         <!-- 月度趋势图 -->
@@ -63,7 +60,6 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/appStore.js'
-import InsightCard from '../components/analysis/InsightCard.vue'
 import TrendChart from '../components/charts/TrendChart.vue'
 import CategoryPie from '../components/charts/CategoryPie.vue'
 import CategoryRanking from '../components/analysis/CategoryRanking.vue'

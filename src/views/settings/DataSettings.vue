@@ -8,41 +8,6 @@
       <span class="badge-text">云端存储 - 数据存储在后端服务器</span>
     </div>
 
-    <!-- 数据统计 -->
-    <div class="section">
-      <h3 class="section-title">数据统计</h3>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon">📋</div>
-          <div class="stat-content">
-            <div class="stat-label">交易记录</div>
-            <div class="stat-value">{{ statistics.total }}</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">💰</div>
-          <div class="stat-content">
-            <div class="stat-label">总收入</div>
-            <div class="stat-value income">¥{{ statistics.income.toFixed(2) }}</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">💸</div>
-          <div class="stat-content">
-            <div class="stat-label">总支出</div>
-            <div class="stat-value expense">¥{{ Math.abs(statistics.expense).toFixed(2) }}</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📁</div>
-          <div class="stat-content">
-            <div class="stat-label">已上传文件</div>
-            <div class="stat-value">{{ files.length }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- 导出数据 -->
     <div class="section">
       <h3 class="section-title">导出数据</h3>
@@ -126,7 +91,6 @@ const exportFormat = ref('json')
 
 const files = computed(() => appStore.files)
 const transactions = computed(() => appStore.transactions)
-const statistics = computed(() => appStore.statistics)
 const hasData = computed(() => appStore.hasData)
 
 async function exportData() {
@@ -283,50 +247,6 @@ async function confirmClearData() {
   cursor: pointer;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  border: var(--card-border);
-}
-
-.stat-icon {
-  font-size: 28px;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.stat-value.income {
-  color: var(--color-success);
-}
-
-.stat-value.expense {
-  color: var(--color-danger);
-}
-
 .danger-zone {
   background: var(--bg-card);
   padding: 20px;
@@ -420,10 +340,6 @@ async function confirmClearData() {
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
   .section-content {
     flex-direction: column;
     align-items: stretch;

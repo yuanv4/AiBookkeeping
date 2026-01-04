@@ -1,10 +1,5 @@
 <template>
   <div class="analysis-panel">
-    <!-- 洞察卡片 -->
-    <div class="section">
-      <InsightCard :transactions="transactions" />
-    </div>
-
     <!-- 图表网格 -->
     <div class="charts-grid">
       <!-- 趋势图 -->
@@ -29,7 +24,6 @@
 </template>
 
 <script setup>
-import InsightCard from './InsightCard.vue'
 import TrendChart from '../charts/TrendChart.vue'
 import CategoryPie from '../charts/CategoryPie.vue'
 import CategoryRanking from './CategoryRanking.vue'
@@ -58,15 +52,6 @@ function handleCategorySelect(category) {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.section {
-  margin-bottom: 20px;
-}
-
-.section h4 {
-  font-size: 1rem;
-  color: #333;
 }
 
 .charts-grid {
