@@ -125,17 +125,19 @@
         </div>
       </div>
 
-      <!-- 图表区域 -->
-      <div class="charts-grid">
-        <div class="card chart-card">
-          <h3 class="chart-title">📈 月度收支趋势</h3>
-          <TrendChart :transactions="transactions" />
-        </div>
-        <div class="card chart-card">
-          <h3 class="chart-title">🍩 消费构成</h3>
-          <CategoryPie :transactions="transactions" />
-        </div>
-      </div>
+      <!-- 财务指标 -->
+      <FinancialMetrics
+        :statistics="statistics"
+        :monthly-stats="monthlyStats"
+        :yearly-stats="yearlyStats"
+      />
+
+      <!-- 近期大额交易列表 -->
+      <LargeTransactionList
+        :transactions="transactions"
+        :limit="10"
+        @time-range-change="handleTimeRangeChange"
+      />
 
       <!-- 上传模态框 -->
       <div v-if="showUploadModal" class="modal-overlay" @click.self="showUploadModal = false">
@@ -167,8 +169,8 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/appStore.js'
 import FileUploader from '../components/common/FileUploader.vue'
-import TrendChart from '../components/charts/TrendChart.vue'
-import CategoryPie from '../components/charts/CategoryPie.vue'
+import FinancialMetrics from '../components/dashboard/FinancialMetrics.vue'
+import LargeTransactionList from '../components/dashboard/LargeTransactionList.vue'
 import * as XLSX from 'xlsx'
 
 const router = useRouter()
@@ -182,6 +184,47 @@ const processing = computed(() => appStore.processing)
 const statistics = computed(() => appStore.statistics)
 const hasData = computed(() => appStore.hasData)
 
+// 本月收支统计
+const monthlyStats = computed(() => {
+  const now = new Date()
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+  const monthlyTransactions = transactions.value.filter(t =>
+    // 边界保护：确保 transactionTime 存在
+    t.transactionTime && t.transactionTime.startsWith(currentMonth)
+  )
+
+  const income = monthlyTransactions
+    .filter(t => t.amount > 0)
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const expense = monthlyTransactions
+    .filter(t => t.amount < 0)
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  return { income, expense, net: income + expense }
+})
+
+// 本年收支统计
+const yearlyStats = computed(() => {
+  const currentYear = new Date().getFullYear()
+
+  const yearlyTransactions = transactions.value.filter(t =>
+    // 边界保护：确保 transactionTime 存在且有效
+    t.transactionTime && new Date(t.transactionTime).getFullYear() === currentYear
+  )
+
+  const income = yearlyTransactions
+    .filter(t => t.amount > 0)
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const expense = yearlyTransactions
+    .filter(t => t.amount < 0)
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  return { income, expense, net: income + expense }
+})
+
 function handleFilesAdded() {
   // 文件添加后的处理
 }
@@ -193,6 +236,11 @@ async function processFiles() {
   } catch (error) {
     alert('处理文件失败: ' + error.message)
   }
+}
+
+function handleTimeRangeChange(range) {
+  console.log('时间范围变化:', range)
+  // 可选：显示通知或更新 UI
 }
 
 function exportData() {
@@ -406,23 +454,6 @@ async function confirmClearData() {
 
 .summary-card.expense .summary-value {
   color: var(--color-danger);
-}
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 20px;
-}
-
-.chart-card {
-  padding: 20px;
-}
-
-.chart-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 15px 0;
 }
 
 /* 模态框样式 */

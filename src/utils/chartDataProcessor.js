@@ -214,6 +214,80 @@ export function processYearlyComparison(transactions) {
 }
 
 /**
+ * 智能确定时间范围
+ * 规则：
+ * - 数据跨度 < 30天：显示全部
+ * - 数据跨度 30-90天：显示最近30天
+ * - 数据跨度 > 90天：显示最近90天
+ *
+ * 边界处理：
+ * - 最小钳制到 1 天（避免"近 0 天"导致筛选为空）
+ * - 空数据或无效时间默认返回近 30 天
+ * @param {Array} transactions - 交易列表
+ * @returns {Object} { days: number, label: string }
+ */
+export function determineSmartTimeRange(transactions) {
+  if (!transactions || transactions.length === 0) {
+    return { days: 30, label: '近30天' }
+  }
+
+  const dates = transactions
+    .map(t => t.transactionTime ? new Date(t.transactionTime).getTime() : NaN)
+    .filter(d => !isNaN(d))
+
+  if (dates.length === 0) {
+    return { days: 30, label: '近30天' }
+  }
+
+  const minDate = Math.min(...dates)
+  const maxDate = Math.max(...dates)
+  let spanDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24))
+
+  // 边界处理：最小钳制到 1 天
+  if (spanDays < 1) spanDays = 1
+
+  if (spanDays < 30) {
+    return { days: spanDays, label: `全部${spanDays}天` }
+  } else if (spanDays < 90) {
+    return { days: 30, label: '近30天' }
+  } else {
+    return { days: 90, label: '近90天' }
+  }
+}
+
+/**
+ * 获取大额交易列表（Top N）
+ *
+ * 边界处理：
+ * - 过滤掉 transactionTime 为 null 的记录
+ * - 只处理支出交易（amount < 0）
+ * @param {Array} transactions - 交易列表
+ * @param {number} limit - 返回数量，默认 10
+ * @param {number} timeRangeDays - 时间范围（天数），默认 30
+ * @returns {Array} 大额交易列表
+ */
+export function getTopLargeTransactions(transactions, limit = 10, timeRangeDays = 30) {
+  const now = new Date()
+  const cutoffDate = new Date(now.getTime() - timeRangeDays * 24 * 60 * 60 * 1000)
+
+  return transactions
+    .filter(t => {
+      // 边界保护：确保时间字段有效
+      if (!t.transactionTime) return false
+
+      const txDate = new Date(t.transactionTime)
+      // 筛选支出且在时间范围内
+      return t.amount < 0 && txDate >= cutoffDate && txDate <= now
+    })
+    .sort((a, b) => a.amount - b.amount) // 负数排序，从小到大即绝对值从大到小
+    .slice(0, limit)
+    .map(t => ({
+      ...t,
+      absoluteAmount: Math.abs(t.amount)
+    }))
+}
+
+/**
  * 计算收支结构数据
  * @param {Array} transactions - 交易列表
  * @param {string} type - 'income' | 'expense'
