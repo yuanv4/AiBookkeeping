@@ -33,7 +33,7 @@
               :style="{ backgroundColor: item.color }"
             ></span>
             <span class="legend-name">{{ item.name }}</span>
-            <span class="legend-value">¥{{ item.value.toFixed(2) }}</span>
+            <span class="legend-value">¥{{ item.value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
             <span class="legend-percent">{{ item.percent }}%</span>
           </div>
         </div>
@@ -43,7 +43,10 @@
         <span>加载中...</span>
       </div>
       <div v-if="!loading && !pieData" class="chart-empty">
-        暂无数据
+        <p>当前时间范围暂无支出数据</p>
+        <button v-if="selectedRange !== 12" class="empty-action" @click="selectedRange = 12">
+          查看近12个月
+        </button>
       </div>
     </div>
   </div>
@@ -98,7 +101,7 @@ const emit = defineEmits(['category-select'])
 
 // 状态
 const loading = ref(false)
-const selectedRange = ref(1) // 默认显示本月
+const selectedRange = ref(12) // 默认显示近12个月
 const selectedCategory = ref(null)
 const timeRanges = [
   { label: '本月', value: 1 },
@@ -154,7 +157,7 @@ const chartOption = computed(() => {
       formatter: (params) => {
         return `
           <div style="font-weight: bold; margin-bottom: 6px;">${params.name}</div>
-          <div>支出：¥${params.value.toFixed(2)}</div>
+          <div>支出：¥${params.value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           <div>占比：${params.percent}%</div>
         `
       }
@@ -352,11 +355,32 @@ function toggleCategory(name) {
 .chart-loading,
 .chart-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 12px;
   height: 350px;
   color: #999;
   font-size: 0.95rem;
+}
+
+.chart-empty p {
+  margin: 0;
+}
+
+.empty-action {
+  padding: 6px 16px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.empty-action:hover {
+  opacity: 0.9;
 }
 
 .chart-loading {

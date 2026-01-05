@@ -144,13 +144,13 @@ const stackedOption = computed(() => {
           tooltip += `
             <div style="display: flex; justify-content: space-between; gap: 20px;">
               <span>${param.marker} ${param.seriesName}：</span>
-              <span style="font-weight: bold;">¥${param.value.toFixed(2)}</span>
+              <span style="font-weight: bold;">¥${param.value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           `
           total += param.value
         })
         tooltip += `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
-          <strong>合计：¥${total.toFixed(2)}</strong>
+          <strong>合计：¥${total.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
         </div>`
         return tooltip
       }
@@ -173,7 +173,7 @@ const stackedOption = computed(() => {
     yAxis: {
       type: 'value',
       axisLabel: {
-        formatter: '¥{value}'
+        formatter: (value) => '¥' + value.toLocaleString('zh-CN')
       }
     },
     series

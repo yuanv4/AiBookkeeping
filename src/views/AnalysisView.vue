@@ -24,7 +24,7 @@
         <!-- 消费构成饼图 -->
         <div class="card chart-card">
           <div class="chart-container">
-            <CategoryPie :transactions="transactions" />
+            <CategoryPie :transactions="transactions" @category-select="handleCategoryClick" />
           </div>
         </div>
 

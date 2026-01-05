@@ -26,12 +26,14 @@ import { useRoute } from 'vue-router'
 import MainLayout from './layouts/MainLayout.vue'
 import { useAppStore } from './stores/appStore.js'
 import { useCategoryStore } from './stores/categoryStore.js'
+import { useNotificationStore } from './stores/notificationStore.js'
 import { authApi } from './api/index.js'
 import { isRemoteMode } from './repositories/index.js'
 
 const route = useRoute()
 const appStore = useAppStore()
 const categoryStore = useCategoryStore()
+const notificationStore = useNotificationStore()
 const loading = ref(true)
 
 onMounted(async () => {
@@ -54,7 +56,11 @@ onMounted(async () => {
     ])
   } catch (error) {
     console.error('加载数据失败:', error)
-    // 继续执行,用户可以看到错误
+    // 显示可视化错误提示
+    const errorMsg = error.message?.includes('网络') || error.message?.includes('连接')
+      ? '网络连接失败，请检查后端服务是否启动'
+      : '数据加载失败，请刷新页面重试'
+    notificationStore.show(errorMsg, 'error', 5000)
   } finally {
     loading.value = false
   }

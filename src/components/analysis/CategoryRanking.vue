@@ -21,13 +21,14 @@
         :key="item.name"
         class="ranking-item"
         :class="{ top: index < 3 }"
+        @click="emit('category-click', item.name)"
       >
         <div class="ranking-rank">
           <span class="rank-number" :class="{ 'rank-top': index < 3 }">{{ index + 1 }}</span>
         </div>
         <div class="ranking-info">
           <div class="ranking-name">{{ item.name }}</div>
-          <div class="ranking-amount">¥{{ item.total.toFixed(2) }}</div>
+          <div class="ranking-amount">¥{{ item.total.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</div>
         </div>
         <div class="ranking-bar-wrapper">
           <div
@@ -59,7 +60,10 @@
 
     <div v-if="!loading && rankings.length === 0" class="ranking-empty">
       <div class="empty-icon"><BarChartOutlined /></div>
-      <p>暂无支出数据</p>
+      <p>当前时间范围暂无支出数据</p>
+      <button v-if="selectedRange !== 12" class="empty-action" @click="selectedRange = 12">
+        查看近12个月
+      </button>
     </div>
   </div>
 </template>
@@ -90,9 +94,12 @@ const props = defineProps({
   }
 })
 
+// Emits
+const emit = defineEmits(['category-click'])
+
 // 状态
 const loading = ref(false)
-const selectedRange = ref(1) // 默认显示本月
+const selectedRange = ref(12) // 默认显示近12个月
 const timeRanges = [
   { label: '本月', value: 1 },
   { label: '近3月', value: 3 },
@@ -286,6 +293,7 @@ function calculateTrend(categoryName, currentMonths) {
 
 .ranking-item:hover {
   background: var(--color-gray-100);
+  cursor: pointer;
 }
 
 .ranking-item.top {
@@ -380,8 +388,28 @@ function calculateTrend(categoryName, currentMonths) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 12px;
   padding: 60px 20px;
   color: var(--text-tertiary);
+}
+
+.ranking-empty p {
+  margin: 0;
+}
+
+.empty-action {
+  padding: 6px 16px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.empty-action:hover {
+  opacity: 0.9;
 }
 
 .ranking-loading {
