@@ -1,7 +1,7 @@
 <template>
   <div class="ranking-container">
     <div class="ranking-header">
-      <h3 class="ranking-title">🏆 分类支出排行榜</h3>
+      <h3 class="ranking-title"><TrophyOutlined /> 分类支出排行榜</h3>
       <div class="time-range-selector">
         <button
           v-for="range in timeRanges"
@@ -23,8 +23,7 @@
         :class="{ top: index < 3 }"
       >
         <div class="ranking-rank">
-          <span v-if="index < 3" class="medal">{{ ['🥇', '🥈', '🥉'][index] }}</span>
-          <span v-else class="rank-number">{{ index + 1 }}</span>
+          <span class="rank-number" :class="{ 'rank-top': index < 3 }">{{ index + 1 }}</span>
         </div>
         <div class="ranking-info">
           <div class="ranking-name">{{ item.name }}</div>
@@ -59,7 +58,7 @@
     </div>
 
     <div v-if="!loading && rankings.length === 0" class="ranking-empty">
-      <div class="empty-icon">📊</div>
+      <div class="empty-icon"><BarChartOutlined /></div>
       <p>暂无支出数据</p>
     </div>
   </div>
@@ -68,11 +67,19 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns'
+import { TrophyOutlined, BarChartOutlined } from '@ant-design/icons-vue'
 
-// 预定义颜色数组
+// 分类配色（克制但有区分度）
 const COLORS = [
-  '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
-  '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'
+  '#1677ff', // 主色蓝（第一名）
+  '#389e0d', // 克制绿
+  '#595959', // 深灰
+  '#d46b08', // 暖橙
+  '#8c8c8c', // 中灰
+  '#531dab', // 深紫
+  '#bfbfbf', // 浅灰
+  '#08979c', // 青色
+  '#c41d7f'  // 洋红
 ]
 
 // Props
@@ -287,19 +294,27 @@ function calculateTrend(categoryName, currentMonths) {
 }
 
 .ranking-rank {
-  font-size: 1.5rem;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.medal {
-  font-size: 2rem;
-}
-
 .rank-number {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: bold;
   color: var(--text-tertiary);
+  background: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+}
+
+.rank-number.rank-top {
+  background: var(--color-primary);
+  color: white;
 }
 
 .ranking-info {
@@ -375,8 +390,9 @@ function calculateTrend(categoryName, currentMonths) {
 }
 
 .empty-icon {
-  font-size: 4rem;
+  font-size: 3rem;
   margin-bottom: 16px;
+  color: var(--text-tertiary);
 }
 
 .spinner {

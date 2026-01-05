@@ -67,7 +67,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-body);
 }
 
 .loading-content {
@@ -78,7 +78,7 @@ onMounted(async () => {
   width: 48px;
   height: 48px;
   margin: 0 auto 16px;
-  border: 4px solid var(--border-color);
+  border: 4px solid var(--border-default);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;

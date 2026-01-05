@@ -8,7 +8,7 @@
       @drop.prevent="handleDrop"
       @click="triggerFileInput"
     >
-      <div class="upload-icon">📁</div>
+      <div class="upload-icon"><CloudUploadOutlined /></div>
       <div class="upload-text">{{ uploadText }}</div>
       <div class="upload-hint">{{ uploadHint }}</div>
       <input
@@ -25,7 +25,12 @@
     <div v-if="showFileList && files.length > 0" class="file-list">
       <div v-for="file in files" :key="file.id" class="file-item">
         <div class="file-info">
-          <span class="file-icon">{{ getFileIcon(file) }}</span>
+          <span class="file-icon">
+            <AlipayCircleOutlined v-if="isAlipayFile(file)" />
+            <WechatOutlined v-else-if="isWechatFile(file)" />
+            <BankOutlined v-else-if="isBankFile(file)" />
+            <FileTextOutlined v-else />
+          </span>
           <div class="file-details">
             <span class="file-name">{{ file.name }}</span>
             <span class="file-meta">{{ formatFileSize(file.size) }} · {{ file.platform || '未识别' }}</span>
@@ -38,8 +43,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, h } from 'vue'
 import { useAppStore } from '../../stores/appStore.js'
+import {
+  CloudUploadOutlined,
+  FileTextOutlined,
+  AlipayCircleOutlined,
+  WechatOutlined,
+  BankOutlined
+} from '@ant-design/icons-vue'
 
 const props = defineProps({
   uploadText: {
@@ -97,13 +109,21 @@ function removeFile(id) {
   appStore.removeFile(id)
 }
 
-function getFileIcon(file) {
-  if (!file || !file.name) return '📄'
-  const name = file.name.toLowerCase()
-  if (name.includes('支付宝') || file.platform === 'alipay') return '💙'
-  if (name.includes('微信') || file.platform === 'wechat') return '💚'
-  if (file.platform?.includes('ccb') || file.platform?.includes('cmb')) return '🏦'
-  return '📄'
+function isAlipayFile(file) {
+  if (!file) return false
+  const name = (file.name || '').toLowerCase()
+  return name.includes('支付宝') || file.platform === 'alipay'
+}
+
+function isWechatFile(file) {
+  if (!file) return false
+  const name = (file.name || '').toLowerCase()
+  return name.includes('微信') || file.platform === 'wechat'
+}
+
+function isBankFile(file) {
+  if (!file) return false
+  return file.platform?.includes('ccb') || file.platform?.includes('cmb')
 }
 
 function formatFileSize(bytes) {

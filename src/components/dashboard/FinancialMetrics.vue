@@ -2,10 +2,10 @@
   <div class="financial-metrics">
     <!-- 收支比 -->
     <div class="metric-card ratio-card">
-      <div class="metric-icon">📊</div>
+      <div class="metric-icon"><PieChartOutlined /></div>
       <div class="metric-content">
         <div class="metric-label">收支比</div>
-        <div class="metric-value" :class="ratioClass">
+        <div class="metric-value num" :class="ratioClass">
           {{ ratio }}
         </div>
         <div class="metric-hint">收入 / 支出</div>
@@ -14,11 +14,11 @@
 
     <!-- 累计净额 -->
     <div class="metric-card balance-card">
-      <div class="metric-icon">💰</div>
+      <div class="metric-icon"><WalletOutlined /></div>
       <div class="metric-content">
         <div class="metric-label">累计净额</div>
-        <div class="metric-value" :class="balanceClass">
-          ¥{{ balance.toFixed(2) }}
+        <div class="metric-value num" :class="balanceClass">
+          {{ formatMoney(balance) }}
         </div>
         <div class="metric-hint">以 0 为起点</div>
       </div>
@@ -26,24 +26,24 @@
 
     <!-- 本月收支 -->
     <div class="metric-card monthly-card">
-      <div class="metric-icon">📅</div>
+      <div class="metric-icon"><CalendarOutlined /></div>
       <div class="metric-content">
         <div class="metric-label">本月收支</div>
         <div class="metric-value-group">
-          <div class="metric-value-inline income">+¥{{ monthlyIncome.toFixed(2) }}</div>
-          <div class="metric-value-inline expense">-¥{{ monthlyExpense.toFixed(2) }}</div>
+          <div class="metric-value-inline income num">{{ formatMoney(monthlyIncome) }}</div>
+          <div class="metric-value-inline expense num">{{ formatMoney(-monthlyExpense) }}</div>
         </div>
-        <div class="metric-hint">净收支: ¥{{ monthlyNet.toFixed(2) }}</div>
+        <div class="metric-hint">净收支: {{ formatMoney(monthlyNet) }}</div>
       </div>
     </div>
 
     <!-- 本年累计 -->
     <div class="metric-card yearly-card">
-      <div class="metric-icon">📈</div>
+      <div class="metric-icon"><RiseOutlined /></div>
       <div class="metric-content">
         <div class="metric-label">本年累计</div>
-        <div class="metric-value" :class="yearlyNetClass">
-          ¥{{ yearlyNet.toFixed(2) }}
+        <div class="metric-value num" :class="yearlyNetClass">
+          {{ formatMoney(yearlyNet) }}
         </div>
         <div class="metric-hint">{{ year }}年净收支</div>
       </div>
@@ -53,6 +53,23 @@
 
 <script setup>
 import { computed } from 'vue'
+import {
+  PieChartOutlined,
+  WalletOutlined,
+  CalendarOutlined,
+  RiseOutlined
+} from '@ant-design/icons-vue'
+
+// 人民币格式化
+const moneyFormatter = new Intl.NumberFormat('zh-CN', {
+  style: 'currency',
+  currency: 'CNY',
+  signDisplay: 'always'
+})
+
+function formatMoney(amount) {
+  return moneyFormatter.format(amount)
+}
 
 const props = defineProps({
   statistics: {

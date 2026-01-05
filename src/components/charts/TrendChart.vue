@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">📈 月度收支趋势</h3>
+    <h3 class="chart-title"><LineChartOutlined /> 月度收支趋势</h3>
     <div class="time-range-selector">
       <button
         v-for="range in timeRanges"
@@ -41,6 +41,14 @@ import {
   GridComponent
 } from 'echarts/components'
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
+import { LineChartOutlined } from '@ant-design/icons-vue'
+
+// 图表配色（财务惯例：绿入红出）
+const CHART_COLORS = {
+  primary: '#1677ff',   // 净收支 - 主色蓝
+  income: '#389e0d',    // 收入 - 克制绿
+  expense: '#d4380d'    // 支出 - 暗红橙
+}
 
 // 注册 ECharts 组件
 use([
@@ -138,21 +146,11 @@ const chartOption = computed(() => {
         data: chartData.value.income,
         smooth: true,
         lineStyle: {
-          width: 3,
-          color: '#28a745'
+          width: 2,
+          color: CHART_COLORS.income
         },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(40, 167, 69, 0.3)' },
-              { offset: 1, color: 'rgba(40, 167, 69, 0.05)' }
-            ]
-          }
+        itemStyle: {
+          color: CHART_COLORS.income
         }
       },
       {
@@ -161,21 +159,11 @@ const chartOption = computed(() => {
         data: chartData.value.expense,
         smooth: true,
         lineStyle: {
-          width: 3,
-          color: '#dc3545'
+          width: 2,
+          color: CHART_COLORS.expense
         },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(220, 53, 69, 0.3)' },
-              { offset: 1, color: 'rgba(220, 53, 69, 0.05)' }
-            ]
-          }
+        itemStyle: {
+          color: CHART_COLORS.expense
         }
       },
       {
@@ -184,9 +172,11 @@ const chartOption = computed(() => {
         data: chartData.value.net,
         smooth: true,
         lineStyle: {
-          width: 2,
-          type: 'dashed',
-          color: '#667eea'
+          width: 3,
+          color: CHART_COLORS.primary
+        },
+        itemStyle: {
+          color: CHART_COLORS.primary
         }
       }
     ]
@@ -267,9 +257,9 @@ function groupByMonth(transactions, months) {
 }
 
 .range-button.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-primary);
   color: white;
-  border-color: transparent;
+  border-color: var(--color-primary);
 }
 
 .chart {
@@ -294,8 +284,8 @@ function groupByMonth(transactions, months) {
 .spinner {
   width: 20px;
   height: 20px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border: 3px solid var(--color-gray-200);
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

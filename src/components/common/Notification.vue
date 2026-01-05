@@ -7,9 +7,16 @@
           :key="notif.id"
           :class="['notification', `notification-${notif.type}`]"
         >
-          <span class="notification-icon">{{ getIcon(notif.type) }}</span>
+          <span class="notification-icon">
+            <CheckCircleOutlined v-if="notif.type === 'success'" />
+            <CloseCircleOutlined v-else-if="notif.type === 'error'" />
+            <ExclamationCircleOutlined v-else-if="notif.type === 'warning'" />
+            <InfoCircleOutlined v-else />
+          </span>
           <span class="notification-message">{{ notif.message }}</span>
-          <button @click="notificationStore.remove(notif.id)" class="notification-close">×</button>
+          <button @click="notificationStore.remove(notif.id)" class="notification-close">
+            <CloseOutlined />
+          </button>
         </div>
       </TransitionGroup>
     </div>
@@ -18,18 +25,15 @@
 
 <script setup>
 import { useNotificationStore } from '../../stores/notificationStore.js'
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExclamationCircleOutlined,
+  InfoCircleOutlined,
+  CloseOutlined
+} from '@ant-design/icons-vue'
 
 const notificationStore = useNotificationStore()
-
-function getIcon(type) {
-  const icons = {
-    success: '✅',
-    error: '❌',
-    warning: '⚠️',
-    info: 'ℹ️'
-  }
-  return icons[type] || icons.info
-}
 </script>
 
 <style scoped>

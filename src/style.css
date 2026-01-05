@@ -38,15 +38,19 @@
   --color-info: #0284c7;
   --color-info-dark: #0369a1;
 
-  /* 品牌色 - 仅用于关键交互点 */
-  --color-primary: #171717;
-  --color-primary-hover: #000000;
-  --color-primary-light: #f5f5f5;
+  /* 品牌色 - Ant Design 蓝 */
+  --color-primary: #1677ff;
+  --color-primary-hover: #4096ff;
+  --color-primary-active: #0958d9;
+  --color-primary-light: #e6f4ff;
+  --color-primary-border: #91caff;
 
-  /* 平台品牌色 */
-  --color-alipay: #1677ff;
-  --color-wechat: #07c160;
-  --color-bank: #ff6b00;
+  /* 图表灰阶（用于多系列区分，避免彩虹） */
+  --chart-gray-1: #262626;
+  --chart-gray-2: #595959;
+  --chart-gray-3: #8c8c8c;
+  --chart-gray-4: #bfbfbf;
+  --chart-gray-5: #d9d9d9;
 
   /* ========== 语义化颜色 ========== */
 
@@ -491,22 +495,6 @@ tr:hover {
   font-weight: var(--font-medium);
 }
 
-/* 平台徽章 */
-.badge-alipay {
-  background: var(--color-alipay);
-  color: var(--color-white);
-}
-
-.badge-wechat {
-  background: var(--color-wechat);
-  color: var(--color-white);
-}
-
-.badge-bank {
-  background: var(--color-bank);
-  color: var(--color-white);
-}
-
 /* 收支徽章 - 浅色背景 */
 .badge-income {
   background: var(--color-success-light);
@@ -724,3 +712,69 @@ tr:hover {
 .mb-2 { margin-bottom: var(--spacing-2); }
 .mb-3 { margin-bottom: var(--spacing-3); }
 .mb-4 { margin-bottom: var(--spacing-4); }
+
+/* ========== 财务展示工具类 ========== */
+
+/* 等宽数字（用于金额、数量对齐） */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+/* 金额 - 基础 */
+.money {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-weight: var(--font-semibold);
+}
+
+/* 金额 - 正数（收入） */
+.money--pos {
+  color: var(--color-success);
+}
+
+/* 金额 - 负数（支出） */
+.money--neg {
+  color: var(--text-primary);
+}
+
+/* 金额列右对齐 */
+.text-right {
+  text-align: right;
+}
+
+/* ========== 浅底标签（Tag） ========== */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  background: var(--color-gray-100);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+/* 标签变体 - 主色 */
+.tag--primary {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-border);
+}
+
+/* 标签变体 - 成功/收入 */
+.tag--success {
+  color: var(--color-success-dark);
+  background: var(--color-success-light);
+  border-color: transparent;
+}
+
+/* 标签变体 - 危险/支出 */
+.tag--danger {
+  color: var(--color-danger-dark);
+  background: var(--color-danger-light);
+  border-color: transparent;
+}

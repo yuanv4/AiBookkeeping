@@ -2,10 +2,10 @@
   <aside class="sidebar" :class="{ collapsed: isCollapsed }">
     <div class="sidebar-header">
       <div v-if="!isCollapsed" class="brand">
-        <span class="brand-icon">📊</span>
+        <span class="brand-icon"><PieChartOutlined /></span>
         <span class="brand-text">AI 账单汇集</span>
       </div>
-      <button v-else class="brand-icon-only" @click="toggleCollapse">📊</button>
+      <button v-else class="brand-icon-only" @click="toggleCollapse"><PieChartOutlined /></button>
     </div>
 
     <nav class="sidebar-nav">
@@ -16,14 +16,17 @@
         class="nav-item"
         :class="{ active: isActive(item.path) }"
       >
-        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-icon">
+          <component :is="item.icon" />
+        </span>
         <span v-if="!isCollapsed" class="nav-text">{{ item.label }}</span>
       </router-link>
     </nav>
 
     <div class="sidebar-footer">
       <button class="collapse-btn" @click="toggleCollapse">
-        {{ isCollapsed ? '→' : '←' }}
+        <MenuFoldOutlined v-if="!isCollapsed" />
+        <MenuUnfoldOutlined v-else />
       </button>
     </div>
   </aside>
@@ -32,15 +35,23 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import {
+  PieChartOutlined,
+  LineChartOutlined,
+  UnorderedListOutlined,
+  SettingOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined
+} from '@ant-design/icons-vue'
 
 const route = useRoute()
 const isCollapsed = ref(false)
 
 const menuItems = [
-  { path: '/dashboard', icon: '📊', label: '仪表板' },
-  { path: '/analysis', icon: '📈', label: '数据分析' },
-  { path: '/transactions', icon: '📋', label: '账单明细' },
-  { path: '/settings', icon: '⚙️', label: '设置' }
+  { path: '/dashboard', icon: PieChartOutlined, label: '仪表板' },
+  { path: '/analysis', icon: LineChartOutlined, label: '数据分析' },
+  { path: '/transactions', icon: UnorderedListOutlined, label: '账单明细' },
+  { path: '/settings', icon: SettingOutlined, label: '设置' }
 ]
 
 function isActive(path) {

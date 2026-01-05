@@ -2,7 +2,7 @@
   <div class="analysis-view">
     <!-- 空状态 -->
     <div v-if="!hasData" class="empty-state">
-      <div class="empty-icon">📈</div>
+      <div class="empty-icon"><LineChartOutlined /></div>
       <h3>暂无分析数据</h3>
       <p>请先在设置页面上传账单文件</p>
       <router-link to="/settings/data" class="btn btn-primary">
@@ -16,7 +16,6 @@
       <div class="charts-section">
         <!-- 月度趋势图 -->
         <div class="card chart-card">
-          <h3 class="chart-title">📈 月度收支趋势</h3>
           <div class="chart-container">
             <TrendChart :transactions="transactions" />
           </div>
@@ -24,7 +23,6 @@
 
         <!-- 消费构成饼图 -->
         <div class="card chart-card">
-          <h3 class="chart-title">🍩 消费构成分析</h3>
           <div class="chart-container">
             <CategoryPie :transactions="transactions" />
           </div>
@@ -46,7 +44,6 @@
 
         <!-- 分类排行榜 -->
         <div class="card chart-card full-width">
-          <h3 class="chart-title">🏆 分类消费排行</h3>
           <div class="chart-container">
             <CategoryRanking :transactions="transactions" @category-click="handleCategoryClick" />
           </div>
@@ -65,6 +62,7 @@ import CategoryPie from '../components/charts/CategoryPie.vue'
 import CategoryRanking from '../components/analysis/CategoryRanking.vue'
 import YearlyComparisonChart from '../components/charts/YearlyComparisonChart.vue'
 import StructureAnalysisChart from '../components/charts/StructureAnalysisChart.vue'
+import { LineChartOutlined } from '@ant-design/icons-vue'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -127,36 +125,8 @@ function handleCategoryClick(category) {
   grid-column: 1 / -1;
 }
 
-.chart-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 15px 0;
-}
-
 .chart-container {
   min-height: 350px;
-}
-
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--duration-base) ease;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.btn-primary {
-  background: var(--color-primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
 }
 
 /* 响应式 */

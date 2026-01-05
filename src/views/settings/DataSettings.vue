@@ -4,13 +4,13 @@
 
     <!-- 模式提示 -->
     <div class="mode-badge remote-mode">
-      <span class="badge-icon">☁️</span>
+      <span class="badge-icon"><CloudOutlined /></span>
       <span class="badge-text">云端存储 - 数据存储在后端服务器</span>
     </div>
 
     <!-- 上传账单 -->
     <div class="section upload-section">
-      <h3 class="section-title">📁 上传账单</h3>
+      <h3 class="section-title"><FolderOutlined /> 上传账单</h3>
       <div class="section-content">
         <p class="section-desc">
           支持微信支付、支付宝、建设银行、招商银行等账单文件
@@ -37,7 +37,7 @@
 
     <!-- 导出数据 -->
     <div class="section">
-      <h3 class="section-title">📤 导出数据</h3>
+      <h3 class="section-title"><ExportOutlined /> 导出数据</h3>
       <div class="section-content">
         <p class="section-desc">
           将您的账单数据导出为备份文件,便于保存和分析
@@ -49,7 +49,7 @@
             <option value="csv">CSV 文件</option>
           </select>
           <button @click="exportData" class="btn btn-primary" :disabled="!hasData">
-            📤 导出数据
+            <DownloadOutlined /> 导出数据
           </button>
         </div>
       </div>
@@ -57,7 +57,7 @@
 
     <!-- 清除数据 -->
     <div class="section danger-zone">
-      <h3 class="section-title">⚠️ 危险区域</h3>
+      <h3 class="section-title"><WarningOutlined /> 危险区域</h3>
       <div class="section-content">
         <p class="section-desc">
           清除所有数据将删除所有已上传的文件和解析结果,此操作不可恢复。
@@ -65,10 +65,10 @@
         </p>
         <div class="danger-actions">
           <button class="btn btn-outline" @click="exportFormat = 'json'; exportData()">
-            📤 先导出完整备份
+            <DownloadOutlined /> 先导出完整备份
           </button>
           <button class="btn btn-danger" @click="confirmClearData">
-            🗑️ 清除所有数据
+            <DeleteOutlined /> 清除所有数据
           </button>
         </div>
       </div>
@@ -76,24 +76,24 @@
 
     <!-- 数据说明 -->
     <div class="section">
-      <h3 class="section-title">ℹ️ 关于数据存储</h3>
+      <h3 class="section-title"><InfoCircleOutlined /> 关于数据存储</h3>
       <div class="info-box">
         <div class="info-item">
-          <span class="info-icon">☁️</span>
+          <span class="info-icon"><CloudOutlined /></span>
           <div class="info-content">
             <div class="info-title">云端存储</div>
             <div class="info-desc">所有数据存储在后端服务器,可在任何设备上访问</div>
           </div>
         </div>
         <div class="info-item">
-          <span class="info-icon">🔐</span>
+          <span class="info-icon"><LockOutlined /></span>
           <div class="info-content">
             <div class="info-title">数据安全</div>
             <div class="info-desc">通过 HTTPS 加密传输,服务端定期备份</div>
           </div>
         </div>
         <div class="info-item">
-          <span class="info-icon">📊</span>
+          <span class="info-icon"><FileTextOutlined /></span>
           <div class="info-content">
             <div class="info-title">数据格式</div>
             <div class="info-desc">支持导出为标准 Excel/JSON 格式,可在其他软件中打开分析</div>
@@ -112,6 +112,17 @@ import { useNotificationStore } from '../../stores/notificationStore.js'
 import { exportToJSON, exportToCSV } from '../../utils/dataExporter.js'
 import FileUploader from '../../components/common/FileUploader.vue'
 import * as XLSX from 'xlsx'
+import {
+  CloudOutlined,
+  FolderOutlined,
+  ExportOutlined,
+  DownloadOutlined,
+  WarningOutlined,
+  DeleteOutlined,
+  InfoCircleOutlined,
+  LockOutlined,
+  FileTextOutlined
+} from '@ant-design/icons-vue'
 
 const appStore = useAppStore()
 const categoryStore = useCategoryStore()

@@ -3,17 +3,17 @@
     <!-- 无数据状态：引导用户去设置页面 -->
     <div v-if="!hasData" class="empty-dashboard">
       <div class="welcome-section">
-        <div class="welcome-icon">📊</div>
+        <div class="welcome-icon"><PieChartOutlined /></div>
         <h1 class="welcome-title">欢迎使用 AI 账单汇集工具</h1>
         <p class="welcome-subtitle">智能解析多平台账单，一键生成专业财务分析报告</p>
       </div>
 
       <div class="empty-state-card">
-        <div class="empty-icon">📁</div>
+        <div class="empty-icon"><FolderOpenOutlined /></div>
         <h2 class="empty-title">暂无账单数据</h2>
         <p class="empty-desc">前往设置页面上传账单文件，开始您的财务管理之旅</p>
         <router-link to="/settings/data" class="btn btn-primary btn-lg">
-          ⚙️ 前往设置上传账单
+          <SettingOutlined /> 前往设置上传账单
         </router-link>
       </div>
 
@@ -21,17 +21,17 @@
       <div class="features-section">
         <div class="feature-grid">
           <div class="feature-card">
-            <div class="feature-icon">🔍</div>
+            <div class="feature-icon"><SearchOutlined /></div>
             <h3 class="feature-title">智能识别</h3>
             <p class="feature-desc">自动识别微信、支付宝、银行等不同平台账单格式</p>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">📈</div>
+            <div class="feature-icon"><LineChartOutlined /></div>
             <h3 class="feature-title">数据可视化</h3>
             <p class="feature-desc">丰富的图表展示，让您的消费习惯一目了然</p>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">🔒</div>
+            <div class="feature-icon"><SafetyOutlined /></div>
             <h3 class="feature-title">隐私安全</h3>
             <p class="feature-desc">数据存储在后端服务器，安全加密传输</p>
           </div>
@@ -43,19 +43,19 @@
         <h3 class="platforms-title">支持的平台</h3>
         <div class="platforms-list">
           <div class="platform-item">
-            <span class="platform-icon">💙</span>
+            <span class="platform-icon"><AlipayCircleOutlined /></span>
             <span class="platform-name">支付宝</span>
           </div>
           <div class="platform-item">
-            <span class="platform-icon">💚</span>
+            <span class="platform-icon"><WechatOutlined /></span>
             <span class="platform-name">微信支付</span>
           </div>
           <div class="platform-item">
-            <span class="platform-icon">🏦</span>
+            <span class="platform-icon"><BankOutlined /></span>
             <span class="platform-name">建设银行</span>
           </div>
           <div class="platform-item">
-            <span class="platform-icon">🏦</span>
+            <span class="platform-icon"><BankOutlined /></span>
             <span class="platform-name">招商银行</span>
           </div>
         </div>
@@ -67,32 +67,32 @@
       <!-- 统计概览 -->
       <div class="summary-cards">
         <div class="summary-card">
-          <div class="summary-icon">📋</div>
+          <div class="summary-icon"><UnorderedListOutlined /></div>
           <div class="summary-content">
             <div class="summary-label">总交易笔数</div>
-            <div class="summary-value">{{ statistics.total }}</div>
+            <div class="summary-value num">{{ statistics.total }}</div>
           </div>
         </div>
         <div class="summary-card income">
-          <div class="summary-icon">💰</div>
+          <div class="summary-icon"><WalletOutlined /></div>
           <div class="summary-content">
             <div class="summary-label">总收入</div>
-            <div class="summary-value">¥{{ statistics.income.toFixed(2) }}</div>
+            <div class="summary-value num">{{ formatMoney(statistics.income) }}</div>
           </div>
         </div>
         <div class="summary-card expense">
-          <div class="summary-icon">💸</div>
+          <div class="summary-icon"><PayCircleOutlined /></div>
           <div class="summary-content">
             <div class="summary-label">总支出</div>
-            <div class="summary-value">¥{{ Math.abs(statistics.expense).toFixed(2) }}</div>
+            <div class="summary-value num">{{ formatMoney(Math.abs(statistics.expense)) }}</div>
           </div>
         </div>
         <div class="summary-card">
-          <div class="summary-icon">📊</div>
+          <div class="summary-icon"><FundOutlined /></div>
           <div class="summary-content">
             <div class="summary-label">净收支</div>
-            <div class="summary-value" :style="{ color: statistics.net >= 0 ? '#10b981' : '#ef4444' }">
-              ¥{{ statistics.net.toFixed(2) }}
+            <div class="summary-value num" :class="statistics.net >= 0 ? 'money--pos' : 'money--neg'">
+              {{ formatMoney(statistics.net) }}
             </div>
           </div>
         </div>
@@ -120,6 +120,31 @@ import { computed } from 'vue'
 import { useAppStore } from '../stores/appStore.js'
 import FinancialMetrics from '../components/dashboard/FinancialMetrics.vue'
 import LargeTransactionList from '../components/dashboard/LargeTransactionList.vue'
+import {
+  PieChartOutlined,
+  FolderOpenOutlined,
+  SettingOutlined,
+  SearchOutlined,
+  LineChartOutlined,
+  SafetyOutlined,
+  AlipayCircleOutlined,
+  WechatOutlined,
+  BankOutlined,
+  UnorderedListOutlined,
+  WalletOutlined,
+  PayCircleOutlined,
+  FundOutlined
+} from '@ant-design/icons-vue'
+
+// 人民币格式化
+const moneyFormatter = new Intl.NumberFormat('zh-CN', {
+  style: 'currency',
+  currency: 'CNY'
+})
+
+function formatMoney(amount) {
+  return moneyFormatter.format(amount)
+}
 
 const appStore = useAppStore()
 
@@ -361,32 +386,6 @@ function handleTimeRangeChange(range) {
   color: var(--color-danger);
 }
 
-/* 按钮样式 */
-.btn {
-  display: inline-block;
-  padding: 10px 20px;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all var(--duration-base) ease;
-}
-
-.btn-primary {
-  background: var(--color-primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
-}
-
-.btn-lg {
-  padding: 14px 32px;
-  font-size: 16px;
-}
 
 /* 响应式 */
 @media (max-width: 768px) {

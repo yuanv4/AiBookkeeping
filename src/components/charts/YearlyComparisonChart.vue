@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">📊 年度对比分析</h3>
+    <h3 class="chart-title"><BarChartOutlined /> 年度对比分析</h3>
     <v-chart
       v-if="!loading && chartData"
       class="chart"
@@ -30,6 +30,14 @@ import {
   GridComponent
 } from 'echarts/components'
 import { processYearlyComparison } from '../../utils/chartDataProcessor.js'
+import { BarChartOutlined } from '@ant-design/icons-vue'
+
+// 图表配色（财务惯例：绿入红出）
+const CHART_COLORS = {
+  primary: '#1677ff',   // 净收支 - 主色蓝
+  income: '#389e0d',    // 收入 - 克制绿
+  expense: '#d4380d'    // 支出 - 暗红橙
+}
 
 // 注册 ECharts 组件
 use([
@@ -117,7 +125,7 @@ const chartOption = computed(() => {
         type: 'bar',
         data: income,
         itemStyle: {
-          color: '#28a745',
+          color: CHART_COLORS.income,
           borderRadius: [4, 4, 0, 0]
         },
         barWidth: '30%'
@@ -127,7 +135,7 @@ const chartOption = computed(() => {
         type: 'bar',
         data: expense,
         itemStyle: {
-          color: '#dc3545',
+          color: CHART_COLORS.expense,
           borderRadius: [4, 4, 0, 0]
         },
         barWidth: '30%'
@@ -139,10 +147,10 @@ const chartOption = computed(() => {
         smooth: true,
         lineStyle: {
           width: 3,
-          color: '#667eea'
+          color: CHART_COLORS.primary
         },
         itemStyle: {
-          color: '#667eea'
+          color: CHART_COLORS.primary
         },
         symbolSize: 8
       }
@@ -187,8 +195,8 @@ const chartOption = computed(() => {
 .spinner {
   width: 20px;
   height: 20px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border: 3px solid var(--color-gray-200);
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

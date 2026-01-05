@@ -1,7 +1,7 @@
 <template>
   <div class="large-transaction-list">
     <div class="list-header">
-      <h3 class="list-title">💸 近期大额支出</h3>
+      <h3 class="list-title"><PayCircleOutlined /> 近期大额支出</h3>
       <div class="time-range-badge">
         {{ timeRangeLabel }}
       </div>
@@ -15,7 +15,7 @@
         @click="handleTransactionClick(tx)"
       >
         <div class="transaction-rank">{{ index + 1 }}</div>
-        <div class="transaction-icon">{{ getCategoryIcon(tx.category) }}</div>
+        <div class="transaction-icon"><TagOutlined /></div>
         <div class="transaction-info">
           <div class="transaction-merchant">{{ tx.counterparty || tx.description || '未知商户' }}</div>
           <div class="transaction-meta">
@@ -23,12 +23,12 @@
             <span class="transaction-date">{{ formatDate(tx.transactionTime) }}</span>
           </div>
         </div>
-        <div class="transaction-amount">-¥{{ tx.absoluteAmount.toFixed(2) }}</div>
+        <div class="transaction-amount num">{{ formatMoney(-tx.absoluteAmount) }}</div>
       </div>
     </div>
 
     <div v-else class="empty-state">
-      <div class="empty-icon">📊</div>
+      <div class="empty-icon"><BarChartOutlined /></div>
       <p>暂无大额支出记录</p>
     </div>
   </div>
@@ -37,9 +37,24 @@
 <script setup>
 import { computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCategoryStore } from '../../stores/categoryStore.js'
 import { determineSmartTimeRange, getTopLargeTransactions } from '../../utils/chartDataProcessor.js'
 import { format } from 'date-fns'
+import {
+  PayCircleOutlined,
+  TagOutlined,
+  BarChartOutlined
+} from '@ant-design/icons-vue'
+
+// 人民币格式化
+const moneyFormatter = new Intl.NumberFormat('zh-CN', {
+  style: 'currency',
+  currency: 'CNY',
+  signDisplay: 'always'
+})
+
+function formatMoney(amount) {
+  return moneyFormatter.format(amount)
+}
 
 const props = defineProps({
   transactions: {
@@ -55,7 +70,6 @@ const props = defineProps({
 const emit = defineEmits(['time-range-change'])
 
 const router = useRouter()
-const categoryStore = useCategoryStore()
 
 // 智能时间范围
 const timeRange = computed(() => determineSmartTimeRange(props.transactions))
@@ -74,15 +88,7 @@ watch(timeRange, (newRange) => {
 }, { immediate: true })
 
 function handleTransactionClick(transaction) {
-  // 简化版：直接跳转到账单明细页（不保证精确定位）
   router.push('/transactions')
-
-  // TODO: 后续可增强为体验版
-  // const query = {
-  //   highlightId: transaction.transactionId
-  // }
-  // router.push({ path: '/transactions', query })
-  // 需要在 TransactionsView 中读取 query.highlightId 并实现高亮/滚动逻辑
 }
 
 function formatDate(dateStr) {
@@ -91,26 +97,6 @@ function formatDate(dateStr) {
   } catch (error) {
     return '无效日期'
   }
-}
-
-function getCategoryIcon(category) {
-  // 优先从 categoryStore 获取（与分类体系保持一致）
-  const categoryObj = categoryStore.getCategoryByName(category)
-  if (categoryObj?.icon) return categoryObj.icon
-
-  // Fallback 到默认映射
-  const defaultIconMap = {
-    '餐饮': '🍜',
-    '交通': '🚗',
-    '购物': '🛒',
-    '娱乐': '🎮',
-    '医疗': '💊',
-    '教育': '📚',
-    '住房': '🏠',
-    '通讯': '📱',
-    '其他': '📦'
-  }
-  return defaultIconMap[category] || '💳'
 }
 </script>
 

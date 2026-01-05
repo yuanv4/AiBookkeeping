@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <h3 class="chart-title">🏗️ 收支结构分析</h3>
+    <h3 class="chart-title"><AppstoreOutlined /> 收支结构分析</h3>
     <div class="type-selector">
       <button
         v-for="type in typeOptions"
@@ -44,11 +44,19 @@ import {
   GridComponent
 } from 'echarts/components'
 import { processStructureAnalysis } from '../../utils/chartDataProcessor.js'
+import { AppstoreOutlined } from '@ant-design/icons-vue'
 
-// 预定义颜色数组
+// 分类配色（克制但有区分度）
 const COLORS = [
-  '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
-  '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'
+  '#1677ff', // 主色蓝
+  '#389e0d', // 克制绿
+  '#595959', // 深灰
+  '#d46b08', // 暖橙
+  '#8c8c8c', // 中灰
+  '#531dab', // 深紫
+  '#bfbfbf', // 浅灰
+  '#08979c', // 青色
+  '#c41d7f'  // 洋红
 ]
 
 // 注册 ECharts 组件
@@ -242,9 +250,9 @@ const pieOption = computed(() => {
 }
 
 .type-button.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-primary);
   color: white;
-  border-color: transparent;
+  border-color: var(--color-primary);
 }
 
 .charts-wrapper {
@@ -276,8 +284,8 @@ const pieOption = computed(() => {
 .spinner {
   width: 20px;
   height: 20px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border: 3px solid var(--color-gray-200);
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

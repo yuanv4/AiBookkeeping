@@ -2,7 +2,7 @@
   <div class="transactions-view">
     <!-- 空状态 -->
     <div v-if="!hasData" class="empty-state">
-      <div class="empty-icon">📋</div>
+      <div class="empty-icon"><FileTextOutlined /></div>
       <h3>暂无账单数据</h3>
       <p>请先在设置页面上传账单文件</p>
       <router-link to="/settings/data" class="btn btn-primary">
@@ -65,33 +65,36 @@
                 <th>分类</th>
                 <th>交易对方</th>
                 <th>描述</th>
-                <th>金额</th>
+                <th class="text-right">金额</th>
                 <th>支付方式</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="tx in paginatedTransactions" :key="tx.transactionId">
-                <td>{{ formatDateTime(tx.transactionTime) }}</td>
+                <td class="num">{{ formatDateTime(tx.transactionTime) }}</td>
                 <td>
-                  <span class="badge" :class="`badge-${tx.platform}`">
+                  <span class="tag">
+                    <BankOutlined v-if="tx.platform === 'bank'" />
+                    <AlipayCircleOutlined v-else-if="tx.platform === 'alipay'" />
+                    <WechatOutlined v-else-if="tx.platform === 'wechat'" />
                     {{ getPlatformLabel(tx) }}
                   </span>
                 </td>
                 <td>
-                  <span class="badge" :class="`badge-${tx.transactionType}`">
+                  <span class="tag" :class="tx.transactionType === 'income' ? 'tag--success' : 'tag--danger'">
                     {{ tx.transactionType === 'income' ? '收入' : '支出' }}
                   </span>
                 </td>
                 <td>
-                  <span v-if="tx.category" class="category-badge" :style="{ backgroundColor: getCategoryColor(tx.category) }">
-                    {{ tx.category }}
-                  </span>
+                  <span v-if="tx.category" class="tag">{{ tx.category }}</span>
                   <span v-else class="text-muted">未分类</span>
                 </td>
                 <td>{{ tx.counterparty || '-' }}</td>
                 <td>{{ tx.description || '-' }}</td>
-                <td :style="{ color: tx.amount >= 0 ? '#10b981' : '#ef4444', fontWeight: '600' }">
-                  {{ tx.amount >= 0 ? '+' : '' }}{{ tx.amount.toFixed(2) }}
+                <td class="text-right">
+                  <span class="money" :class="tx.amount >= 0 ? 'money--pos' : 'money--neg'">
+                    {{ formatMoney(tx.amount) }}
+                  </span>
                 </td>
                 <td>{{ tx.paymentMethod || '-' }}</td>
               </tr>
@@ -129,18 +132,22 @@
 import { computed } from 'vue'
 import { useAppStore } from '../stores/appStore.js'
 import { useFilterStore } from '../stores/filterStore.js'
+import {
+  FileTextOutlined,
+  BankOutlined,
+  AlipayCircleOutlined,
+  WechatOutlined
+} from '@ant-design/icons-vue'
 
-// 预定义颜色数组
-const COLORS = [
-  '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
-  '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'
-]
+// 人民币格式化（带正负号）
+const moneyFormatter = new Intl.NumberFormat('zh-CN', {
+  style: 'currency',
+  currency: 'CNY',
+  signDisplay: 'always'
+})
 
-// 根据分类名称生成固定颜色
-function getCategoryColor(categoryName) {
-  if (!categoryName) return '#999'
-  const index = categoryName.charCodeAt(0) % COLORS.length
-  return COLORS[index]
+function formatMoney(amount) {
+  return moneyFormatter.format(amount)
 }
 
 const appStore = useAppStore()
@@ -302,48 +309,6 @@ tbody tr:hover {
   background: var(--table-hover-bg);
 }
 
-.badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.badge-alipay {
-  background: var(--color-gray-100);
-  color: var(--color-info);
-}
-
-.badge-wechat {
-  background: var(--color-gray-100);
-  color: var(--color-success);
-}
-
-.badge-bank {
-  background: var(--color-gray-100);
-  color: var(--color-warning);
-}
-
-.badge-income {
-  background: var(--color-gray-100);
-  color: var(--color-success);
-}
-
-.badge-expense {
-  background: var(--color-gray-100);
-  color: var(--color-danger);
-}
-
-.category-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: white;
-}
-
 .text-muted {
   color: var(--text-tertiary);
   font-size: 13px;
@@ -363,47 +328,6 @@ tbody tr:hover {
   color: var(--text-secondary);
 }
 
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--duration-base) ease;
-}
-
-.btn-primary {
-  background: var(--color-primary);
-  color: white;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
-}
-
-.btn-secondary {
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  border: var(--border-default);
-}
-
-.btn-secondary:hover {
-  background: var(--color-gray-50);
-  border-color: var(--border-strong);
-}
-
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 13px;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 /* 响应式 */
 @media (max-width: 768px) {

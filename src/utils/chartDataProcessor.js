@@ -170,7 +170,7 @@ export function calculateCategoryStats(transactions, categories) {
     stats.push({
       id: 'uncategorized',
       name: '未分类',
-      icon: '📦',
+      icon: null,
       amount,
       transactionCount: uncategorized.length,
       percentage: totalExpense > 0 ? (amount / totalExpense * 100) : 0
