@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-view">
-    <!-- 无数据状态：首次访问引导 -->
+    <!-- 无数据状态：引导用户去设置页面 -->
     <div v-if="!hasData" class="empty-dashboard">
       <div class="welcome-section">
         <div class="welcome-icon">📊</div>
@@ -8,23 +8,13 @@
         <p class="welcome-subtitle">智能解析多平台账单，一键生成专业财务分析报告</p>
       </div>
 
-      <div class="upload-section">
-        <FileUploader
-          upload-text="点击或拖拽账单文件到此处"
-          upload-hint="支持微信支付、支付宝、建设银行、招商银行等账单文件"
-          @files-added="handleFilesAdded"
-        />
-      </div>
-
-      <!-- 处理按钮 -->
-      <div v-if="files.length > 0" class="action-section">
-        <button
-          class="btn btn-primary btn-lg"
-          :disabled="processing"
-          @click="processFiles"
-        >
-          {{ processing ? '处理中...' : `开始处理 ${files.length} 个文件` }}
-        </button>
+      <div class="empty-state-card">
+        <div class="empty-icon">📁</div>
+        <h2 class="empty-title">暂无账单数据</h2>
+        <p class="empty-desc">前往设置页面上传账单文件，开始您的财务管理之旅</p>
+        <router-link to="/settings/data" class="btn btn-primary btn-lg">
+          ⚙️ 前往设置上传账单
+        </router-link>
       </div>
 
       <!-- 功能介绍 -->
@@ -43,7 +33,7 @@
           <div class="feature-card">
             <div class="feature-icon">🔒</div>
             <h3 class="feature-title">隐私安全</h3>
-            <p class="feature-desc">所有数据处理均在本地完成，不上传任何个人信息</p>
+            <p class="feature-desc">数据存储在后端服务器，安全加密传输</p>
           </div>
         </div>
       </div>
@@ -74,23 +64,6 @@
 
     <!-- 有数据状态：专业仪表板 -->
     <div v-else class="data-dashboard">
-      <!-- 快捷操作栏 -->
-      <div class="card actions-card">
-        <div class="actions-left">
-          <button class="btn btn-primary" @click="showUploadModal = true">
-            📁 上传新账单
-          </button>
-          <button class="btn btn-secondary" @click="exportData">
-            📤 导出数据
-          </button>
-        </div>
-        <div class="actions-right">
-          <button class="btn btn-danger" @click="confirmClearData">
-            🗑️ 清除数据
-          </button>
-        </div>
-      </div>
-
       <!-- 统计概览 -->
       <div class="summary-cards">
         <div class="summary-card">
@@ -138,49 +111,19 @@
         :limit="10"
         @time-range-change="handleTimeRangeChange"
       />
-
-      <!-- 上传模态框 -->
-      <div v-if="showUploadModal" class="modal-overlay" @click.self="showUploadModal = false">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h2>上传新账单</h2>
-            <button class="modal-close" @click="showUploadModal = false">×</button>
-          </div>
-          <div class="modal-body">
-            <FileUploader @files-added="handleFilesAdded" />
-            <div v-if="files.length > 0" class="modal-actions">
-              <button
-                class="btn btn-primary"
-                :disabled="processing"
-                @click="processFiles"
-              >
-                {{ processing ? '处理中...' : `开始处理 ${files.length} 个文件` }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
 import { useAppStore } from '../stores/appStore.js'
-import FileUploader from '../components/common/FileUploader.vue'
 import FinancialMetrics from '../components/dashboard/FinancialMetrics.vue'
 import LargeTransactionList from '../components/dashboard/LargeTransactionList.vue'
-import * as XLSX from 'xlsx'
 
-const router = useRouter()
 const appStore = useAppStore()
 
-const showUploadModal = ref(false)
-
-const files = computed(() => appStore.files)
 const transactions = computed(() => appStore.transactions)
-const processing = computed(() => appStore.processing)
 const statistics = computed(() => appStore.statistics)
 const hasData = computed(() => appStore.hasData)
 
@@ -225,51 +168,8 @@ const yearlyStats = computed(() => {
   return { income, expense, net: income + expense }
 })
 
-function handleFilesAdded() {
-  // 文件添加后的处理
-}
-
-async function processFiles() {
-  try {
-    await appStore.processFiles()
-    showUploadModal.value = false
-  } catch (error) {
-    alert('处理文件失败: ' + error.message)
-  }
-}
-
 function handleTimeRangeChange(range) {
   console.log('时间范围变化:', range)
-  // 可选：显示通知或更新 UI
-}
-
-function exportData() {
-  if (transactions.value.length === 0) {
-    alert('没有可导出的数据')
-    return
-  }
-
-  const exportData = transactions.value.map(t => ({
-    '交易时间': new Date(t.transactionTime).toLocaleString('zh-CN'),
-    '平台': t.platform === 'alipay' ? '支付宝' : t.platform === 'wechat' ? '微信支付' : t.bankName || '银行',
-    '类型': t.transactionType === 'income' ? '收入' : '支出',
-    '交易对方': t.counterparty || '',
-    '描述': t.description || '',
-    '金额': t.amount,
-    '支付方式': t.paymentMethod || '',
-    '分类': t.category || '未分类'
-  }))
-
-  const worksheet = XLSX.utils.json_to_sheet(exportData)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, '账单明细')
-  XLSX.writeFile(workbook, `账单汇总_${new Date().toISOString().slice(0, 10)}.xlsx`)
-}
-
-async function confirmClearData() {
-  if (confirm('确定要清除所有数据吗？此操作不可恢复。')) {
-    await appStore.performClearAll()
-  }
 }
 </script>
 
@@ -307,13 +207,31 @@ async function confirmClearData() {
   margin: 0;
 }
 
-.upload-section {
-  margin-bottom: 30px;
-}
-
-.action-section {
+.empty-state-card {
+  background: var(--bg-card);
+  border: var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 50px 30px;
   text-align: center;
   margin-bottom: 50px;
+}
+
+.empty-icon {
+  font-size: 56px;
+  margin-bottom: 20px;
+}
+
+.empty-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 24px 0;
 }
 
 .features-section {
@@ -393,19 +311,6 @@ async function confirmClearData() {
   width: 100%;
 }
 
-.actions-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.actions-left,
-.actions-right {
-  display: flex;
-  gap: 10px;
-}
-
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -456,78 +361,16 @@ async function confirmClearData() {
   color: var(--color-danger);
 }
 
-/* 模态框样式 */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow: auto;
-  border: var(--card-border);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: var(--border-default);
-}
-
-.modal-header h2 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 28px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-}
-
-.modal-close:hover {
-  background: var(--color-gray-100);
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.modal-actions {
-  margin-top: 20px;
-  text-align: center;
-}
-
 /* 按钮样式 */
 .btn {
+  display: inline-block;
   padding: 10px 20px;
   border: none;
   border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  text-decoration: none;
   transition: all var(--duration-base) ease;
 }
 
@@ -536,32 +379,7 @@ async function confirmClearData() {
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  border: var(--border-default);
-}
-
-.btn-secondary:hover {
-  background: var(--color-gray-50);
-  border-color: var(--border-strong);
-}
-
-.btn-danger {
-  background: var(--color-danger);
-  color: white;
-}
-
-.btn-danger:hover {
+.btn-primary:hover {
   opacity: 0.9;
 }
 
@@ -580,22 +398,7 @@ async function confirmClearData() {
     grid-template-columns: 1fr;
   }
 
-  .actions-card {
-    flex-direction: column;
-    gap: 15px;
-  }
-
-  .actions-left,
-  .actions-right {
-    width: 100%;
-    flex-direction: column;
-  }
-
   .summary-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .charts-grid {
     grid-template-columns: 1fr;
   }
 }

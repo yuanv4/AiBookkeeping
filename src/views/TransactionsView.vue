@@ -4,8 +4,8 @@
     <div v-if="!hasData" class="empty-state">
       <div class="empty-icon">📋</div>
       <h3>暂无账单数据</h3>
-      <p>请先在仪表板上传账单文件</p>
-      <router-link to="/dashboard" class="btn btn-primary">
+      <p>请先在设置页面上传账单文件</p>
+      <router-link to="/settings/data" class="btn btn-primary">
         前往上传
       </router-link>
     </div>

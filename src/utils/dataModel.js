@@ -368,3 +368,59 @@ export function deduplicateTransactions(transactions) {
 
   return unique
 }
+
+/**
+ * 跨平台去重：移除银行流水中与支付宝/微信重复的交易
+ * 匹配条件：金额相同 + 时间差<=1天 + (关键词匹配 或 商户名匹配)
+ */
+export function crossPlatformDeduplication(transactions) {
+  const KEYWORDS = ['支付宝', '财付通', '微信']
+  const TIME_TOLERANCE = 24 * 60 * 60 * 1000 // 1天（银行记账可能有延迟）
+
+  const paymentTxs = transactions.filter(t => t.platform === 'alipay' || t.platform === 'wechat')
+  const bankTxs = transactions.filter(t => t.platform === 'bank')
+  const duplicateIds = new Set()
+
+  console.log(`🔍 跨平台去重检测: 支付平台 ${paymentTxs.length} 条, 银行流水 ${bankTxs.length} 条`)
+
+  for (const bankTx of bankTxs) {
+    const bankDesc = (bankTx.description || '') + (bankTx.counterparty || '')
+    const isQuickPay = bankDesc.includes('快捷支付') || bankDesc.includes('银联快捷')
+    const hasPaymentKeyword = KEYWORDS.some(k => bankDesc.includes(k))
+
+    // 检查是否有匹配的支付平台交易
+    const match = paymentTxs.find(payTx => {
+      // 条件1：金额匹配（容差 0.01）
+      const amountMatch = Math.abs(Math.abs(payTx.amount) - Math.abs(bankTx.amount)) < 0.01
+      if (!amountMatch) return false
+
+      // 条件2：时间接近
+      const timeMatch = Math.abs(new Date(payTx.transactionTime) - new Date(bankTx.transactionTime)) <= TIME_TOLERANCE
+      if (!timeMatch) return false
+
+      // 条件3a：银行描述含支付平台关键词（如"支付宝消费"）
+      if (hasPaymentKeyword) return true
+
+      // 条件3b：快捷支付类型 + 商户名匹配
+      if (isQuickPay && bankTx.counterparty && payTx.counterparty) {
+        const bankMerchant = bankTx.counterparty.toLowerCase()
+        const payMerchant = payTx.counterparty.toLowerCase()
+        // 商户名部分匹配（任一包含另一个）
+        if (bankMerchant.includes(payMerchant) || payMerchant.includes(bankMerchant)) {
+          return true
+        }
+      }
+
+      return false
+    })
+
+    if (match) {
+      duplicateIds.add(bankTx.transactionId)
+      console.log(`  ✓ 发现重复: 银行[${bankTx.counterparty}] ¥${bankTx.amount} ↔ ${match.platform}[${match.counterparty}] ¥${match.amount}`)
+    }
+  }
+
+  const result = transactions.filter(t => !duplicateIds.has(t.transactionId))
+  console.log(`🔄 跨平台去重完成: 移除 ${duplicateIds.size} 条重复的银行流水`)
+  return result
+}

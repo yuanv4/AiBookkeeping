@@ -8,9 +8,36 @@
       <span class="badge-text">云端存储 - 数据存储在后端服务器</span>
     </div>
 
+    <!-- 上传账单 -->
+    <div class="section upload-section">
+      <h3 class="section-title">📁 上传账单</h3>
+      <div class="section-content">
+        <p class="section-desc">
+          支持微信支付、支付宝、建设银行、招商银行等账单文件
+        </p>
+        <FileUploader
+          upload-text="点击或拖拽账单文件到此处"
+          upload-hint="支持 CSV、XLS、PDF 格式"
+          @files-added="handleFilesAdded"
+        />
+        <div v-if="files.length > 0" class="upload-actions">
+          <div class="files-info">
+            已选择 {{ files.length }} 个文件
+          </div>
+          <button
+            class="btn btn-primary"
+            :disabled="processing"
+            @click="processFiles"
+          >
+            {{ processing ? '处理中...' : `开始处理 ${files.length} 个文件` }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 导出数据 -->
     <div class="section">
-      <h3 class="section-title">导出数据</h3>
+      <h3 class="section-title">📤 导出数据</h3>
       <div class="section-content">
         <p class="section-desc">
           将您的账单数据导出为备份文件,便于保存和分析
@@ -30,24 +57,26 @@
 
     <!-- 清除数据 -->
     <div class="section danger-zone">
-      <h3 class="section-title">危险区域</h3>
+      <h3 class="section-title">⚠️ 危险区域</h3>
       <div class="section-content">
         <p class="section-desc">
           清除所有数据将删除所有已上传的文件和解析结果,此操作不可恢复。
           建议先执行"导出完整备份"。
         </p>
-        <button class="btn btn-primary" @click="exportFormat = 'json'; exportData()">
-          📤 先导出完整备份
-        </button>
-        <button class="btn btn-danger" @click="confirmClearData">
-          🗑️ 清除所有数据
-        </button>
+        <div class="danger-actions">
+          <button class="btn btn-outline" @click="exportFormat = 'json'; exportData()">
+            📤 先导出完整备份
+          </button>
+          <button class="btn btn-danger" @click="confirmClearData">
+            🗑️ 清除所有数据
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- 数据说明 -->
     <div class="section">
-      <h3 class="section-title">关于数据存储</h3>
+      <h3 class="section-title">ℹ️ 关于数据存储</h3>
       <div class="info-box">
         <div class="info-item">
           <span class="info-icon">☁️</span>
@@ -81,6 +110,7 @@ import { useAppStore } from '../../stores/appStore.js'
 import { useCategoryStore } from '../../stores/categoryStore.js'
 import { useNotificationStore } from '../../stores/notificationStore.js'
 import { exportToJSON, exportToCSV } from '../../utils/dataExporter.js'
+import FileUploader from '../../components/common/FileUploader.vue'
 import * as XLSX from 'xlsx'
 
 const appStore = useAppStore()
@@ -91,7 +121,21 @@ const exportFormat = ref('json')
 
 const files = computed(() => appStore.files)
 const transactions = computed(() => appStore.transactions)
+const processing = computed(() => appStore.processing)
 const hasData = computed(() => appStore.hasData)
+
+function handleFilesAdded() {
+  // 文件添加后的处理
+}
+
+async function processFiles() {
+  try {
+    await appStore.processFiles()
+    notificationStore.show('账单处理完成', 'success')
+  } catch (error) {
+    notificationStore.show('处理文件失败: ' + error.message, 'error')
+  }
+}
 
 async function exportData() {
   try {
@@ -201,21 +245,22 @@ async function confirmClearData() {
 }
 
 .section {
+  background: var(--bg-card);
+  border: var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 24px;
   margin-bottom: 24px;
-  padding-bottom: 24px;
-  border-bottom: var(--card-border);
 }
 
 .section:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 12px 0;
+  margin: 0 0 16px 0;
 }
 
 .section-content {
@@ -230,6 +275,27 @@ async function confirmClearData() {
   margin: 0;
 }
 
+/* 上传区域 */
+.upload-section {
+  border-color: var(--color-primary);
+  border-width: 2px;
+}
+
+.upload-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: var(--border-default);
+}
+
+.files-info {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* 导出选项 */
 .export-options {
   display: flex;
   align-items: center;
@@ -247,34 +313,35 @@ async function confirmClearData() {
   cursor: pointer;
 }
 
+/* 危险区域 */
 .danger-zone {
-  background: var(--bg-card);
-  padding: 20px;
-  border-radius: var(--radius-md);
-  border: 2px solid var(--color-danger);
+  border-color: var(--color-danger);
+  border-width: 2px;
 }
 
 .danger-zone .section-title {
   color: var(--color-danger);
 }
 
-.danger-zone .section-desc {
-  color: var(--text-secondary);
+.danger-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
+/* 信息框 */
 .info-box {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .info-item {
   display: flex;
   gap: 16px;
   padding: 16px;
-  background: var(--bg-card);
+  background: var(--bg-page);
   border-radius: var(--radius-md);
-  border: var(--card-border);
 }
 
 .info-icon {
@@ -300,6 +367,7 @@ async function confirmClearData() {
   line-height: 1.5;
 }
 
+/* 按钮样式 */
 .btn {
   padding: 10px 20px;
   border: var(--input-border);
@@ -314,18 +382,27 @@ async function confirmClearData() {
 }
 
 .btn-primary {
+  background: var(--color-primary);
   border-color: var(--color-primary);
-  color: var(--text-primary);
+  color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary);
-  color: white;
+  opacity: 0.9;
 }
 
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--border-strong);
+}
+
+.btn-outline:hover {
+  background: var(--bg-page);
 }
 
 .btn-danger {
@@ -340,9 +417,22 @@ async function confirmClearData() {
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .section-content {
+  .upload-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .files-info {
+    text-align: center;
+  }
+
+  .export-options {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .danger-actions {
+    flex-direction: column;
   }
 
   .info-item {

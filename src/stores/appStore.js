@@ -5,7 +5,8 @@ import Papa from 'papaparse'
 import {
   mapTransactions,
   mergeTransactions,
-  deduplicateTransactions
+  deduplicateTransactions,
+  crossPlatformDeduplication
 } from '../utils/dataModel.js'
 import { useCategoryStore } from './categoryStore.js'
 import { transactionsRepo, configRepo } from '../repositories/index.js'
@@ -271,8 +272,9 @@ export const useAppStore = defineStore('app', () => {
         allTransactions.push(...txs)
       }
 
-      // 合并和去重
-      const uniqueTransactions = deduplicateTransactions(allTransactions)
+      // 同平台去重 + 跨平台去重
+      const dedupedSamePlatform = deduplicateTransactions(allTransactions)
+      const uniqueTransactions = crossPlatformDeduplication(dedupedSamePlatform)
       transactions.value = uniqueTransactions
 
       // 保存到 IndexedDB

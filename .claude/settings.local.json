@@ -23,7 +23,13 @@
       "Bash(rm:*)",
       "Bash(git commit:*)",
       "Bash(npm run build)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(head:*)",
+      "Bash(iconv:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(ssconvert:*)",
+      "Bash(cat:*)"
     ]
   }
 }
