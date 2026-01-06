@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// 导入批次表 - 记录每次导入的元信息
+model ImportBatch {
+  id           String        @id @default(cuid())
+  fileName     String        // 原始文件名
+  fileSize     Int           // 文件大小（字节）
+  source       String        // 来源：alipay, ccb, cmb
+  sourceType   String        // 文件类型：csv, xls, pdf
+  rowCount     Int           // 解析到的行数
+  warningCount Int           @default(0) // 解析警告数量
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+
+  @@index([source])
+  @@index([createdAt])
+}
+
+// 统一交易表 - 所有来源的交易归一化存储
+model Transaction {
+  id            String      @id @default(cuid())
+  occurredAt    DateTime    // 交易时间
+  amount        Float       // 金额（统一为正数）
+  direction     String      // 收入/支出：in, out
+  currency      String      @default("CNY") // 币种
+  counterparty  String?     // 对方名称
+  description   String?     // 摘要/备注/商品说明
+  category      String?     // 分类（可为空，后续可自动分类）
+  accountName   String?     // 账户/卡号尾号/钱包（支付宝：收/付款方式）
+  source        String      // 来源：alipay, ccb, cmb
+  sourceRaw     String      // 原始行 JSON，便于追溯与调试
+  sourceRowId   String      // 原始行唯一标识/行号/流水号
+  
+  // ===== 扩展字段：覆盖所有数据源 =====
+  
+  // 余额相关（建设银行、招商银行）
+  balance       Float?      // 交易后账户余额
+  
+  // 交易状态（支付宝）
+  status        String?     // 交易状态：交易成功, 退款成功, 交易关闭, 充值成功 等
+  
+  // 对方账号信息
+  counterpartyAccount String? // 对方账号（支付宝、建设银行）
+  
+  // 支付宝特有字段
+  transactionId   String?   // 交易订单号（支付宝原始订单号）
+  merchantOrderId String?   // 商家订单号
+  memo            String?   // 备注（用户添加的备注）
+  
+  // 建设银行特有字段
+  cashRemit       String?   // 钞汇类型：钞, 汇（建设银行）
+  
+  // 关联
+  importBatchId String
+  importBatch   ImportBatch @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([source, sourceRowId]) // 防止重复导入
+  @@index([occurredAt])
+  @@index([source])
+  @@index([direction])
+  @@index([importBatchId])
+  @@index([status])
+  @@index([balance])
+}
+
+// 图表请求记录表 - 保存提示词与生成结果，便于复用/审计
+model ChartRequest {
+  id          String   @id @default(cuid())
+  prompt      String   // 用户提示词
+  dataFilter  String?  // 数据筛选条件 JSON
+  optionJson  String   // 生成的 ECharts option JSON
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}

@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+@theme {
+  /* 深色主题 - 财务应用风格 */
+  --color-background: hsl(222 47% 11%);
+  --color-foreground: hsl(210 40% 98%);
+
+  --color-card: hsl(222 47% 15%);
+  --color-card-foreground: hsl(210 40% 98%);
+
+  --color-popover: hsl(222 47% 13%);
+  --color-popover-foreground: hsl(210 40% 98%);
+
+  --color-primary: hsl(142 76% 36%);
+  --color-primary-foreground: hsl(210 40% 98%);
+
+  --color-secondary: hsl(217 33% 25%);
+  --color-secondary-foreground: hsl(210 40% 98%);
+
+  --color-muted: hsl(217 33% 20%);
+  --color-muted-foreground: hsl(215 20% 65%);
+
+  --color-accent: hsl(38 92% 50%);
+  --color-accent-foreground: hsl(222 47% 11%);
+
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(210 40% 98%);
+
+  --color-border: hsl(217 33% 25%);
+  --color-input: hsl(217 33% 25%);
+  --color-ring: hsl(142 76% 36%);
+
+  --radius: 0.5rem;
+
+  /* 图表配色 */
+  --color-chart-1: hsl(142 76% 46%);
+  --color-chart-2: hsl(217 91% 60%);
+  --color-chart-3: hsl(38 92% 50%);
+  --color-chart-4: hsl(280 65% 60%);
+  --color-chart-5: hsl(0 84% 60%);
+
+  /* 动画 */
+  --animate-fade-in: fade-in 0.5s ease-out;
+  --animate-slide-up: slide-up 0.5s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted-foreground);
+}
+
+/* 动画入场效果 */
+.animate-stagger > * {
+  animation: fade-in 0.5s ease-out backwards;
+}
+
+.animate-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.animate-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.animate-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.animate-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.animate-stagger > *:nth-child(6) { animation-delay: 250ms; }
