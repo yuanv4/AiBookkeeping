@@ -1,47 +1,48 @@
 @import "tailwindcss";
 
 @theme {
-  /* 深色主题 - 财务应用风格 */
-  --color-background: hsl(222 47% 11%);
-  --color-foreground: hsl(210 40% 98%);
+  /* Editorial ledger theme */
+  --color-background: hsl(36 33% 96%);
+  --color-foreground: hsl(212 19% 13%);
 
-  --color-card: hsl(222 47% 15%);
-  --color-card-foreground: hsl(210 40% 98%);
+  --color-card: hsl(36 40% 99%);
+  --color-card-foreground: hsl(212 19% 13%);
 
-  --color-popover: hsl(222 47% 13%);
-  --color-popover-foreground: hsl(210 40% 98%);
+  --color-popover: hsl(36 40% 99%);
+  --color-popover-foreground: hsl(212 19% 13%);
 
-  --color-primary: hsl(142 76% 36%);
-  --color-primary-foreground: hsl(210 40% 98%);
+  --color-primary: hsl(18 80% 45%);
+  --color-primary-foreground: hsl(36 33% 96%);
 
-  --color-secondary: hsl(217 33% 25%);
-  --color-secondary-foreground: hsl(210 40% 98%);
+  --color-secondary: hsl(196 42% 90%);
+  --color-secondary-foreground: hsl(212 19% 13%);
 
-  --color-muted: hsl(217 33% 20%);
-  --color-muted-foreground: hsl(215 20% 65%);
+  --color-muted: hsl(36 20% 92%);
+  --color-muted-foreground: hsl(215 10% 40%);
 
-  --color-accent: hsl(38 92% 50%);
-  --color-accent-foreground: hsl(222 47% 11%);
+  --color-accent: hsl(164 62% 32%);
+  --color-accent-foreground: hsl(36 33% 96%);
 
-  --color-destructive: hsl(0 84% 60%);
-  --color-destructive-foreground: hsl(210 40% 98%);
+  --color-destructive: hsl(0 80% 55%);
+  --color-destructive-foreground: hsl(36 33% 96%);
 
-  --color-border: hsl(217 33% 25%);
-  --color-input: hsl(217 33% 25%);
-  --color-ring: hsl(142 76% 36%);
+  --color-border: hsl(30 18% 80%);
+  --color-input: hsl(30 18% 80%);
+  --color-ring: hsl(18 80% 45%);
 
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 
   /* 图表配色 */
-  --color-chart-1: hsl(142 76% 46%);
-  --color-chart-2: hsl(217 91% 60%);
-  --color-chart-3: hsl(38 92% 50%);
-  --color-chart-4: hsl(280 65% 60%);
-  --color-chart-5: hsl(0 84% 60%);
+  --color-chart-1: hsl(18 80% 45%);
+  --color-chart-2: hsl(164 62% 32%);
+  --color-chart-3: hsl(196 55% 45%);
+  --color-chart-4: hsl(42 88% 55%);
+  --color-chart-5: hsl(0 80% 55%);
 
   /* 动画 */
-  --animate-fade-in: fade-in 0.5s ease-out;
-  --animate-slide-up: slide-up 0.5s ease-out;
+  --animate-fade-in: fade-in 0.6s ease-out;
+  --animate-slide-up: slide-up 0.6s ease-out;
+  --animate-float: float 6s ease-in-out infinite;
 
   @keyframes fade-in {
     from {
@@ -64,6 +65,16 @@
       transform: translateY(0);
     }
   }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-12px);
+    }
+  }
 }
 
 @layer base {
@@ -73,7 +84,21 @@
   
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-manrope), "Noto Sans", sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+    background-image:
+      radial-gradient(circle at top left, rgba(231, 111, 81, 0.15), transparent 55%),
+      radial-gradient(circle at 80% 10%, rgba(38, 143, 131, 0.12), transparent 45%),
+      linear-gradient(120deg, rgba(34, 79, 115, 0.06), transparent 45%),
+      linear-gradient(0deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6));
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-fraunces), "Noto Serif", serif;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -108,3 +133,7 @@
 .animate-stagger > *:nth-child(4) { animation-delay: 150ms; }
 .animate-stagger > *:nth-child(5) { animation-delay: 200ms; }
 .animate-stagger > *:nth-child(6) { animation-delay: 250ms; }
+
+.text-balance {
+  text-wrap: balance;
+}

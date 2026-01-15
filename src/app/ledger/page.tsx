@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { ArrowLeft, Search, Filter, Download, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, Filter, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppShell } from "@/components/layout/app-shell";
 import type { BillSource } from "@/lib/types";
 
 interface Transaction {
@@ -30,6 +30,18 @@ interface Stats {
   totalIncome: number;
   netIncome: number;
 }
+
+const SOURCE_COLORS: Record<string, string> = {
+  alipay: "bg-blue-500/20 text-blue-400",
+  ccb: "bg-red-500/20 text-red-400",
+  cmb: "bg-orange-500/20 text-orange-400",
+};
+
+const SOURCE_NAMES: Record<string, string> = {
+  alipay: "支付宝",
+  ccb: "建行",
+  cmb: "招行",
+};
 
 export default function LedgerPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -112,38 +124,18 @@ export default function LedgerPage() {
   };
 
   const getSourceBadge = (source: string) => {
-    const colors: Record<string, string> = {
-      alipay: "bg-blue-500/20 text-blue-400",
-      ccb: "bg-red-500/20 text-red-400",
-      cmb: "bg-orange-500/20 text-orange-400",
-    };
-    const names: Record<string, string> = {
-      alipay: "支付宝",
-      ccb: "建行",
-      cmb: "招行",
-    };
     return (
-      <span className={`px-2 py-0.5 rounded text-xs ${colors[source] || "bg-muted"}`}>
-        {names[source] || source}
+      <span className={`px-2 py-0.5 rounded text-xs ${SOURCE_COLORS[source] || "bg-muted"}`}>
+        {SOURCE_NAMES[source] || source}
       </span>
     );
   };
 
   return (
     <main className="min-h-screen bg-background">
-      {/* 导航栏 */}
-      <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="font-semibold text-lg">统一账单</h1>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+      <AppShell title="统一账单" subtitle="统一账单" contentClassName="max-w-7xl mx-auto px-6 py-8 space-y-6">
         {/* 搜索和筛选 */}
-        <Card>
+        <Card className="bg-card/80 border-border/70 shadow-sm">
           <CardContent className="pt-6">
             <form onSubmit={handleSearch} className="flex items-center gap-4">
               <div className="relative flex-1">
@@ -162,7 +154,7 @@ export default function LedgerPage() {
                   setSource(e.target.value as BillSource | "");
                   setPage(1);
                 }}
-                className="h-10 px-3 rounded-md border border-input bg-background text-sm"
+                className="h-10 px-3 rounded-md border border-input bg-card/80 text-sm"
               >
                 <option value="">全部来源</option>
                 <option value="alipay">支付宝</option>
@@ -175,7 +167,7 @@ export default function LedgerPage() {
                   setDirection(e.target.value as "in" | "out" | "");
                   setPage(1);
                 }}
-                className="h-10 px-3 rounded-md border border-input bg-background text-sm"
+                className="h-10 px-3 rounded-md border border-input bg-card/80 text-sm"
               >
                 <option value="">全部类型</option>
                 <option value="out">支出</option>
@@ -191,13 +183,13 @@ export default function LedgerPage() {
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="bg-card/80 border-border/70 shadow-sm">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">总交易笔数</p>
               <p className="text-2xl font-bold mt-1">{stats?.totalCount ?? 0}</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card/80 border-border/70 shadow-sm">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">总支出</p>
               <p className="text-2xl font-bold text-destructive mt-1">
@@ -205,7 +197,7 @@ export default function LedgerPage() {
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card/80 border-border/70 shadow-sm">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">总收入</p>
               <p className="text-2xl font-bold text-primary mt-1">
@@ -213,7 +205,7 @@ export default function LedgerPage() {
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card/80 border-border/70 shadow-sm">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">净收入</p>
               <p className={`text-2xl font-bold mt-1 ${
@@ -226,7 +218,7 @@ export default function LedgerPage() {
         </div>
 
         {/* 交易列表 */}
-        <Card>
+        <Card className="bg-card/80 border-border/70 shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -249,10 +241,10 @@ export default function LedgerPage() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border border-border/70">
                   <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
+                    <thead className="bg-muted/40">
+                      <tr className="border-b border-border/70">
                         <th className="text-left py-3 px-4 font-medium">时间</th>
                         <th className="text-left py-3 px-4 font-medium">来源</th>
                         <th className="text-left py-3 px-4 font-medium">对方</th>
@@ -262,7 +254,7 @@ export default function LedgerPage() {
                     </thead>
                     <tbody>
                       {transactions.map((t) => (
-                        <tr key={t.id} className="border-b border-border/50 hover:bg-muted/30">
+                        <tr key={t.id} className="border-b border-border/50 hover:bg-muted/40">
                           <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
                             {formatDate(t.occurredAt)}
                           </td>
@@ -312,7 +304,7 @@ export default function LedgerPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </AppShell>
     </main>
   );
 }

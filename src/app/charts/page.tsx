@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
-import { ArrowLeft, Sparkles, Copy, RefreshCw, Check, Loader2 } from "lucide-react";
+import { Sparkles, Copy, RefreshCw, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppShell } from "@/components/layout/app-shell";
 import type { BillSource, EChartsOption } from "@/lib/types";
 
 // 动态导入 ECharts
@@ -193,58 +193,58 @@ export default function ChartsPage() {
 
   // 图表颜色主题
   const chartTheme = {
-    color: ["#22c55e", "#3b82f6", "#f59e0b", "#a855f7", "#ef4444"],
+    color: ["#d24f28", "#2f9f8d", "#2f6fa3", "#f3b33d", "#e24949"],
     backgroundColor: "transparent",
     textStyle: {
-      color: "#a1a1aa",
+      color: "#4b5563",
     },
     title: {
       textStyle: {
-        color: "#fafafa",
+        color: "#1f2937",
       },
       subtextStyle: {
-        color: "#a1a1aa",
+        color: "#6b7280",
       },
     },
     legend: {
       textStyle: {
-        color: "#a1a1aa",
+        color: "#6b7280",
       },
     },
     tooltip: {
-      backgroundColor: "rgba(30, 41, 59, 0.9)",
-      borderColor: "#334155",
+      backgroundColor: "rgba(252, 248, 241, 0.95)",
+      borderColor: "#d4c7b6",
       textStyle: {
-        color: "#fafafa",
+        color: "#1f2937",
       },
     },
     xAxis: {
       axisLine: {
         lineStyle: {
-          color: "#334155",
+          color: "#d4c7b6",
         },
       },
       axisLabel: {
-        color: "#a1a1aa",
+        color: "#6b7280",
       },
       splitLine: {
         lineStyle: {
-          color: "#1e293b",
+          color: "rgba(212, 199, 182, 0.5)",
         },
       },
     },
     yAxis: {
       axisLine: {
         lineStyle: {
-          color: "#334155",
+          color: "#d4c7b6",
         },
       },
       axisLabel: {
-        color: "#a1a1aa",
+        color: "#6b7280",
       },
       splitLine: {
         lineStyle: {
-          color: "#1e293b",
+          color: "rgba(212, 199, 182, 0.5)",
         },
       },
     },
@@ -252,19 +252,9 @@ export default function ChartsPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* 导航栏 */}
-      <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="font-semibold text-lg">AI 图表分析</h1>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+      <AppShell title="AI 图表分析" subtitle="图表分析" contentClassName="max-w-7xl mx-auto px-6 py-8 space-y-6">
         {/* 已保存图表 */}
-        <Card>
+        <Card className="bg-card/80 border-border/70 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
@@ -282,7 +272,7 @@ export default function ChartsPage() {
                   type="date"
                   value={presetStartDate}
                   onChange={(e) => setPresetStartDate(e.target.value)}
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-9 rounded-md border border-input bg-card/80 px-3 text-sm"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -291,7 +281,7 @@ export default function ChartsPage() {
                   type="date"
                   value={presetEndDate}
                   onChange={(e) => setPresetEndDate(e.target.value)}
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-9 rounded-md border border-input bg-card/80 px-3 text-sm"
                 />
               </div>
               <Button variant="outline" size="sm" onClick={handleSeedPresets}>
@@ -317,7 +307,7 @@ export default function ChartsPage() {
                     key={item.id}
                     type="button"
                     onClick={() => handleApplySaved(item)}
-                    className="text-left p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
+                    className="text-left p-4 rounded-xl border border-border/70 bg-card/80 hover:border-primary/50 transition-colors"
                   >
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{item.title}</p>
@@ -338,7 +328,7 @@ export default function ChartsPage() {
         </Card>
 
         {/* 提示词输入 */}
-        <Card>
+        <Card className="bg-card/80 border-border/70 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-accent" />
@@ -361,7 +351,7 @@ export default function ChartsPage() {
               <select
                 value={source}
                 onChange={(e) => setSource(e.target.value as BillSource | "")}
-                className="h-10 px-3 rounded-md border border-input bg-background text-sm"
+                className="h-10 px-3 rounded-md border border-input bg-card/80 text-sm"
               >
                 <option value="">全部来源</option>
                 <option value="alipay">支付宝</option>
@@ -402,7 +392,7 @@ export default function ChartsPage() {
 
         {/* 错误提示 */}
         {error && (
-          <Card className="border-destructive">
+          <Card className="border-destructive bg-card/80 shadow-sm">
             <CardContent className="pt-6">
               <p className="text-destructive">{error}</p>
             </CardContent>
@@ -410,7 +400,7 @@ export default function ChartsPage() {
         )}
 
         {saveSuccess && (
-          <Card className="border-primary">
+          <Card className="border-primary bg-card/80 shadow-sm">
             <CardContent className="pt-6">
               <p className="text-primary">{saveSuccess}</p>
             </CardContent>
@@ -419,7 +409,7 @@ export default function ChartsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 图表预览 */}
-          <Card>
+          <Card className="bg-card/80 border-border/70 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -450,7 +440,7 @@ export default function ChartsPage() {
           </Card>
 
           {/* Option JSON */}
-          <Card>
+          <Card className="bg-card/80 border-border/70 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -498,7 +488,7 @@ export default function ChartsPage() {
             </CardHeader>
             <CardContent>
               <div className="relative">
-                <pre className="bg-muted/30 rounded-lg p-4 overflow-auto h-[400px] text-sm font-mono">
+                <pre className="bg-muted/40 rounded-lg p-4 overflow-auto h-[400px] text-sm font-mono">
                   {optionJson || `// 生成的 ECharts option 将显示在这里
 {
   "title": { ... },
@@ -511,7 +501,7 @@ export default function ChartsPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </AppShell>
     </main>
   );
 }

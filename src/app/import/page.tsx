@@ -1,13 +1,11 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import Link from "next/link";
-import { ArrowLeft, Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { ParseResult, UnifiedTransactionDraft, ParseWarning, BillSource } from "@/lib/types";
-
-type FileType = "csv" | "xls" | "pdf";
+import { AppShell } from "@/components/layout/app-shell";
+import type { ParseResult, BillSource } from "@/lib/types";
 
 interface DraftWithWarnings extends ParseResult {
   file: File;
@@ -162,19 +160,9 @@ export default function ImportPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* 导航栏 */}
-      <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="font-semibold text-lg">导入账单</h1>
-        </div>
-      </nav>
-
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+      <AppShell title="导入账单" subtitle="账单导入" contentClassName="max-w-5xl mx-auto px-6 py-8 space-y-6">
         {/* 上传区域 */}
-        <Card>
+        <Card className="bg-card/80 border-border/70 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Upload className="w-5 h-5 text-primary" />
@@ -195,10 +183,10 @@ export default function ImportPage() {
             />
             <label
               htmlFor="file-input"
-              className={`border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer transition-colors ${
+              className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors ${
                 isDragging
                   ? "border-primary bg-primary/5"
-                  : "border-border hover:border-muted-foreground"
+                  : "border-border/80 hover:border-muted-foreground"
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -222,7 +210,7 @@ export default function ImportPage() {
 
         {/* 错误提示 */}
         {error && (
-          <Card className="border-destructive">
+          <Card className="border-destructive bg-card/80 shadow-sm">
             <CardContent className="pt-6">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
@@ -240,7 +228,7 @@ export default function ImportPage() {
 
         {/* 成功提示 */}
         {success && (
-          <Card className="border-primary">
+          <Card className="border-primary bg-card/80 shadow-sm">
             <CardContent className="pt-6">
               <div className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -257,7 +245,7 @@ export default function ImportPage() {
         )}
 
         {/* 导入说明 */}
-        <Card>
+        <Card className="bg-card/80 border-border/70 shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-accent shrink-0 mt-0.5" />
@@ -275,7 +263,7 @@ export default function ImportPage() {
 
         {/* 解析预览 */}
         {parseResult && (
-          <Card>
+          <Card className="bg-card/80 border-border/70 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -310,10 +298,10 @@ export default function ImportPage() {
               )}
 
               {/* 数据预览表格 */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-lg border border-border/70">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
+                  <thead className="bg-muted/40">
+                    <tr className="border-b border-border/70">
                       <th className="text-left py-3 px-4 font-medium">时间</th>
                       <th className="text-left py-3 px-4 font-medium">对方</th>
                       <th className="text-left py-3 px-4 font-medium">描述</th>
@@ -373,7 +361,7 @@ export default function ImportPage() {
             )}
           </Button>
         </div>
-      </div>
+      </AppShell>
     </main>
   );
 }
