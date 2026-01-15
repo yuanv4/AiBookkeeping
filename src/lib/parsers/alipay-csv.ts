@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import iconv from "iconv-lite";
+import crypto from "crypto";
 import type { UnifiedTransactionDraft, ParseWarning, ParseResult } from "../types";
 
 /**
@@ -186,9 +187,11 @@ export async function parseAlipayCsv(buffer: ArrayBuffer): Promise<ParseResult> 
       continue;
     }
 
-    // 生成行 ID（优先使用交易订单号）
+    // 生成行 ID（优先使用交易订单号，否则使用行内容哈希避免跨文件冲突）
     const transactionId = row.transactionId?.trim() || null;
-    const sourceRowId = transactionId || `row-${rowIndex}`;
+    const rawKey = JSON.stringify(row);
+    const hash = crypto.createHash("sha1").update(rawKey).digest("hex");
+    const sourceRowId = transactionId || `hash-${hash}`;
 
     drafts.push({
       occurredAt,

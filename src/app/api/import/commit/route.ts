@@ -20,6 +20,13 @@ const TransactionDraftSchema = z.object({
   source: z.enum(["alipay", "ccb", "cmb"]),
   sourceRaw: z.string().max(5000), // 限制原始数据大小
   sourceRowId: z.string().max(200),
+  balance: z.number().min(-100_000_000).max(100_000_000).nullable(),
+  status: z.string().max(100).nullable(),
+  counterpartyAccount: z.string().max(200).nullable(),
+  transactionId: z.string().max(200).nullable(),
+  merchantOrderId: z.string().max(200).nullable(),
+  memo: z.string().max(500).nullable(),
+  cashRemit: z.string().max(20).nullable(),
 });
 
 // 请求体 Schema
@@ -111,6 +118,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
             sourceRaw: draft.sourceRaw,
             sourceRowId: draft.sourceRowId,
             importBatchId: batch.id,
+            balance: draft.balance,
+            status: draft.status,
+            counterpartyAccount: draft.counterpartyAccount,
+            transactionId: draft.transactionId,
+            merchantOrderId: draft.merchantOrderId,
+            memo: draft.memo,
+            cashRemit: draft.cashRemit,
           })),
         });
 
@@ -134,6 +148,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
                 sourceRaw: draft.sourceRaw,
                 sourceRowId: draft.sourceRowId,
                 importBatchId: batch.id,
+                balance: draft.balance,
+                status: draft.status,
+                counterpartyAccount: draft.counterpartyAccount,
+                transactionId: draft.transactionId,
+                merchantOrderId: draft.merchantOrderId,
+                memo: draft.memo,
+                cashRemit: draft.cashRemit,
               },
             });
             insertedCount++;

@@ -20,6 +20,14 @@ const PRESET_PROMPTS = [
   "各来源账单金额对比",
 ];
 
+interface SavedChart {
+  id: string;
+  title: string;
+  option: EChartsOption;
+  createdAt: string;
+  kind: "system" | "user";
+}
+
 export default function ChartsPage() {
   const [prompt, setPrompt] = useState("");
   const [source, setSource] = useState<BillSource | "">("");
@@ -27,8 +35,37 @@ export default function ChartsPage() {
   const [chartOption, setChartOption] = useState<EChartsOption | null>(null);
   const [optionJson, setOptionJson] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [savedCharts, setSavedCharts] = useState<SavedChart[]>([]);
+  const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const [savedError, setSavedError] = useState<string | null>(null);
+  const [presetStartDate, setPresetStartDate] = useState("");
+  const [presetEndDate, setPresetEndDate] = useState("");
   const [copied, setCopied] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
+
+  const fetchSavedCharts = async () => {
+    setIsLoadingSaved(true);
+    setSavedError(null);
+
+    try {
+      const response = await fetch("/api/charts/saved");
+      const result = await response.json();
+      if (!result.success) {
+        setSavedError(result.error || "获取已保存图表失败");
+        return;
+      }
+      setSavedCharts(result.data || []);
+    } catch (err) {
+      setSavedError(err instanceof Error ? err.message : "获取已保存图表失败");
+    } finally {
+      setIsLoadingSaved(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSavedCharts();
+  }, []);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -64,6 +101,71 @@ export default function ChartsPage() {
       setError(err instanceof Error ? err.message : "生成失败");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleApplySaved = (item: SavedChart) => {
+    setChartOption(item.option);
+    setOptionJson(JSON.stringify(item.option, null, 2));
+    setPrompt(item.title);
+    setError(null);
+  };
+
+  const handleSaveChart = async () => {
+    if (!chartOption) {
+      setError("请先生成图表");
+      return;
+    }
+
+    setError(null);
+    setSaveSuccess(null);
+
+    try {
+      const response = await fetch("/api/charts/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: prompt || "已保存图表",
+          prompt,
+          option: chartOption,
+          dataFilter: {
+            source: source || undefined,
+          },
+        }),
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        setError(result.error || "保存失败");
+        return;
+      }
+
+      setSaveSuccess("已保存图表");
+      fetchSavedCharts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "保存失败");
+    }
+  };
+
+  const handleSeedPresets = async () => {
+    try {
+      const response = await fetch("/api/charts/presets/seed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDate: presetStartDate || undefined,
+          endDate: presetEndDate || undefined,
+          source: source || undefined,
+        }),
+      });
+      const result = await response.json();
+      if (!result.success) {
+        setSavedError(result.error || "初始化系统示例失败");
+        return;
+      }
+      fetchSavedCharts();
+    } catch (err) {
+      setSavedError(err instanceof Error ? err.message : "初始化系统示例失败");
     }
   };
 
@@ -161,6 +263,80 @@ export default function ChartsPage() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        {/* 已保存图表 */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <CardTitle>已保存图表</CardTitle>
+            </div>
+            <CardDescription>
+              包含系统预置与个人保存的图表配置
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">开始日期</span>
+                <input
+                  type="date"
+                  value={presetStartDate}
+                  onChange={(e) => setPresetStartDate(e.target.value)}
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">结束日期</span>
+                <input
+                  type="date"
+                  value={presetEndDate}
+                  onChange={(e) => setPresetEndDate(e.target.value)}
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={handleSeedPresets}>
+                初始化系统示例
+              </Button>
+              <Button variant="outline" size="sm" onClick={fetchSavedCharts} disabled={isLoadingSaved}>
+                刷新列表
+              </Button>
+            </div>
+            {isLoadingSaved ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>加载中...</span>
+              </div>
+            ) : savedError ? (
+              <p className="text-sm text-destructive">{savedError}</p>
+            ) : savedCharts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">暂无已保存图表</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-3">
+                {savedCharts.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleApplySaved(item)}
+                    className="text-left p-4 rounded-lg border border-border hover:border-primary/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{item.title}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        item.kind === "system" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                      }`}>
+                        {item.kind === "system" ? "系统" : "个人"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {new Date(item.createdAt).toLocaleString("zh-CN")}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* 提示词输入 */}
         <Card>
           <CardHeader>
@@ -233,6 +409,14 @@ export default function ChartsPage() {
           </Card>
         )}
 
+        {saveSuccess && (
+          <Card className="border-primary">
+            <CardContent className="pt-6">
+              <p className="text-primary">{saveSuccess}</p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 图表预览 */}
           <Card>
@@ -291,6 +475,14 @@ export default function ChartsPage() {
                         复制
                       </>
                     )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSaveChart}
+                    disabled={!chartOption}
+                  >
+                    保存
                   </Button>
                   <Button
                     variant="outline"
