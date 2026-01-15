@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Copy, RefreshCw, Check, Loader2, Clock, Database, History } from "lucide-react";
+import { Sparkles, Copy, Check, Loader2, Clock, Database, History, Save, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +40,8 @@ export default function ChartsPage() {
   const [copied, setCopied] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
+  const hasChart = Boolean(chartOption);
+  const canShowSave = hasChart && !isGenerating;
   const closeHistory = () => setShowHistory(false);
   const applyChartOption = (option: EChartsOption) => {
     setChartOption(option);
@@ -186,12 +188,6 @@ export default function ChartsPage() {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setError("复制失败");
-    }
-  };
-
-  const handleRegenerate = () => {
-    if (prompt) {
-      handleGenerate();
     }
   };
 
@@ -381,41 +377,53 @@ export default function ChartsPage() {
                   <p className="text-sm font-medium">查看图表结果</p>
                   <p className="text-xs text-muted-foreground">生成完成后可直接保存或继续迭代。</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowHistory(true)}
-                  >
-                    <History className="w-4 h-4 mr-2" />
-                    历史
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSaveChart}
-                    disabled={!chartOption}
-                  >
-                    保存
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRegenerate}
-                    disabled={!prompt || isGenerating}
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${isGenerating ? "animate-spin" : ""}`} />
-                    重新生成
-                  </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 p-1 shadow-sm">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowHistory(true)}
+                      className="h-8 rounded-full px-3 text-xs font-medium text-foreground/80 hover:text-foreground"
+                    >
+                      <History className="w-4 h-4" />
+                      历史
+                    </Button>
+                  </div>
                 </div>
               </div>
-              <div ref={chartRef} className="w-full h-[420px] rounded-xl border border-border/60 bg-muted/20 flex items-center justify-center">
+              <div
+                ref={chartRef}
+                className="relative w-full h-[420px] rounded-xl border border-border/60 bg-muted/20 flex items-center justify-center"
+              >
+                <div className="absolute right-3 top-3 z-10 flex flex-col gap-2 pointer-events-auto">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowOption(true)}
+                    disabled={!hasChart}
+                    aria-label="查看配置"
+                    className="h-9 w-9 rounded-full bg-background/80 text-foreground/80 shadow-sm hover:text-foreground hover:bg-background disabled:opacity-50"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </Button>
+                  {canShowSave && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleSaveChart}
+                      aria-label="保存图表"
+                      className="h-9 w-9 rounded-full bg-background/80 text-primary shadow-sm hover:bg-background"
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
                 {isGenerating ? (
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <Loader2 className="w-8 h-8 animate-spin" />
                     <p>AI 正在生成图表...</p>
                   </div>
-                ) : chartOption ? (
+                ) : hasChart ? (
                   <ReactECharts
                     key={chartKey}
                     option={chartOption}
@@ -431,58 +439,58 @@ export default function ChartsPage() {
                 )}
               </div>
 
-              <div className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">配置详情</p>
-                    <p className="text-xs text-muted-foreground">查看与复制 ECharts 配置 JSON</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowOption((prev) => !prev)}
-                    >
-                      {showOption ? "收起配置" : "查看配置"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCopy}
-                      disabled={!optionJson}
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="w-4 h-4 mr-2" />
-                          已复制
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4 mr-2" />
-                          复制
-                        </>
-                      )}
-                    </Button>
-                  </div>
+            </section>
+          </CardContent>
+        </Card>
+
+        {showOption && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-4"
+            onClick={() => setShowOption(false)}
+          >
+            <div
+              className="w-full max-w-3xl rounded-2xl border border-border/70 bg-card shadow-xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
+                <div>
+                  <p className="text-sm font-medium">配置详情</p>
+                  <p className="text-xs text-muted-foreground">查看与复制 ECharts 配置 JSON</p>
                 </div>
-                {showOption && (
-                  <div className="relative mt-4">
-                    <pre className="bg-muted/40 rounded-lg p-4 overflow-auto h-[320px] text-sm font-mono">
-                      {optionJson || `// 生成的 ECharts option 将显示在这里
+                <Button variant="outline" size="sm" onClick={() => setShowOption(false)}>
+                  关闭
+                </Button>
+              </div>
+              <div className="px-5 py-4">
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute right-3 top-3"
+                    onClick={handleCopy}
+                    disabled={!optionJson}
+                    aria-label={copied ? "已复制" : "复制"}
+                  >
+                    {copied ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </Button>
+                  <pre className="bg-muted/40 rounded-lg p-4 overflow-auto h-[360px] text-sm font-mono">
+                    {optionJson || `// 生成的 ECharts option 将显示在这里
 {
   "title": { ... },
   "xAxis": { ... },
   "yAxis": { ... },
   "series": [ ... ]
 }`}
-                    </pre>
-                  </div>
-                )}
+                  </pre>
+                </div>
               </div>
-
-            </section>
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+        )}
 
         {showHistory && (
           <div
