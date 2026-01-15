@@ -14,9 +14,9 @@ type AppShellProps = {
 
 const navItems = [
   { href: "/", label: "主页概览", icon: Sparkles, accent: "text-primary" },
-  { href: "/import", label: "导入账单", icon: Upload, accent: "text-primary" },
   { href: "/ledger", label: "统一账单", icon: FileSpreadsheet, accent: "text-accent" },
   { href: "/charts", label: "图表分析", icon: BarChart3, accent: "text-chart-2" },
+  { href: "/import", label: "设置", icon: Upload, accent: "text-primary" },
 ];
 
 export function AppShell({
@@ -64,9 +64,6 @@ export function AppShell({
               );
             })}
           </nav>
-          <div className="mt-auto pt-6 text-xs text-muted-foreground">
-            用自然语言驱动财务洞察
-          </div>
         </div>
       </aside>
 
