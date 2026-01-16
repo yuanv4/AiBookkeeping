@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Upload, BarChart3, FileSpreadsheet, ArrowRight } from "lucide-react";
+import { Upload, FileSpreadsheet, ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 
 const BILL_FORMATS = [
@@ -31,7 +31,7 @@ export default function Home() {
                 </h1>
                 <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-12 animate-slide-up" style={{ animationDelay: "0.2s" }}>
                   支持支付宝、建设银行、招商银行等多种账单格式导入，
-                  自动解析并统一管理，AI 驱动的可视化图表生成
+                  自动解析并统一管理，快速聚合你的收支数据
                 </p>
                 <div className="flex flex-wrap items-center gap-4 animate-slide-up" style={{ animationDelay: "0.4s" }}>
                   <Link
@@ -53,7 +53,7 @@ export default function Home() {
 
           {/* 功能卡片 */}
           <section className="max-w-7xl mx-auto px-6 py-16">
-            <div className="grid md:grid-cols-3 gap-6 animate-stagger">
+            <div className="grid md:grid-cols-2 gap-6 animate-stagger">
               {/* 导入账单 */}
               <Link href="/import" className="group">
                 <div className="p-6 rounded-2xl border border-border/80 bg-card/80 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-300 h-full">
@@ -82,19 +82,6 @@ export default function Home() {
                 </div>
               </Link>
 
-              {/* 图表分析 */}
-              <Link href="/charts" className="group">
-                <div className="p-6 rounded-2xl border border-border/80 bg-card/80 shadow-sm hover:shadow-md hover:border-chart-2/50 transition-all duration-300 h-full">
-                  <div className="w-12 h-12 rounded-xl bg-chart-2/10 flex items-center justify-center mb-4 group-hover:bg-chart-2/20 transition-colors">
-                    <BarChart3 className="w-6 h-6 text-chart-2" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">AI 图表分析</h3>
-                  <p className="text-muted-foreground text-sm">
-                    输入自然语言提示词，AI 自动生成 ECharts 图表，
-                    支持折线图、柱状图、饼图等多种可视化
-                  </p>
-                </div>
-              </Link>
             </div>
           </section>
 
@@ -120,7 +107,7 @@ export default function Home() {
           {/* 页脚 */}
           <footer className="border-t border-border/70 bg-background/60">
             <div className="max-w-7xl mx-auto px-6 py-8 text-center text-muted-foreground text-sm">
-              <p>AI 智能记账 - 统一账单管理与可视化分析平台</p>
+              <p>AI 智能记账 - 统一账单管理平台</p>
             </div>
           </footer>
       </AppShell>

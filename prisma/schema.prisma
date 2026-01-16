@@ -84,14 +84,3 @@ model Transaction {
   @@index([duplicateGroupId])
   @@index([primaryTransactionId])
 }
-
-// 图表请求记录表 - 保存提示词与生成结果，便于复用/审计
-model ChartRequest {
-  id          String   @id @default(cuid())
-  prompt      String   // 用户提示词
-  dataFilter  String?  // 数据筛选条件 JSON
-  optionJson  String   // 生成的 ECharts option JSON
-  createdAt   DateTime @default(now())
-
-  @@index([createdAt])
-}

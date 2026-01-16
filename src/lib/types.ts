@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 /**
  * 账单来源
  */
@@ -103,37 +101,6 @@ export interface PaginatedResult<T> {
   pageSize: number;
   totalPages: number;
 }
-
-/**
- * 图表生成请求
- */
-export const ChartGenerateRequestSchema = z.object({
-  prompt: z.string().min(1).max(500),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  source: z.enum(["alipay", "ccb", "cmb"]).optional(),
-});
-
-export type ChartGenerateRequest = z.infer<typeof ChartGenerateRequestSchema>;
-
-/**
- * ECharts Option 校验 Schema（简化版）
- */
-export const EChartsOptionSchema = z.object({
-  title: z.object({
-    text: z.string().optional(),
-    subtext: z.string().optional(),
-  }).optional(),
-  tooltip: z.record(z.unknown()).optional(),
-  legend: z.record(z.unknown()).optional(),
-  xAxis: z.union([z.record(z.unknown()), z.array(z.record(z.unknown()))]).optional(),
-  yAxis: z.union([z.record(z.unknown()), z.array(z.record(z.unknown()))]).optional(),
-  series: z.array(z.record(z.unknown())).max(20), // 限制 series 数量
-  grid: z.record(z.unknown()).optional(),
-  color: z.array(z.string()).optional(),
-});
-
-export type EChartsOption = z.infer<typeof EChartsOptionSchema>;
 
 /**
  * API 响应

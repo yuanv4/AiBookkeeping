@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, FileSpreadsheet, Sparkles, Upload } from "lucide-react";
+import { FileSpreadsheet, Sparkles, Upload } from "lucide-react";
 
 type AppShellProps = {
   title?: string;
@@ -15,7 +15,6 @@ type AppShellProps = {
 const navItems = [
   { href: "/", label: "主页概览", icon: Sparkles, accent: "text-primary" },
   { href: "/ledger", label: "统一账单", icon: FileSpreadsheet, accent: "text-accent" },
-  { href: "/charts", label: "图表分析", icon: BarChart3, accent: "text-chart-2" },
   { href: "/import", label: "设置", icon: Upload, accent: "text-primary" },
 ];
 
@@ -41,7 +40,7 @@ export function AppShell({
             </div>
             <div>
               <p className="font-semibold text-lg leading-tight">AI 智能记账</p>
-              <p className="text-xs text-muted-foreground">统一账单与图表分析</p>
+              <p className="text-xs text-muted-foreground">统一账单管理</p>
             </div>
           </div>
           <nav className="space-y-2">

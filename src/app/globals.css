@@ -32,7 +32,7 @@
 
   --radius: 0.75rem;
 
-  /* 图表配色 */
+  /* 强调配色 */
   --color-chart-1: hsl(18 80% 45%);
   --color-chart-2: hsl(164 62% 32%);
   --color-chart-3: hsl(196 55% 45%);

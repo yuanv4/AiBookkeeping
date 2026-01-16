@@ -18,8 +18,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI 智能记账 - 统一账单管理与可视化分析",
-  description: "支持多源账单导入、智能解析、统一管理，以及基于 AI 的图表生成与财务分析",
+  title: "AI 智能记账 - 统一账单管理",
+  description: "支持多源账单导入、智能解析与统一管理，聚合收支数据便于查询",
 };
 
 export default function RootLayout({
