@@ -9,23 +9,33 @@ interface ChartGenerateResult {
   requestId: string;
 }
 
+function applyDateRangeFilter(
+  where: Record<string, unknown>,
+  startDate?: string,
+  endDate?: string
+): void {
+  if (!startDate && !endDate) return;
+  const occurredAt: Record<string, Date> = {};
+  if (startDate) {
+    occurredAt.gte = new Date(startDate);
+  }
+  if (endDate) {
+    occurredAt.lte = new Date(endDate);
+  }
+  where.occurredAt = occurredAt;
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<ChartGenerateResult>>> {
   try {
     const body = await request.json();
     const { prompt, startDate, endDate, source } = ChartGenerateRequestSchema.parse(body);
 
     // 构建查询条件
-    const where: Record<string, unknown> = {};
-    
-    if (startDate || endDate) {
-      where.occurredAt = {};
-      if (startDate) {
-        (where.occurredAt as Record<string, Date>).gte = new Date(startDate);
-      }
-      if (endDate) {
-        (where.occurredAt as Record<string, Date>).lte = new Date(endDate);
-      }
-    }
+    const where: Record<string, unknown> = {
+      isDuplicate: false,
+    };
+
+    applyDateRangeFilter(where, startDate, endDate);
     
     if (source) {
       where.source = source;

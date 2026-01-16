@@ -59,7 +59,13 @@ model Transaction {
   
   // 建设银行特有字段
   cashRemit       String?   // 钞汇类型：钞, 汇（建设银行）
-  
+
+  // 去重标记（跨来源重复）
+  isDuplicate         Boolean @default(false) // 是否为重复记录
+  duplicateGroupId    String? // 重复分组 ID
+  primaryTransactionId String? // 主记录 ID（支付宝优先）
+  duplicateReason     String? // 重复原因
+
   // 关联
   importBatchId String
   importBatch   ImportBatch @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
@@ -74,6 +80,9 @@ model Transaction {
   @@index([importBatchId])
   @@index([status])
   @@index([balance])
+  @@index([isDuplicate])
+  @@index([duplicateGroupId])
+  @@index([primaryTransactionId])
 }
 
 // 图表请求记录表 - 保存提示词与生成结果，便于复用/审计

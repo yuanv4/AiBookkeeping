@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/db";
+import { applyCrossSourceDeduplication } from "@/lib/dedupe";
 import type { ApiResponse } from "@/lib/types";
 
 // 单条交易 Schema（后端二次校验）
@@ -29,6 +30,8 @@ const TransactionDraftSchema = z.object({
   cashRemit: z.string().max(20).nullable(),
 });
 
+type TransactionDraft = z.infer<typeof TransactionDraftSchema>;
+
 // 请求体 Schema
 const CommitRequestSchema = z.object({
   fileName: z.string().max(255),
@@ -47,6 +50,30 @@ interface CommitResult {
 
 // 分批大小
 const BATCH_SIZE = 100;
+
+function buildTransactionData(draft: TransactionDraft, batchId: string) {
+  return {
+    occurredAt: draft.occurredAt,
+    amount: draft.amount,
+    direction: draft.direction,
+    currency: draft.currency,
+    counterparty: draft.counterparty,
+    description: draft.description,
+    category: draft.category,
+    accountName: draft.accountName,
+    source: draft.source,
+    sourceRaw: draft.sourceRaw,
+    sourceRowId: draft.sourceRowId,
+    importBatchId: batchId,
+    balance: draft.balance,
+    status: draft.status,
+    counterpartyAccount: draft.counterpartyAccount,
+    transactionId: draft.transactionId,
+    merchantOrderId: draft.merchantOrderId,
+    memo: draft.memo,
+    cashRemit: draft.cashRemit,
+  };
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<CommitResult>>> {
   try {
@@ -105,27 +132,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
 
       try {
         const result = await prisma.transaction.createMany({
-          data: batchDrafts.map((draft) => ({
-            occurredAt: draft.occurredAt,
-            amount: draft.amount,
-            direction: draft.direction,
-            currency: draft.currency,
-            counterparty: draft.counterparty,
-            description: draft.description,
-            category: draft.category,
-            accountName: draft.accountName,
-            source: draft.source,
-            sourceRaw: draft.sourceRaw,
-            sourceRowId: draft.sourceRowId,
-            importBatchId: batch.id,
-            balance: draft.balance,
-            status: draft.status,
-            counterpartyAccount: draft.counterpartyAccount,
-            transactionId: draft.transactionId,
-            merchantOrderId: draft.merchantOrderId,
-            memo: draft.memo,
-            cashRemit: draft.cashRemit,
-          })),
+          data: batchDrafts.map((draft) => buildTransactionData(draft, batch.id)),
         });
 
         insertedCount += result.count;
@@ -135,27 +142,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
         for (const draft of batchDrafts) {
           try {
             await prisma.transaction.create({
-              data: {
-                occurredAt: draft.occurredAt,
-                amount: draft.amount,
-                direction: draft.direction,
-                currency: draft.currency,
-                counterparty: draft.counterparty,
-                description: draft.description,
-                category: draft.category,
-                accountName: draft.accountName,
-                source: draft.source,
-                sourceRaw: draft.sourceRaw,
-                sourceRowId: draft.sourceRowId,
-                importBatchId: batch.id,
-                balance: draft.balance,
-                status: draft.status,
-                counterpartyAccount: draft.counterpartyAccount,
-                transactionId: draft.transactionId,
-                merchantOrderId: draft.merchantOrderId,
-                memo: draft.memo,
-                cashRemit: draft.cashRemit,
-              },
+              data: buildTransactionData(draft, batch.id),
             });
             insertedCount++;
           } catch {
@@ -183,6 +170,18 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
         },
       });
     }
+
+    const insertedTransactions = await prisma.transaction.findMany({
+      where: { importBatchId: batch.id },
+      select: {
+        occurredAt: true,
+        amount: true,
+        direction: true,
+        counterparty: true,
+      },
+    });
+
+    await applyCrossSourceDeduplication(prisma, insertedTransactions);
 
     return NextResponse.json({
       success: true,

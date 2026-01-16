@@ -12,17 +12,19 @@ interface Stats {
 export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<Stats>>> {
   try {
     // 统计总笔数
-    const totalCount = await prisma.transaction.count();
+    const totalCount = await prisma.transaction.count({
+      where: { isDuplicate: false },
+    });
 
     // 统计支出
     const expenseResult = await prisma.transaction.aggregate({
-      where: { direction: "out" },
+      where: { direction: "out", isDuplicate: false },
       _sum: { amount: true },
     });
 
     // 统计收入
     const incomeResult = await prisma.transaction.aggregate({
-      where: { direction: "in" },
+      where: { direction: "in", isDuplicate: false },
       _sum: { amount: true },
     });
 

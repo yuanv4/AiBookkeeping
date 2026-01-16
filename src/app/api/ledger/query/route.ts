@@ -32,6 +32,22 @@ interface TransactionWithBatch {
   };
 }
 
+function applyDateRangeFilter(
+  where: Record<string, unknown>,
+  startDate?: string,
+  endDate?: string
+): void {
+  if (!startDate && !endDate) return;
+  const occurredAt: Record<string, Date> = {};
+  if (startDate) {
+    occurredAt.gte = new Date(startDate);
+  }
+  if (endDate) {
+    occurredAt.lte = new Date(endDate);
+  }
+  where.occurredAt = occurredAt;
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<PaginatedResult<TransactionWithBatch>>>> {
   try {
     const { searchParams } = new URL(request.url);
@@ -40,17 +56,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     const { startDate, endDate, source, direction, keyword, page, pageSize } = params;
 
     // 构建查询条件
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {
+      isDuplicate: false,
+    };
 
-    if (startDate || endDate) {
-      where.occurredAt = {};
-      if (startDate) {
-        (where.occurredAt as Record<string, Date>).gte = new Date(startDate);
-      }
-      if (endDate) {
-        (where.occurredAt as Record<string, Date>).lte = new Date(endDate);
-      }
-    }
+    applyDateRangeFilter(where, startDate, endDate);
 
     if (source) {
       where.source = source;

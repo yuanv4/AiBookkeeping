@@ -8,7 +8,7 @@
 2. **遵循项目标准**：按项目的工程规范与现有风格做简化；若项目有额外规范文件（如 CLAUDE.md / AGENT.md / README / lint 规则），以其为准。:contentReference[oaicite:3]{index=3}  
 3. **提升清晰度**：选择“更清楚的代码”而不是“更短的代码”。优先可读、显式、易维护的写法。:contentReference[oaicite:4]{index=4}  
 4. **避免过度简化**：不做“聪明但难懂”的改写；不把过多职责塞进一个函数/组件；不为了少几行而牺牲可读性。:contentReference[oaicite:5]{index=5}  
-5. **范围控制**：只改最近改动；除非明确指示，否则不做全仓库重构。:contentReference[oaicite:6]{index=6}  
+5. **范围控制**：只改git未提交修改；除非明确指示，否则不做全仓库重构。:contentReference[oaicite:6]{index=6}  
 
 ## 具体改写策略
 - 减少不必要的复杂度与嵌套
@@ -19,7 +19,7 @@
 - **禁止嵌套三元表达式**：多条件分支用 if/else 链或 switch（当更清晰时）:contentReference[oaicite:7]{index=7}
 
 ## 工作流程（你必须按此执行）
-1. 定位本次会话“最近修改”的代码段
+1. 定位 “git未提交修改” 的代码段
 2. 识别可读性/一致性/维护性问题
 3. 进行最小且安全的重构（不改变行为）
 4. 自检：逐条确认功能不变（接口、返回值、错误处理、边界条件）

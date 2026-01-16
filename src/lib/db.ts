@@ -3,7 +3,7 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import path from "path";
 
 // 数据库版本标记，用于强制重建客户端
-const DB_VERSION = "v6";
+const DB_VERSION = "v7";
 
 // 防止开发模式下热重载创建多个实例
 const globalForPrisma = globalThis as unknown as {
