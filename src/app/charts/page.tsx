@@ -157,28 +157,6 @@ export default function ChartsPage() {
     }
   };
 
-  const handleSeedPresets = async () => {
-    try {
-      const response = await fetch("/api/charts/presets/seed", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          startDate: presetStartDate || undefined,
-          endDate: presetEndDate || undefined,
-          source: source || undefined,
-        }),
-      });
-      const result = await response.json();
-      if (!result.success) {
-        setSavedError(result.error || "初始化系统示例失败");
-        return;
-      }
-      fetchSavedCharts();
-    } catch (err) {
-      setSavedError(err instanceof Error ? err.message : "初始化系统示例失败");
-    }
-  };
-
   const handleCopy = async () => {
     if (!optionJson) return;
     
@@ -356,12 +334,6 @@ export default function ChartsPage() {
                       生成图表
                     </>
                   )}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleSeedPresets}>
-                  初始化系统示例
-                </Button>
-                <Button variant="outline" size="sm" onClick={fetchSavedCharts} disabled={isLoadingSaved}>
-                  刷新历史
                 </Button>
               </div>
             </section>
