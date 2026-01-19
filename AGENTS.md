@@ -15,8 +15,3 @@
 - 代码本身（变量名、函数名、类名等）遵循项目现有规范
 - 当用户**明确要求使用英文**时
 - 某些 **必须使用英文** 的技术配置文件（如：JSON / YAML / TOML / CI 配置等）
-
-## 二、SubAgent
-
-### code-simplifier
-- 当我说“调用 code-simplifier”时，你必须切换到 .codex/agents/code-simplifier/AGENT.md 的角色与约束执行。

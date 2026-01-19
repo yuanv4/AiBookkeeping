@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sqlite3:*)",
+      "Bash(npx xlsx:*)",
+      "Bash(node:*)",
+      "Bash(npm run dev:*)",
+      "Skill(pdf)",
+      "Skill(pdf:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc --noEmit --skipLibCheck:*)",
+      "Skill(codex-review)",
+      "Bash(npm install:*)",
+      "Bash(npm run test)",
+      "Bash(npx vitest run:*)",
+      "Bash(npx vitest --version)",
+      "Bash(where:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

@@ -61,4 +61,4 @@ Thumbs.db
 /src/generated/prisma
 
 # temp files (测试用账单文件)
-/tmp/
+# /tmp/
