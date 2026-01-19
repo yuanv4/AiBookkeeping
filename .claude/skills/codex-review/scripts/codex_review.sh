@@ -3,14 +3,14 @@ set -euo pipefail
 
 MODE="${1:-uncommitted}"
 
-# --- helpers ---
+# --- 工具函数 ---
 say() { printf "%s\n" "$*"; }
 die() { say "ERROR: $*"; exit 1; }
 
-# Ensure git repo
+# 确认当前目录为 Git 仓库
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "当前目录不是 Git 仓库（找不到 .git）。请在仓库根目录运行。"
 
-# Ensure codex exists
+# 确认 codex 命令可用
 if ! command -v codex >/dev/null 2>&1; then
   say "未检测到 codex CLI。请先安装并登录（示例）："
   say "  npm i -g @openai/codex"
@@ -18,7 +18,7 @@ if ! command -v codex >/dev/null 2>&1; then
   die "codex 不可用，无法执行 review。"
 fi
 
-# Build prompt for codex exec (read-only review)
+# 构建 codex exec 提示词（只读审查）
 BASE_BRANCH=""
 COMMIT_REF=""
 
@@ -38,8 +38,8 @@ case "$MODE" in
     ;;
 esac
 
-# A concise, strict review instruction for Codex.
-# We ask Codex to run git commands itself to fetch diffs; avoid embedding diffs here.
+# 只读审查的精简指令。
+# 让 Codex 自行运行 git 命令获取 diff，避免把 diff 直接塞进提示词。
 PROMPT_COMMON=$'You are doing a READ-ONLY code review in the current git repository.\n- DO NOT modify any files.\n- DO NOT run destructive commands.\n- You MAY run: git status, git diff, git show, git log, tests in read-only mode (no writes).\n- Focus on: correctness, security/privacy, edge cases, and missing tests.\n- Output Markdown with sections: Summary, High risk, Correctness, Security & Privacy, Performance, Maintainability, Tests, (optional) Nitpicks.\n- Keep it actionable and prioritized.\n'
 
 if [[ -n "$COMMIT_REF" ]]; then
@@ -54,6 +54,6 @@ else
   fi
 fi
 
-# Run codex in non-interactive mode
-# Note: codex exec supports scripted runs.
+# 以非交互模式运行 codex
+# 注：codex exec 支持脚本化调用。
 codex exec "$PROMPT"
