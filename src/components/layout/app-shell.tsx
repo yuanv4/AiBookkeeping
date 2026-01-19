@@ -13,9 +13,8 @@ type AppShellProps = {
 };
 
 const navItems = [
-  { href: "/", label: "主页概览", icon: Sparkles, accent: "text-primary" },
-  { href: "/ledger", label: "统一账单", icon: FileSpreadsheet, accent: "text-accent" },
-  { href: "/import", label: "设置", icon: Upload, accent: "text-primary" },
+  { href: "/import", label: "导入账单", icon: Upload, accent: "text-primary" },
+  { href: "/ledger", label: "账单明细", icon: FileSpreadsheet, accent: "text-accent" },
 ];
 
 export function AppShell({

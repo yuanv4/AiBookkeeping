@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import Link from "next/link";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -168,9 +169,7 @@ export default function ImportPage() {
               <Upload className="w-5 h-5 text-primary" />
               <CardTitle>上传账单文件</CardTitle>
             </div>
-            <CardDescription>
-              支持支付宝 CSV、建设银行 XLS、招商银行 PDF（仅限可复制文本）
-            </CardDescription>
+            <CardDescription>拖拽或选择文件后自动解析</CardDescription>
           </CardHeader>
           <CardContent>
             <input
@@ -205,6 +204,9 @@ export default function ImportPage() {
                 </>
               )}
             </label>
+            <p className="text-xs text-muted-foreground mt-3">
+              支持格式：支付宝 CSV / 建行 XLS / 招行 PDF（文本可复制）
+            </p>
           </CardContent>
         </Card>
 
@@ -243,23 +245,6 @@ export default function ImportPage() {
             </CardContent>
           </Card>
         )}
-
-        {/* 导入说明 */}
-        <Card className="bg-card/80 border-border/70 shadow-sm">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium">导入说明</p>
-                <ul className="list-disc list-inside text-sm text-muted-foreground mt-2 space-y-1">
-                  <li>支付宝账单请从支付宝 APP 导出 CSV 格式</li>
-                  <li>建设银行账单请从网银导出 XLS 格式</li>
-                  <li>招商银行账单请从掌上生活导出 PDF（确保文字可复制）</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* 解析预览 */}
         {parseResult && (
@@ -339,28 +324,43 @@ export default function ImportPage() {
         )}
 
         {/* 操作按钮 */}
-        <div className="flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={handleReset}
-            disabled={!parseResult && !error && !success}
-          >
-            重新选择
-          </Button>
-          <Button
-            onClick={handleCommit}
-            disabled={!parseResult || isCommitting}
-          >
-            {isCommitting ? (
+        {(parseResult || error || success) && (
+          <div className="flex justify-end gap-3">
+            {success && !parseResult ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                导入中...
+                <Button variant="outline" onClick={handleReset}>
+                  继续导入
+                </Button>
+                <Button asChild>
+                  <Link href="/ledger">查看账单</Link>
+                </Button>
               </>
             ) : (
-              "确认导入"
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleReset}
+                  disabled={isCommitting}
+                >
+                  重新选择
+                </Button>
+                <Button
+                  onClick={handleCommit}
+                  disabled={!parseResult || isCommitting}
+                >
+                  {isCommitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      导入中...
+                    </>
+                  ) : (
+                    "确认导入"
+                  )}
+                </Button>
+              </>
             )}
-          </Button>
-        </div>
+          </div>
+        )}
       </AppShell>
     </main>
   );

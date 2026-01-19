@@ -38,7 +38,9 @@
       "Bash(npm run test:*)",
       "Bash(npx vitest.cmd run:*)",
       "Bash(npm test:*)",
-      "Bash(npm run test:inner:*)"
+      "Bash(npm run test:inner:*)",
+      "Bash(codex exec \"Please review my uncommitted changes\")",
+      "Bash(codex:*)"
     ]
   }
 }
