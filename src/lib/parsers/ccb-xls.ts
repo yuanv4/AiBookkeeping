@@ -31,6 +31,7 @@ interface HeaderRowResult {
  */
 function extractAccountNumberFromRow(rowStr: string[]): string | null {
   for (const cell of rowStr) {
+    if (!cell) continue;
     const match = cell.match(/卡号\/账号[：:]\s*(\d{16,19})/);
     if (match) return match[1];
   }

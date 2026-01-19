@@ -16,7 +16,29 @@
       "Bash(npx vitest --version)",
       "Bash(where:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(powershell:*)",
+      "Skill(webapp-testing)",
+      "Bash(python:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(netstat:*)",
+      "Bash(dir:*)",
+      "Bash(curl:*)",
+      "Bash(npm test)",
+      "Bash(timeout:*)",
+      "Bash(echo:*)",
+      "Bash(start /B cmd /c \"npm run dev > server.log 2>&1\")",
+      "Bash(npx vitest --help:*)",
+      "Bash(RUN_INTEGRATION_TESTS=true npm test -- import-bill.test.ts)",
+      "Bash(set:*)",
+      "Bash(vitest run:*)",
+      "Bash(cmd:*)",
+      "Bash(npx cross-env RUN_INTEGRATION_TESTS=true vitest run:*)",
+      "Bash(npm run test:*)",
+      "Bash(npx vitest.cmd run:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:inner:*)"
     ]
   }
 }
