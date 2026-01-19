@@ -8,44 +8,84 @@ const CCB_COLUMN_ALIASES: Record<string, string[]> = {
   index: ["序号"],
   summary: ["摘要"],
   currency: ["币别"],
-  cashRemit: ["钞汇"], // 钞/汇
+  cashRemit: ["钞汇"],
   date: ["交易日期"],
   amount: ["交易金额"],
   balance: ["账户余额"],
   location: ["交易地点/附言", "交易地点", "附言"],
   counterparty: ["对方账号与户名", "对方账号", "对方户名"],
+  accountNumber: ["卡号/账号", "账号", "卡号"],
 };
 
 /**
- * 查找标题行
+ * 标题行查找结果
  */
-function findHeaderRow(
-  data: unknown[][]
-): { rowIndex: number; columnMap: Record<string, number> } | null {
-  for (let i = 0; i < Math.min(data.length, 10); i++) {
+interface HeaderRowResult {
+  rowIndex: number;
+  columnMap: Record<string, number>;
+  accountNumber: string | null;
+}
+
+/**
+ * 从行中提取卡号
+ */
+function extractAccountNumberFromRow(rowStr: string[]): string | null {
+  for (const cell of rowStr) {
+    const match = cell.match(/卡号\/账号[：:]\s*(\d{16,19})/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+/**
+ * 检查行是否包含关键列名
+ */
+function hasKeyColumns(rowStr: string[]): boolean {
+  return (
+    rowStr.some((c) => c.includes("交易日期")) &&
+    rowStr.some((c) => c.includes("交易金额"))
+  );
+}
+
+/**
+ * 构建列映射
+ */
+function buildColumnMap(rowStr: string[]): Record<string, number> {
+  const columnMap: Record<string, number> = {};
+
+  for (let j = 0; j < rowStr.length; j++) {
+    const cell = rowStr[j];
+    for (const [key, aliases] of Object.entries(CCB_COLUMN_ALIASES)) {
+      if (aliases.some((alias) => cell.includes(alias))) {
+        columnMap[key] = j;
+        break;
+      }
+    }
+  }
+
+  return columnMap;
+}
+
+/**
+ * 查找标题行和卡号
+ */
+function findHeaderRow(data: unknown[][]): HeaderRowResult | null {
+  let accountNumber: string | null = null;
+  const maxRows = Math.min(data.length, 10);
+
+  for (let i = 0; i < maxRows; i++) {
     const row = data[i];
     if (!Array.isArray(row)) continue;
 
     const rowStr = row.map((c) => String(c || "").trim());
 
-    // 检查是否包含关键列名
-    if (
-      rowStr.some((c) => c.includes("交易日期")) &&
-      rowStr.some((c) => c.includes("交易金额"))
-    ) {
-      const columnMap: Record<string, number> = {};
+    if (!accountNumber) {
+      accountNumber = extractAccountNumberFromRow(rowStr);
+    }
 
-      for (let j = 0; j < rowStr.length; j++) {
-        const cell = rowStr[j];
-        for (const [key, aliases] of Object.entries(CCB_COLUMN_ALIASES)) {
-          if (aliases.some((alias) => cell.includes(alias))) {
-            columnMap[key] = j;
-            break;
-          }
-        }
-      }
-
-      return { rowIndex: i, columnMap };
+    if (hasKeyColumns(rowStr)) {
+      const columnMap = buildColumnMap(rowStr);
+      return { rowIndex: i, columnMap, accountNumber };
     }
   }
 
@@ -60,34 +100,23 @@ function parseDate(value: unknown): Date | null {
 
   const str = String(value).trim();
 
-  // YYYYMMDD 格式
   if (/^\d{8}$/.test(str)) {
-    const year = parseInt(str.substring(0, 4));
-    const month = parseInt(str.substring(4, 6)) - 1;
-    const day = parseInt(str.substring(6, 8));
+    const year = Number.parseInt(str.substring(0, 4), 10);
+    const month = Number.parseInt(str.substring(4, 6), 10) - 1;
+    const day = Number.parseInt(str.substring(6, 8), 10);
     return new Date(year, month, day);
   }
 
-  // 尝试其他格式
   const date = new Date(str);
-  return isNaN(date.getTime()) ? null : date;
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 /**
- * 解析金额
+ * 解析金额和方向
  */
 function parseAmount(value: unknown): { amount: number; direction: "in" | "out" } | null {
-  if (value === null || value === undefined) return null;
-
-  let num: number;
-  if (typeof value === "number") {
-    num = value;
-  } else {
-    const str = String(value).replace(/[,，\s]/g, "");
-    num = parseFloat(str);
-  }
-
-  if (isNaN(num) || num === 0) return null;
+  const num = toNumber(value);
+  if (num === null || num === 0) return null;
 
   return {
     amount: Math.abs(num),
@@ -96,14 +125,13 @@ function parseAmount(value: unknown): { amount: number; direction: "in" | "out" 
 }
 
 /**
- * 解析对方信息
+ * 解析对方信息（格式：账号/户名）
  */
 function parseCounterparty(value: unknown): { account: string | null; name: string | null } {
   if (!value) return { account: null, name: null };
 
   const str = String(value).trim();
 
-  // 格式: 账号/户名
   if (str.includes("/")) {
     const [account, name] = str.split("/");
     return {
@@ -116,20 +144,38 @@ function parseCounterparty(value: unknown): { account: string | null; name: stri
 }
 
 /**
+ * 将值转换为数字
+ */
+function toNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+
+  const num =
+    typeof value === "number"
+      ? value
+      : parseFloat(String(value).replace(/[,，\s]/g, ""));
+
+  return Number.isNaN(num) ? null : num;
+}
+
+/**
  * 解析余额
  */
 function parseBalance(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
+  return toNumber(value);
+}
 
-  let num: number;
-  if (typeof value === "number") {
-    num = value;
-  } else {
-    const str = String(value).replace(/[,，\s]/g, "");
-    num = parseFloat(str);
-  }
+/**
+ * 生成标准化的账户名称
+ * 格式：建设银行储蓄卡(尾号) 或 建设银行(尾号)
+ */
+function generateAccountName(accountNumber: string | null): string {
+  if (!accountNumber) return "建设银行";
 
-  return isNaN(num) ? null : num;
+  const tailNumber = accountNumber.slice(-4);
+  const firstDigit = accountNumber.charAt(0);
+  const cardType = firstDigit === "4" || firstDigit === "5" ? "信用卡" : "储蓄卡";
+
+  return `建设银行${cardType}(${tailNumber})`;
 }
 
 /**
@@ -140,21 +186,19 @@ export async function parseCcbXls(buffer: ArrayBuffer): Promise<ParseResult> {
   const sheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[sheetName];
 
-  // 转换为二维数组
   const data = XLSX.utils.sheet_to_json(worksheet, {
     header: 1,
     blankrows: false,
   }) as unknown[][];
 
-  // 查找标题行
   const headerInfo = findHeaderRow(data);
   if (!headerInfo) {
     throw new Error("无法找到标题行，请确认文件格式正确");
   }
 
-  const { rowIndex: headerRowIndex, columnMap } = headerInfo;
+  const { rowIndex: headerRowIndex, columnMap, accountNumber } = headerInfo;
+  const accountName = generateAccountName(accountNumber);
 
-  // 检查必要列
   if (columnMap.date === undefined || columnMap.amount === undefined) {
     throw new Error("缺少必要列：交易日期或交易金额");
   }
@@ -162,7 +206,6 @@ export async function parseCcbXls(buffer: ArrayBuffer): Promise<ParseResult> {
   const drafts: UnifiedTransactionDraft[] = [];
   const warnings: ParseWarning[] = [];
 
-  // 解析数据行
   for (let i = headerRowIndex + 1; i < data.length; i++) {
     const row = data[i];
     if (!Array.isArray(row) || row.length === 0) continue;
@@ -170,12 +213,10 @@ export async function parseCcbXls(buffer: ArrayBuffer): Promise<ParseResult> {
     const rowNum = i + 1;
     const rawRow: Record<string, unknown> = {};
 
-    // 提取原始数据
     for (const [key, colIndex] of Object.entries(columnMap)) {
       rawRow[key] = row[colIndex];
     }
 
-    // 解析日期
     const occurredAt = parseDate(rawRow.date);
     if (!occurredAt) {
       warnings.push({
@@ -186,20 +227,11 @@ export async function parseCcbXls(buffer: ArrayBuffer): Promise<ParseResult> {
       continue;
     }
 
-    // 解析金额
     const amountInfo = parseAmount(rawRow.amount);
-    if (!amountInfo) {
-      // 跳过金额为0的记录
-      continue;
-    }
+    if (!amountInfo) continue;
 
-    // 解析对方信息
     const counterpartyInfo = parseCounterparty(rawRow.counterparty);
-
-    // 解析余额
     const balance = parseBalance(rawRow.balance);
-
-    // 生成行 ID
     const index = rawRow.index ? String(rawRow.index) : String(i - headerRowIndex);
     const sourceRowId = `ccb-${index}-${occurredAt.getTime()}`;
 
@@ -211,19 +243,19 @@ export async function parseCcbXls(buffer: ArrayBuffer): Promise<ParseResult> {
       counterparty: counterpartyInfo.name,
       description: rawRow.location ? String(rawRow.location).trim() : null,
       category: rawRow.summary ? String(rawRow.summary).trim() : null,
-      accountName: "建设银行",
+      accountName,
       source: "ccb",
       sourceRaw: JSON.stringify(rawRow),
       sourceRowId,
-      
-      // ===== 扩展字段 =====
-      balance, // 账户余额
-      status: null, // 建设银行不提供交易状态
-      counterpartyAccount: counterpartyInfo.account, // 对方账号
-      transactionId: null, // 建设银行不提供订单号
+
+      // 扩展字段
+      balance,
+      status: null,
+      counterpartyAccount: counterpartyInfo.account,
+      transactionId: null,
       merchantOrderId: null,
       memo: null,
-      cashRemit: rawRow.cashRemit ? String(rawRow.cashRemit).trim() : null, // 钞汇类型
+      cashRemit: rawRow.cashRemit ? String(rawRow.cashRemit).trim() : null,
     });
   }
 
