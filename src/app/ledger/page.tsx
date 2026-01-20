@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppShell } from "@/components/layout/app-shell";
-import type { BillSource } from "@/lib/types";
 
 interface Transaction {
   id: string;
@@ -48,7 +47,8 @@ export default function LedgerPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [keyword, setKeyword] = useState("");
-  const [source, setSource] = useState<BillSource | "">("");
+  const [accountName, setAccountName] = useState("");
+  const [accounts, setAccounts] = useState<string[]>([]);
   const [direction, setDirection] = useState<"in" | "out" | "">("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -76,7 +76,7 @@ export default function LedgerPage() {
       });
       
       if (keyword) params.set("keyword", keyword);
-      if (source) params.set("source", source);
+      if (accountName) params.set("accountName", accountName);
       if (direction) params.set("direction", direction);
 
       const response = await fetch(`/api/ledger/query?${params}`);
@@ -92,7 +92,7 @@ export default function LedgerPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, keyword, source, direction]);
+  }, [page, keyword, accountName, direction]);
 
   useEffect(() => {
     fetchStats();
@@ -101,6 +101,22 @@ export default function LedgerPage() {
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
+
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        const response = await fetch("/api/ledger/accounts");
+        const result = await response.json();
+        if (result.success) {
+          setAccounts(result.data);
+        }
+      } catch (error) {
+        console.error("获取帐号列表失败:", error);
+      }
+    };
+
+    fetchAccounts();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,17 +165,19 @@ export default function LedgerPage() {
                 />
               </div>
               <select
-                value={source}
+                value={accountName}
                 onChange={(e) => {
-                  setSource(e.target.value as BillSource | "");
+                  setAccountName(e.target.value);
                   setPage(1);
                 }}
                 className="h-10 px-3 rounded-md border border-input bg-card/80 text-sm"
               >
-                <option value="">全部来源</option>
-                <option value="alipay">支付宝</option>
-                <option value="ccb">建设银行</option>
-                <option value="cmb">招商银行</option>
+                <option value="">全部帐号</option>
+                {accounts.map((account) => (
+                  <option key={account} value={account}>
+                    {account}
+                  </option>
+                ))}
               </select>
               <select
                 value={direction}
@@ -247,6 +265,7 @@ export default function LedgerPage() {
                       <tr className="border-b border-border/70">
                         <th className="text-left py-3 px-4 font-medium">时间</th>
                         <th className="text-left py-3 px-4 font-medium">来源</th>
+                        <th className="text-left py-3 px-4 font-medium">帐号</th>
                         <th className="text-left py-3 px-4 font-medium">对方</th>
                         <th className="text-left py-3 px-4 font-medium">描述</th>
                         <th className="text-right py-3 px-4 font-medium">金额</th>
@@ -259,6 +278,9 @@ export default function LedgerPage() {
                             {formatDate(t.occurredAt)}
                           </td>
                           <td className="py-3 px-4">{getSourceBadge(t.source)}</td>
+                          <td className="py-3 px-4 max-w-[180px] truncate">
+                            {t.accountName || "-"}
+                          </td>
                           <td className="py-3 px-4 max-w-[150px] truncate">
                             {t.counterparty || "-"}
                           </td>

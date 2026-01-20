@@ -84,7 +84,7 @@ export interface ImportBatchInput {
 export interface TransactionFilter {
   startDate?: Date;
   endDate?: Date;
-  source?: BillSource;
+  accountName?: string;
   direction?: TransactionDirection;
   keyword?: string;
   page?: number;

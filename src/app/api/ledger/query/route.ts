@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/db";
-import type { ApiResponse, PaginatedResult, TransactionFilter } from "@/lib/types";
+import type { ApiResponse, PaginatedResult } from "@/lib/types";
 
 // 查询参数 Schema
 const QueryParamsSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  source: z.enum(["alipay", "ccb", "cmb"]).optional(),
+  accountName: z.string().optional(),
   direction: z.enum(["in", "out"]).optional(),
   keyword: z.string().optional(),
   page: z.coerce.number().min(1).default(1),
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     const { searchParams } = new URL(request.url);
     const params = QueryParamsSchema.parse(Object.fromEntries(searchParams));
 
-    const { startDate, endDate, source, direction, keyword, page, pageSize } = params;
+    const { startDate, endDate, accountName, direction, keyword, page, pageSize } = params;
 
     // 构建查询条件
     const where: Record<string, unknown> = {
@@ -62,8 +62,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
 
     applyDateRangeFilter(where, startDate, endDate);
 
-    if (source) {
-      where.source = source;
+    if (accountName) {
+      where.accountName = accountName;
     }
 
     if (direction) {
@@ -71,11 +71,30 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     }
 
     if (keyword) {
-      where.OR = [
+      const orConditions: Record<string, unknown>[] = [
         { counterparty: { contains: keyword } },
         { description: { contains: keyword } },
         { category: { contains: keyword } },
+        { accountName: { contains: keyword } },
+        { source: { contains: keyword } },
       ];
+
+      const amountValue = Number.parseFloat(keyword.replace(/[,，\s]/g, ""));
+      if (!Number.isNaN(amountValue)) {
+        orConditions.push({ amount: amountValue });
+      }
+
+      if (keyword.includes("支付宝") || keyword.toLowerCase().includes("alipay")) {
+        orConditions.push({ source: "alipay" });
+      }
+      if (keyword.includes("建设银行") || keyword.includes("建行") || keyword.toLowerCase().includes("ccb")) {
+        orConditions.push({ source: "ccb" });
+      }
+      if (keyword.includes("招商银行") || keyword.includes("招行") || keyword.toLowerCase().includes("cmb")) {
+        orConditions.push({ source: "cmb" });
+      }
+
+      where.OR = orConditions;
     }
 
     // 查询总数

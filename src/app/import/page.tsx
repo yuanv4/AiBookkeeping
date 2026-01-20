@@ -6,7 +6,7 @@ import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, Loader2 } from "l
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppShell } from "@/components/layout/app-shell";
-import type { ParseResult, BillSource } from "@/lib/types";
+import type { ParseResult } from "@/lib/types";
 
 interface DraftWithWarnings extends ParseResult {
   file: File;
@@ -16,7 +16,8 @@ export default function ImportPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
-  const [parseResult, setParseResult] = useState<DraftWithWarnings | null>(null);
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  const [errorTitle, setErrorTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,25 +35,26 @@ export default function ImportPage() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    if (isLoading || isCommitting) {
+      return;
+    }
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      handleFile(files[0]);
+      handleFiles(Array.from(files));
     }
-  }, []);
+  }, [isLoading, isCommitting]);
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isLoading || isCommitting) {
+      return;
+    }
     const files = e.target.files;
     if (files && files.length > 0) {
-      handleFile(files[0]);
+      handleFiles(Array.from(files));
     }
-  }, []);
+  }, [isLoading, isCommitting]);
 
-  const handleFile = async (file: File) => {
-    setError(null);
-    setSuccess(null);
-    setParseResult(null);
-    setIsLoading(true);
-
+  const parseSingleFile = async (file: File): Promise<{ ok: boolean; data?: DraftWithWarnings; error?: string }> => {
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -65,98 +67,140 @@ export default function ImportPage() {
       const result = await response.json();
 
       if (!result.success) {
-        setError(result.error || "解析失败");
-        return;
+        return { ok: false, error: result.error || "解析失败" };
       }
 
-      setParseResult({ ...result.data, file });
+      return { ok: true, data: { ...result.data, file } };
     } catch (err) {
-      setError(err instanceof Error ? err.message : "上传失败");
-    } finally {
-      setIsLoading(false);
+      return { ok: false, error: err instanceof Error ? err.message : "上传失败" };
     }
   };
 
-  const handleReset = () => {
-    setParseResult(null);
-    setError(null);
-    setSuccess(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleCommit = async () => {
-    if (!parseResult) return;
-
-    setIsCommitting(true);
-    setError(null);
-
+  const commitParseResult = async (target: DraftWithWarnings): Promise<{ ok: boolean; error?: string; rowCount?: number; skippedCount?: number }> => {
     try {
       const response = await fetch("/api/import/commit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fileName: parseResult.file.name,
-          fileSize: parseResult.file.size,
-          source: parseResult.source,
-          sourceType: parseResult.sourceType,
-          drafts: parseResult.drafts.map((d) => ({
+          fileName: target.file.name,
+          fileSize: target.file.size,
+          source: target.source,
+          sourceType: target.sourceType,
+          drafts: target.drafts.map((d) => ({
             ...d,
             // occurredAt 从 API 返回时已经是 ISO 字符串，无需再转换
-            occurredAt: typeof d.occurredAt === 'string' 
-              ? d.occurredAt 
+            occurredAt: typeof d.occurredAt === "string"
+              ? d.occurredAt
               : (d.occurredAt as Date).toISOString(),
           })),
-          warningCount: parseResult.warnings.length,
+          warningCount: target.warnings.length,
         }),
       });
 
       const result = await response.json();
 
       if (!result.success) {
-        setError(result.error || "导入失败");
-        return;
+        return { ok: false, error: result.error || "导入失败" };
       }
 
       const { rowCount, skippedCount } = result.data;
-      if (rowCount === 0) {
-        setSuccess("所有记录都已存在，未导入新数据");
-      } else if (skippedCount > 0) {
-        setSuccess(`成功导入 ${rowCount} 条交易记录，跳过 ${skippedCount} 条重复记录`);
-      } else {
-        setSuccess(`成功导入 ${rowCount} 条交易记录`);
-      }
-      setParseResult(null);
+      return { ok: true, rowCount, skippedCount };
     } catch (err) {
-      setError(err instanceof Error ? err.message : "导入失败");
-    } finally {
-      setIsCommitting(false);
+      return { ok: false, error: err instanceof Error ? err.message : "导入失败" };
     }
   };
 
-  const getSourceName = (source: BillSource): string => {
-    switch (source) {
-      case "alipay": return "支付宝";
-      case "ccb": return "建设银行";
-      case "cmb": return "招商银行";
-      default: return source;
+  const handleFiles = async (files: File[]) => {
+    if (isLoading || isCommitting) {
+      return;
     }
+    setError(null);
+    setErrorTitle(null);
+    setWarningMessage(null);
+    setSuccess(null);
+    setIsLoading(true);
+    setIsCommitting(true);
+
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    let hasParseError = false;
+    let hasCommitError = false;
+    let totalRowCount = 0;
+    let totalSkippedCount = 0;
+
+    for (const file of files) {
+      const parseResult = await parseSingleFile(file);
+      if (!parseResult.ok || !parseResult.data) {
+        errors.push(`${file.name}：${parseResult.error || "解析失败"}`);
+        hasParseError = true;
+        continue;
+      }
+      if (parseResult.data.warnings.length > 0) {
+        const warningSamples = parseResult.data.warnings.slice(0, 2);
+        const warningSampleText = warningSamples
+          .map((warning) => `第 ${warning.row} 行 ${warning.message}`)
+          .join("，");
+        const warningSuffix = parseResult.data.warnings.length > warningSamples.length ? " 等" : "";
+        warnings.push(`${file.name}：${parseResult.data.warnings.length} 条警告，例如 ${warningSampleText}${warningSuffix}`);
+      }
+      const commitResult = await commitParseResult(parseResult.data);
+      if (!commitResult.ok) {
+        errors.push(`${file.name}：${commitResult.error || "导入失败"}`);
+        hasCommitError = true;
+        continue;
+      }
+
+      totalRowCount += commitResult.rowCount || 0;
+      totalSkippedCount += commitResult.skippedCount || 0;
+    }
+
+    if (warnings.length > 0) {
+      setWarningMessage(warnings.join("；"));
+    }
+
+    let successMessage: string | null = null;
+    if (totalRowCount === 0 && totalSkippedCount > 0) {
+      successMessage = "所有记录都已存在，未导入新数据";
+    } else if (totalRowCount > 0 && totalSkippedCount > 0) {
+      successMessage = `成功导入 ${totalRowCount} 条交易记录，跳过 ${totalSkippedCount} 条重复记录`;
+    } else if (totalRowCount > 0) {
+      successMessage = `成功导入 ${totalRowCount} 条交易记录`;
+    }
+    if (errors.length > 0) {
+      if (successMessage) {
+        setErrorTitle("部分失败");
+      } else if (hasParseError && hasCommitError) {
+        setErrorTitle("处理失败");
+      } else if (hasCommitError) {
+        setErrorTitle("导入失败");
+      } else {
+        setErrorTitle("解析失败");
+      }
+      setError(errors.join("；"));
+    }
+
+    if (successMessage) {
+      if (errors.length > 0 && totalRowCount === 0 && totalSkippedCount > 0) {
+        setSuccess("部分文件已存在，未导入新数据");
+      } else {
+        setSuccess(successMessage);
+      }
+    } else if (errors.length === 0) {
+      setSuccess("所有记录都已存在，未导入新数据");
+    }
+
+    setIsLoading(false);
+    setIsCommitting(false);
   };
 
-  const formatAmount = (amount: number, direction: string): string => {
-    const sign = direction === "out" ? "-" : "+";
-    return `${sign}¥${amount.toFixed(2)}`;
-  };
-
-  const formatDate = (date: Date): string => {
-    return new Date(date).toLocaleString("zh-CN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const handleReset = () => {
+    setWarningMessage(null);
+    setErrorTitle(null);
+    setError(null);
+    setSuccess(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -169,13 +213,15 @@ export default function ImportPage() {
               <Upload className="w-5 h-5 text-primary" />
               <CardTitle>上传账单文件</CardTitle>
             </div>
-            <CardDescription>拖拽或选择文件后自动解析</CardDescription>
+            <CardDescription>拖拽或选择多个文件后自动导入</CardDescription>
           </CardHeader>
           <CardContent>
             <input
               ref={fileInputRef}
               type="file"
               accept=".csv,.xls,.xlsx,.pdf"
+              multiple
+              disabled={isLoading || isCommitting}
               onChange={handleFileInput}
               className="hidden"
               id="file-input"
@@ -186,20 +232,20 @@ export default function ImportPage() {
                 isDragging
                   ? "border-primary bg-primary/5"
                   : "border-border/80 hover:border-muted-foreground"
-              }`}
+              } ${isLoading || isCommitting ? "pointer-events-none opacity-60" : ""}`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-              {isLoading ? (
+              {isLoading || isCommitting ? (
                 <>
                   <Loader2 className="w-12 h-12 text-muted-foreground mb-4 animate-spin" />
-                  <p className="text-muted-foreground">正在解析文件...</p>
+                  <p className="text-muted-foreground">正在导入文件...</p>
                 </>
               ) : (
                 <>
                   <FileSpreadsheet className="w-12 h-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">拖拽文件到此处，或点击选择文件</p>
+                  <p className="text-muted-foreground">拖拽文件到此处，或点击选择文件（可多选）</p>
                   <p className="text-sm text-muted-foreground mt-2">最大 10MB，最多 5000 行</p>
                 </>
               )}
@@ -217,10 +263,28 @@ export default function ImportPage() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-medium text-destructive">解析失败</p>
+                  <p className="font-medium text-destructive">{errorTitle || "处理失败"}</p>
                   <p className="text-sm text-muted-foreground mt-1">{error}</p>
                 </div>
                 <button onClick={() => setError(null)} className="text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 警告提示 */}
+        {warningMessage && (
+          <Card className="border-accent bg-card/80 shadow-sm">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-accent">存在警告</p>
+                  <p className="text-sm text-muted-foreground mt-1">{warningMessage}</p>
+                </div>
+                <button onClick={() => setWarningMessage(null)} className="text-muted-foreground hover:text-foreground">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -246,119 +310,15 @@ export default function ImportPage() {
           </Card>
         )}
 
-        {/* 解析预览 */}
-        {parseResult && (
-          <Card className="bg-card/80 border-border/70 shadow-sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>解析预览</CardTitle>
-                  <CardDescription className="mt-1">
-                    来源: {getSourceName(parseResult.source)} | 
-                    格式: {parseResult.sourceType.toUpperCase()} | 
-                    共 {parseResult.rowCount} 条记录
-                    {parseResult.warnings.length > 0 && (
-                      <span className="text-accent"> | {parseResult.warnings.length} 条警告</span>
-                    )}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* 警告信息 */}
-              {parseResult.warnings.length > 0 && (
-                <div className="mb-4 p-3 bg-accent/10 rounded-lg">
-                  <p className="text-sm font-medium text-accent mb-2">
-                    解析警告（{parseResult.warnings.length} 条）
-                  </p>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    {parseResult.warnings.slice(0, 5).map((w, i) => (
-                      <li key={i}>第 {w.row} 行: {w.message}</li>
-                    ))}
-                    {parseResult.warnings.length > 5 && (
-                      <li>... 还有 {parseResult.warnings.length - 5} 条警告</li>
-                    )}
-                  </ul>
-                </div>
-              )}
-
-              {/* 数据预览表格 */}
-              <div className="overflow-x-auto rounded-lg border border-border/70">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40">
-                    <tr className="border-b border-border/70">
-                      <th className="text-left py-3 px-4 font-medium">时间</th>
-                      <th className="text-left py-3 px-4 font-medium">对方</th>
-                      <th className="text-left py-3 px-4 font-medium">描述</th>
-                      <th className="text-right py-3 px-4 font-medium">金额</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {parseResult.drafts.slice(0, 10).map((draft, index) => (
-                      <tr key={index} className="border-b border-border/50">
-                        <td className="py-3 px-4 text-muted-foreground">
-                          {formatDate(draft.occurredAt)}
-                        </td>
-                        <td className="py-3 px-4">{draft.counterparty || "-"}</td>
-                        <td className="py-3 px-4 text-muted-foreground truncate max-w-[200px]">
-                          {draft.description || draft.category || "-"}
-                        </td>
-                        <td className={`py-3 px-4 text-right font-medium ${
-                          draft.direction === "out" ? "text-destructive" : "text-primary"
-                        }`}>
-                          {formatAmount(draft.amount, draft.direction)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {parseResult.drafts.length > 10 && (
-                <p className="text-sm text-muted-foreground mt-3 text-center">
-                  ... 还有 {parseResult.drafts.length - 10} 条记录
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         {/* 操作按钮 */}
-        {(parseResult || error || success) && (
+        {(error || success) && (
           <div className="flex justify-end gap-3">
-            {success && !parseResult ? (
-              <>
-                <Button variant="outline" onClick={handleReset}>
-                  继续导入
-                </Button>
-                <Button asChild>
-                  <Link href="/ledger">查看账单</Link>
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleReset}
-                  disabled={isCommitting}
-                >
-                  重新选择
-                </Button>
-                <Button
-                  onClick={handleCommit}
-                  disabled={!parseResult || isCommitting}
-                >
-                  {isCommitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      导入中...
-                    </>
-                  ) : (
-                    "确认导入"
-                  )}
-                </Button>
-              </>
-            )}
+            <Button variant="outline" onClick={handleReset} disabled={isCommitting || isLoading}>
+              继续导入
+            </Button>
+            <Button asChild>
+              <Link href="/ledger">查看账单</Link>
+            </Button>
           </div>
         )}
       </AppShell>
