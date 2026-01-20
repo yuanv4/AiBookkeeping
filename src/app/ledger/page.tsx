@@ -149,6 +149,16 @@ export default function LedgerPage(): JSX.Element {
     }
   };
 
+  function handleExport(): void {
+    const params = new URLSearchParams();
+    if (keyword) params.set("keyword", keyword);
+    if (accountName) params.set("accountName", accountName);
+    if (direction) params.set("direction", direction);
+    const query = params.toString();
+    const url = query ? `/api/ledger/export?${query}` : "/api/ledger/export";
+    window.location.assign(url);
+  }
+
   const formatAmount = (amount: number, direction: string): string => {
     const sign = direction === "out" ? "-" : "+";
     return `${sign}¥${amount.toFixed(2)}`;
@@ -274,9 +284,14 @@ export default function LedgerPage(): JSX.Element {
                 <CardTitle>交易记录</CardTitle>
                 <CardDescription>显示所有来源的统一账单数据</CardDescription>
               </div>
-              <p className="text-sm text-muted-foreground">
-                共 {total} 条记录
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-muted-foreground">
+                  共 {total} 条记录
+                </p>
+                <Button type="button" variant="outline" size="sm" onClick={handleExport}>
+                  导出 CSV
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
