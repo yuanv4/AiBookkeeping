@@ -31,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>): JSX.Element {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body
         className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} antialiased min-h-screen`}
       >

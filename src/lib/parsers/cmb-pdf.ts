@@ -40,9 +40,11 @@ function parseDate(value: string): Date | null {
   if (!match) return null;
   const [, year, month, day] = match;
   return new Date(
-    Number.parseInt(year, 10),
-    Number.parseInt(month, 10) - 1,
-    Number.parseInt(day, 10)
+    Date.UTC(
+      Number.parseInt(year, 10),
+      Number.parseInt(month, 10) - 1,
+      Number.parseInt(day, 10)
+    )
   );
 }
 

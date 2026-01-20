@@ -161,6 +161,7 @@ export default function LedgerPage(): JSX.Element {
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "UTC",
     });
   };
 

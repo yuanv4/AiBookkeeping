@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/db";
+import { applyUtcDateRangeFilter } from "@/lib/date-range";
 import type { ApiResponse, PaginatedResult } from "@/lib/types";
 
 // 查询参数 Schema
@@ -32,24 +33,6 @@ interface TransactionWithBatch {
   };
 }
 
-function applyDateRangeFilter(
-  where: Record<string, unknown>,
-  startDate?: string,
-  endDate?: string
-): void {
-  if (!startDate && !endDate) return;
-  const occurredAt: Record<string, Date> = {};
-  if (startDate) {
-    occurredAt.gte = new Date(startDate);
-  }
-  if (endDate) {
-    const end = new Date(endDate);
-    end.setDate(end.getDate() + 1);
-    occurredAt.lt = end;
-  }
-  where.occurredAt = occurredAt;
-}
-
 export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<PaginatedResult<TransactionWithBatch>>>> {
   try {
     const { searchParams } = new URL(request.url);
@@ -62,7 +45,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
       isDuplicate: false,
     };
 
-    applyDateRangeFilter(where, startDate, endDate);
+    applyUtcDateRangeFilter(where, startDate, endDate);
 
     if (accountName) {
       where.accountName = accountName;

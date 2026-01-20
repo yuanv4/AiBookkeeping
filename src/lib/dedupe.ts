@@ -18,12 +18,12 @@ function normalizeCounterparty(counterparty: string | null): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function getLocalDayRange(date: Date): { start: Date; end: Date; dayKey: string } {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
-  const start = new Date(year, month, day, 0, 0, 0, 0);
-  const end = new Date(year, month, day + 1, 0, 0, 0, 0);
+function getUtcDayRange(date: Date): { start: Date; end: Date; dayKey: string } {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  const start = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(year, month, day + 1, 0, 0, 0, 0));
   const pad = (value: number) => String(value).padStart(2, "0");
   const dayKey = `${year}-${pad(month + 1)}-${pad(day)}`;
   return { start, end, dayKey };
@@ -32,7 +32,7 @@ function getLocalDayRange(date: Date): { start: Date; end: Date; dayKey: string 
 function buildGroupKey(candidate: DedupeCandidate): string | null {
   const normalizedCounterparty = normalizeCounterparty(candidate.counterparty);
   if (!normalizedCounterparty) return null;
-  const { dayKey } = getLocalDayRange(candidate.occurredAt);
+  const { dayKey } = getUtcDayRange(candidate.occurredAt);
   return `${dayKey}|${candidate.amount}|${candidate.direction}|${normalizedCounterparty}`;
 }
 
@@ -59,7 +59,7 @@ export async function applyCrossSourceDeduplication(
     const normalizedCounterparty = normalizeCounterparty(sample.counterparty);
     if (!normalizedCounterparty) continue;
 
-    const { start, end } = getLocalDayRange(sample.occurredAt);
+    const { start, end } = getUtcDayRange(sample.occurredAt);
 
     const groupTransactions = await prisma.transaction.findMany({
       where: {

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertCircle, CheckCircle, FileSpreadsheet, Loader2, Sparkles, Upload, X } from "lucide-react";
+import { AlertCircle, BarChart3, CheckCircle, FileSpreadsheet, Loader2, Sparkles, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ParseResult } from "@/lib/types";
@@ -18,6 +18,7 @@ type AppShellProps = {
 
 const navItems = [
   { href: "/ledger", label: "账单明细", icon: FileSpreadsheet, accent: "text-accent" },
+  { href: "/analysis", label: "分析报表", icon: BarChart3, accent: "text-primary" },
 ];
 
 type ImportStatusTone = "success" | "warning" | "error";
@@ -47,7 +48,9 @@ export function AppShell({
     "border border-border/70 bg-card/70 text-foreground/80 hover:border-primary/40 hover:text-foreground";
   const activeItemClass = "bg-primary text-primary-foreground shadow-sm";
 
-  const parseSingleFile = useCallback(async (file: File): Promise<{ ok: boolean; data?: DraftWithWarnings; error?: string }> => {
+  const parseSingleFile = useCallback(async function parseSingleFile(
+    file: File
+  ): Promise<{ ok: boolean; data?: DraftWithWarnings; error?: string }> {
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -69,7 +72,9 @@ export function AppShell({
     }
   }, []);
 
-  const commitParseResult = useCallback(async (target: DraftWithWarnings): Promise<{ ok: boolean; error?: string; rowCount?: number; skippedCount?: number }> => {
+  const commitParseResult = useCallback(async function commitParseResult(
+    target: DraftWithWarnings
+  ): Promise<{ ok: boolean; error?: string; rowCount?: number; skippedCount?: number }> {
     try {
       const response = await fetch("/api/import/commit", {
         method: "POST",
@@ -102,7 +107,7 @@ export function AppShell({
     }
   }, []);
 
-  const handleFiles = useCallback(async (files: File[]) => {
+  const handleFiles = useCallback(async function handleFiles(files: File[]): Promise<void> {
     if (isImporting) {
       return;
     }
@@ -152,13 +157,14 @@ export function AppShell({
     }
 
     if (errors.length > 0) {
-      const title = successMessage
-        ? "部分失败"
-        : hasParseError && hasCommitError
-          ? "处理失败"
-          : hasCommitError
-            ? "导入失败"
-            : "解析失败";
+      let title = "解析失败";
+      if (successMessage) {
+        title = "部分失败";
+      } else if (hasParseError && hasCommitError) {
+        title = "处理失败";
+      } else if (hasCommitError) {
+        title = "导入失败";
+      }
       const message = successMessage ? `${errors.join("；")}；${successMessage}` : errors.join("；");
       setStatus({ tone: "error", title, message });
       setIsImporting(false);
@@ -180,7 +186,9 @@ export function AppShell({
     setIsImporting(false);
   }, [commitParseResult, isImporting, parseSingleFile]);
 
-  const handleFileInput = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = useCallback(function handleFileInput(
+    event: React.ChangeEvent<HTMLInputElement>
+  ): void {
     if (isImporting) {
       return;
     }
@@ -191,31 +199,37 @@ export function AppShell({
     event.target.value = "";
   }, [handleFiles, isImporting]);
 
-  const handleOpenPicker = useCallback(() => {
+  const handleOpenPicker = useCallback(function handleOpenPicker(): void {
     if (!isImporting) {
       fileInputRef.current?.click();
     }
   }, [isImporting]);
 
   const statusConfig = status
-    ? {
-        icon: status.tone === "success" ? CheckCircle : AlertCircle,
-        className: status.tone === "success"
-          ? "border border-primary/40"
-          : status.tone === "warning"
-            ? "border border-accent/40"
-            : "border border-destructive/40",
-        iconClassName: status.tone === "success"
-          ? "text-primary"
-          : status.tone === "warning"
-            ? "text-accent"
-            : "text-destructive",
-        titleClassName: status.tone === "success"
-          ? "text-primary"
-          : status.tone === "warning"
-            ? "text-accent"
-            : "text-destructive",
-      }
+    ? (() => {
+        if (status.tone === "success") {
+          return {
+            icon: CheckCircle,
+            className: "border border-primary/40",
+            iconClassName: "text-primary",
+            titleClassName: "text-primary",
+          };
+        }
+        if (status.tone === "warning") {
+          return {
+            icon: AlertCircle,
+            className: "border border-accent/40",
+            iconClassName: "text-accent",
+            titleClassName: "text-accent",
+          };
+        }
+        return {
+          icon: AlertCircle,
+          className: "border border-destructive/40",
+          iconClassName: "text-destructive",
+          titleClassName: "text-destructive",
+        };
+      })()
     : null;
 
   return (
