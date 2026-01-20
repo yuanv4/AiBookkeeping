@@ -31,9 +31,9 @@ interface Stats {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  alipay: "bg-blue-500/20 text-blue-400",
-  ccb: "bg-red-500/20 text-red-400",
-  cmb: "bg-orange-500/20 text-orange-400",
+  alipay: "bg-emerald-700/15 text-emerald-900",
+  ccb: "bg-rose-700/15 text-rose-900",
+  cmb: "bg-amber-700/20 text-amber-900",
 };
 
 const SOURCE_NAMES: Record<string, string> = {
@@ -166,7 +166,7 @@ export default function LedgerPage(): JSX.Element {
 
   const getSourceBadge = (source: string) => {
     return (
-      <span className={`px-2 py-0.5 rounded text-xs ${SOURCE_COLORS[source] || "bg-muted"}`}>
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs ${SOURCE_COLORS[source] || "bg-muted"}`}>
         {SOURCE_NAMES[source] || source}
       </span>
     );
@@ -174,11 +174,11 @@ export default function LedgerPage(): JSX.Element {
 
   return (
     <main className="min-h-screen bg-background">
-      <AppShell title="统一账单" subtitle="统一账单" contentClassName="max-w-7xl mx-auto px-6 py-8 space-y-6">
+      <AppShell title="统一账单" subtitle="收支对账与汇总" contentClassName="max-w-7xl mx-auto px-6 pb-16 pt-6 space-y-6">
         {/* 搜索和筛选 */}
-        <Card className="bg-card/80 border-border/70 shadow-sm">
+        <Card className="animate-slide-up">
           <CardContent className="pt-6">
-            <form onSubmit={handleSearch} className="flex items-center gap-4">
+            <form onSubmit={handleSearch} className="grid gap-4 lg:grid-cols-[1.6fr_1fr_0.8fr_auto]">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -195,7 +195,7 @@ export default function LedgerPage(): JSX.Element {
                   setAccountName(e.target.value);
                   setPage(1);
                 }}
-                className="h-10 px-3 rounded-md border border-input bg-card/80 text-sm"
+                className="h-10 px-3 rounded-xl border border-input bg-card/70 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">全部帐号</option>
                 {accounts.map((account) => (
@@ -210,51 +210,53 @@ export default function LedgerPage(): JSX.Element {
                   setDirection(e.target.value as "in" | "out" | "");
                   setPage(1);
                 }}
-                className="h-10 px-3 rounded-md border border-input bg-card/80 text-sm"
+                className="h-10 px-3 rounded-xl border border-input bg-card/70 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">全部类型</option>
                 <option value="out">支出</option>
                 <option value="in">收入</option>
               </select>
-              <Button type="submit">
-                <Filter className="w-4 h-4 mr-2" />
-                筛选
-              </Button>
-              <Button type="button" variant="destructive" onClick={handleClearAll} disabled={isClearing}>
-                {isClearing ? "清空中..." : "清空数据"}
-              </Button>
+              <div className="flex flex-wrap items-center justify-start gap-2">
+                <Button type="submit">
+                  <Filter className="w-4 h-4 mr-2" />
+                  筛选
+                </Button>
+                <Button type="button" variant="destructive" onClick={handleClearAll} disabled={isClearing}>
+                  {isClearing ? "清空中..." : "清空数据"}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
 
         {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/80 border-border/70 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-stagger">
+          <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">总交易笔数</p>
-              <p className="text-2xl font-bold mt-1">{stats?.totalCount ?? 0}</p>
+              <p className="text-sm text-muted-foreground ink-label">总交易笔数</p>
+              <p className="text-2xl font-bold mt-2">{stats?.totalCount ?? 0}</p>
             </CardContent>
           </Card>
-          <Card className="bg-card/80 border-border/70 shadow-sm">
+          <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">总支出</p>
-              <p className="text-2xl font-bold text-destructive mt-1">
+              <p className="text-sm text-muted-foreground ink-label">总支出</p>
+              <p className="text-2xl font-bold text-destructive mt-2">
                 ¥{(stats?.totalExpense ?? 0).toFixed(2)}
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-card/80 border-border/70 shadow-sm">
+          <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">总收入</p>
-              <p className="text-2xl font-bold text-primary mt-1">
+              <p className="text-sm text-muted-foreground ink-label">总收入</p>
+              <p className="text-2xl font-bold text-primary mt-2">
                 ¥{(stats?.totalIncome ?? 0).toFixed(2)}
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-card/80 border-border/70 shadow-sm">
+          <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">净收入</p>
-              <p className={`text-2xl font-bold mt-1 ${
+              <p className="text-sm text-muted-foreground ink-label">净收入</p>
+              <p className={`text-2xl font-bold mt-2 ${
                 (stats?.netIncome ?? 0) >= 0 ? "text-primary" : "text-destructive"
               }`}>
                 ¥{(stats?.netIncome ?? 0).toFixed(2)}
@@ -264,7 +266,7 @@ export default function LedgerPage(): JSX.Element {
         </div>
 
         {/* 交易列表 */}
-        <Card className="bg-card/80 border-border/70 shadow-sm">
+        <Card className="animate-slide-up">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -287,35 +289,35 @@ export default function LedgerPage(): JSX.Element {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto rounded-lg border border-border/70">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/40">
-                      <tr className="border-b border-border/70">
-                        <th className="text-left py-3 px-4 font-medium">时间</th>
-                        <th className="text-left py-3 px-4 font-medium">来源</th>
-                        <th className="text-left py-3 px-4 font-medium">帐号</th>
-                        <th className="text-left py-3 px-4 font-medium">对方</th>
-                        <th className="text-left py-3 px-4 font-medium">描述</th>
-                        <th className="text-right py-3 px-4 font-medium">金额</th>
+                <div className="overflow-x-auto rounded-2xl border border-border/70">
+                  <table className="w-full text-sm ledger-table">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th>时间</th>
+                        <th>来源</th>
+                        <th>帐号</th>
+                        <th>对方</th>
+                        <th>描述</th>
+                        <th className="text-right">金额</th>
                       </tr>
                     </thead>
                     <tbody>
                       {transactions.map((t) => (
-                        <tr key={t.id} className="border-b border-border/50 hover:bg-muted/40">
-                          <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
+                        <tr key={t.id}>
+                          <td className="text-muted-foreground whitespace-nowrap">
                             {formatDate(t.occurredAt)}
                           </td>
-                          <td className="py-3 px-4">{getSourceBadge(t.source)}</td>
-                          <td className="py-3 px-4 max-w-[180px] truncate">
+                          <td>{getSourceBadge(t.source)}</td>
+                          <td className="max-w-[180px] truncate">
                             {t.accountName || "-"}
                           </td>
-                          <td className="py-3 px-4 max-w-[150px] truncate">
+                          <td className="max-w-[150px] truncate">
                             {t.counterparty || "-"}
                           </td>
-                          <td className="py-3 px-4 text-muted-foreground max-w-[200px] truncate">
+                          <td className="text-muted-foreground max-w-[200px] truncate">
                             {t.description || t.category || "-"}
                           </td>
-                          <td className={`py-3 px-4 text-right font-medium whitespace-nowrap ${
+                          <td className={`text-right font-semibold whitespace-nowrap font-mono ${
                             t.direction === "out" ? "text-destructive" : "text-primary"
                           }`}>
                             {formatAmount(t.amount, t.direction)}
