@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import type { ApiResponse } from "@/lib/types";
 
-export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<string[]>>> {
+export async function GET(): Promise<NextResponse<ApiResponse<string[]>>> {
   try {
     const records = await prisma.transaction.findMany({
       where: {

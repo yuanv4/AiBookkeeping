@@ -43,7 +43,9 @@ function applyDateRangeFilter(
     occurredAt.gte = new Date(startDate);
   }
   if (endDate) {
-    occurredAt.lte = new Date(endDate);
+    const end = new Date(endDate);
+    end.setDate(end.getDate() + 1);
+    occurredAt.lt = end;
   }
   where.occurredAt = occurredAt;
 }

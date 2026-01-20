@@ -22,7 +22,7 @@ export function AppShell({
   subtitle,
   contentClassName = "px-6 py-8",
   children,
-}: AppShellProps) {
+}: AppShellProps): JSX.Element {
   const pathname = usePathname();
   const baseItemClass = "flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium";
   const inactiveItemClass =

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/db";
 import { applyCrossSourceDeduplication } from "@/lib/dedupe";
+import type { Prisma } from "@/generated/prisma/client";
 import type { ApiResponse } from "@/lib/types";
 
 // 单条交易 Schema（后端二次校验）
@@ -51,7 +52,10 @@ interface CommitResult {
 // 分批大小
 const BATCH_SIZE = 100;
 
-function buildTransactionData(draft: TransactionDraft, batchId: string) {
+function buildTransactionData(
+  draft: TransactionDraft,
+  batchId: string
+): Prisma.TransactionCreateManyInput {
   return {
     occurredAt: draft.occurredAt,
     amount: draft.amount,

@@ -12,7 +12,7 @@ interface DraftWithWarnings extends ParseResult {
   file: File;
 }
 
-export default function ImportPage() {
+export default function ImportPage(): JSX.Element {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);

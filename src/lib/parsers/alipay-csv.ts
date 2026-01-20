@@ -38,6 +38,8 @@ const ALIAS_TO_COLUMN: Array<{ alias: string; standard: string }> = (() => {
   return mapping.sort((a, b) => b.alias.length - a.alias.length);
 })();
 
+const WALLET_ALIASES = new Set(["余额宝", "账户余额"]);
+
 /**
  * 智能解码 Buffer（自动检测 UTF-8 / GBK）
  */
@@ -133,7 +135,13 @@ function parseDateTime(value: string): Date | null {
 function extractAccountName(paymentMethod: string): string | null {
   if (!paymentMethod) return null;
   const accountName = paymentMethod.split("&")[0].trim();
-  return accountName || null;
+  if (!accountName) return null;
+
+  if (WALLET_ALIASES.has(accountName)) {
+    return "支付宝";
+  }
+
+  return accountName;
 }
 
 /**

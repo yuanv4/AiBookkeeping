@@ -42,7 +42,7 @@ const SOURCE_NAMES: Record<string, string> = {
   cmb: "招行",
 };
 
-export default function LedgerPage() {
+export default function LedgerPage(): JSX.Element {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,6 +53,7 @@ export default function LedgerPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [isClearing, setIsClearing] = useState(false);
   const pageSize = 20;
 
   const fetchStats = useCallback(async () => {
@@ -94,6 +95,18 @@ export default function LedgerPage() {
     }
   }, [page, keyword, accountName, direction]);
 
+  const fetchAccounts = useCallback(async () => {
+    try {
+      const response = await fetch("/api/ledger/accounts");
+      const result = await response.json();
+      if (result.success) {
+        setAccounts(result.data);
+      }
+    } catch (error) {
+      console.error("获取帐号列表失败:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
@@ -103,25 +116,37 @@ export default function LedgerPage() {
   }, [fetchTransactions]);
 
   useEffect(() => {
-    const fetchAccounts = async () => {
-      try {
-        const response = await fetch("/api/ledger/accounts");
-        const result = await response.json();
-        if (result.success) {
-          setAccounts(result.data);
-        }
-      } catch (error) {
-        console.error("获取帐号列表失败:", error);
-      }
-    };
-
     fetchAccounts();
-  }, []);
+  }, [fetchAccounts]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
     fetchTransactions();
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm("确认清空所有账单与导入记录？此操作不可恢复。")) {
+      return;
+    }
+    setIsClearing(true);
+    try {
+      const response = await fetch("/api/maintenance/clear", { method: "POST" });
+      const result = await response.json();
+      if (result.success) {
+        setPage(1);
+        setKeyword("");
+        setAccountName("");
+        setDirection("");
+        await Promise.all([fetchStats(), fetchTransactions(), fetchAccounts()]);
+      } else {
+        console.error("清空失败:", result.error);
+      }
+    } catch (error) {
+      console.error("清空失败:", error);
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   const formatAmount = (amount: number, direction: string): string => {
@@ -194,6 +219,9 @@ export default function LedgerPage() {
               <Button type="submit">
                 <Filter className="w-4 h-4 mr-2" />
                 筛选
+              </Button>
+              <Button type="button" variant="destructive" onClick={handleClearAll} disabled={isClearing}>
+                {isClearing ? "清空中..." : "清空数据"}
               </Button>
             </form>
           </CardContent>
