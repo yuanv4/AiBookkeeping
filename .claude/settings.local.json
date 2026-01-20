@@ -40,7 +40,10 @@
       "Bash(npm test:*)",
       "Bash(npm run test:inner:*)",
       "Bash(codex exec \"Please review my uncommitted changes\")",
-      "Bash(codex:*)"
+      "Bash(codex:*)",
+      "Skill(skill-creator)",
+      "Skill(skill-creator:*)",
+      "Bash(git rev-parse:*)"
     ]
   }
 }
