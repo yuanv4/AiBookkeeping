@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Fragment, useState, useEffect, useCallback } from "react";
 import { Search, Filter, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppShell } from "@/components/layout/app-shell";
-import type { BillSource } from "@/lib/types";
 
 interface TransactionRow {
   id: string;
@@ -102,18 +101,20 @@ const DEBUG_FIELDS: Array<{ key: keyof TransactionRow; label: string }> = [
   { key: "importBatchId", label: "导入批次ID" },
 ];
 
-export default function LedgerPage() {
+export default function LedgerPage(): JSX.Element {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [keyword, setKeyword] = useState("");
-  const [source, setSource] = useState<BillSource | "">("");
+  const [accountName, setAccountName] = useState("");
+  const [accounts, setAccounts] = useState<string[]>([]);
   const [direction, setDirection] = useState<"in" | "out" | "">("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [showDebugFields, setShowDebugFields] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const pageSize = 20;
 
   const fetchStats = useCallback(async () => {
@@ -137,7 +138,7 @@ export default function LedgerPage() {
       });
 
       if (keyword) params.set("keyword", keyword);
-      if (source) params.set("source", source);
+      if (accountName) params.set("accountName", accountName);
       if (direction) params.set("direction", direction);
 
       const response = await fetch(`/api/ledger/query?${params}`);
@@ -153,7 +154,19 @@ export default function LedgerPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, keyword, source, direction]);
+  }, [page, keyword, accountName, direction]);
+
+  const fetchAccounts = useCallback(async () => {
+    try {
+      const response = await fetch("/api/ledger/accounts");
+      const result = await response.json();
+      if (result.success) {
+        setAccounts(result.data);
+      }
+    } catch (error) {
+      console.error("获取帐号列表失败:", error);
+    }
+  }, []);
 
   useEffect(() => {
     fetchStats();
@@ -164,11 +177,49 @@ export default function LedgerPage() {
     setExpandedRowId(null);
   }, [fetchTransactions]);
 
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
     fetchTransactions();
   };
+
+  const handleClearAll = async () => {
+    if (!window.confirm("确认清空所有账单与导入记录？此操作不可恢复。")) {
+      return;
+    }
+    setIsClearing(true);
+    try {
+      const response = await fetch("/api/maintenance/clear", { method: "POST" });
+      const result = await response.json();
+      if (result.success) {
+        setPage(1);
+        setKeyword("");
+        setAccountName("");
+        setDirection("");
+        await Promise.all([fetchStats(), fetchTransactions(), fetchAccounts()]);
+      } else {
+        console.error("清空失败:", result.error);
+      }
+    } catch (error) {
+      console.error("清空失败:", error);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  function handleExport(): void {
+    const params = new URLSearchParams();
+    if (keyword) params.set("keyword", keyword);
+    if (accountName) params.set("accountName", accountName);
+    if (direction) params.set("direction", direction);
+    const query = params.toString();
+    const url = query ? `/api/ledger/export?${query}` : "/api/ledger/export";
+    window.location.assign(url);
+  }
 
   const formatDate = (dateStr: string): string => {
     return new Date(dateStr).toLocaleString("zh-CN", {
@@ -177,6 +228,7 @@ export default function LedgerPage() {
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "UTC",
     });
   };
 
@@ -240,10 +292,10 @@ export default function LedgerPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <AppShell title="统一账单" subtitle="统一账单" contentClassName="max-w-7xl mx-auto px-6 py-8 space-y-6">
-        <Card className="bg-card/80 border-border/70 shadow-sm">
+      <AppShell title="统一账单" subtitle="收支对账与汇总" contentClassName="max-w-7xl mx-auto px-6 pb-16 pt-6 space-y-6">
+        <Card className="animate-slide-up">
           <CardContent className="pt-6">
-            <form onSubmit={handleSearch} className="flex items-center gap-4">
+            <form onSubmit={handleSearch} className="grid gap-4 lg:grid-cols-[1.6fr_1fr_0.8fr_auto]">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -255,17 +307,19 @@ export default function LedgerPage() {
                 />
               </div>
               <select
-                value={source}
+                value={accountName}
                 onChange={(e) => {
-                  setSource(e.target.value as BillSource | "");
+                  setAccountName(e.target.value);
                   setPage(1);
                 }}
-                className="h-10 px-3 rounded-md border border-input bg-card/80 text-sm"
+                className="h-10 px-3 rounded-xl border border-input bg-card/70 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <option value="">全部来源</option>
-                <option value="alipay">支付宝</option>
-                <option value="ccb">建设银行</option>
-                <option value="cmb">招商银行</option>
+                <option value="">全部帐号</option>
+                {accounts.map((account) => (
+                  <option key={account} value={account}>
+                    {account}
+                  </option>
+                ))}
               </select>
               <select
                 value={direction}
@@ -273,59 +327,62 @@ export default function LedgerPage() {
                   setDirection(e.target.value as "in" | "out" | "");
                   setPage(1);
                 }}
-                className="h-10 px-3 rounded-md border border-input bg-card/80 text-sm"
+                className="h-10 px-3 rounded-xl border border-input bg-card/70 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">全部类型</option>
                 <option value="out">支出</option>
                 <option value="in">收入</option>
               </select>
-              <Button type="submit">
-                <Filter className="w-4 h-4 mr-2" />
-                筛选
-              </Button>
+              <div className="flex flex-wrap items-center justify-start gap-2">
+                <Button type="submit">
+                  <Filter className="w-4 h-4 mr-2" />
+                  筛选
+                </Button>
+                <Button type="button" variant="destructive" onClick={handleClearAll} disabled={isClearing}>
+                  {isClearing ? "清空中..." : "清空数据"}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-card/80 border-border/70 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-stagger">
+          <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">总交易笔数</p>
-              <p className="text-2xl font-bold mt-1">{stats?.totalCount ?? 0}</p>
+              <p className="text-sm text-muted-foreground ink-label">总交易笔数</p>
+              <p className="text-2xl font-bold mt-2">{stats?.totalCount ?? 0}</p>
             </CardContent>
           </Card>
-          <Card className="bg-card/80 border-border/70 shadow-sm">
+          <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">总支出</p>
-              <p className="text-2xl font-bold text-destructive mt-1">¥{(stats?.totalExpense ?? 0).toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground ink-label">总支出</p>
+              <p className="text-2xl font-bold text-destructive mt-2">¥{(stats?.totalExpense ?? 0).toFixed(2)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-card/80 border-border/70 shadow-sm">
+          <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">总收入</p>
-              <p className="text-2xl font-bold text-primary mt-1">¥{(stats?.totalIncome ?? 0).toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground ink-label">总收入</p>
+              <p className="text-2xl font-bold text-primary mt-2">¥{(stats?.totalIncome ?? 0).toFixed(2)}</p>
             </CardContent>
           </Card>
-          <Card className="bg-card/80 border-border/70 shadow-sm">
+          <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">净收入</p>
-              <p
-                className={`text-2xl font-bold mt-1 ${(stats?.netIncome ?? 0) >= 0 ? "text-primary" : "text-destructive"}`}
-              >
+              <p className="text-sm text-muted-foreground ink-label">净收入</p>
+              <p className={`text-2xl font-bold mt-2 ${(stats?.netIncome ?? 0) >= 0 ? "text-primary" : "text-destructive"}`}>
                 ¥{(stats?.netIncome ?? 0).toFixed(2)}
               </p>
             </CardContent>
           </Card>
         </div>
 
-        <Card className="bg-card/80 border-border/70 shadow-sm">
+        <Card className="animate-slide-up">
           <CardHeader>
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <CardTitle>交易记录</CardTitle>
                 <CardDescription>主表仅显示高频字段，点击“详情”查看完整信息</CardDescription>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
@@ -335,6 +392,9 @@ export default function LedgerPage() {
                   显示调试字段
                 </label>
                 <p className="text-sm text-muted-foreground whitespace-nowrap">共 {total} 条记录</p>
+                <Button type="button" variant="outline" size="sm" onClick={handleExport}>
+                  导出 CSV
+                </Button>
               </div>
             </div>
           </CardHeader>

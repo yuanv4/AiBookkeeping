@@ -97,7 +97,26 @@ function findHeaderRow(data: unknown[][]): HeaderRowResult | null {
  * 解析日期 (YYYYMMDD 格式)
  */
 function parseDate(value: unknown): Date | null {
-  if (!value) return null;
+  if (value === null || value === undefined || value === "") return null;
+
+  if (typeof value === "number") {
+    const parsed = XLSX.SSF.parse_date_code(value);
+    if (!parsed) return null;
+    const utc = Date.UTC(parsed.y, parsed.m - 1, parsed.d, parsed.H, parsed.M, parsed.S);
+    return new Date(utc);
+  }
+
+  if (value instanceof Date) {
+    const utc = Date.UTC(
+      value.getUTCFullYear(),
+      value.getUTCMonth(),
+      value.getUTCDate(),
+      value.getUTCHours(),
+      value.getUTCMinutes(),
+      value.getUTCSeconds()
+    );
+    return new Date(utc);
+  }
 
   const str = String(value).trim();
 
@@ -105,11 +124,23 @@ function parseDate(value: unknown): Date | null {
     const year = Number.parseInt(str.substring(0, 4), 10);
     const month = Number.parseInt(str.substring(4, 6), 10) - 1;
     const day = Number.parseInt(str.substring(6, 8), 10);
-    return new Date(year, month, day);
+    return new Date(Date.UTC(year, month, day));
   }
 
-  const date = new Date(str);
-  return Number.isNaN(date.getTime()) ? null : date;
+  const match = str.match(
+    /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/
+  );
+  if (!match) return null;
+  const [, year, month, day, hour = "0", minute = "0", second = "0"] = match;
+  const utc = Date.UTC(
+    Number.parseInt(year, 10),
+    Number.parseInt(month, 10) - 1,
+    Number.parseInt(day, 10),
+    Number.parseInt(hour, 10),
+    Number.parseInt(minute, 10),
+    Number.parseInt(second, 10)
+  );
+  return new Date(utc);
 }
 
 /**

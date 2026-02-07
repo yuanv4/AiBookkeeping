@@ -146,8 +146,7 @@ function normalizeFileUrl(rawUrl, cwd) {
 
   const pathPart = rawUrl.slice(5);
   if (pathPart.startsWith("./") || pathPart.startsWith("../")) {
-    const absPath = path.resolve(cwd, pathPart);
-    return `file:${absPath.replace(/\\/g, "/")}`;
+    return rawUrl;
   }
 
   if (/^\/[A-Za-z]:\//.test(pathPart)) {
@@ -184,9 +183,8 @@ function fileUrlToPathSafe(fileUrl, cwd) {
 
 function resolveTestDatabaseUrl() {
   const cwd = process.cwd();
-  const defaultPath = path.join(cwd, DEFAULT_TEST_DB);
   const envUrl = process.env.DATABASE_URL;
-  const url = envUrl || `file:${defaultPath.replace(/\\/g, "/")}`;
+  const url = envUrl || `file:./${DEFAULT_TEST_DB}`;
   return normalizeFileUrl(url, cwd);
 }
 
@@ -230,11 +228,11 @@ async function prepareTestDatabase(dbUrl, resetDb) {
   }
 
   await runCommand(
-    "npm",
-    ["run", "db:push", "--", "--skip-generate"],
+    "npx",
+    ["prisma", "db", "push", "--url", dbUrl],
     {
       ...process.env,
-      DATABASE_URL: dbUrl,
+      RUST_LOG: process.env.RUST_LOG || "info",
     }
   );
 }
@@ -242,6 +240,10 @@ async function prepareTestDatabase(dbUrl, resetDb) {
 async function run() {
   let devServer = null;
   let startedByScript = false;
+
+  if (!process.env.RUST_LOG) {
+    process.env.RUST_LOG = "info";
+  }
 
   const options = parseArgs(process.argv.slice(2));
   const serverMode = options.mode === "start" ? "start" : "dev";

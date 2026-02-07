@@ -53,7 +53,7 @@ const BASE_URL = normalizeBaseUrl(process.env.BASE_URL);
 function buildTestFiles(repoRoot: string): string[] {
   const fixturesDir = path.join(repoRoot, "src", "__tests__", "fixtures");
   return [
-    path.join(fixturesDir, "支付宝交易明细(20250101-20251231).csv"),
+    path.join(fixturesDir, "袁成杰-支付宝交易明细(20250101-20251231).csv"),
     path.join(fixturesDir, "建设银行交易流水(20250101-20251231).xls"),
     path.join(fixturesDir, "招商银行交易流水(20250101-20251231).pdf"),
   ];

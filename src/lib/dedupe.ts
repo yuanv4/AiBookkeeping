@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import type { PrismaClient } from "@/generated/prisma/client";
+import type { TransactionDirection } from "@/lib/types";
 
 const DUPLICATE_REASON = "跨来源同日/金额/方向/对方一致";
 const PRIMARY_SOURCE = "alipay";
@@ -7,7 +8,7 @@ const PRIMARY_SOURCE = "alipay";
 interface DedupeCandidate {
   occurredAt: Date;
   amount: number;
-  direction: string;
+  direction: TransactionDirection;
   counterparty: string | null;
 }
 
@@ -23,7 +24,8 @@ function getUtcDayRange(date: Date): { start: Date; end: Date; dayKey: string } 
   const day = date.getUTCDate();
   const start = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
   const end = new Date(Date.UTC(year, month, day + 1, 0, 0, 0, 0));
-  const dayKey = start.toISOString().slice(0, 10);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const dayKey = `${year}-${pad(month + 1)}-${pad(day)}`;
   return { start, end, dayKey };
 }
 

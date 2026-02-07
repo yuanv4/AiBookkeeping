@@ -38,6 +38,8 @@ const ALIAS_TO_COLUMN: Array<{ alias: string; standard: string }> = (() => {
   return mapping.sort((a, b) => b.alias.length - a.alias.length);
 })();
 
+const WALLET_ALIASES = new Set(["余额宝", "账户余额"]);
+
 /**
  * 智能解码 Buffer（自动检测 UTF-8 / GBK）
  */
@@ -122,8 +124,21 @@ function parseCounterpartyAccount(value: string | undefined): string | null {
  */
 function parseDateTime(value: string): Date | null {
   if (!value) return null;
-  const date = new Date(value.trim());
-  return Number.isNaN(date.getTime()) ? null : date;
+  const trimmed = value.trim();
+  const match = trimmed.match(
+    /^(\d{4})[-/](\d{2})[-/](\d{2})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (!match) return null;
+  const [, year, month, day, hour = "0", minute = "0", second = "0"] = match;
+  const utc = Date.UTC(
+    Number.parseInt(year, 10),
+    Number.parseInt(month, 10) - 1,
+    Number.parseInt(day, 10),
+    Number.parseInt(hour, 10),
+    Number.parseInt(minute, 10),
+    Number.parseInt(second, 10)
+  );
+  return new Date(utc);
 }
 
 /**
@@ -133,7 +148,13 @@ function parseDateTime(value: string): Date | null {
 function extractAccountName(paymentMethod: string): string | null {
   if (!paymentMethod) return null;
   const accountName = paymentMethod.split("&")[0].trim();
-  return accountName || null;
+  if (!accountName) return null;
+
+  if (WALLET_ALIASES.has(accountName)) {
+    return "支付宝";
+  }
+
+  return accountName;
 }
 
 /**

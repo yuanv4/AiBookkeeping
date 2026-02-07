@@ -23,7 +23,7 @@ function generateAccountName(accountNumber: string | null): string {
  */
 let PDFParse: typeof import("pdf-parse").PDFParse;
 
-async function getPDFParse() {
+async function getPDFParse(): Promise<typeof import("pdf-parse").PDFParse> {
   if (!PDFParse) {
     const mod = await import("pdf-parse");
     PDFParse = mod.PDFParse;
@@ -39,17 +39,28 @@ function parseDate(value: string): Date | null {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return null;
   const [, year, month, day] = match;
-  return new Date(Number.parseInt(year, 10), Number.parseInt(month, 10) - 1, Number.parseInt(day, 10));
+  return new Date(
+    Date.UTC(
+      Number.parseInt(year, 10),
+      Number.parseInt(month, 10) - 1,
+      Number.parseInt(day, 10)
+    )
+  );
 }
 
 /**
  * 解析金额
  */
-function parseAmount(value: string): { amount: number; direction: "in" | "out" } | null {
+function parseNumber(value: string): number | null {
   if (!value) return null;
   const cleaned = value.replace(/[,，\s]/g, "");
-  const num = parseFloat(cleaned);
-  if (Number.isNaN(num) || num === 0) return null;
+  const num = Number.parseFloat(cleaned);
+  return Number.isNaN(num) ? null : num;
+}
+
+function parseAmount(value: string): { amount: number; direction: "in" | "out" } | null {
+  const num = parseNumber(value);
+  if (!num) return null;
   return {
     amount: Math.abs(num),
     direction: num > 0 ? "in" : "out",
@@ -60,10 +71,7 @@ function parseAmount(value: string): { amount: number; direction: "in" | "out" }
  * 解析余额
  */
 function parseBalance(value: string): number | null {
-  if (!value) return null;
-  const cleaned = value.replace(/[,，\s]/g, "");
-  const num = parseFloat(cleaned);
-  return Number.isNaN(num) ? null : num;
+  return parseNumber(value);
 }
 
 /**

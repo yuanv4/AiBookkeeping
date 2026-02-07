@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import type { ApiResponse } from "@/lib/types";
 
@@ -9,7 +9,7 @@ interface Stats {
   netIncome: number;
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<Stats>>> {
+export async function GET(): Promise<NextResponse<ApiResponse<Stats>>> {
   try {
     // 统计总笔数
     const totalCount = await prisma.transaction.count({

@@ -6,6 +6,18 @@ import type { ApiResponse, ParseResult, BillSource } from "@/lib/types";
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 // 行数限制 5000
 const MAX_ROWS = 5000;
+const ALLOWED_TYPES = [
+  "text/csv",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/pdf",
+];
+const ALLOWED_EXTENSIONS = [".csv", ".xls", ".xlsx", ".pdf"];
+
+function isAllowedFile(file: File): boolean {
+  const fileName = file.name.toLowerCase();
+  return ALLOWED_TYPES.includes(file.type) || ALLOWED_EXTENSIONS.some((ext) => fileName.endsWith(ext));
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<ParseResult>>> {
   try {
@@ -30,23 +42,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     }
 
     // 检查文件类型
-    const allowedTypes = [
-      "text/csv",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "application/pdf",
-    ];
-    
     // 有些浏览器可能会使用不同的 MIME 类型
-    const fileName = file.name.toLowerCase();
-    const isAllowed = 
-      allowedTypes.includes(file.type) ||
-      fileName.endsWith(".csv") ||
-      fileName.endsWith(".xls") ||
-      fileName.endsWith(".xlsx") ||
-      fileName.endsWith(".pdf");
-
-    if (!isAllowed) {
+    if (!isAllowedFile(file)) {
       return NextResponse.json(
         { success: false, error: "不支持的文件类型，请上传 CSV、XLS 或 PDF 文件" },
         { status: 400 }
