@@ -22,10 +22,24 @@ type AnalysisResponse = {
       netIncome: number;
     };
     trend: { period: string }[];
+    monthly: { period: string; totalCount: number }[];
+    yearly: { period: string; totalCount: number }[];
     categories: unknown[];
     accounts: unknown[];
     sources: unknown[];
     counterparties: unknown[];
+    alipay: {
+      summary: {
+        totalCount: number;
+        totalExpense: number;
+        totalIncome: number;
+        netIncome: number;
+      };
+      monthly: { period: string }[];
+      categories: unknown[];
+      counterparties: unknown[];
+      accounts: unknown[];
+    };
     dateRange: { start: string; end: string } | null;
   };
   error?: string;
@@ -74,7 +88,13 @@ describe("分析汇总 API 集成测试", () => {
     expect(typeof result.data.summary.totalExpense).toBe("number");
     expect(typeof result.data.summary.totalIncome).toBe("number");
     expect(typeof result.data.summary.netIncome).toBe("number");
+    expect(Array.isArray(result.data.monthly)).toBe(true);
+    expect(Array.isArray(result.data.yearly)).toBe(true);
     expect(Array.isArray(result.data.trend)).toBe(true);
+    expect(result.data.trend).toEqual(result.data.monthly);
+    expect(result.data.alipay).toBeDefined();
+    expect(typeof result.data.alipay.summary.totalCount).toBe("number");
+    expect(Array.isArray(result.data.alipay.monthly)).toBe(true);
   });
 
   test("日期范围按本地日历天计算", async () => {
@@ -112,6 +132,18 @@ describe("分析汇总 API 集成测试", () => {
     for (const point of result.data.trend) {
       expect(point.period >= startPeriod).toBe(true);
       expect(point.period <= endPeriod).toBe(true);
+    }
+  });
+
+  test("年度汇总 period 为年份格式", async () => {
+    const result = await requestSummary();
+    expect(result.success).toBe(true);
+    expect(result.data).toBeDefined();
+    if (!result.data) return;
+
+    for (const point of result.data.yearly) {
+      expect(/^\d{4}$/.test(point.period)).toBe(true);
+      expect(point.totalCount >= 0).toBe(true);
     }
   });
 });

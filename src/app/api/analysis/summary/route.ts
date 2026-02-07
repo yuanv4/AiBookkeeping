@@ -23,6 +23,7 @@ type TrendPoint = {
   income: number;
   expense: number;
   net: number;
+  totalCount: number;
 };
 
 type CategoryPoint = {
@@ -47,13 +48,24 @@ type CounterpartyPoint = {
   amount: number;
 };
 
+type AlipayAnalysis = {
+  summary: Summary;
+  monthly: TrendPoint[];
+  categories: CategoryPoint[];
+  counterparties: CounterpartyPoint[];
+  accounts: AccountPoint[];
+};
+
 type AnalysisPayload = {
   summary: Summary;
+  monthly: TrendPoint[];
+  yearly: TrendPoint[];
   trend: TrendPoint[];
   categories: CategoryPoint[];
   accounts: AccountPoint[];
   sources: SourcePoint[];
   counterparties: CounterpartyPoint[];
+  alipay: AlipayAnalysis;
   dateRange: {
     start: string;
     end: string;
@@ -70,6 +82,29 @@ function formatDateOutput(date: Date): string {
 function getMonthKey(date: Date): string {
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
   return `${date.getUTCFullYear()}-${month}`;
+}
+
+function getYearKey(date: Date): string {
+  return String(date.getUTCFullYear());
+}
+
+function upsertTrendPoint(map: Map<string, TrendPoint>, period: string, isIncome: boolean, amount: number): void {
+  const point = map.get(period) ?? {
+    period,
+    income: 0,
+    expense: 0,
+    net: 0,
+    totalCount: 0,
+  };
+
+  if (isIncome) {
+    point.income += amount;
+  } else {
+    point.expense += amount;
+  }
+  point.totalCount += 1;
+  point.net = point.income - point.expense;
+  map.set(period, point);
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<AnalysisPayload>>> {
@@ -131,11 +166,22 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
       netIncome: 0,
     };
 
-    const trendMap = new Map<string, TrendPoint>();
+    const monthlyMap = new Map<string, TrendPoint>();
+    const yearlyMap = new Map<string, TrendPoint>();
     const categoryMap = new Map<string, number>();
     const accountMap = new Map<string, { income: number; expense: number }>();
     const sourceMap = new Map<string, { income: number; expense: number }>();
     const counterpartyMap = new Map<string, number>();
+    const alipaySummary: Summary = {
+      totalCount: 0,
+      totalExpense: 0,
+      totalIncome: 0,
+      netIncome: 0,
+    };
+    const alipayMonthlyMap = new Map<string, TrendPoint>();
+    const alipayCategoryMap = new Map<string, number>();
+    const alipayCounterpartyMap = new Map<string, number>();
+    const alipayAccountMap = new Map<string, { income: number; expense: number }>();
 
     for (const transaction of transactions) {
       summary.totalCount += 1;
@@ -147,20 +193,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
         summary.totalExpense += transaction.amount;
       }
 
-      const period = getMonthKey(transaction.occurredAt);
-      const trendPoint = trendMap.get(period) ?? {
-        period,
-        income: 0,
-        expense: 0,
-        net: 0,
-      };
-      if (isIncome) {
-        trendPoint.income += transaction.amount;
-      } else {
-        trendPoint.expense += transaction.amount;
-      }
-      trendPoint.net = trendPoint.income - trendPoint.expense;
-      trendMap.set(period, trendPoint);
+      upsertTrendPoint(monthlyMap, getMonthKey(transaction.occurredAt), isIncome, transaction.amount);
+      upsertTrendPoint(yearlyMap, getYearKey(transaction.occurredAt), isIncome, transaction.amount);
 
       const accountKey = transaction.accountName?.trim() || "未知帐号";
       const accountBucket = accountMap.get(accountKey) ?? { income: 0, expense: 0 };
@@ -187,11 +221,41 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
         const counterpartyKey = transaction.counterparty?.trim() || "未指定";
         counterpartyMap.set(counterpartyKey, (counterpartyMap.get(counterpartyKey) ?? 0) + transaction.amount);
       }
+
+      if (transaction.source === "alipay") {
+        alipaySummary.totalCount += 1;
+        if (isIncome) {
+          alipaySummary.totalIncome += transaction.amount;
+        } else {
+          alipaySummary.totalExpense += transaction.amount;
+        }
+
+        upsertTrendPoint(alipayMonthlyMap, getMonthKey(transaction.occurredAt), isIncome, transaction.amount);
+
+        const alipayAccountKey = transaction.accountName?.trim() || "未知帐号";
+        const alipayAccountBucket = alipayAccountMap.get(alipayAccountKey) ?? { income: 0, expense: 0 };
+        if (isIncome) {
+          alipayAccountBucket.income += transaction.amount;
+        } else {
+          alipayAccountBucket.expense += transaction.amount;
+          const alipayCategoryKey = transaction.category?.trim() || "未分类";
+          alipayCategoryMap.set(alipayCategoryKey, (alipayCategoryMap.get(alipayCategoryKey) ?? 0) + transaction.amount);
+
+          const alipayCounterpartyKey = transaction.counterparty?.trim() || "未指定";
+          alipayCounterpartyMap.set(
+            alipayCounterpartyKey,
+            (alipayCounterpartyMap.get(alipayCounterpartyKey) ?? 0) + transaction.amount
+          );
+        }
+        alipayAccountMap.set(alipayAccountKey, alipayAccountBucket);
+      }
     }
 
     summary.netIncome = summary.totalIncome - summary.totalExpense;
+    alipaySummary.netIncome = alipaySummary.totalIncome - alipaySummary.totalExpense;
 
-    const trend = Array.from(trendMap.values()).sort((a, b) => a.period.localeCompare(b.period));
+    const monthly = Array.from(monthlyMap.values()).sort((a, b) => a.period.localeCompare(b.period));
+    const yearly = Array.from(yearlyMap.values()).sort((a, b) => a.period.localeCompare(b.period));
 
     const categories = Array.from(categoryMap.entries())
       .map(([category, amount]) => ({ category, amount }))
@@ -211,15 +275,40 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 10);
 
+    const alipayMonthly = Array.from(alipayMonthlyMap.values()).sort((a, b) => a.period.localeCompare(b.period));
+
+    const alipayCategories = Array.from(alipayCategoryMap.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10);
+
+    const alipayCounterparties = Array.from(alipayCounterpartyMap.entries())
+      .map(([counterparty, amount]) => ({ counterparty, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10);
+
+    const alipayAccounts = Array.from(alipayAccountMap.entries())
+      .map(([accountName, values]) => ({ accountName, ...values }))
+      .sort((a, b) => (b.expense + b.income) - (a.expense + a.income));
+
     return NextResponse.json({
       success: true,
       data: {
         summary,
-        trend,
+        monthly,
+        yearly,
+        trend: monthly,
         categories,
         accounts,
         sources,
         counterparties,
+        alipay: {
+          summary: alipaySummary,
+          monthly: alipayMonthly,
+          categories: alipayCategories,
+          counterparties: alipayCounterparties,
+          accounts: alipayAccounts,
+        },
         dateRange: appliedStart && appliedEnd ? { start: appliedStart, end: appliedEnd } : null,
       },
     });
@@ -228,7 +317,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: `参数格式错误: ${error.errors[0]?.message}` },
+        { success: false, error: `参数格式错误: ${error.issues[0]?.message}` },
         { status: 400 }
       );
     }
