@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const http = require("http");
 const https = require("https");
 const net = require("net");
@@ -139,7 +138,7 @@ async function stopDevServer(child) {
   child.kill("SIGTERM");
 }
 
-function normalizeFileUrl(rawUrl, cwd) {
+function normalizeFileUrl(rawUrl) {
   if (!rawUrl.startsWith("file:")) {
     return rawUrl;
   }
@@ -182,10 +181,9 @@ function fileUrlToPathSafe(fileUrl, cwd) {
 }
 
 function resolveTestDatabaseUrl() {
-  const cwd = process.cwd();
   const envUrl = process.env.DATABASE_URL;
   const url = envUrl || `file:./${DEFAULT_TEST_DB}`;
-  return normalizeFileUrl(url, cwd);
+  return normalizeFileUrl(url);
 }
 
 function ensureSafeDbPath(dbPath, cwd) {
