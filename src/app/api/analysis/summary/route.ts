@@ -8,7 +8,7 @@ const QueryParamsSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   accountName: z.string().optional(),
-  source: z.enum(["alipay", "ccb", "cmb"]).optional(),
+  source: z.enum(["alipay", "ccb", "cmb", "spdb"]).optional(),
 });
 
 type Summary = {

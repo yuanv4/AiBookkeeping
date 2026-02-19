@@ -142,11 +142,12 @@ function MonthlySection({
   }, [rows, selectedYear]);
 
   const [selectedPeriod, setSelectedPeriod] = useState("");
-  const effectivePeriod = selectedPeriod || filteredRows[filteredRows.length - 1]?.period || "";
-
-  useEffect(() => {
-    setSelectedPeriod(filteredRows[filteredRows.length - 1]?.period ?? "");
-  }, [selectedYear, filteredRows]);
+  const effectivePeriod = useMemo(() => {
+    if (filteredRows.some((item) => item.period === selectedPeriod)) {
+      return selectedPeriod;
+    }
+    return filteredRows[filteredRows.length - 1]?.period ?? "";
+  }, [filteredRows, selectedPeriod]);
 
   const selectedRow = useMemo(
     () => filteredRows.find((item) => item.period === effectivePeriod) ?? filteredRows[filteredRows.length - 1] ?? null,

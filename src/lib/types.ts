@@ -1,7 +1,7 @@
 /**
  * 账单来源
  */
-export type BillSource = "alipay" | "ccb" | "cmb";
+export type BillSource = "alipay" | "ccb" | "cmb" | "spdb";
 
 /**
  * 交易方向

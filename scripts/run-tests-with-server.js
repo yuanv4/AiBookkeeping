@@ -230,7 +230,9 @@ async function prepareTestDatabase(dbUrl, resetDb) {
     ["prisma", "db", "push", "--url", dbUrl],
     {
       ...process.env,
-      RUST_LOG: process.env.RUST_LOG || "info",
+      // Windows + Prisma occasionally fails with "Schema engine error" at lower log levels.
+      // Force debug log level for stable db push in this repo.
+      RUST_LOG: "debug",
     }
   );
 }
@@ -239,9 +241,7 @@ async function run() {
   let devServer = null;
   let startedByScript = false;
 
-  if (!process.env.RUST_LOG) {
-    process.env.RUST_LOG = "info";
-  }
+  process.env.RUST_LOG = "debug";
 
   const options = parseArgs(process.argv.slice(2));
   const serverMode = options.mode === "start" ? "start" : "dev";

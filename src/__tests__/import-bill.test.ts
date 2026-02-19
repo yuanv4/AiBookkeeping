@@ -54,8 +54,9 @@ function buildTestFiles(repoRoot: string): string[] {
   const fixturesDir = path.join(repoRoot, "src", "__tests__", "fixtures");
   return [
     path.join(fixturesDir, "袁成杰-支付宝交易明细(20250101-20251231).csv"),
-    path.join(fixturesDir, "建设银行交易流水(20250101-20251231).xls"),
-    path.join(fixturesDir, "招商银行交易流水(20250101-20251231).pdf"),
+    path.join(fixturesDir, "袁成杰-建设银行交易流水(20250101-20251231).xls"),
+    path.join(fixturesDir, "袁成杰-招商银行交易流水(20250101-20251231).pdf"),
+    path.join(fixturesDir, "杜文俊-浦发银行(20250101-20251231).pdf"),
   ];
 }
 
@@ -79,7 +80,7 @@ async function requestParseFile(filePath: string): Promise<Response> {
 
   // 根据文件扩展名确定 source 和 sourceType
   const ext = path.extname(fileName).toLowerCase();
-  let source: "alipay" | "ccb" | "cmb" | undefined;
+  let source: "alipay" | "ccb" | "cmb" | "spdb" | undefined;
   let sourceType: "csv" | "xls" | "pdf" | undefined;
 
   if (fileName.includes("支付宝")) {
@@ -90,6 +91,9 @@ async function requestParseFile(filePath: string): Promise<Response> {
     sourceType = ext === ".xls" || ext === ".xlsx" ? "xls" : undefined;
   } else if (fileName.includes("招商银行")) {
     source = "cmb";
+    sourceType = ext === ".pdf" ? "pdf" : undefined;
+  } else if (fileName.includes("浦发银行") || fileName.includes("浦东发展银行")) {
+    source = "spdb";
     sourceType = ext === ".pdf" ? "pdf" : undefined;
   }
 
@@ -108,7 +112,7 @@ async function requestParseFile(filePath: string): Promise<Response> {
 async function requestCommitData(
   fileName: string,
   fileSize: number,
-  source: "alipay" | "ccb" | "cmb",
+  source: "alipay" | "ccb" | "cmb" | "spdb",
   sourceType: "csv" | "xls" | "pdf",
   drafts: unknown[],
   warningCount: number
@@ -144,7 +148,7 @@ async function parseParseResponse(filePath: string): Promise<ParseResponse> {
 async function parseCommitResponse(
   fileName: string,
   fileSize: number,
-  source: "alipay" | "ccb" | "cmb",
+  source: "alipay" | "ccb" | "cmb" | "spdb",
   sourceType: "csv" | "xls" | "pdf",
   drafts: unknown[],
   warningCount: number
@@ -192,6 +196,11 @@ describe("账单导入 API 集成测试", () => {
 
   test.concurrent("招商银行 PDF 文件解析", async () => {
     const result = await parseParseResponse(files[2]);
+    expectParseData(result, true);
+  });
+
+  test.concurrent("浦发银行 PDF 文件解析", async () => {
+    const result = await parseParseResponse(files[3]);
     expectParseData(result, true);
   });
 

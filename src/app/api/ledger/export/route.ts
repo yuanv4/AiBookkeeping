@@ -79,6 +79,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       if (keyword.includes("招商银行") || keyword.includes("招行") || keyword.toLowerCase().includes("cmb")) {
         orConditions.push({ source: "cmb" });
       }
+      if (
+        keyword.includes("浦发银行") ||
+        keyword.includes("浦东发展银行") ||
+        keyword.toLowerCase().includes("spdb")
+      ) {
+        orConditions.push({ source: "spdb" });
+      }
 
       where.OR = orConditions;
     }

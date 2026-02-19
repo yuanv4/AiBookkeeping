@@ -2,6 +2,7 @@ import type { ParseResult, BillSource } from "../types";
 import { parseAlipayCsv } from "./alipay-csv";
 import { parseCcbXls } from "./ccb-xls";
 import { parseCmbPdf } from "./cmb-pdf";
+import { parseSpdbPdf } from "./spdb-pdf";
 
 function inferSource(lowerName: string): BillSource | undefined {
   if (lowerName.includes("支付宝") || lowerName.includes("alipay")) {
@@ -12,6 +13,13 @@ function inferSource(lowerName: string): BillSource | undefined {
   }
   if (lowerName.includes("招商银行") || lowerName.includes("cmb")) {
     return "cmb";
+  }
+  if (
+    lowerName.includes("浦发银行") ||
+    lowerName.includes("浦东发展银行") ||
+    lowerName.includes("spdb")
+  ) {
+    return "spdb";
   }
   return undefined;
 }
@@ -52,8 +60,14 @@ export async function parseFile(
   }
 
   if (detectedType === "pdf") {
-    if (!detectedSource || detectedSource === "cmb") {
+    if (detectedSource === "cmb") {
       return parseCmbPdf(buffer);
+    }
+    if (detectedSource === "spdb") {
+      return parseSpdbPdf(buffer);
+    }
+    if (!detectedSource) {
+      throw new Error("无法识别 PDF 来源，请确保文件名包含银行名称（如“招商银行”或“浦发银行”）");
     }
     throw new Error(`不支持的 PDF 来源: ${detectedSource}`);
   }
@@ -64,3 +78,4 @@ export async function parseFile(
 export { parseAlipayCsv } from "./alipay-csv";
 export { parseCcbXls } from "./ccb-xls";
 export { parseCmbPdf } from "./cmb-pdf";
+export { parseSpdbPdf } from "./spdb-pdf";

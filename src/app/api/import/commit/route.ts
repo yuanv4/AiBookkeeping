@@ -19,7 +19,7 @@ const TransactionDraftSchema = z.object({
   description: z.string().max(500).nullable(),
   category: z.string().max(100).nullable(),
   accountName: z.string().max(100).nullable(),
-  source: z.enum(["alipay", "ccb", "cmb"]),
+  source: z.enum(["alipay", "ccb", "cmb", "spdb"]),
   sourceRaw: z.string().max(5000), // 限制原始数据大小
   sourceRowId: z.string().max(200),
   balance: z.number().min(-100_000_000).max(100_000_000).nullable(),
@@ -37,7 +37,7 @@ type TransactionDraft = z.infer<typeof TransactionDraftSchema>;
 const CommitRequestSchema = z.object({
   fileName: z.string().max(255),
   fileSize: z.number().int().positive().max(10 * 1024 * 1024), // 最大 10MB
-  source: z.enum(["alipay", "ccb", "cmb"]),
+  source: z.enum(["alipay", "ccb", "cmb", "spdb"]),
   sourceType: z.enum(["csv", "xls", "pdf"]),
   drafts: z.array(TransactionDraftSchema).max(5000), // 最多 5000 条
   warningCount: z.number().int().min(0).default(0),

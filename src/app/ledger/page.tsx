@@ -58,12 +58,14 @@ const SOURCE_COLORS: Record<string, string> = {
   alipay: "bg-blue-500/20 text-blue-400",
   ccb: "bg-red-500/20 text-red-400",
   cmb: "bg-orange-500/20 text-orange-400",
+  spdb: "bg-emerald-500/20 text-emerald-400",
 };
 
 const SOURCE_NAMES: Record<string, string> = {
   alipay: "支付宝",
   ccb: "建设银行",
   cmb: "招商银行",
+  spdb: "浦发银行",
 };
 
 const MAIN_COLUMNS: Array<{ key: ColumnKey; label: string }> = [
