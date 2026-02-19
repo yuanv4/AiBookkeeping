@@ -295,6 +295,35 @@ export default function LedgerPage(): JSX.Element {
   return (
     <main className="min-h-screen bg-background">
       <AppShell title="统一账单" subtitle="收支对账与汇总" contentClassName="max-w-7xl mx-auto px-6 pb-16 pt-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-stagger">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground ink-label">总交易笔数</p>
+              <p className="text-2xl font-bold mt-2">{stats?.totalCount ?? 0}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground ink-label">总支出</p>
+              <p className="text-2xl font-bold text-destructive mt-2">¥{(stats?.totalExpense ?? 0).toFixed(2)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground ink-label">总收入</p>
+              <p className="text-2xl font-bold text-primary mt-2">¥{(stats?.totalIncome ?? 0).toFixed(2)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground ink-label">净收入</p>
+              <p className={`text-2xl font-bold mt-2 ${(stats?.netIncome ?? 0) >= 0 ? "text-primary" : "text-destructive"}`}>
+                ¥{(stats?.netIncome ?? 0).toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card className="animate-slide-up">
           <CardContent className="pt-6">
             <form onSubmit={handleSearch} className="grid gap-4 lg:grid-cols-[1.6fr_1fr_0.8fr_auto]">
@@ -347,35 +376,6 @@ export default function LedgerPage(): JSX.Element {
             </form>
           </CardContent>
         </Card>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-stagger">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground ink-label">总交易笔数</p>
-              <p className="text-2xl font-bold mt-2">{stats?.totalCount ?? 0}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground ink-label">总支出</p>
-              <p className="text-2xl font-bold text-destructive mt-2">¥{(stats?.totalExpense ?? 0).toFixed(2)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground ink-label">总收入</p>
-              <p className="text-2xl font-bold text-primary mt-2">¥{(stats?.totalIncome ?? 0).toFixed(2)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground ink-label">净收入</p>
-              <p className={`text-2xl font-bold mt-2 ${(stats?.netIncome ?? 0) >= 0 ? "text-primary" : "text-destructive"}`}>
-                ¥{(stats?.netIncome ?? 0).toFixed(2)}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
 
         <Card className="animate-slide-up">
           <CardHeader>
